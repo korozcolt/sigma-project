@@ -1,9 +1,11 @@
 # 🗳️ SIGMA - Sistema Integral de Gestión y Análisis Electoral
 
-[![Laravel](https://img.shields.io/badge/Laravel-12.36-red.svg)](https://laravel.com)
-[![PHP](https://img.shields.io/badge/PHP-8.4-blue.svg)](https://php.net)
-[![Filament](https://img.shields.io/badge/Filament-4.2-orange.svg)](https://filamentphp.com)
-[![Tests](https://img.shields.io/badge/Tests-Passing-green.svg)](https://pestphp.com)
+[![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
+[![Laravel](https://img.shields.io/badge/Laravel-12.36-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com/)
+[![Filament](https://img.shields.io/badge/Filament-4.2-FDAE4B?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAgMEg0OFY0OEgwVjBaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K&logoColor=white)](https://filamentphp.com/)
+[![Livewire](https://img.shields.io/badge/Livewire-3.6-FB70A9?style=for-the-badge&logo=livewire&logoColor=white)](https://livewire.laravel.com/)
+[![Tests](https://img.shields.io/badge/Tests-279_Passing-22C55E?style=for-the-badge&logo=checkmarx&logoColor=white)](https://pestphp.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
 Plataforma completa para la gestión y análisis de campañas políticas, desde el registro de votantes hasta el análisis post-electoral.
 
