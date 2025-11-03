@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__laravel-boost__list-routes",
+      "Bash(xargs:*)",
+      "mcp__laravel-boost__application-info",
+      "Bash(cat:*)",
+      "Bash(composer require:*)",
+      "Bash(php artisan vendor:publish:*)",
+      "Bash(php artisan migrate:*)",
+      "Bash(php artisan:*)",
+      "Bash(vendor/bin/pint:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "laravel-boost",
+    "herd"
+  ]
+}
