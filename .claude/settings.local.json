@@ -9,7 +9,10 @@
       "Bash(php artisan vendor:publish:*)",
       "Bash(php artisan migrate:*)",
       "Bash(php artisan:*)",
-      "Bash(vendor/bin/pint:*)"
+      "Bash(vendor/bin/pint:*)",
+      "mcp__laravel-boost__database-schema",
+      "mcp__laravel-boost__search-docs",
+      "Bash(git add:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

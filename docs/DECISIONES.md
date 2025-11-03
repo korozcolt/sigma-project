@@ -403,6 +403,117 @@ Ubicación: `app/Enums/`
 
 ---
 
+### ADR-006: Convención de Idiomas (UI vs Código)
+
+**Fecha:** 2025-11-03
+**Estado:** ✅ Aceptada
+**Decidido por:** Equipo desarrollo
+**Afecta a:** Todo el proyecto
+
+#### Contexto
+SIGMA está diseñado para usuarios hispanohablantes en Colombia, pero el equipo de desarrollo trabaja con mejores prácticas internacionales que usan inglés para código.
+
+#### Decisión
+**Regla de Oro: Español en UI, Inglés en Código**
+
+**Interfaz de Usuario (Español):**
+- Todos los labels de Filament Resources: `$navigationLabel`, `$modelLabel`, `$pluralModelLabel`
+- Todos los grupos de navegación: `$navigationGroup`
+- Labels de formularios: `->label('Nombre')`
+- Labels de columnas de tablas: `->label('Departamento')`
+- Mensajes de validación
+- Notificaciones al usuario
+- Textos de ayuda: `->helperText()`
+- Placeholders de inputs
+- Opciones de selects cuando son texto libre
+
+**Código (Inglés):**
+- Nombres de modelos: `Department`, `Municipality`, `Neighborhood`
+- Nombres de variables: `$department`, `$municipalityId`
+- Nombres de métodos: `createVoter()`, `validateAgainstCensus()`
+- Nombres de columnas en BD: `department_id`, `created_at`
+- Nombres de clases: `VoterStatus`, `CampaignController`
+- Nombres de tests: `it('can create a department')`
+- Comentarios de código (preferiblemente)
+- Commits y mensajes de Git
+- Documentación técnica
+
+**Excepciones:**
+- Enums con valores string pueden usar español si van directo a UI
+- Seeders de datos reales (ej: nombres de departamentos de Colombia)
+- Content en migraciones de datos iniciales
+
+#### Ejemplos
+
+✅ **Correcto:**
+```php
+// Filament Resource
+class DepartmentResource extends Resource
+{
+    protected static ?string $navigationLabel = 'Departamentos';
+    protected static ?string $navigationGroup = 'Configuración';
+    protected static ?string $modelLabel = 'Departamento';
+
+    // Pero la clase se llama DepartmentResource (inglés)
+}
+
+// Form
+Select::make('department_id')
+    ->label('Departamento')  // español
+    ->helperText('Seleccione el departamento')  // español
+    ->relationship('department', 'name')  // código en inglés
+    ->required();
+```
+
+❌ **Incorrecto:**
+```php
+// NO hacer esto
+class DepartamentoResource extends Resource  // ❌
+{
+    protected static ?string $navigationLabel = 'Departments';  // ❌
+}
+
+Select::make('departamento_id')  // ❌ columna debe ser department_id
+    ->label('Department')  // ❌ debe ser español
+```
+
+#### Consecuencias
+
+**Positivas:**
+- Mejor experiencia para usuarios hispanohablantes
+- Código sigue estándares internacionales
+- Fácil colaboración con desarrolladores de otros países
+- Mejor compatibilidad con packages de terceros
+- IDE autocomplete funciona mejor con inglés
+- Stack Overflow y documentación en inglés más accesible
+
+**Negativas:**
+- Equipo debe dominar inglés técnico básico
+- Cambio de contexto mental entre UI y código
+- Más trabajo inicial para traducir labels
+
+#### Implementación
+
+1. **Filament Resources**: Siempre incluir estas propiedades en español:
+```php
+protected static ?string $navigationLabel = '[Nombre en español]';
+protected static ?string $navigationGroup = '[Grupo en español]';
+protected static ?string $modelLabel = '[Singular en español]';
+protected static ?string $pluralModelLabel = '[Plural en español]';
+```
+
+2. **Formularios y Tablas**: Todo método `->label()` debe estar en español
+
+3. **Validación**: Usar archivos de idioma de Laravel en español (`lang/es/`)
+
+4. **Migraciones**: Mantener nombres de columnas en inglés y snake_case
+
+#### Referencias
+- Laravel Docs - Localization: https://laravel.com/docs/localization
+- Filament Docs - Resources: https://filamentphp.com/docs/resources
+
+---
+
 ## Decisiones Rechazadas
 
 ### ❌ DR-001: Usar API REST Interna
@@ -433,4 +544,4 @@ _(Ninguna aún)_
 
 ---
 
-**Última Actualización:** 2025-11-02
+**Última Actualización:** 2025-11-03

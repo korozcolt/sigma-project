@@ -486,6 +486,7 @@ enum VoterStatus: string
 ##### 6.1.1 Modelo de Encuesta
 - [ ] Crear `Survey`
 - [ ] Migración
+- [ ] Versionamiento de encuestas
 - [ ] Resource de Filament
 - [ ] Tests
 
@@ -495,15 +496,26 @@ enum VoterStatus: string
 - campaign_id (FK)
 - name
 - description
+- version (int, default 1) // Para versionamiento
+- parent_survey_id (FK a surveys, nullable) // Referencia a versión anterior
 - is_active
 - start_date
 - end_date
+- created_by (FK a users)
 - timestamps
+- soft_deletes
 ```
+
+**Versionamiento:**
+- Al duplicar/editar una encuesta activa, se crea nueva versión
+- Se mantiene historial de versiones anteriores
+- Las respuestas quedan ligadas a la versión específica
 
 ##### 6.1.2 Modelo de Pregunta
 - [ ] Crear `SurveyQuestion`
-- [ ] Tipos de pregunta (text, select, radio, checkbox)
+- [ ] Enum `QuestionType` con tipos: yes_no, scale, text, multiple_choice, single_choice
+- [ ] Configuración de escalas (1-5, 1-10, etc.)
+- [ ] Validación de opciones según tipo
 - [ ] Orden de preguntas
 - [ ] Tests
 
@@ -512,12 +524,22 @@ enum VoterStatus: string
 - id
 - survey_id (FK)
 - question_text
-- question_type (enum)
-- options (json)
+- question_type (enum: yes_no, scale, text, multiple_choice, single_choice)
+- options (json) // Para multiple_choice y single_choice
+- scale_min (int, nullable) // Para tipo scale
+- scale_max (int, nullable) // Para tipo scale
+- scale_labels (json, nullable) // Labels opcionales para escala
 - is_required
 - order
 - timestamps
 ```
+
+**Tipos de Pregunta:**
+- `yes_no`: Pregunta simple Sí/No
+- `scale`: Escala numérica (ej: 1-5, 1-10)
+- `text`: Respuesta de texto libre
+- `multiple_choice`: Selección múltiple (varias respuestas)
+- `single_choice`: Selección única (una sola respuesta)
 
 ##### 6.1.3 Modelo de Respuesta
 - [ ] Crear `SurveyResponse`
@@ -537,17 +559,38 @@ enum VoterStatus: string
 - timestamps
 ```
 
-##### 6.1.4 Interface de Encuestas
+##### 6.1.4 Métricas y Resultados
+- [ ] Modelo `SurveyMetrics` para agregación de resultados
+- [ ] Cálculo automático de métricas
+- [ ] Gráficas por tipo de pregunta
+- [ ] Comparación entre versiones
+- [ ] Tests
+
+**Métricas a Calcular:**
+```php
+- Total de respuestas
+- Tasa de respuesta por pregunta
+- Distribución de respuestas (para choice y yes/no)
+- Promedio (para scale)
+- Análisis de texto (para text) - opcional
+- Tiempo promedio de respuesta
+- Respuestas por día/semana
+```
+
+##### 6.1.5 Interface de Encuestas
 - [ ] Volt component para aplicar encuestas
-- [ ] Dashboard de resultados
+- [ ] Dashboard de resultados con métricas
 - [ ] Gráficas con Filament Widgets
+- [ ] Exportación de resultados
 - [ ] Tests
 
 **Archivos:**
 - `app/Models/Survey.php`
 - `app/Models/SurveyQuestion.php`
 - `app/Models/SurveyResponse.php`
+- `app/Models/SurveyMetrics.php`
 - `app/Enums/QuestionType.php`
+- `app/Services/SurveyMetricsCalculator.php`
 - `database/migrations/xxxx_create_surveys_tables.php`
 - `app/Filament/Resources/SurveyResource.php`
 - `resources/views/livewire/surveys/apply.blade.php`
@@ -577,14 +620,29 @@ enum VoterStatus: string
 - id
 - campaign_id (FK)
 - voter_id (FK)
-- type (birthday, reminder, custom)
+- template_id (FK a message_templates, nullable)
+- type (birthday, reminder, custom, campaign)
 - channel (whatsapp, sms, email)
+- subject (nullable)
 - content
-- status (pending, sent, failed)
+- status (pending, scheduled, sent, failed, delivered, read, clicked)
+- scheduled_for (timestamp, nullable)
 - sent_at
+- delivered_at (nullable)
+- read_at (nullable) // Para canales que lo soporten
+- clicked_at (nullable) // Para emails con links
 - error_message
+- external_id (nullable) // ID del proveedor externo
+- metadata (json) // Click tracking, opens, etc.
 - timestamps
 ```
+
+**Métricas de Mensajería:**
+- Tasa de entrega
+- Tasa de lectura (cuando disponible)
+- Tasa de click (para emails)
+- Tiempo promedio de entrega
+- Errores por tipo
 
 **Archivos:**
 - `app/Models/Message.php`
@@ -596,50 +654,158 @@ enum VoterStatus: string
 
 ##### 6.2.3 Plantillas de Mensajes
 - [ ] Modelo `MessageTemplate`
-- [ ] Variables dinámicas
+- [ ] Variables dinámicas ({{nombre}}, {{fecha}}, etc.)
+- [ ] Control anti-spam (límite de mensajes por día)
+- [ ] Horarios permitidos de envío
 - [ ] Resource de Filament
 - [ ] Tests
 
+**Campos MessageTemplate:**
+```php
+- id
+- campaign_id (FK)
+- name
+- type (birthday, reminder, custom, campaign)
+- channel (whatsapp, sms, email)
+- subject (nullable, para email)
+- content // Con variables: {{nombre}}, {{edad}}, {{candidato}}, etc.
+- is_active
+- created_by (FK a users)
+- timestamps
+```
+
+**Control Anti-Spam:**
+```php
+- Max mensajes por votante por día
+- Max mensajes por campaña por hora
+- Blacklist de números
+- Opt-out tracking
+```
+
+**Horarios Permitidos:**
+```php
+- Hora inicio permitida (ej: 08:00)
+- Hora fin permitida (ej: 20:00)
+- Días permitidos (lun-dom)
+- Excepciones por tipo de mensaje
+```
+
 **Archivos:**
 - `app/Models/MessageTemplate.php`
+- `app/Services/MessageRateLimiter.php`
+- `app/Services/MessageScheduler.php`
 - `database/migrations/xxxx_create_message_templates_table.php`
 - `app/Filament/Resources/MessageTemplateResource.php`
 
-#### 6.3 Llamadas de Verificación
+#### 6.3 Call Center Workflow (Llamadas de Verificación)
 
-##### 6.3.1 Modelo de Llamada
+##### 6.3.1 Asignación de Votantes
+- [ ] Modelo `CallAssignment` para asignar votantes a revisores
+- [ ] Balanceo de carga (distribución equitativa)
+- [ ] Re-asignación automática
+- [ ] Tests
+
+**Campos CallAssignment:**
+```php
+- id
+- voter_id (FK)
+- assigned_to (FK a users) // El reviewer/caller
+- assigned_by (FK a users)
+- campaign_id (FK)
+- status (pending, in_progress, completed, reassigned)
+- priority (low, medium, high, urgent)
+- assigned_at
+- completed_at (nullable)
+- timestamps
+```
+
+##### 6.3.2 Modelo de Llamada
 - [ ] Crear `VerificationCall`
-- [ ] Tracking de intentos
-- [ ] Resultados de llamada
+- [ ] Enum `CallResult` con todas las categorías
+- [ ] Tracking de intentos múltiples
+- [ ] Integración con encuestas
 - [ ] Tests
 
 **Campos:**
 ```php
 - id
 - voter_id (FK)
+- assignment_id (FK a call_assignments)
 - caller_id (FK a users)
+- attempt_number (int, default 1)
 - call_date
-- call_duration
-- call_result (answered, no_answer, wrong_number, etc)
+- call_duration (seconds)
+- call_result (enum: answered, no_answer, busy, wrong_number, rejected, callback_requested, not_interested, confirmed)
 - notes
-- survey_responses (json)
+- survey_id (FK, nullable) // Si se aplicó encuesta
+- survey_completed (boolean)
+- next_attempt_at (timestamp, nullable) // Para re-intentos programados
 - timestamps
 ```
 
+**Enum CallResult:**
+```php
+enum CallResult: string
+{
+    case ANSWERED = 'answered';
+    case NO_ANSWER = 'no_answer';
+    case BUSY = 'busy';
+    case WRONG_NUMBER = 'wrong_number';
+    case REJECTED = 'rejected';
+    case CALLBACK_REQUESTED = 'callback_requested';
+    case NOT_INTERESTED = 'not_interested';
+    case CONFIRMED = 'confirmed';
+    case INVALID_NUMBER = 'invalid_number';
+}
+```
+
 **Archivos:**
+- `app/Models/CallAssignment.php`
 - `app/Models/VerificationCall.php`
+- `app/Enums/CallResult.php`
+- `app/Services/CallAssignmentService.php`
+- `database/migrations/xxxx_create_call_assignments_table.php`
 - `database/migrations/xxxx_create_verification_calls_table.php`
+- `tests/Feature/CallAssignmentTest.php`
 - `tests/Feature/VerificationCallTest.php`
 
-##### 6.3.2 Interface de Llamadas
-- [ ] Volt component para registrar llamadas
-- [ ] Queue de llamadas pendientes
-- [ ] Estadísticas por caller
+##### 6.3.3 Queue de Llamadas
+- [ ] Vista de cola priorizada para callers
+- [ ] Asignación automática de siguiente llamada
+- [ ] Filtros por territorio/estado
+- [ ] Marcador automático de intentos
 - [ ] Tests
+
+##### 6.3.4 Interface de Llamadas
+- [ ] Volt component para registrar llamadas
+- [ ] Quick-dial siguiente votante
+- [ ] Formulario de resultado + encuesta inline
+- [ ] Historial de llamadas por votante
+- [ ] Tests
+
+##### 6.3.5 Estadísticas y Métricas
+- [ ] Dashboard por caller (llamadas/hora, tasa de contacto)
+- [ ] Métricas de equipo
+- [ ] Mejores horarios de contacto
+- [ ] Tests
+
+**Métricas:**
+```php
+- Llamadas realizadas por caller
+- Tasa de contacto (%)
+- Tiempo promedio por llamada
+- Encuestas completadas
+- Confirmaciones logradas
+- Re-intentos necesarios
+- Mejores horarios (análisis temporal)
+```
 
 **Archivos:**
 - `resources/views/livewire/calls/register.blade.php`
+- `resources/views/livewire/calls/queue.blade.php`
 - `app/Filament/Resources/VerificationCallResource.php`
+- `app/Filament/Widgets/CallCenterStatsWidget.php`
+- `app/Services/CallMetricsCalculator.php`
 
 **Estado:** ⏳ Pendiente
 

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Municipality;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -31,6 +32,13 @@ class UserFactory extends Factory
             'two_factor_secret' => Str::random(10),
             'two_factor_recovery_codes' => Str::random(10),
             'two_factor_confirmed_at' => now(),
+            'phone' => fake()->boolean(80) ? fake()->numerify('3## ### ####') : null,
+            'secondary_phone' => fake()->boolean(30) ? fake()->numerify('3## ### ####') : null,
+            'document_number' => fake()->boolean(90) ? fake()->unique()->numerify('##########') : null,
+            'birth_date' => fake()->boolean(70) ? fake()->dateTimeBetween('-70 years', '-18 years') : null,
+            'address' => fake()->boolean(60) ? fake()->address() : null,
+            'municipality_id' => fake()->boolean(50) ? Municipality::inRandomOrder()->first()?->id : null,
+            'neighborhood_id' => null, // Will be set manually when needed
         ];
     }
 

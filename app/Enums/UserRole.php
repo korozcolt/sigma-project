@@ -7,7 +7,7 @@ use Filament\Support\Contracts\HasDescription;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 
-enum UserRole: string implements HasLabel, HasColor, HasIcon, HasDescription
+enum UserRole: string implements HasColor, HasDescription, HasIcon, HasLabel
 {
     case SUPER_ADMIN = 'super_admin';
     case ADMIN_CAMPAIGN = 'admin_campaign';

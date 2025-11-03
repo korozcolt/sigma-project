@@ -4,6 +4,9 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -24,6 +27,14 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone',
+        'secondary_phone',
+        'document_number',
+        'birth_date',
+        'address',
+        'municipality_id',
+        'neighborhood_id',
+        'profile_photo_path',
     ];
 
     /**
@@ -48,6 +59,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'birth_date' => 'date',
         ];
     }
 
@@ -61,5 +73,55 @@ class User extends Authenticatable
             ->take(2)
             ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
+    }
+
+    /**
+     * Get the municipality where the user is located
+     */
+    public function municipality(): BelongsTo
+    {
+        return $this->belongsTo(Municipality::class);
+    }
+
+    /**
+     * Get the neighborhood where the user is located
+     */
+    public function neighborhood(): BelongsTo
+    {
+        return $this->belongsTo(Neighborhood::class);
+    }
+
+    /**
+     * Get the campaigns this user is part of
+     */
+    public function campaigns(): BelongsToMany
+    {
+        return $this->belongsToMany(Campaign::class, 'campaign_user')
+            ->withPivot('role_id', 'assigned_at', 'assigned_by')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the campaigns created by this user
+     */
+    public function createdCampaigns(): HasMany
+    {
+        return $this->hasMany(Campaign::class, 'created_by');
+    }
+
+    /**
+     * Get the territorial assignments for this user
+     */
+    public function territorialAssignments(): HasMany
+    {
+        return $this->hasMany(TerritorialAssignment::class);
+    }
+
+    /**
+     * Get the voters registered by this user
+     */
+    public function registeredVoters(): HasMany
+    {
+        return $this->hasMany(Voter::class, 'registered_by');
     }
 }
