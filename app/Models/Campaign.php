@@ -90,6 +90,14 @@ class Campaign extends Model
     }
 
     /**
+     * Get the surveys for this campaign
+     */
+    public function surveys(): HasMany
+    {
+        return $this->hasMany(Survey::class);
+    }
+
+    /**
      * Scope a query to only include active campaigns.
      */
     public function scopeActive(Builder $query): void

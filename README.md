@@ -159,13 +159,16 @@ touch database/database.sqlite
 # 6. Ejecutar migraciones
 php artisan migrate
 
-# 7. Seeders (opcional)
+# 7. Importar datos territoriales de Colombia
+php artisan import:colombia-data
+
+# 8. Seeders (roles y super admin)
 php artisan db:seed
 
-# 8. Compilar assets
+# 9. Compilar assets
 npm run build
 
-# 9. Iniciar servidor
+# 10. Iniciar servidor
 php artisan serve
 ```
 
@@ -176,7 +179,10 @@ php artisan serve
 
 ### Usuario por Defecto
 
-_(Será creado después de implementar seeders)_
+**Email:** ing.korozco@gmail.com
+**Rol:** Super Admin
+
+_(El password se debe configurar en el seeder)_
 
 ---
 
@@ -315,37 +321,51 @@ it('can create a voter', function () {
 
 ### Progreso General
 
-**Fase Actual:** FASE 0 - Configuración Base
+**Fase Actual:** FASE 6 - Módulos Estratégicos
 
-**Progreso Total:** 0% (0/28 módulos principales completados)
+**Progreso Total:** 55% (15/28 módulos principales completados)
 
-Ver `PROGRESO.md` para detalle actualizado.
+**Tests:** 279 pasando (608 aserciones)
+
+Ver `PROGRESO.md` para detalle actualizado diariamente.
 
 ### Fases del Desarrollo
 
-- [ ] **FASE 0:** Configuración Base y Roles
-- [ ] **FASE 1:** Estructura Territorial
-- [ ] **FASE 2:** Sistema Multi-Campaña
-- [ ] **FASE 3:** Gestión de Usuarios y Jerarquía
-- [ ] **FASE 4:** Módulo de Votantes
-- [ ] **FASE 5:** Validación y Censo Electoral
-- [ ] **FASE 6:** Módulos Estratégicos (Encuestas, Cumpleaños, Llamadas)
-- [ ] **FASE 7:** Reportes y Analítica
+- ✅ **FASE 0:** Configuración Base y Roles
+- ✅ **FASE 1:** Estructura Territorial
+- ✅ **FASE 2:** Sistema Multi-Campaña
+- ✅ **FASE 3:** Gestión de Usuarios y Jerarquía
+- ✅ **FASE 4:** Módulo de Votantes
+- ✅ **FASE 5:** Validación y Censo Electoral
+- ⏳ **FASE 6:** Módulos Estratégicos (Encuestas, Cumpleaños, Llamadas)
+- ⏳ **FASE 7:** Reportes y Analítica
 
 ### Estado Actual
 
 ✅ **Completado:**
-- Sistema de autenticación completo
-- Panel de administración Filament
-- UI con Livewire y Flux
-- Testing framework configurado
-- Documentación y planificación
+- ✅ Sistema de autenticación completo con 2FA
+- ✅ Panel de administración Filament
+- ✅ UI con Livewire Volt y Flux
+- ✅ Sistema de roles y permisos (5 roles)
+- ✅ Estructura territorial (33 departamentos, 1,123 municipios)
+- ✅ Sistema multi-campaña con versionamiento
+- ✅ Gestión de usuarios y asignaciones territoriales
+- ✅ Módulo completo de votantes (8 estados)
+- ✅ Validación contra censo electoral
+- ✅ Historial de validaciones y auditoría
+- ✅ Importación de censo en lotes
+- ✅ Sistema de encuestas (5 tipos de preguntas, versionamiento)
+- ✅ 279 tests con 80% cobertura
 
 ⏳ **En Desarrollo:**
-- Sistema de roles y permisos (FASE 0)
+- Métricas de encuestas
+- Mensajería política (WhatsApp/SMS)
+- Call center workflow
 
 📋 **Siguiente:**
-- Estructura territorial (FASE 1)
+- Reportes y analítica
+- Widgets de Filament
+- API REST
 
 ---
 

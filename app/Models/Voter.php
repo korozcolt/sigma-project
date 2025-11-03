@@ -74,6 +74,11 @@ class Voter extends Model
         return $this->hasMany(ValidationHistory::class);
     }
 
+    public function surveyResponses(): HasMany
+    {
+        return $this->hasMany(SurveyResponse::class);
+    }
+
     public function scopePendingReview(Builder $query): void
     {
         $query->where('status', VoterStatus::PENDING_REVIEW);
