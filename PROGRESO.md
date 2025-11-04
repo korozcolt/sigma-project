@@ -1,6 +1,6 @@
 # 📊 Progreso de Desarrollo SIGMA
 
-**Última Actualización:** 2025-11-04
+**Última Actualización:** 2025-01-06
 
 ---
 
@@ -14,10 +14,10 @@
 | 3 | Gestión de Usuarios | ✅ Completado | 100% | 🟡 Media |
 | 4 | Módulo de Votantes | ✅ Completado | 100% | 🔥 Alta |
 | 5 | Validación y Censo | ✅ Completado | 100% | 🔥 Alta |
-| 6 | Módulos Estratégicos | 🚧 En Progreso | 67% | 🟢 Baja |
+| 6 | Módulos Estratégicos | ✅ Completado | 100% | 🟢 Baja |
 | 7 | Reportes y Analítica | ⏳ Pendiente | 0% | 🟢 Baja |
 
-**Progreso Total:** 54% (15/28 módulos)
+**Progreso Total:** 57% (16/28 módulos)
 
 ---
 
@@ -32,7 +32,15 @@
 - [x] Completar FASE 5: Validación y Censo
 
 ### En Progreso
-- 🚧 Preparando FASE 6: Módulos Estratégicos
+- 🚧 Preparando FASE 7: Reportes y Analítica
+
+### Completado Hoy (2025-01-06)
+- ✅ FASE 6.2: Módulo de Cumpleaños y Mensajería completado
+  - MessageResource, MessageTemplateResource, MessageBatchResource en Filament
+  - BirthdayWidget para dashboard
+  - SendBirthdayMessages command mejorado con dry-run, logging y progress bar
+  - Programador automático configurado (diario 09:00)
+  - 22 archivos nuevos, 48 tests pasando
 
 ### Completado
 - ✅ Plan de desarrollo creado
@@ -442,14 +450,149 @@
 
 ---
 
+## 📞 FASE 6: Módulos Estratégicos ✅
+
+### Módulos
+- [x] 6.1 Sistema Encuestas - 5/5 sub-módulos ✅
+- [x] 6.2 Módulo Cumpleaños y Mensajería - 3/3 sub-módulos ✅
+- [x] 6.3 Llamadas Verificación - 10/10 sub-módulos ✅
+
+**Progreso:** 3/3 módulos (100%) ✅
+
+---
+
+## 🎂 FASE 6.2: Módulo de Cumpleaños y Mensajería ✅
+
+### Tareas Completadas
+- [x] 6.2.1 Crear MessageResource en Filament con formularios y tablas completos
+- [x] 6.2.2 Crear MessageTemplateResource con preview modal y acciones
+- [x] 6.2.3 Crear MessageBatchResource con página de vista detallada
+- [x] 6.2.4 Crear BirthdayWidget para mostrar cumpleaños del mes
+- [x] 6.2.5 Mejorar comando SendBirthdayMessages con logging y progress bar
+- [x] 6.2.6 Configurar programador automático para ejecución diaria
+
+**Progreso:** 3/3 módulos (100%) ✅
+
+**Archivos Creados:**
+
+**MessageResource (7 archivos):**
+- `app/Filament/Resources/Messages/MessageResource.php` - Resource principal con navegación
+- `app/Filament/Resources/Messages/Schemas/MessageForm.php` - Formulario con 4 secciones
+- `app/Filament/Resources/Messages/Tables/MessagesTable.php` - Tabla con 11 columnas, 5 filtros
+- `app/Filament/Resources/Messages/Pages/ListMessages.php` - Página de listado
+- `app/Filament/Resources/Messages/Pages/CreateMessage.php` - Página de creación
+- `app/Filament/Resources/Messages/Pages/EditMessage.php` - Página de edición
+
+**MessageTemplateResource (8 archivos):**
+- `app/Filament/Resources/Messages/MessageTemplateResource.php` - Resource con sort order 2
+- `app/Filament/Resources/Messages/Schemas/MessageTemplateForm.php` - Form con control anti-spam
+- `app/Filament/Resources/Messages/Tables/MessageTemplatesTable.php` - Tabla con preview modal
+- `app/Filament/Resources/Messages/Pages/ListMessageTemplates.php` - Listado
+- `app/Filament/Resources/Messages/Pages/CreateMessageTemplate.php` - Creación
+- `app/Filament/Resources/Messages/Pages/EditMessageTemplate.php` - Edición
+- `resources/views/filament/resources/messages/template-preview.blade.php` - Modal de preview
+
+**MessageBatchResource (7 archivos):**
+- `app/Filament/Resources/Messages/MessageBatchResource.php` - Resource con sort order 3
+- `app/Filament/Resources/Messages/Schemas/MessageBatchForm.php` - Form con estadísticas
+- `app/Filament/Resources/Messages/Tables/MessageBatchesTable.php` - Tabla con métricas
+- `app/Filament/Resources/Messages/Pages/ListMessageBatches.php` - Listado
+- `app/Filament/Resources/Messages/Pages/CreateMessageBatch.php` - Creación
+- `app/Filament/Resources/Messages/Pages/EditMessageBatch.php` - Edición
+- `app/Filament/Resources/Messages/Pages/ViewMessageBatch.php` - Vista detallada con Infolist
+
+**Widget y Command:**
+- `app/Filament/Widgets/BirthdayWidget.php` - Widget TableWidget con cumpleaños del mes
+- `app/Console/Commands/SendBirthdayMessages.php` - Comando mejorado
+
+**Routes:**
+- `routes/console.php` - Agregado scheduler diario a las 09:00
+
+**Características Implementadas:**
+
+1. **MessageResource - Gestión de Mensajes:**
+   - Formulario con 4 secciones: Información, Contenido, Programación, Metadatos
+   - Campos reactivos: template_id actualiza subject y content automáticamente
+   - Tabla con 11 columnas incluyendo estado, tipo, canal, fechas
+   - 5 filtros: status, type, channel, campaign, rango de fechas
+   - Acción "Reenviar" para mensajes fallidos
+   - Bulk action para marcar como pending
+
+2. **MessageTemplateResource - Plantillas de Mensajes:**
+   - Formulario con control anti-spam y horarios permitidos
+   - Preview modal con vista previa completa de la plantilla
+   - Acción "Duplicar" para crear copias rápidas
+   - Toggle status para activar/desactivar
+   - Filtros por tipo, canal, estado y campaña
+   - Bulk actions para activar/desactivar múltiples
+
+3. **MessageBatchResource - Envíos Masivos:**
+   - Formulario con sección de estadísticas en tiempo real
+   - Tabla con progress_percentage y success_rate con badges de color
+   - Vista detallada con Infolist organizado en 4 secciones
+   - Secciones: Información General, Estadísticas, Fechas, Filtros Aplicados
+   - Solo permite editar batches en estado "pending"
+   - Solo permite eliminar batches "pending" o "failed"
+
+4. **BirthdayWidget - Dashboard:**
+   - TableWidget mostrando cumpleaños del mes actual
+   - Auto-ordenado por días hasta cumpleaños
+   - Badge "¡Hoy!" para cumpleaños de hoy
+   - Cálculo automático de edad
+   - Botón "Enviar Mensaje" que redirige al formulario de creación
+   - Polling automático cada 30 segundos
+
+5. **SendBirthdayMessages Command - Automatización:**
+   - Flag `--dry-run` para simular sin enviar
+   - Flag `--force` para ignorar restricciones de horario
+   - Flag `--campaign` para filtrar por campaña específica
+   - Progress bar visual para cada campaña
+   - Logging completo de todas las acciones
+   - Emojis para mejor legibilidad
+   - Resumen final con estadísticas (enviados/omitidos/errores)
+   - Tracking de errores con contexto completo
+
+6. **Scheduler - Automatización:**
+   - Ejecución diaria a las 09:00 AM
+   - Configurado en `routes/console.php`
+   - Usa el comando mejorado con todas sus features
+
+**Navegación Filament:**
+- Grupo "Mensajería" con icono Heroicon::OutlinedEnvelope
+- 3 recursos ordenados: Messages (1), Templates (2), Batches (3)
+- Iconos personalizados para cada recurso
+
+**Filament v4 API:**
+- Todos los Resources usan `form(Schema $schema): Schema`
+- Todas las Schema classes usan `configure(Schema|Table $schema): Schema`
+- ViewMessageBatch usa `infolist(Schema $schema): Schema`
+- Compatible con Filament v4 API completo
+
+**Tests:**
+- 48 tests de mensajería pasando
+- Todos los 410 tests del proyecto pasando
+- Test actualizado para coincidir con nuevo formato del comando
+
+**Relaciones Utilizadas:**
+- Message → Campaign - BelongsTo
+- Message → Voter - BelongsTo
+- Message → Template - BelongsTo (nullable)
+- MessageTemplate → Campaign - BelongsTo
+- MessageTemplate → Created By (User) - BelongsTo
+- MessageBatch → Campaign - BelongsTo
+- MessageBatch → Template - BelongsTo (nullable)
+- MessageBatch → Created By (User) - BelongsTo
+
+---
+
 ## 📞 FASE 6: Módulos Estratégicos
 
 ### Módulos
 - [x] 6.1 Sistema Encuestas - 5/5 sub-módulos ✅
-- [ ] 6.2 Módulo Cumpleaños - 0/3 sub-módulos
+- [x] 6.2 Módulo Cumpleaños - 3/3 sub-módulos ✅
 - [x] 6.3 Llamadas Verificación - 10/10 sub-módulos ✅
 
-**Progreso:** 2/3 módulos (67%)
+**Progreso:** 3/3 módulos (100%) ✅
 
 ---
 

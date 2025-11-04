@@ -76,7 +76,7 @@ test('command skips when no active template exists', function () {
     ]);
 
     $this->artisan(SendBirthdayMessages::class)
-        ->expectsOutput('Procesando campaña: '.$campaign->name)
+        ->expectsOutputToContain('Procesando campaña: '.$campaign->name)
         ->assertSuccessful();
 
     expect(\App\Models\Message::count())->toBe(0);
