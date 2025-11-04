@@ -87,7 +87,7 @@ class VerificationCall extends Model
         ]);
     }
 
-    public function scopeRequiresFollowUp(Builder $query): void
+    public function scopeNeedsFollowUp(Builder $query): void
     {
         $query->whereIn('call_result', [
             CallResult::NO_ANSWER->value,

@@ -200,7 +200,7 @@ class CallAssignmentService
             ->with(['voter', 'verificationCalls'])
             ->forCampaign($campaign->id)
             ->whereHas('verificationCalls', function ($query) use ($days) {
-                $query->requiresFollowUp()
+                $query->needsFollowUp()
                     ->where('call_date', '>=', now()->subDays($days));
             })
             ->where('status', '!=', 'completed')
