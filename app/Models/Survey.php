@@ -56,6 +56,11 @@ class Survey extends Model
         return $this->hasMany(SurveyResponse::class);
     }
 
+    public function metrics(): HasMany
+    {
+        return $this->hasMany(SurveyMetrics::class);
+    }
+
     public function scopeActive(Builder $query): void
     {
         $query->where('is_active', true);

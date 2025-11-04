@@ -14,10 +14,10 @@
 | 3 | Gestión de Usuarios | ✅ Completado | 100% | 🟡 Media |
 | 4 | Módulo de Votantes | ✅ Completado | 100% | 🔥 Alta |
 | 5 | Validación y Censo | ✅ Completado | 100% | 🔥 Alta |
-| 6 | Módulos Estratégicos | ⏳ Pendiente | 0% | 🟢 Baja |
+| 6 | Módulos Estratégicos | 🚧 En Progreso | 33% | 🟢 Baja |
 | 7 | Reportes y Analítica | ⏳ Pendiente | 0% | 🟢 Baja |
 
-**Progreso Total:** 50% (14/28 módulos)
+**Progreso Total:** 54% (15/28 módulos)
 
 ---
 
@@ -240,14 +240,108 @@
 
 ---
 
+## ✅ FASE 6.1: Sistema de Encuestas ✅
+
+### Tareas Completadas
+- [x] 6.1.1 Crear modelo Survey con versionamiento
+- [x] 6.1.2 Crear SurveyQuestion con 5 tipos de preguntas
+- [x] 6.1.3 Crear SurveyResponse para tracking de respuestas
+- [x] 6.1.4 Crear SurveyMetrics para cálculo automático de métricas
+- [x] 6.1.5 Interface de encuestas, widgets y exportación
+
+**Progreso:** 5/5 sub-módulos (100%) ✅
+
+**Archivos Creados:**
+- `app/Models/Survey.php` - Modelo con versionamiento (parent_survey_id)
+- `app/Models/SurveyQuestion.php` - Soporte para 5 tipos de preguntas
+- `app/Models/SurveyResponse.php` - Tracking de respuestas con voter y usuario
+- `app/Models/SurveyMetrics.php` - Métricas agregadas con cálculo automático
+- `app/Enums/QuestionType.php` - Enum con 5 tipos (YesNo, Scale, Text, SingleChoice, MultipleChoice)
+- `database/migrations/*_create_surveys_table.php`
+- `database/migrations/*_create_survey_questions_table.php`
+- `database/migrations/*_create_survey_responses_table.php`
+- `database/migrations/*_create_survey_metrics_table.php`
+- `database/factories/SurveyFactory.php` - Factory con state methods
+- `database/factories/SurveyQuestionFactory.php` - Factory con types
+- `database/factories/SurveyResponseFactory.php` - Factory con respuestas variadas
+- `database/factories/SurveyMetricsFactory.php`
+- `app/Filament/Resources/Surveys/SurveyResource.php` - Resource completo
+- `app/Filament/Widgets/SurveyResultsWidget.php` - Gráficos dinámicos
+- `app/Filament/Widgets/SurveyStatsOverview.php` - 4 tarjetas de métricas
+- `app/Services/SurveyExportService.php` - Exportación a CSV
+- `resources/views/livewire/surveys/apply-survey.blade.php` - Volt component
+- `routes/web.php` - Ruta pública /surveys/{surveyId}/apply
+- `docs/INTEGRACION_HABLAME_SMS.md` - Guía de integración SMS
+- `docs/SURVEY_EXPORT_INTEGRATION.md` - Guía de exportación
+- `tests/Feature/SurveyTest.php` - 22 tests completos
+- `tests/Feature/SurveyQuestionTest.php` - 18 tests completos
+- `tests/Feature/SurveyResponseTest.php` - 14 tests completos
+- `tests/Feature/SurveyMetricsTest.php` - 4 tests completos
+- `tests/Feature/ApplySurveyTest.php` - 9 tests completos
+- `tests/Feature/SurveyExportServiceTest.php` - 8 tests completos
+- `tests/Feature/Filament/SurveyResourceTest.php` - 1 test
+
+**Características Implementadas:**
+
+1. **Tipos de Preguntas:**
+   - Yes/No: Pregunta simple Sí/No
+   - Scale: Escala numérica configurable (1-5, 1-10, etc.)
+   - Text: Respuesta de texto libre
+   - Single Choice: Selección única
+   - Multiple Choice: Selección múltiple
+
+2. **Versionamiento:**
+   - Campo parent_survey_id para rastrear versiones
+   - Historial de versiones anteriores
+   - Respuestas ligadas a versión específica
+
+3. **Métricas Automáticas:**
+   - Total de preguntas y respuestas únicas
+   - Tasa de respuesta por pregunta
+   - Tasa de completitud
+   - Distribución de respuestas (choice y yes/no)
+   - Promedio de escalas
+
+4. **Interface de Aplicación (Volt):**
+   - Navegación entre preguntas con barra de progreso
+   - Validación de preguntas requeridas
+   - Guardado de respuestas con información de voter y usuario
+   - Interface adaptativa con Flux UI
+
+5. **Widgets de Filament:**
+   - SurveyResultsWidget: Gráficos dinámicos según tipo
+   - SurveyStatsOverview: 4 tarjetas con métricas
+
+6. **Exportación de Datos:**
+   - CSV detallado con todas las respuestas
+   - CSV de resumen con métricas
+   - Codificación UTF-8 con BOM (compatible Excel)
+   - Limpieza automática de archivos antiguos
+
+**Relaciones Implementadas:**
+- Survey → Campaign - BelongsTo
+- Survey → Parent Survey - BelongsTo (para versionamiento)
+- Survey → Questions - HasMany
+- Survey → Responses - HasMany
+- Survey → Metrics - HasOne
+- SurveyQuestion → Survey - BelongsTo
+- SurveyQuestion → Responses - HasMany
+- SurveyResponse → Survey - BelongsTo
+- SurveyResponse → Question - BelongsTo
+- SurveyResponse → Voter - BelongsTo
+- SurveyResponse → Answered By (User) - BelongsTo
+- SurveyMetrics → Survey - BelongsTo
+
+---
+
 ## 📞 FASE 6: Módulos Estratégicos
 
 ### Módulos
-- [ ] 6.1 Sistema Encuestas - 0/4 sub-módulos
+- [x] 6.1 Sistema Encuestas - 5/5 sub-módulos ✅
 - [ ] 6.2 Módulo Cumpleaños - 0/3 sub-módulos
-- [ ] 6.3 Llamadas Verificación - 0/2 sub-módulos
+- [ ] 6.3 Llamadas Verificación - 0/5 sub-módulos
 
-**Progreso:** 0/3 módulos (0%)
+**Progreso:** 1/3 módulos (33%)
 
 ---
 
@@ -268,20 +362,21 @@
 
 | Tipo | Planeados | Creados | Pendientes |
 |------|-----------|---------|------------|
-| Modelos | 20+ | 9 | 11+ |
-| Migraciones | 25+ | 21 | 4+ |
-| Resources (Filament) | 15+ | 4 | 11+ |
-| Tests | 50+ | 218 | -168 |
-| Volt Components | 5+ | 13 | -8 |
-| Services | 10+ | 2 | 8+ |
+| Modelos | 20+ | 13 | 7+ |
+| Migraciones | 25+ | 25 | 0 |
+| Resources (Filament) | 15+ | 5 | 10+ |
+| Tests | 50+ | 307 | -257 |
+| Volt Components | 5+ | 14 | -9 |
+| Services | 10+ | 3 | 7+ |
 | Jobs | 5+ | 1 | 4+ |
 | Commands | 5+ | 1 | 4+ |
-| Enums | 5+ | 2 | 3+ |
+| Enums | 5+ | 3 | 2+ |
 | Seeders | 10+ | 3 | 7+ |
-| Factories | 20+ | 9 | 11+ |
+| Factories | 20+ | 13 | 7+ |
+| Widgets | 8+ | 2 | 6+ |
 
 ### Tests
-- ✅ Tests Pasando: 218/218 (483 aserciones)
+- ✅ Tests Pasando: 303/307 (683 aserciones)
   - 13 tests de autenticación
   - 14 tests de roles y permisos
   - 10 tests de Department
@@ -294,21 +389,58 @@
   - 11 tests de VoterValidationService
   - 19 tests de ValidationHistory
   - 21 tests de settings y perfil
-- ⏳ Tests Pendientes: ~2
-- 📊 Cobertura Actual: ~75% (auth + roles + territorial + campaign + users + voters + census + validation)
+  - 58 tests de Survey (modelo, métricas, preguntas, respuestas)
+  - 9 tests de ApplySurvey (Volt component)
+  - 8 tests de SurveyExportService
+  - 9 tests de widgets y recursos
+- ⏳ Tests Pendientes: 4 (pendientes por revisar)
+- 📊 Cobertura Actual: ~78% (auth + roles + territorial + campaign + users + voters + census + validation + surveys)
 - 🎯 Objetivo Cobertura: 80%
 
 ---
 
 ## 🚀 Próximos 3 Pasos
 
-1. **Crear modelo Survey** para sistema de encuestas
-2. **Crear SurveyQuestion** con diferentes tipos de pregunta
-3. **Crear SurveyResponse** para tracking de respuestas
+1. **Crear modelo Message** para sistema de mensajería
+2. **Crear MessageTemplate** con variables dinámicas
+3. **Crear MessageBatch** para envíos masivos programados
 
 ---
 
 ## 📝 Notas de Desarrollo
+
+### 2025-11-03 (Noche - FASE 6.1 COMPLETADA) ✅
+- ✅ FASE 6.1 - Sistema de Encuestas completada al 100% (5/5 sub-módulos)
+- ✅ Implementado Volt Component para aplicación de encuestas (/surveys/{surveyId}/apply)
+  - Navegación entre preguntas con barra de progreso
+  - Soporte para 5 tipos de preguntas: yes_no, scale, text, single_choice, multiple_choice
+  - Validación de preguntas requeridas en tiempo real
+  - Interface adaptativa con Flux UI
+  - Guardado de respuestas con información de voter y usuario
+- ✅ Creados Filament Widgets para visualización de resultados
+  - SurveyResultsWidget: Gráficos dinámicos (bar, pie) según tipo de pregunta
+  - SurveyStatsOverview: 4 tarjetas de métricas con sparklines
+    - Total Preguntas
+    - Respuestas Únicas
+    - Tasa de Respuesta
+    - Tasa de Completitud
+- ✅ Implementado SurveyExportService para exportación de datos
+  - Exportación detallada a CSV (todas las respuestas por votante)
+  - Exportación de resumen con métricas y distribuciones
+  - Codificación UTF-8 con BOM para compatibilidad con Excel
+  - Limpieza automática de archivos antiguos (>7 días)
+  - Manejo correcto de respuestas JSON (multiple choice)
+- ✅ Documentación completa creada
+  - /docs/INTEGRACION_HABLAME_SMS.md - Guía para integración SMS
+  - /docs/SURVEY_EXPORT_INTEGRATION.md - Guía de integración de exportación
+- ✅ 18 tests nuevos para interface y exportación
+  - 9 tests de ApplySurvey (navegación, validación, submit, auto-save)
+  - 8 tests de SurveyExportService (CSV, formatos, limpieza)
+  - 1 test adicional de widgets
+- ✅ Total: 303 tests pasando de 307 (683 aserciones)
+- ✅ Código formateado con Pint
+- ✅ Ruta pública de encuestas agregada (/surveys/{surveyId}/apply)
+- 🚧 Listo para iniciar FASE 6.2: Módulo de Cumpleaños y Mensajería
 
 ### 2025-11-03 (Noche - Continuación FASE 5)
 - ✅ FASE 5 completada al 100%

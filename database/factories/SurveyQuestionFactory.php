@@ -69,7 +69,7 @@ class SurveyQuestionFactory extends Factory
     /**
      * Indicate that the question is of type MULTIPLE_CHOICE.
      */
-    public function multipleChoice(array $options): static
+    public function multipleChoice(array $options = ['Option 1', 'Option 2', 'Option 3']): static
     {
         return $this->state(fn (array $attributes) => [
             'question_type' => \App\Enums\QuestionType::MULTIPLE_CHOICE,

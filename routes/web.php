@@ -12,6 +12,10 @@ Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+// Survey routes (public)
+Volt::route('surveys/{surveyId}/apply', 'surveys.apply-survey')
+    ->name('surveys.apply');
+
 Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', 'settings/profile');
 
