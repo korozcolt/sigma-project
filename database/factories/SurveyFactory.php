@@ -20,7 +20,7 @@ class SurveyFactory extends Factory
             'campaign_id' => \App\Models\Campaign::factory(),
             'title' => fake()->sentence(),
             'description' => fake()->boolean(70) ? fake()->paragraph() : null,
-            'is_active' => fake()->boolean(80),
+            'is_active' => true,
             'version' => 1,
             'parent_survey_id' => null,
         ];
@@ -33,6 +33,16 @@ class SurveyFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_active' => false,
+        ]);
+    }
+
+    /**
+     * Indicate that the survey is active.
+     */
+    public function active(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => true,
         ]);
     }
 

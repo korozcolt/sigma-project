@@ -89,7 +89,7 @@ new class extends Component {
             }
         }
 
-        return $this->currentQuestionIndex === $this->survey->questions->count() - 1;
+        return true;
     }
 
     public function nextQuestion(): void

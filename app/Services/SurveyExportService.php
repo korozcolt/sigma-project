@@ -54,8 +54,9 @@ class SurveyExportService
         foreach ($voterIds as $voterId) {
             $voter = \App\Models\Voter::find($voterId);
 
-            // Get all responses for this voter
-            $responses = SurveyResponse::where('survey_id', $survey->id)
+            // Get all responses for this voter (with user relationship)
+            $responses = SurveyResponse::with('answerer')
+                ->where('survey_id', $survey->id)
                 ->where('voter_id', $voterId)
                 ->get()
                 ->keyBy('survey_question_id');
@@ -67,8 +68,8 @@ class SurveyExportService
                 $voterId,
                 $voter ? $voter->full_name : 'N/A',
                 $voter ? $voter->document_number : 'N/A',
-                $firstResponse && $firstResponse->answeredBy
-                    ? $firstResponse->answeredBy->name
+                $firstResponse && $firstResponse->answerer
+                    ? $firstResponse->answerer->name
                     : 'N/A',
                 $firstResponse?->responded_at?->format('Y-m-d H:i:s') ?? '',
             ];

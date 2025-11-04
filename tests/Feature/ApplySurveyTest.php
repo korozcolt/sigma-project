@@ -15,7 +15,7 @@ uses(RefreshDatabase::class);
 
 it('can navigate between questions', function () {
     $survey = Survey::factory()->create(['is_active' => true]);
-    $questions = SurveyQuestion::factory()->count(3)->create(['survey_id' => $survey->id]);
+    $questions = SurveyQuestion::factory()->optional()->count(3)->create(['survey_id' => $survey->id]);
 
     Volt::test('surveys.apply-survey', ['surveyId' => $survey->id])
         ->assertSet('currentQuestionIndex', 0)
@@ -176,7 +176,7 @@ it('validates that all required questions are answered', function () {
 
 it('calculates progress correctly', function () {
     $survey = Survey::factory()->create(['is_active' => true]);
-    SurveyQuestion::factory()->count(4)->create(['survey_id' => $survey->id]);
+    SurveyQuestion::factory()->optional()->count(4)->create(['survey_id' => $survey->id]);
 
     Volt::test('surveys.apply-survey', ['surveyId' => $survey->id])
         ->assertSet('progress', 25.0) // First question (index 0) = 1/4 = 25%

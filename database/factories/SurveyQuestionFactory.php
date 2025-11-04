@@ -16,11 +16,13 @@ class SurveyQuestionFactory extends Factory
      */
     public function definition(): array
     {
+        static $order = 0;
+
         return [
             'survey_id' => \App\Models\Survey::factory(),
             'question_text' => fake()->sentence().'?',
             'question_type' => \App\Enums\QuestionType::YES_NO,
-            'order' => fake()->numberBetween(0, 10),
+            'order' => $order++,
             'is_required' => fake()->boolean(60),
             'configuration' => null,
         ];
