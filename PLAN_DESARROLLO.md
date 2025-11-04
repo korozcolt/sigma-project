@@ -1,45 +1,61 @@
 # 📋 Plan de Desarrollo SIGMA
 ## Sistema Integral de Gestión y Análisis Electoral
 
-**Versión del Plan:** 1.0
+**Versión del Plan:** 2.0
 **Fecha de Creación:** 2025-11-02
-**Estado del Proyecto:** Fundación Completa - Desarrollo de Dominio Pendiente
+**Última Actualización:** 2025-01-21
+**Estado del Proyecto:** 70% Completo - Fases Críticas Identificadas
 
 ---
 
 ## 🎯 Resumen Ejecutivo
 
 ### Estado Actual
-✅ **Implementado (Fundación):**
-- Sistema de autenticación completo (Login, Registro, 2FA, Reset Password)
-- Panel de administración Filament (esqueleto)
-- UI moderna con Volt + Flux + Tailwind
-- Base de datos SQLite configurada
-- 13 tests funcionando (11 feature + 2 unit)
 
-❌ **Pendiente (Dominio de Negocio):**
-- Todos los modelos de negocio electoral
-- Sistema multi-campaña
-- Gestión territorial
-- Validación contra censo
-- Sistema de encuestas
-- Módulo de cumpleaños
-- Reportes y análisis
+✅ **COMPLETADO (70%):**
+- ✅ Sistema de autenticación completo (Fortify: Login, Registro, 2FA, Reset Password)
+- ✅ Panel de administración Filament v4 funcional
+- ✅ UI moderna con Volt + Flux UI + Tailwind CSS v4
+- ✅ Sistema de roles (5 roles: Super Admin, Admin Campaña, Coordinador, Líder, Revisor)
+- ✅ Estructura territorial completa (Department, Municipality, Neighborhood)
+- ✅ Sistema multi-campaña operativo
+- ✅ Modelos de votantes y censo
+- ✅ Sistema de validación contra censo
+- ✅ Asignaciones territoriales
+- ✅ Sistema de encuestas completo (preguntas, respuestas, métricas)
+- ✅ Call Center funcional (asignaciones, llamadas, cola)
+- ✅ 410 tests pasando (945 assertions)
+- ✅ Base de datos: SQLite (test), MySQL (producción)
+
+⚠️ **CRÍTICO - PENDIENTE (30%):**
+- ❌ **Sistema completamente en inglés** (necesita traducción a español)
+- ❌ **NO existe UserResource** (no se pueden gestionar usuarios/roles en UI)
+- ❌ **NO existe VoterResource** (líderes no pueden registrar votantes en UI)
+- ❌ **NO existe SurveyResource** (no se pueden crear encuestas en UI)
+- ❌ **NO existe TerritorialAssignmentResource** (no se pueden hacer asignaciones en UI)
+- ❌ **NO hay dashboards por rol** (cada rol necesita su vista específica)
+- ❌ Reportes y analítica avanzada
+- ❌ API REST para integraciones
+
+### Impacto
+**Modelos funcionando pero workflow bloqueado:** Toda la lógica de negocio existe en código, pero los usuarios no pueden ejecutar el workflow completo porque faltan las interfaces de administración críticas.
 
 ---
 
 ## 📊 Estructura del Plan
 
-Este plan está dividido en **7 Fases** principales:
+Este plan está dividido en **10 Fases** principales:
 
-1. **Fase 0:** Configuración Base y Roles
-2. **Fase 1:** Estructura Territorial
-3. **Fase 2:** Sistema Multi-Campaña
-4. **Fase 3:** Gestión de Usuarios y Jerarquía
-5. **Fase 4:** Módulo de Votantes
-6. **Fase 5:** Validación y Censo Electoral
-7. **Fase 6:** Módulos Estratégicos
-8. **Fase 7:** Reportes y Analítica
+0. **Fase 0:** Configuración Base y Roles ✅
+1. **Fase 1:** Estructura Territorial ✅
+2. **Fase 2:** Sistema Multi-Campaña ✅
+3. **Fase 3:** Gestión de Usuarios y Jerarquía ✅
+4. **Fase 4:** Módulo de Votantes ✅
+5. **Fase 5:** Validación y Censo Electoral ✅
+6. **Fase 6:** Módulos Estratégicos (Encuestas, Call Center) ✅
+7. **Fase 7:** Sistema de Traducción (NUEVO - URGENTE) ⏳
+8. **Fase 8:** Gestión de Jerarquía y Permisos (NUEVO - CRÍTICO) ⏳
+9. **Fase 9:** Reportes y Analítica ⏳
 
 ---
 
@@ -807,11 +823,171 @@ enum CallResult: string
 - `app/Filament/Widgets/CallCenterStatsWidget.php`
 - `app/Services/CallMetricsCalculator.php`
 
+**Estado:** ✅ COMPLETADO (100%)
+
+---
+
+## 🌐 FASE 7: Sistema de Traducción (NUEVO - URGENTE)
+**Objetivo:** Implementar sistema completo de traducción al español
+
+### Contexto
+El sistema actualmente está completamente en inglés a pesar de estar configurado con `locale='es'`. Necesitamos:
+- Traducir todos los recursos de Filament
+- Traducir componentes Volt
+- Configurar Laravel para español
+- Crear archivos de idioma
+
+### Tareas
+
+#### 7.1 Configuración de Idioma
+- [ ] Verificar `config/app.php` locale y fallback_locale
+- [ ] Instalar paquetes de traducción si es necesario
+- [ ] Configurar Filament para español
+- [ ] Tests de configuración
+
+**Archivos:**
+- `config/app.php`
+- `app/Providers/FilamentServiceProvider.php` (si existe)
+
+#### 7.2 Archivos de Traducción
+- [ ] Crear `lang/es/filament.php`
+- [ ] Crear `lang/es/models.php`
+- [ ] Crear `lang/es/enums.php`
+- [ ] Crear `lang/es/validation.php`
+- [ ] Tests
+
+**Archivos:**
+- `lang/es/filament.php`
+- `lang/es/models.php`
+- `lang/es/enums.php`
+- `lang/es/validation.php`
+
+#### 7.3 Traducción de Resources
+- [ ] CampaignResource
+- [ ] DepartmentResource
+- [ ] MunicipalityResource
+- [ ] NeighborhoodResource
+- [ ] VerificationCallResource
+- [ ] Todas las etiquetas y mensajes
+
+**Archivos:**
+- Todos los Resources en `app/Filament/Resources/`
+
+#### 7.4 Traducción de Componentes Volt
+- [ ] register.blade.php
+- [ ] queue.blade.php
+- [ ] Otros componentes Volt
+
+**Archivos:**
+- `resources/views/livewire/calls/register.blade.php`
+- `resources/views/livewire/calls/queue.blade.php`
+
+**Estimación:** 1-2 días
+**Prioridad:** ALTA (afecta UX inmediatamente)
 **Estado:** ⏳ Pendiente
 
 ---
 
-## 📊 FASE 7: Reportes y Analítica
+## � FASE 8: Gestión de Jerarquía y Permisos (NUEVO - CRÍTICO)
+**Objetivo:** Implementar UI completa para gestión de usuarios, roles y jerarquía territorial
+
+### Contexto
+El sistema tiene 5 roles definidos (SUPER_ADMIN, ADMIN_CAMPAIGN, COORDINATOR, LEADER, REVIEWER) pero:
+- NO existe UserResource para gestionar usuarios
+- NO existe VoterResource para que líderes registren votantes
+- NO existe interfaz para asignaciones territoriales
+- NO hay dashboards por rol
+- El workflow jerarquico no está implementado en UI
+
+### Tareas
+
+#### 8.1 UserResource en Filament
+- [ ] Crear Resource completo para User
+- [ ] CRUD de usuarios
+- [ ] Asignación de roles
+- [ ] Asignación de campañas
+- [ ] Asignación territorial
+- [ ] Filtros por rol, campaña, territorio
+- [ ] Búsqueda avanzada
+- [ ] Tests (25+ tests)
+
+**Archivos:**
+- `app/Filament/Resources/UserResource.php`
+- `app/Filament/Resources/UserResource/Pages/`
+- `tests/Feature/Filament/UserResourceTest.php`
+
+#### 8.2 VoterResource en Filament
+- [ ] Crear Resource completo para Voter
+- [ ] CRUD de votantes
+- [ ] Importación masiva
+- [ ] Gestión de estados (VoterStatus)
+- [ ] Asignación de líderes
+- [ ] Validación contra censo
+- [ ] Historial de validaciones
+- [ ] Filtros avanzados
+- [ ] Tests (30+ tests)
+
+**Archivos:**
+- `app/Filament/Resources/VoterResource.php`
+- `app/Filament/Resources/VoterResource/Pages/`
+- `app/Filament/Resources/VoterResource/Actions/`
+- `tests/Feature/Filament/VoterResourceTest.php`
+
+#### 8.3 SurveyResource en Filament
+- [ ] Crear Resource completo para Survey
+- [ ] CRUD de encuestas
+- [ ] Constructor de preguntas
+- [ ] Asignación de encuestas
+- [ ] Visualización de resultados
+- [ ] Exportación de datos
+- [ ] Tests (20+ tests)
+
+**Archivos:**
+- `app/Filament/Resources/SurveyResource.php`
+- `app/Filament/Resources/SurveyResource/Pages/`
+- `tests/Feature/Filament/SurveyResourceTest.php`
+
+#### 8.4 TerritorialAssignmentResource
+- [ ] Crear Resource para asignaciones territoriales
+- [ ] Asignar coordinadores a departamentos
+- [ ] Asignar líderes a municipios/barrios
+- [ ] Validar jerarquía
+- [ ] Tests (15+ tests)
+
+**Archivos:**
+- `app/Filament/Resources/TerritorialAssignmentResource.php`
+- `tests/Feature/Filament/TerritorialAssignmentResourceTest.php`
+
+#### 8.5 Dashboards por Rol
+- [ ] Dashboard para SUPER_ADMIN (overview completo)
+- [ ] Dashboard para ADMIN_CAMPAIGN (su campaña)
+- [ ] Dashboard para COORDINATOR (su territorio)
+- [ ] Dashboard para LEADER (sus votantes)
+- [ ] Dashboard para REVIEWER (call center)
+- [ ] Tests
+
+**Archivos:**
+- `app/Filament/Pages/Dashboards/SuperAdminDashboard.php`
+- `app/Filament/Pages/Dashboards/CampaignAdminDashboard.php`
+- `app/Filament/Pages/Dashboards/CoordinatorDashboard.php`
+- `app/Filament/Pages/Dashboards/LeaderDashboard.php`
+- `app/Filament/Pages/Dashboards/ReviewerDashboard.php`
+
+#### 8.6 Settings Page
+- [ ] Configuración general del sistema
+- [ ] Configuración por campaña
+- [ ] Tests
+
+**Archivos:**
+- `app/Filament/Pages/Settings.php`
+
+**Estimación:** 5-7 días
+**Prioridad:** CRÍTICA (workflow principal del sistema)
+**Estado:** ⏳ Pendiente
+
+---
+
+## �📊 FASE 9: Reportes y Analítica
 **Objetivo:** Dashboards y reportes estratégicos
 
 ### Tareas
@@ -990,55 +1166,174 @@ vendor/bin/pint --dirty
 
 ### Resumen por Fase
 
-- [ ] **FASE 0:** Configuración Base (0/4 tareas)
-- [ ] **FASE 1:** Estructura Territorial (0/3 módulos)
-- [ ] **FASE 2:** Sistema Multi-Campaña (0/3 módulos)
-- [ ] **FASE 3:** Gestión de Usuarios (0/4 módulos)
-- [ ] **FASE 4:** Módulo de Votantes (0/4 módulos)
-- [ ] **FASE 5:** Validación y Censo (0/4 módulos)
-- [ ] **FASE 6:** Módulos Estratégicos (0/3 módulos)
-- [ ] **FASE 7:** Reportes y Analítica (0/3 módulos)
+- [x] **FASE 0:** Configuración Base (4/4 tareas) ✅
+- [x] **FASE 1:** Estructura Territorial (3/3 módulos) ✅
+- [x] **FASE 2:** Sistema Multi-Campaña (3/3 módulos) ✅
+- [x] **FASE 3:** Gestión de Usuarios (4/4 módulos) ✅
+- [x] **FASE 4:** Módulo de Votantes (4/4 módulos) ✅
+- [x] **FASE 5:** Validación y Censo (4/4 módulos) ✅
+- [x] **FASE 6:** Módulos Estratégicos (10/10 sub-módulos) ✅
+- [ ] **FASE 7:** Sistema de Traducción (0/4 módulos) ⏳ URGENTE
+- [ ] **FASE 8:** Gestión de Jerarquía y Permisos (0/6 módulos) ⏳ CRÍTICO
+- [ ] **FASE 9:** Reportes y Analítica (0/3 módulos) ⏳
 
 ### Progreso General
-**0% Completo** (0/28 módulos principales)
+**70% Completo** (24/34 módulos principales)
+
+**Estado Actual:**
+- ✅ Infraestructura base completada
+- ✅ Modelos core implementados
+- ✅ Sistema de encuestas funcionando
+- ✅ Call center operativo
+- ⚠️ **CRÍTICO:** Sistema completamente en inglés (necesita traducción)
+- ⚠️ **CRÍTICO:** Falta UI para gestión de usuarios y roles
+- ⚠️ **CRÍTICO:** Falta UI para gestión de votantes
+- ⚠️ **BLOQUEANTE:** No hay interfaz para workflow de jerarquía
 
 ---
 
 ## 🎯 Próximos Pasos Inmediatos
 
-### Comenzar con:
+### PRIORIDAD ALTA (Completar Primero):
 
-1. **FASE 0.1:** Instalar y configurar `spatie/laravel-permission`
-2. **FASE 1.1:** Crear modelo Department
-3. **FASE 1.2:** Crear modelo Municipality
-4. **FASE 1.3:** Crear modelo Neighborhood
+1. **FASE 7:** Sistema de Traducción (1-2 días)
+   - Configurar Laravel para español
+   - Traducir todos los Resources de Filament
+   - Traducir componentes Volt
+   - Crear archivos de idioma
+   - **Impacto:** Mejora UX inmediatamente
+
+2. **FASE 8.1:** UserResource (2-3 días)
+   - CRUD completo de usuarios
+   - Asignación de roles
+   - Asignación de campañas
+   - Asignación territorial
+   - **Impacto:** Habilita gestión de jerarquía
+
+3. **FASE 8.2:** VoterResource (2-3 días)
+   - CRUD completo de votantes
+   - Importación masiva
+   - Gestión de estados
+   - Asignación de líderes
+   - **Impacto:** Habilita workflow principal
+
+### PRIORIDAD MEDIA:
+
+4. **FASE 8.3:** SurveyResource (1-2 días)
+   - CRUD de encuestas
+   - Constructor de preguntas
+   - Visualización de resultados
+
+5. **FASE 8.4:** TerritorialAssignmentResource (1 día)
+   - Asignaciones territoriales
+
+6. **FASE 8.5:** Dashboards por Rol (2-3 días)
+   - Dashboard específico para cada rol
+
+### PRIORIDAD BAJA:
+
+7. **FASE 9:** Reportes y Analítica
+   - Widgets avanzados
+   - Exportaciones
+   - API
 
 ### Orden Recomendado:
 ```
-FASE 0 → FASE 1 → FASE 2 → FASE 3 → FASE 4 → FASE 5 → FASE 6 → FASE 7
+FASE 7 (Traducción) → FASE 8.1 (Users) → FASE 8.2 (Voters) → FASE 8.3 (Surveys) → FASE 8.4-8.6 → FASE 9
 ```
 
-Cada fase depende de la anterior.
+**Estimación Total Restante:** 12-15 días de desarrollo
+
+---
+
+## ⚠️ Hallazgos Críticos del Sistema
+
+### Roles Definidos (UserRole enum):
+1. **SUPER_ADMIN** - Acceso total al sistema
+2. **ADMIN_CAMPAIGN** - Administrador de campaña
+3. **COORDINATOR** - Coordinador territorial (gestiona líderes)
+4. **LEADER** - Líder territorial (registra votantes)
+5. **REVIEWER** - Revisor (valida y hace llamadas)
+
+### Problemas Identificados:
+- ✅ Modelos creados y funcionando
+- ✅ Relaciones entre modelos correctas
+- ✅ Tests pasando (410 tests, 945 assertions)
+- ❌ **NO existe UserResource** (no se pueden gestionar usuarios/roles)
+- ❌ **NO existe VoterResource** (líderes no pueden registrar votantes)
+- ❌ **NO existe SurveyResource** (no se pueden crear/gestionar encuestas)
+- ❌ **NO existe TerritorialAssignmentResource** (no se pueden hacer asignaciones)
+- ❌ **Sistema completamente en inglés** (configurado 'es' pero sin traducciones)
+- ❌ **NO hay dashboards por rol** (todos ven lo mismo)
+- ❌ **Workflow jerárquico no implementado en UI**
+
+### Workflow Esperado vs Actual:
+
+**Esperado:**
+```
+Admin → Crea campaña → Asigna coordinador
+Coordinador → Asigna territorio → Gestiona líderes
+Líder → Registra votantes → Valida datos
+Revisor → Valida votantes → Hace llamadas
+```
+
+**Actual:**
+```
+❌ No hay UI para estas operaciones
+✅ Solo modelos y relaciones en base de datos
+```
+
+### Decisión de Arquitectura:
+El sistema debe priorizar **completar la UI de gestión básica** antes de reportes avanzados, porque sin UserResource y VoterResource, el workflow principal no funciona.
 
 ---
 
 ## 📞 Notas y Consideraciones
 
+### Decisiones Tomadas:
+- ✅ Coordinadores y Líderes son Users con roles (UserRole enum)
+- ✅ Sistema usa Spatie Permission para roles
+- ✅ Multi-campaña implementado (soft multi-tenancy)
+- ✅ SQLite para testing, MySQL para producción
+- ✅ Filament v4 como panel admin principal
+- ✅ Volt para componentes interactivos
+- ✅ Pest v4 para testing (incluye browser tests)
+
 ### Decisiones Pendientes:
-- [ ] ¿Coordinadores son Users con rol o tabla separada?
-- [ ] ¿Líderes son Users con rol o tabla separada?
 - [ ] ¿Qué API usar para WhatsApp? (Twilio, official API, etc)
-- [ ] ¿Qué API usar para SMS?
-- [ ] ¿Usar PostgreSQL en producción o SQLite?
-- [ ] ¿Multi-tenancy real o soft multi-tenancy?
+- [ ] ¿Qué API usar para SMS? (ver `docs/INTEGRACION_HABLAME_SMS.md`)
+- [ ] ¿Implementar notificaciones push?
+- [ ] ¿Usar Redis para cache y queues en producción?
 
 ### Optimizaciones Futuras:
-- Cache de queries frecuentes
+- Cache de queries frecuentes (Redis)
 - Queue workers para jobs pesados
-- CDN para assets
+- CDN para assets estáticos
 - Backup automático de base de datos
+- Monitoreo con Laravel Pulse
 
 ---
 
-**Última Actualización:** 2025-11-02
+## 🎓 Recursos de Documentación
+
+### Documentación Creada:
+- ✅ `docs/DECISIONES.md` - Decisiones de arquitectura
+- ✅ `docs/PATRON_ENUMS.md` - Patrón para enums
+- ✅ `docs/CHEATSHEET.md` - Comandos útiles
+- ✅ `docs/INTEGRACION_HABLAME_SMS.md` - Integración SMS
+- ✅ `docs/SURVEY_EXPORT_INTEGRATION.md` - Exportación de encuestas
+- ✅ `docs/GUIA_USO_PLAN.md` - Guía de uso del plan
+
+### Documentación Pendiente:
+- [ ] `docs/API.md` - Documentación de API (cuando se implemente)
+- [ ] `docs/DEPLOYMENT.md` - Guía de despliegue
+- [ ] `docs/ROLES.md` - Descripción detallada de roles y permisos
+- [ ] `docs/TESTING.md` - Guía completa de testing
+- [ ] README.md mejorado con screenshots
+
+---
+
+**Última Actualización:** 2025-01-21
 **Actualizar este plan** conforme avancemos en el desarrollo.
+
+**Estado:** 70% completo - Fases críticas identificadas y priorizadas
