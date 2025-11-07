@@ -5,9 +5,12 @@ namespace App\Filament\Resources\Users\Schemas;
 use App\Models\Campaign;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Get;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -141,6 +144,44 @@ class UserForm
                             ->helperText('Seleccione los roles del usuario en el sistema')
                             ->columnSpanFull(),
                     ]),
+
+                Section::make('Registro como Votante')
+                    ->description('Los coordinadores y líderes deben estar incluidos en la base de datos electoral para las estadísticas')
+                    ->schema([
+                        Toggle::make('register_as_voter')
+                            ->label('Registrar también como votante')
+                            ->helperText('Crear perfil de votante con los datos de este usuario')
+                            ->live()
+                            ->default(false)
+                            ->dehydrated(false)
+                            ->visible(fn (string $operation) => $operation === 'create'),
+
+                        Placeholder::make('voter_registered_info')
+                            ->label('Estado')
+                            ->content('Este usuario ya está registrado como votante')
+                            ->visible(fn (string $operation, $record) => $operation === 'edit' && $record?->voter_id),
+
+                        Select::make('voter_campaign_id')
+                            ->label('Campaña del Votante')
+                            ->options(Campaign::query()->pluck('name', 'id'))
+                            ->required(fn (Get $get) => $get('register_as_voter'))
+                            ->live()
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn (Get $get, string $operation) => $operation === 'create' && $get('register_as_voter'))
+                            ->helperText('Campaña a la que pertenecerá como votante')
+                            ->dehydrated(false),
+
+                        Textarea::make('voter_notes')
+                            ->label('Notas del Votante')
+                            ->rows(2)
+                            ->visible(fn (Get $get, string $operation) => $operation === 'create' && $get('register_as_voter'))
+                            ->helperText('Observaciones adicionales para el perfil de votante')
+                            ->dehydrated(false)
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->collapsed(),
 
                 Section::make('Asignaciones a Campañas')
                     ->schema([

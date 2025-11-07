@@ -35,6 +35,7 @@ class User extends Authenticatable
         'municipality_id',
         'neighborhood_id',
         'profile_photo_path',
+        'voter_id',
     ];
 
     /**
@@ -89,6 +90,14 @@ class User extends Authenticatable
     public function neighborhood(): BelongsTo
     {
         return $this->belongsTo(Neighborhood::class);
+    }
+
+    /**
+     * Get the voter profile for this user (if exists)
+     */
+    public function voter(): BelongsTo
+    {
+        return $this->belongsTo(Voter::class);
     }
 
     /**

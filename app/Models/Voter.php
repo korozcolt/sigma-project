@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Voter extends Model
@@ -79,6 +80,11 @@ class Voter extends Model
         return $this->hasMany(SurveyResponse::class);
     }
 
+    public function user(): HasOne
+    {
+        return $this->hasOne(User::class);
+    }
+
     public function scopePendingReview(Builder $query): void
     {
         $query->where('status', VoterStatus::PENDING_REVIEW);
@@ -112,5 +118,10 @@ class Voter extends Model
     public function getFullNameAttribute(): string
     {
         return "{$this->first_name} {$this->last_name}";
+    }
+
+    public function isSystemUser(): bool
+    {
+        return $this->user()->exists();
     }
 }
