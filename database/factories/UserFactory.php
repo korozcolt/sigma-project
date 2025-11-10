@@ -39,6 +39,11 @@ class UserFactory extends Factory
             'address' => fake()->boolean(60) ? fake()->address() : null,
             'municipality_id' => fake()->boolean(50) ? Municipality::inRandomOrder()->first()?->id : null,
             'neighborhood_id' => null, // Will be set manually when needed
+            'is_vote_recorder' => false,
+            'is_witness' => false,
+            'witness_assigned_station' => null,
+            'witness_payment_amount' => null,
+            'is_special_coordinator' => false,
         ];
     }
 
@@ -61,6 +66,38 @@ class UserFactory extends Factory
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a vote recorder (anotador).
+     */
+    public function voteRecorder(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_vote_recorder' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a witness (testigo electoral).
+     */
+    public function witness(?string $station = null, ?float $payment = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_witness' => true,
+            'witness_assigned_station' => $station ?? fake()->bothify('Mesa ###-??'),
+            'witness_payment_amount' => $payment ?? fake()->randomFloat(2, 50000, 200000),
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a special coordinator.
+     */
+    public function specialCoordinator(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_special_coordinator' => true,
         ]);
     }
 }

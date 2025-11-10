@@ -13,7 +13,9 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Support\Enums\FontWeight;
-use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class MessagesTable
@@ -22,23 +24,37 @@ class MessagesTable
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('voter.full_name')
+                TextColumn::make('voter_display')
                     ->label('Votante')
-                    ->searchable()
-                    ->sortable()
+                    ->getStateUsing(fn ($record) => $record->voter
+                        ? sprintf('%s - %s', $record->voter->full_name, $record->voter->document_number)
+                        : '—')
+                    ->searchable(query: function ($query, $search) {
+                        $query->whereHas('voter', function ($q) use ($search) {
+                            $q->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"])
+                                ->orWhere('first_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhere('document_number', 'like', "%{$search}%");
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        $query->join('voters', 'voters.id', '=', 'messages.voter_id')
+                            ->orderByRaw("CONCAT(voters.first_name, ' ', voters.last_name) {$direction}")
+                            ->select('messages.*');
+                    })
                     ->weight(FontWeight::Bold),
 
-                Tables\Columns\TextColumn::make('campaign.name')
+                TextColumn::make('campaign.name')
                     ->label('Campaña')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('type')
+                TextColumn::make('type')
                     ->label('Tipo')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -55,7 +71,7 @@ class MessagesTable
                         default => $state,
                     }),
 
-                Tables\Columns\TextColumn::make('channel')
+                TextColumn::make('channel')
                     ->label('Canal')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -77,7 +93,7 @@ class MessagesTable
                         default => $state,
                     }),
 
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->label('Estado')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -99,32 +115,32 @@ class MessagesTable
                         default => $state,
                     }),
 
-                Tables\Columns\TextColumn::make('scheduled_for')
+                TextColumn::make('scheduled_for')
                     ->label('Programado Para')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('sent_at')
+                TextColumn::make('sent_at')
                     ->label('Enviado')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('delivered_at')
+                TextColumn::make('delivered_at')
                     ->label('Entregado')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
+                SelectFilter::make('status')
                     ->label('Estado')
                     ->options([
                         'pending' => 'Pendiente',
@@ -136,7 +152,7 @@ class MessagesTable
                     ])
                     ->multiple(),
 
-                Tables\Filters\SelectFilter::make('type')
+                SelectFilter::make('type')
                     ->label('Tipo')
                     ->options([
                         'birthday' => 'Cumpleaños',
@@ -146,7 +162,7 @@ class MessagesTable
                     ])
                     ->multiple(),
 
-                Tables\Filters\SelectFilter::make('channel')
+                SelectFilter::make('channel')
                     ->label('Canal')
                     ->options([
                         'whatsapp' => 'WhatsApp',
@@ -155,13 +171,13 @@ class MessagesTable
                     ])
                     ->multiple(),
 
-                Tables\Filters\SelectFilter::make('campaign_id')
+                SelectFilter::make('campaign_id')
                     ->label('Campaña')
                     ->relationship('campaign', 'name')
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\Filter::make('created_at')
+                Filter::make('created_at')
                     ->form([
                         DatePicker::make('created_from')
                             ->label('Desde'),

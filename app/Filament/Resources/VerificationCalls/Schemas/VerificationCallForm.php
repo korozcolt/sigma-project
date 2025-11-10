@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\VerificationCalls\Schemas;
 
 use App\Enums\CallResult;
+use App\Models\Voter;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -22,25 +23,64 @@ class VerificationCallForm
                     ->schema([
                         Grid::make(2)
                             ->schema([
+                                Select::make('caller_id')
+                                    ->label('Líder')
+                                    ->relationship('caller', 'name')
+                                    ->searchable(['name', 'email', 'document_number'])
+                                    ->preload()
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(fn (callable $set) => $set('voter_id', null))
+                                    ->helperText('Seleccione primero el líder para filtrar sus votantes'),
+
                                 Select::make('voter_id')
                                     ->label('Votante')
-                                    ->relationship('voter', 'full_name')
                                     ->searchable()
-                                    ->preload()
-                                    ->required(),
+                                    ->disabled(fn (callable $get) => ! $get('caller_id'))
+                                    ->options(function (callable $get) {
+                                        $callerId = $get('caller_id');
 
-                                Select::make('caller_id')
-                                    ->label('Agente')
-                                    ->relationship('caller', 'name')
-                                    ->searchable()
-                                    ->preload()
-                                    ->required(),
+                                        if (! $callerId) {
+                                            return [];
+                                        }
 
-                                Select::make('assignment_id')
-                                    ->label('Asignación')
-                                    ->relationship('assignment', 'id')
-                                    ->searchable()
-                                    ->preload(),
+                                        return Voter::query()
+                                            ->where('registered_by', $callerId)
+                                            ->orderBy('first_name')
+                                            ->orderBy('last_name')
+                                            ->get()
+                                            ->mapWithKeys(fn ($voter) => [
+                                                $voter->id => sprintf('%s - %s', $voter->full_name, $voter->document_number),
+                                            ]);
+                                    })
+                                    ->getSearchResultsUsing(function (string $search, callable $get) {
+                                        $callerId = $get('caller_id');
+
+                                        if (! $callerId) {
+                                            return [];
+                                        }
+
+                                        return Voter::query()
+                                            ->where('registered_by', $callerId)
+                                            ->where(function ($q) use ($search) {
+                                                $q->whereRaw('CONCAT(first_name, " ", last_name) LIKE ?', ["%{$search}%"])
+                                                    ->orWhere('first_name', 'like', "%{$search}%")
+                                                    ->orWhere('last_name', 'like', "%{$search}%")
+                                                    ->orWhere('document_number', 'like', "%{$search}%");
+                                            })
+                                            ->limit(50)
+                                            ->get()
+                                            ->mapWithKeys(fn ($voter) => [
+                                                $voter->id => sprintf('%s - %s', $voter->full_name, $voter->document_number),
+                                            ]);
+                                    })
+                                    ->getOptionLabelUsing(fn ($value): ?string => (
+                                        ($v = Voter::find($value)) ? sprintf('%s - %s', $v->full_name, $v->document_number) : null
+                                    ))
+                                    ->helperText(fn (callable $get) => ! $get('caller_id')
+                                        ? 'Primero seleccione un líder'
+                                        : 'Seleccione o busque un votante del líder')
+                                    ->required(),
 
                                 TextInput::make('attempt_number')
                                     ->label('Número de Intento')

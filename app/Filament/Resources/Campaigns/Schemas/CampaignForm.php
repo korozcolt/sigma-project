@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Campaigns\Schemas;
 
+use App\Enums\CampaignScope;
 use App\Enums\CampaignStatus;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\KeyValue;
@@ -37,6 +38,12 @@ class CampaignForm
                             ->options(CampaignStatus::class)
                             ->default(CampaignStatus::DRAFT)
                             ->required(),
+                        Select::make('scope')
+                            ->label('Alcance de la Campaña')
+                            ->options(CampaignScope::options())
+                            ->default(CampaignScope::Municipal->value)
+                            ->required()
+                            ->helperText('Define el nivel territorial de la campaña'),
                     ])
                     ->columns(2),
 

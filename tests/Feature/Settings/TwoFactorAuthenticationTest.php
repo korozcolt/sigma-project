@@ -5,6 +5,9 @@ use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
 
 beforeEach(function () {
+    // Forzar locale en inglés para coincidencia con textos de la vista
+    app()->setLocale('en');
+
     if (! Features::canManageTwoFactorAuthentication()) {
         $this->markTestSkipped('Two-factor authentication is not enabled.');
     }

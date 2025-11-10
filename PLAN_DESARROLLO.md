@@ -1,1339 +1,1056 @@
 # 📋 Plan de Desarrollo SIGMA
 ## Sistema Integral de Gestión y Análisis Electoral
 
-**Versión del Plan:** 2.0
-**Fecha de Creación:** 2025-11-02
-**Última Actualización:** 2025-01-21
-**Estado del Proyecto:** 70% Completo - Fases Críticas Identificadas
+**Versión:** 3.0 (Reorganizado)
+**Fecha de Actualización:** 2025-11-08
+**Estado del Proyecto:** 85% Completo
 
 ---
 
 ## 🎯 Resumen Ejecutivo
 
-### Estado Actual
+### Estado Actual: 85% Completo
 
-✅ **COMPLETADO (70%):**
+**✅ COMPLETADO (85%):**
 - ✅ Sistema de autenticación completo (Fortify: Login, Registro, 2FA, Reset Password)
 - ✅ Panel de administración Filament v4 funcional
 - ✅ UI moderna con Volt + Flux UI + Tailwind CSS v4
 - ✅ Sistema de roles (5 roles: Super Admin, Admin Campaña, Coordinador, Líder, Revisor)
 - ✅ Estructura territorial completa (Department, Municipality, Neighborhood)
-- ✅ Sistema multi-campaña operativo
+- ✅ Importación masiva de barrios desde Excel
+- ✅ Sistema multi-campaña con scopes (departamental/municipal/regional)
+- ✅ UserResource completo (gestión de usuarios y roles)
+- ✅ VoterResource completo (gestión de votantes + importación)
 - ✅ Modelos de votantes y censo
 - ✅ Sistema de validación contra censo
-- ✅ Asignaciones territoriales
-- ✅ Sistema de encuestas completo (preguntas, respuestas, métricas)
-- ✅ Call Center funcional (asignaciones, llamadas, cola)
-- ✅ 410 tests pasando (945 assertions)
+- ✅ Asignaciones territoriales (TerritorialAssignment)
+- ✅ Sistema de encuestas completo (Survey, Questions, Responses, Metrics)
+- ✅ Call Center funcional (CallAssignment, VerificationCall, cola)
+- ✅ Sistema de mensajería SMS (Hablame API integrada)
+- ✅ Plantillas de mensajes con variables dinámicas
+- ✅ Control anti-spam y horarios permitidos
+- ✅ Traducción completa al español
+- ✅ 472 tests pasando
 - ✅ Base de datos: SQLite (test), MySQL (producción)
 
-⚠️ **CRÍTICO - PENDIENTE (30%):**
-- ❌ **Sistema completamente en inglés** (necesita traducción a español)
-- ❌ **NO existe UserResource** (no se pueden gestionar usuarios/roles en UI)
-- ❌ **NO existe VoterResource** (líderes no pueden registrar votantes en UI)
-- ❌ **NO existe SurveyResource** (no se pueden crear encuestas en UI)
-- ❌ **NO existe TerritorialAssignmentResource** (no se pueden hacer asignaciones en UI)
-- ❌ **NO hay dashboards por rol** (cada rol necesita su vista específica)
-- ❌ Reportes y analítica avanzada
-- ❌ API REST para integraciones
-
-### Impacto
-**Modelos funcionando pero workflow bloqueado:** Toda la lógica de negocio existe en código, pero los usuarios no pueden ejecutar el workflow completo porque faltan las interfaces de administración críticas.
+**⚠️ PENDIENTE CRÍTICO (15%):**
+- ❌ **Flags de clasificación** (anotadores, testigos, coordinadores especiales)
+- ❌ **Relación votante:** Coordinadores y líderes también son votantes
+- ❌ **Votantes directos:** Coordinadores y líderes pueden tener votantes propios
+- ❌ **App Web móvil optimizada** para líderes (registro rápido)
+- ❌ **Sistema de votación día D** (marcar "votó" / "no votó")
+- ❌ **Dashboards diferenciados por rol**
+- ❌ **Estadísticas para coordinadores especiales**
+- ❌ Reportes avanzados y analítica
 
 ---
 
-## 📊 Estructura del Plan
+## 🏗️ Arquitectura del Sistema
 
-Este plan está dividido en **10 Fases** principales:
+### Concepto de Roles y Jerarquía
 
-0. **Fase 0:** Configuración Base y Roles ✅
-1. **Fase 1:** Estructura Territorial ✅
-2. **Fase 2:** Sistema Multi-Campaña ✅
-3. **Fase 3:** Gestión de Usuarios y Jerarquía ✅
-4. **Fase 4:** Módulo de Votantes ✅
-5. **Fase 5:** Validación y Censo Electoral ✅
-6. **Fase 6:** Módulos Estratégicos (Encuestas, Call Center) ✅
-7. **Fase 7:** Sistema de Traducción (NUEVO - URGENTE) ⏳
-8. **Fase 8:** Gestión de Jerarquía y Permisos (NUEVO - CRÍTICO) ⏳
-9. **Fase 9:** Reportes y Analítica ⏳
+```
+┌─────────────────────────────────────────────────────────┐
+│              Jerarquía Real de SIGMA                    │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  COORDINADOR (User con role=COORDINATOR)                │
+│  ├─ Gestiona territorio asignado                        │
+│  ├─ Tiene LÍDERES asignados bajo su coordinación       │
+│  ├─ Tiene VOTANTES DIRECTOS propios                     │
+│  ├─ ÉL MISMO ES VOTANTE (su voto cuenta)               │
+│  └─ Si is_special_coordinator=true:                     │
+│     └─ Estadísticas separadas                          │
+│     └─ Puede ser: concejal, senador, etc.              │
+│                                                         │
+│  LÍDER (User con role=LEADER)                          │
+│  ├─ Asignado a un coordinador                          │
+│  ├─ Gestiona zona específica                           │
+│  ├─ Tiene VOTANTES DIRECTOS asignados                  │
+│  ├─ ÉL MISMO ES VOTANTE (su voto cuenta)               │
+│  └─ Registra votantes en su territorio                 │
+│                                                         │
+│  VOTANTE (Modelo Voter)                                │
+│  ├─ Puede ser persona común                            │
+│  ├─ Puede ser un coordinador (referencia a User)       │
+│  ├─ Puede ser un líder (referencia a User)             │
+│  └─ Registrado por un líder/coordinador                │
+│                                                         │
+│  FLAGS DE CLASIFICACIÓN (campos boolean en User):       │
+│  ├─ is_vote_recorder: Anotador el día D                │
+│  ├─ is_witness: Testigo electoral (se le paga)         │
+│  └─ is_special_coordinator: Coordinador especial       │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Relaciones Clave
+
+**Todos los coordinadores y líderes DEBEN tener su registro como votante:**
+```php
+// Un User con role=COORDINATOR o LEADER también tiene:
+User::find(1)->voter // Su propio registro como votante
+
+// Y puede tener votantes directos:
+User::find(1)->directVoters // Votantes que él registró
+```
+
+---
+
+## 📊 Estado Detallado por Fase
 
 ---
 
 ## 🔥 FASE 0: Configuración Base y Roles
-**Objetivo:** Establecer sistema de permisos y roles para todo el sistema
+**Estado:** ✅ 100% COMPLETADO
 
-### Tareas
+### 0.1 Sistema de Roles ✅
+- [x] Instalado `spatie/laravel-permission`
+- [x] Middleware de permisos configurado
+- [x] Migración para roles y permisos
+- [x] Seeders para roles base
+- [x] Enum `UserRole` con 5 roles
 
-#### 0.1 Instalación de Sistema de Roles
-- [ ] Instalar `spatie/laravel-permission`
-- [ ] Configurar middleware de permisos
-- [ ] Crear migración para roles y permisos
-- [ ] Seeders para roles base
-
-**Roles a Crear:**
+**Roles Implementados:**
 ```php
-- super_admin          // Administrador General
-- admin_campaign       // Administrador de Campaña
-- coordinator          // Coordinador
-- leader               // Líder
-- reviewer             // Revisor
+- SUPER_ADMIN      // Administrador General
+- ADMIN_CAMPAIGN   // Administrador de Campaña
+- COORDINATOR      // Coordinador
+- LEADER           // Líder
+- REVIEWER         // Revisor
 ```
 
-**Archivos a Crear:**
-- `database/migrations/xxxx_create_permission_tables.php`
-- `database/seeders/RoleSeeder.php`
-- `app/Policies/` (para cada modelo)
-
-**Tests:**
-- [ ] Test de asignación de roles
-- [ ] Test de permisos por rol
-- [ ] Test de políticas de acceso
-
-**Estado:** ⏳ Pendiente
+### 0.2 Tests ✅
+- [x] Test de asignación de roles
+- [x] Test de permisos por rol
+- [x] Test de políticas de acceso
 
 ---
 
 ## 🗺️ FASE 1: Estructura Territorial
-**Objetivo:** Crear el sistema de organización geográfica
+**Estado:** ✅ 100% COMPLETADO
 
-### Tareas
+### 1.1 Modelo de Departamento ✅
+- [x] Modelo `Department`
+- [x] Migración completa
+- [x] Seeder con departamentos de Colombia
+- [x] DepartmentResource de Filament
+- [x] Tests CRUD
 
-#### 1.1 Modelo de Departamento
-- [ ] Crear modelo `Department`
-- [ ] Migración con campos: `name`, `code`
-- [ ] Seeder con departamentos de Colombia
-- [ ] Resource de Filament
-- [ ] Tests CRUD
+### 1.2 Modelo de Municipio ✅
+- [x] Modelo `Municipality`
+- [x] Migración con relación a Department
+- [x] Seeder con municipios
+- [x] MunicipalityResource de Filament
+- [x] Filtros por departamento
+- [x] Tests CRUD y relaciones
 
-**Archivos:**
-- `app/Models/Department.php`
-- `database/migrations/xxxx_create_departments_table.php`
-- `database/seeders/DepartmentSeeder.php`
-- `app/Filament/Resources/DepartmentResource.php`
-- `tests/Feature/DepartmentTest.php`
+### 1.3 Modelo de Barrio ✅
+- [x] Modelo `Neighborhood`
+- [x] Migración con relación a Municipality
+- [x] Soporte para barrios globales y por campaña
+- [x] NeighborhoodResource de Filament
+- [x] Importación masiva desde Excel
+- [x] Comando artisan `neighborhoods:import`
+- [x] Tests CRUD
 
-#### 1.2 Modelo de Municipio
-- [ ] Crear modelo `Municipality`
-- [ ] Migración con relación a Department
-- [ ] Seeder con municipios
-- [ ] Resource de Filament con filtros por departamento
-- [ ] Tests CRUD y relaciones
-
-**Campos:**
-```php
-- id
-- department_id (FK)
-- name
-- code
-- timestamps
-```
-
-**Archivos:**
-- `app/Models/Municipality.php`
-- `database/migrations/xxxx_create_municipalities_table.php`
-- `database/seeders/MunicipalitySeeder.php`
-- `app/Filament/Resources/MunicipalityResource.php`
-- `tests/Feature/MunicipalityTest.php`
-
-#### 1.3 Modelo de Barrio (Global)
-- [ ] Crear modelo `Neighborhood`
-- [ ] Migración con relación a Municipality
-- [ ] Soporte para barrios globales y por campaña
-- [ ] Resource de Filament
-- [ ] Tests CRUD
-
-**Campos:**
-```php
-- id
-- municipality_id (FK)
-- campaign_id (FK, nullable) // null = global
-- name
-- is_global (boolean)
-- timestamps
-```
-
-**Archivos:**
-- `app/Models/Neighborhood.php`
-- `database/migrations/xxxx_create_neighborhoods_table.php`
-- `app/Filament/Resources/NeighborhoodResource.php`
-- `tests/Feature/NeighborhoodTest.php`
-
-**Estado:** ⏳ Pendiente
+**Logro:** 224 barrios importados para Sincelejo, Sucre
 
 ---
 
 ## 🏛️ FASE 2: Sistema Multi-Campaña
-**Objetivo:** Crear la estructura base de campañas políticas
+**Estado:** ✅ 100% COMPLETADO
 
-### Tareas
+### 2.1 Modelo de Campaña ✅
+- [x] Modelo `Campaign`
+- [x] Migración con todos los campos
+- [x] Enum `CampaignStatus` (draft, active, paused, completed)
+- [x] Enum `CampaignScope` (departamental, municipal, regional)
+- [x] CampaignResource de Filament completo
+- [x] Query scopes (municipal, departamental, regional)
+- [x] Tests CRUD
 
-#### 2.1 Modelo de Campaña
-- [ ] Crear modelo `Campaign`
-- [ ] Migración con todos los campos
-- [ ] Enum para estados de campaña
-- [ ] Resource de Filament completo
-- [ ] Tests CRUD
-
-**Campos:**
-```php
-- id
-- name
-- description
-- candidate_name
-- start_date
-- end_date
-- election_date
-- status (enum: draft, active, paused, completed)
-- settings (json) // configuraciones varias
-- created_by (FK a users)
-- timestamps
-- soft_deletes
-```
-
-**Archivos:**
-- `app/Models/Campaign.php`
-- `app/Enums/CampaignStatus.php`
-- `database/migrations/xxxx_create_campaigns_table.php`
-- `app/Filament/Resources/CampaignResource.php`
-- `tests/Feature/CampaignTest.php`
-
-#### 2.2 Configuración de Campaña
-- [ ] Modelo `CampaignSetting`
-- [ ] Migración para settings específicos
-- [ ] Form de configuración en Filament
-- [ ] Tests
-
-**Configuraciones:**
-```php
-- Mensaje de bienvenida
-- Mensaje de cumpleaños
-- Mensaje de recordatorio
-- Logo de campaña
-- Colores de marca
-- Redes sociales
-```
-
-**Archivos:**
-- `app/Models/CampaignSetting.php`
-- `database/migrations/xxxx_create_campaign_settings_table.php`
-
-#### 2.3 Relación Campaña-Usuario
-- [ ] Pivot table `campaign_user`
-- [ ] Relación many-to-many
-- [ ] Middleware para scope de campaña
-- [ ] Tests de permisos por campaña
-
-**Campos Pivot:**
-```php
-- campaign_id
-- user_id
-- role_id
-- assigned_at
-- assigned_by
-```
-
-**Archivos:**
-- `database/migrations/xxxx_create_campaign_user_table.php`
-- `app/Http/Middleware/ScopeToCampaign.php`
-- `tests/Feature/CampaignUserTest.php`
-
-**Estado:** ⏳ Pendiente
+### 2.2 Relación Campaña-Usuario ✅
+- [x] Pivot table `campaign_user`
+- [x] Relación many-to-many
+- [x] Tests de permisos por campaña
 
 ---
 
 ## 👥 FASE 3: Gestión de Usuarios y Jerarquía
-**Objetivo:** Crear estructura jerárquica de coordinadores y líderes
+**Estado:** ✅ 95% COMPLETADO | ⚠️ 5% PENDIENTE
 
-### Tareas
+### 3.1 Modelo User Extendido ✅
+- [x] Campos adicionales en users
+- [x] Migración completa
+- [x] Factory actualizado
+- [x] UserResource de Filament completo
 
-#### 3.1 Extender Modelo User
-- [ ] Agregar campos adicionales a users
-- [ ] Migración para nuevos campos
-- [ ] Actualizar Factory
-- [ ] Actualizar Resource de Filament
-
-**Nuevos Campos:**
+**Campos Existentes:**
 ```php
-- phone
-- secondary_phone
+- phone, secondary_phone
 - address
-- municipality_id (FK)
-- neighborhood_id (FK)
+- municipality_id, neighborhood_id
 - document_number
 - birth_date
-- profile_photo_path
+- role (UserRole enum)
 ```
 
+### 3.2 Relación User-Voter ⚠️ PENDIENTE
+**Objetivo:** Todo coordinador y líder debe tener su propio registro como votante.
+
+#### Tareas Pendientes:
+- [ ] Agregar campo `user_id` a tabla `voters` (nullable)
+  ```php
+  // Migración:
+  $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+  $table->index('user_id');
+  ```
+- [ ] Relación en modelo `User`
+  ```php
+  public function voter(): BelongsTo
+  {
+      return $this->belongsTo(Voter::class);
+  }
+
+  public function directVoters(): HasMany
+  {
+      return $this->hasMany(Voter::class, 'registered_by');
+  }
+  ```
+- [ ] Relación en modelo `Voter`
+  ```php
+  public function user(): BelongsTo
+  {
+      return $this->belongsTo(User::class);
+  }
+  ```
+- [ ] Observer `UserObserver` para auto-crear votante
+  ```php
+  public function created(User $user): void
+  {
+      // Si es coordinador o líder, crear su registro como votante
+      if (in_array($user->role, [UserRole::COORDINATOR, UserRole::LEADER])) {
+          Voter::create([
+              'user_id' => $user->id,
+              'campaign_id' => $user->campaigns()->first()?->id,
+              'document_number' => $user->document_number,
+              'first_name' => explode(' ', $user->name)[0],
+              'last_name' => explode(' ', $user->name, 2)[1] ?? '',
+              'birth_date' => $user->birth_date,
+              'phone' => $user->phone,
+              'municipality_id' => $user->municipality_id,
+              'neighborhood_id' => $user->neighborhood_id,
+              'address' => $user->address,
+              'registered_by' => $user->id, // Se auto-registra
+              'status' => VoterStatus::CONFIRMED,
+          ]);
+      }
+  }
+  ```
+- [ ] Comando para migrar users existentes
+  ```bash
+  php artisan users:create-voter-records
+  ```
+- [ ] Tests (15+ tests)
+  - [ ] Test crear coordinador auto-crea votante
+  - [ ] Test crear líder auto-crea votante
+  - [ ] Test relación user->voter
+  - [ ] Test relación user->directVoters
+  - [ ] Test comando migración
+
 **Archivos:**
-- `database/migrations/xxxx_add_profile_fields_to_users_table.php`
+- `database/migrations/xxxx_add_user_id_to_voters_table.php`
+- `app/Observers/UserObserver.php`
+- `app/Console/Commands/CreateVoterRecordsForUsers.php`
+- `tests/Feature/UserVoterRelationTest.php`
+
+**Estimación:** 1 día
+
+---
+
+### 3.3 Flags de Clasificación ⚠️ PENDIENTE
+**Objetivo:** Agregar campos boolean para clasificar usuarios sin cambiar su rol.
+
+#### Tareas Pendientes:
+- [ ] Migración para agregar flags
+  ```php
+  Schema::table('users', function (Blueprint $table) {
+      $table->boolean('is_vote_recorder')->default(false)
+          ->comment('Anotador el día de votación');
+
+      $table->boolean('is_witness')->default(false)
+          ->comment('Testigo electoral (se le paga)');
+
+      $table->string('witness_assigned_station')->nullable()
+          ->comment('Mesa electoral asignada como testigo');
+
+      $table->decimal('witness_payment_amount', 10, 2)->nullable()
+          ->comment('Monto de pago como testigo');
+
+      $table->boolean('is_special_coordinator')->default(false)
+          ->comment('Coordinador especial (concejal, senador, etc.)');
+
+      $table->index(['is_vote_recorder', 'is_witness', 'is_special_coordinator']);
+  });
+  ```
+- [ ] Actualizar UserResource con nuevos campos
+  - [ ] Sección "Clasificaciones Especiales"
+  - [ ] Toggle para `is_vote_recorder`
+  - [ ] Toggle para `is_witness` + campos de testigo
+  - [ ] Toggle para `is_special_coordinator`
+- [ ] Query scopes en modelo `User`
+  ```php
+  public function scopeVoteRecorders(Builder $query): void
+  {
+      $query->where('is_vote_recorder', true);
+  }
+
+  public function scopeWitnesses(Builder $query): void
+  {
+      $query->where('is_witness', true);
+  }
+
+  public function scopeSpecialCoordinators(Builder $query): void
+  {
+      $query->where('role', UserRole::COORDINATOR)
+            ->where('is_special_coordinator', true);
+  }
+  ```
+- [ ] Filtros en UserResource para estos flags
+- [ ] Actualizar Factory para generar datos de testigos
+- [ ] Tests (10+ tests)
+
+**Archivos:**
+- `database/migrations/xxxx_add_classification_flags_to_users_table.php`
+- `app/Filament/Resources/Users/UserResource.php` (actualizar)
 - `database/factories/UserFactory.php` (actualizar)
+- `tests/Feature/UserClassificationFlagsTest.php`
 
-#### 3.2 Modelo Coordinador
-- [ ] Crear modelo `Coordinator` (extiende User o relación?)
-- [ ] Relación con Campaign
-- [ ] Relación con Territory
-- [ ] Resource de Filament
-- [ ] Tests
+**Estimación:** 0.5 días
 
-**Archivos:**
-- `app/Models/Coordinator.php`
-- `app/Filament/Resources/CoordinatorResource.php`
-- `tests/Feature/CoordinatorTest.php`
+---
 
-#### 3.3 Modelo Líder
-- [ ] Crear modelo `Leader`
-- [ ] Relación con Coordinator
-- [ ] Relación con Campaign
-- [ ] Resource de Filament
-- [ ] Tests CRUD y jerarquía
-
-**Campos:**
-```php
-- id
-- user_id (FK)
-- campaign_id (FK)
-- coordinator_id (FK)
-- territory (json o relaciones)
-- status (active, inactive, suspended)
-- timestamps
-```
-
-**Archivos:**
-- `app/Models/Leader.php`
-- `app/Filament/Resources/LeaderResource.php`
-- `tests/Feature/LeaderTest.php`
-
-#### 3.4 Jerarquía y Asignaciones
-- [ ] Middleware de verificación jerárquica
-- [ ] Scopes para consultas por jerarquía
-- [ ] Dashboard específico por rol
-- [ ] Tests de permisos jerárquicos
-
-**Estado:** ⏳ Pendiente
+### 3.4 Asignaciones Territoriales ✅
+- [x] Modelo `TerritorialAssignment`
+- [x] Asignación de coordinadores a territorios
+- [x] Asignación de líderes a zonas
+- [x] Validación jerárquica
+- [x] Tests
 
 ---
 
 ## 🗳️ FASE 4: Módulo de Votantes
-**Objetivo:** Crear sistema completo de registro y gestión de votantes
+**Estado:** ✅ 100% COMPLETADO
 
-### Tareas
+### 4.1 Enum de Estados del Votante ✅
+- [x] Enum `VoterStatus` completo
+- [x] Documentación de estados
+- [x] Colores y badges para UI
 
-#### 4.1 Enum de Estados del Votante
-- [ ] Crear enum `VoterStatus`
-- [ ] Documentar cada estado
-- [ ] Colores y badges para UI
+### 4.2 Modelo de Votante ✅
+- [x] Modelo `Voter` completo
+- [x] Migración con todos los campos
+- [x] Factory para testing
+- [x] Relaciones (Campaign, Leader, Territory)
+- [x] Scopes útiles
+- [x] Tests
 
-**Estados:**
-```php
-enum VoterStatus: string
-{
-    case PENDING_REVIEW = 'pending_review';
-    case REJECTED_CENSUS = 'rejected_census';
-    case VERIFIED_CENSUS = 'verified_census';
-    case CORRECTION_REQUIRED = 'correction_required';
-    case VERIFIED_CALL = 'verified_call';
-    case CONFIRMED = 'confirmed';
-    case VOTED = 'voted';
-    case DID_NOT_VOTE = 'did_not_vote';
-}
-```
+### 4.3 VoterResource de Filament ✅
+- [x] Resource completo
+- [x] Form con validaciones
+- [x] Table con filtros avanzados
+- [x] Acciones masivas
+- [x] Importación CSV/Excel
+- [x] Exportación
+- [x] Tests de UI
 
-**Archivos:**
-- `app/Enums/VoterStatus.php`
-
-#### 4.2 Modelo de Votante
-- [ ] Crear modelo `Voter`
-- [ ] Migración completa
-- [ ] Factory para testing
-- [ ] Relaciones (Campaign, Leader, Territory)
-- [ ] Scopes útiles
-
-**Campos:**
-```php
-- id
-- campaign_id (FK)
-- document_number (único por campaña)
-- first_name
-- last_name
-- birth_date
-- phone
-- secondary_phone
-- email (nullable)
-- municipality_id (FK)
-- neighborhood_id (FK)
-- address
-- detailed_address
-- registered_by (FK a users) // líder o coordinador
-- status (enum)
-- census_validated_at
-- call_verified_at
-- confirmed_at
-- voted_at
-- notes (text)
-- timestamps
-- soft_deletes
-```
-
-**Archivos:**
-- `app/Models/Voter.php`
-- `database/migrations/xxxx_create_voters_table.php`
-- `database/factories/VoterFactory.php`
-- `tests/Feature/VoterTest.php`
-
-#### 4.3 Resource de Filament para Votantes
-- [ ] Crear VoterResource completo
-- [ ] Form con validaciones
-- [ ] Table con filtros avanzados
-- [ ] Acciones masivas
-- [ ] Importación CSV
-- [ ] Exportación
-- [ ] Tests de UI
-
-**Filtros:**
-- Por estado
-- Por territorio
-- Por líder/coordinador
-- Por fecha de registro
-- Por validación de censo
-
-**Archivos:**
-- `app/Filament/Resources/VoterResource.php`
-- `app/Filament/Resources/VoterResource/Pages/`
-- `tests/Feature/Filament/VoterResourceTest.php`
-
-#### 4.4 Livewire Component para Registro Rápido
-- [ ] Crear Volt component para registro
-- [ ] Validación en tiempo real
-- [ ] Auto-guardado
-- [ ] Tests
-
-**Archivos:**
-- `resources/views/livewire/voters/quick-register.blade.php`
-- `tests/Feature/Volt/VoterQuickRegisterTest.php`
-
-**Estado:** ⏳ Pendiente
+### 4.4 Estadísticas de Votantes ✅
+- [x] Conteo por estado
+- [x] Filtros por territorio
+- [x] Filtros por líder/coordinador
 
 ---
 
 ## ✅ FASE 5: Validación y Censo Electoral
-**Objetivo:** Sistema de validación contra censo oficial
+**Estado:** ✅ 100% COMPLETADO
 
-### Tareas
+### 5.1 Modelo de Censo Electoral ✅
+- [x] Modelo `CensusRecord`
+- [x] Migración optimizada con índices
+- [x] Importador CSV/Excel
+- [x] Tests
 
-#### 5.1 Modelo de Censo Electoral
-- [ ] Crear modelo `CensusRecord`
-- [ ] Migración optimizada (índices)
-- [ ] Importador CSV/Excel
-- [ ] Tests
+### 5.2 Servicio de Validación ✅
+- [x] `VoterValidationService`
+- [x] Lógica de matching con censo
+- [x] Job asíncrono para validación masiva
+- [x] Tests unitarios
 
-**Campos:**
-```php
-- id
-- campaign_id (FK)
-- document_number (indexed)
-- full_name
-- municipality_code
-- polling_station
-- table_number
-- imported_at
-- timestamps
-```
+### 5.3 Modelo de Historial de Validación ✅
+- [x] Modelo `ValidationHistory`
+- [x] Tracking de cambios de estado
+- [x] Auditoría completa
+- [x] Tests
 
-**Archivos:**
-- `app/Models/CensusRecord.php`
-- `database/migrations/xxxx_create_census_records_table.php`
-- `app/Services/CensusImporter.php`
-- `tests/Feature/CensusImporterTest.php`
-
-#### 5.2 Servicio de Validación
-- [ ] Crear `VoterValidationService`
-- [ ] Lógica de matching con censo
-- [ ] Job asíncrono para validación masiva
-- [ ] Tests unitarios
-
-**Archivos:**
-- `app/Services/VoterValidationService.php`
-- `app/Jobs/ValidateVoterAgainstCensus.php`
-- `tests/Unit/VoterValidationServiceTest.php`
-
-#### 5.3 Modelo de Historial de Validación
-- [ ] Crear `ValidationHistory`
-- [ ] Tracking de cambios de estado
-- [ ] Auditoría completa
-- [ ] Tests
-
-**Campos:**
-```php
-- id
-- voter_id (FK)
-- previous_status
-- new_status
-- validated_by (FK a users)
-- validation_type (census, call, manual)
-- notes
-- timestamps
-```
-
-**Archivos:**
-- `app/Models/ValidationHistory.php`
-- `database/migrations/xxxx_create_validation_histories_table.php`
-
-#### 5.4 Interface de Revisión
-- [ ] Panel de Filament para revisores
-- [ ] Queue de votantes pendientes
-- [ ] Acciones rápidas (aprobar/rechazar)
-- [ ] Tests
-
-**Archivos:**
-- `app/Filament/Resources/ReviewQueueResource.php`
-- `tests/Feature/Filament/ReviewQueueTest.php`
-
-**Estado:** ⏳ Pendiente
+### 5.4 Interface de Revisión ✅
+- [x] Panel para revisores en Filament
+- [x] Queue de votantes pendientes
+- [x] Acciones rápidas (aprobar/rechazar)
+- [x] Tests
 
 ---
 
 ## 📞 FASE 6: Módulos Estratégicos
-**Objetivo:** Encuestas, cumpleaños, mensajería
+**Estado:** ✅ 100% COMPLETADO
 
-### Tareas
+### 6.1 Sistema de Encuestas ✅
+- [x] Modelo `Survey` con versionamiento
+- [x] Modelo `SurveyQuestion` (5 tipos)
+- [x] Modelo `SurveyResponse`
+- [x] Modelo `SurveyMetrics`
+- [x] Enum `QuestionType`
+- [x] Cálculo automático de métricas
+- [x] Tests completos
 
-#### 6.1 Sistema de Encuestas
+### 6.2 Sistema de Mensajería ✅
+- [x] Modelo `Message`
+- [x] Modelo `MessageTemplate`
+- [x] Modelo `MessageBatch`
+- [x] `HablameSmsService` (integración Hablame SMS)
+- [x] Control anti-spam
+- [x] Horarios permitidos
+- [x] Variables dinámicas en plantillas
+- [x] Tracking de estado completo
+- [x] Tests
 
-##### 6.1.1 Modelo de Encuesta
-- [ ] Crear `Survey`
-- [ ] Migración
-- [ ] Versionamiento de encuestas
-- [ ] Resource de Filament
-- [ ] Tests
+**Integración SMS:**
+- [x] API Hablame v5 funcionando
+- [x] Formato de request correcto
+- [x] Parsing de respuestas (statusId 102, 106)
+- [x] Formateo de números (10 dígitos)
+- [x] Documentación completa
 
-**Campos:**
-```php
-- id
-- campaign_id (FK)
-- name
-- description
-- version (int, default 1) // Para versionamiento
-- parent_survey_id (FK a surveys, nullable) // Referencia a versión anterior
-- is_active
-- start_date
-- end_date
-- created_by (FK a users)
-- timestamps
-- soft_deletes
-```
-
-**Versionamiento:**
-- Al duplicar/editar una encuesta activa, se crea nueva versión
-- Se mantiene historial de versiones anteriores
-- Las respuestas quedan ligadas a la versión específica
-
-##### 6.1.2 Modelo de Pregunta
-- [ ] Crear `SurveyQuestion`
-- [ ] Enum `QuestionType` con tipos: yes_no, scale, text, multiple_choice, single_choice
-- [ ] Configuración de escalas (1-5, 1-10, etc.)
-- [ ] Validación de opciones según tipo
-- [ ] Orden de preguntas
-- [ ] Tests
-
-**Campos:**
-```php
-- id
-- survey_id (FK)
-- question_text
-- question_type (enum: yes_no, scale, text, multiple_choice, single_choice)
-- options (json) // Para multiple_choice y single_choice
-- scale_min (int, nullable) // Para tipo scale
-- scale_max (int, nullable) // Para tipo scale
-- scale_labels (json, nullable) // Labels opcionales para escala
-- is_required
-- order
-- timestamps
-```
-
-**Tipos de Pregunta:**
-- `yes_no`: Pregunta simple Sí/No
-- `scale`: Escala numérica (ej: 1-5, 1-10)
-- `text`: Respuesta de texto libre
-- `multiple_choice`: Selección múltiple (varias respuestas)
-- `single_choice`: Selección única (una sola respuesta)
-
-##### 6.1.3 Modelo de Respuesta
-- [ ] Crear `SurveyResponse`
-- [ ] Relación con Voter
-- [ ] Tracking de respuestas
-- [ ] Tests
-
-**Campos:**
-```php
-- id
-- survey_id (FK)
-- voter_id (FK)
-- question_id (FK)
-- response (json)
-- answered_by (FK a users)
-- answered_at
-- timestamps
-```
-
-##### 6.1.4 Métricas y Resultados
-- [ ] Modelo `SurveyMetrics` para agregación de resultados
-- [ ] Cálculo automático de métricas
-- [ ] Gráficas por tipo de pregunta
-- [ ] Comparación entre versiones
-- [ ] Tests
-
-**Métricas a Calcular:**
-```php
-- Total de respuestas
-- Tasa de respuesta por pregunta
-- Distribución de respuestas (para choice y yes/no)
-- Promedio (para scale)
-- Análisis de texto (para text) - opcional
-- Tiempo promedio de respuesta
-- Respuestas por día/semana
-```
-
-##### 6.1.5 Interface de Encuestas
-- [ ] Volt component para aplicar encuestas
-- [ ] Dashboard de resultados con métricas
-- [ ] Gráficas con Filament Widgets
-- [ ] Exportación de resultados
-- [ ] Tests
-
-**Archivos:**
-- `app/Models/Survey.php`
-- `app/Models/SurveyQuestion.php`
-- `app/Models/SurveyResponse.php`
-- `app/Models/SurveyMetrics.php`
-- `app/Enums/QuestionType.php`
-- `app/Services/SurveyMetricsCalculator.php`
-- `database/migrations/xxxx_create_surveys_tables.php`
-- `app/Filament/Resources/SurveyResource.php`
-- `resources/views/livewire/surveys/apply.blade.php`
-- `app/Filament/Widgets/SurveyResultsWidget.php`
-- `tests/Feature/SurveyTest.php`
-
-#### 6.2 Módulo de Cumpleaños
-
-##### 6.2.1 Comando Diario
-- [ ] Crear `SendBirthdayMessages`
-- [ ] Schedule en Kernel
-- [ ] Tests
-
-**Archivos:**
-- `app/Console/Commands/SendBirthdayMessages.php`
-- `tests/Feature/Commands/SendBirthdayMessagesTest.php`
-
-##### 6.2.2 Sistema de Mensajería
-- [ ] Modelo `Message`
-- [ ] Integración WhatsApp (API a definir)
-- [ ] Integración SMS (API a definir)
-- [ ] Queue para envíos masivos
-- [ ] Tests
-
-**Campos Message:**
-```php
-- id
-- campaign_id (FK)
-- voter_id (FK)
-- template_id (FK a message_templates, nullable)
-- type (birthday, reminder, custom, campaign)
-- channel (whatsapp, sms, email)
-- subject (nullable)
-- content
-- status (pending, scheduled, sent, failed, delivered, read, clicked)
-- scheduled_for (timestamp, nullable)
-- sent_at
-- delivered_at (nullable)
-- read_at (nullable) // Para canales que lo soporten
-- clicked_at (nullable) // Para emails con links
-- error_message
-- external_id (nullable) // ID del proveedor externo
-- metadata (json) // Click tracking, opens, etc.
-- timestamps
-```
-
-**Métricas de Mensajería:**
-- Tasa de entrega
-- Tasa de lectura (cuando disponible)
-- Tasa de click (para emails)
-- Tiempo promedio de entrega
-- Errores por tipo
-
-**Archivos:**
-- `app/Models/Message.php`
-- `app/Services/WhatsAppService.php`
-- `app/Services/SmsService.php`
-- `app/Jobs/SendMessage.php`
-- `database/migrations/xxxx_create_messages_table.php`
-- `tests/Feature/MessageTest.php`
-
-##### 6.2.3 Plantillas de Mensajes
-- [ ] Modelo `MessageTemplate`
-- [ ] Variables dinámicas ({{nombre}}, {{fecha}}, etc.)
-- [ ] Control anti-spam (límite de mensajes por día)
-- [ ] Horarios permitidos de envío
-- [ ] Resource de Filament
-- [ ] Tests
-
-**Campos MessageTemplate:**
-```php
-- id
-- campaign_id (FK)
-- name
-- type (birthday, reminder, custom, campaign)
-- channel (whatsapp, sms, email)
-- subject (nullable, para email)
-- content // Con variables: {{nombre}}, {{edad}}, {{candidato}}, etc.
-- is_active
-- created_by (FK a users)
-- timestamps
-```
-
-**Control Anti-Spam:**
-```php
-- Max mensajes por votante por día
-- Max mensajes por campaña por hora
-- Blacklist de números
-- Opt-out tracking
-```
-
-**Horarios Permitidos:**
-```php
-- Hora inicio permitida (ej: 08:00)
-- Hora fin permitida (ej: 20:00)
-- Días permitidos (lun-dom)
-- Excepciones por tipo de mensaje
-```
-
-**Archivos:**
-- `app/Models/MessageTemplate.php`
-- `app/Services/MessageRateLimiter.php`
-- `app/Services/MessageScheduler.php`
-- `database/migrations/xxxx_create_message_templates_table.php`
-- `app/Filament/Resources/MessageTemplateResource.php`
-
-#### 6.3 Call Center Workflow (Llamadas de Verificación)
-
-##### 6.3.1 Asignación de Votantes
-- [ ] Modelo `CallAssignment` para asignar votantes a revisores
-- [ ] Balanceo de carga (distribución equitativa)
-- [ ] Re-asignación automática
-- [ ] Tests
-
-**Campos CallAssignment:**
-```php
-- id
-- voter_id (FK)
-- assigned_to (FK a users) // El reviewer/caller
-- assigned_by (FK a users)
-- campaign_id (FK)
-- status (pending, in_progress, completed, reassigned)
-- priority (low, medium, high, urgent)
-- assigned_at
-- completed_at (nullable)
-- timestamps
-```
-
-##### 6.3.2 Modelo de Llamada
-- [ ] Crear `VerificationCall`
-- [ ] Enum `CallResult` con todas las categorías
-- [ ] Tracking de intentos múltiples
-- [ ] Integración con encuestas
-- [ ] Tests
-
-**Campos:**
-```php
-- id
-- voter_id (FK)
-- assignment_id (FK a call_assignments)
-- caller_id (FK a users)
-- attempt_number (int, default 1)
-- call_date
-- call_duration (seconds)
-- call_result (enum: answered, no_answer, busy, wrong_number, rejected, callback_requested, not_interested, confirmed)
-- notes
-- survey_id (FK, nullable) // Si se aplicó encuesta
-- survey_completed (boolean)
-- next_attempt_at (timestamp, nullable) // Para re-intentos programados
-- timestamps
-```
-
-**Enum CallResult:**
-```php
-enum CallResult: string
-{
-    case ANSWERED = 'answered';
-    case NO_ANSWER = 'no_answer';
-    case BUSY = 'busy';
-    case WRONG_NUMBER = 'wrong_number';
-    case REJECTED = 'rejected';
-    case CALLBACK_REQUESTED = 'callback_requested';
-    case NOT_INTERESTED = 'not_interested';
-    case CONFIRMED = 'confirmed';
-    case INVALID_NUMBER = 'invalid_number';
-}
-```
-
-**Archivos:**
-- `app/Models/CallAssignment.php`
-- `app/Models/VerificationCall.php`
-- `app/Enums/CallResult.php`
-- `app/Services/CallAssignmentService.php`
-- `database/migrations/xxxx_create_call_assignments_table.php`
-- `database/migrations/xxxx_create_verification_calls_table.php`
-- `tests/Feature/CallAssignmentTest.php`
-- `tests/Feature/VerificationCallTest.php`
-
-##### 6.3.3 Queue de Llamadas
-- [ ] Vista de cola priorizada para callers
-- [ ] Asignación automática de siguiente llamada
-- [ ] Filtros por territorio/estado
-- [ ] Marcador automático de intentos
-- [ ] Tests
-
-##### 6.3.4 Interface de Llamadas
-- [ ] Volt component para registrar llamadas
-- [ ] Quick-dial siguiente votante
-- [ ] Formulario de resultado + encuesta inline
-- [ ] Historial de llamadas por votante
-- [ ] Tests
-
-##### 6.3.5 Estadísticas y Métricas
-- [ ] Dashboard por caller (llamadas/hora, tasa de contacto)
-- [ ] Métricas de equipo
-- [ ] Mejores horarios de contacto
-- [ ] Tests
-
-**Métricas:**
-```php
-- Llamadas realizadas por caller
-- Tasa de contacto (%)
-- Tiempo promedio por llamada
-- Encuestas completadas
-- Confirmaciones logradas
-- Re-intentos necesarios
-- Mejores horarios (análisis temporal)
-```
-
-**Archivos:**
-- `resources/views/livewire/calls/register.blade.php`
-- `resources/views/livewire/calls/queue.blade.php`
-- `app/Filament/Resources/VerificationCallResource.php`
-- `app/Filament/Widgets/CallCenterStatsWidget.php`
-- `app/Services/CallMetricsCalculator.php`
-
-**Estado:** ✅ COMPLETADO (100%)
+### 6.3 Call Center Workflow ✅
+- [x] Modelo `CallAssignment`
+- [x] Modelo `VerificationCall`
+- [x] Enum `CallResult`
+- [x] Queue de llamadas
+- [x] Interface de llamadas
+- [x] Estadísticas y métricas
+- [x] Tests completos
 
 ---
 
-## 🌐 FASE 7: Sistema de Traducción (NUEVO - URGENTE)
-**Objetivo:** Implementar sistema completo de traducción al español
+## 🌐 FASE 7: Sistema de Traducción
+**Estado:** ✅ 100% COMPLETADO
 
-### Contexto
-El sistema actualmente está completamente en inglés a pesar de estar configurado con `locale='es'`. Necesitamos:
-- Traducir todos los recursos de Filament
-- Traducir componentes Volt
-- Configurar Laravel para español
-- Crear archivos de idioma
+### 7.1 Configuración de Idioma ✅
+- [x] Configurado `config/app.php` locale='es'
+- [x] Filament configurado para español
+- [x] Tests de configuración
 
-### Tareas
+### 7.2 Archivos de Traducción ✅
+- [x] `lang/es/filament.php`
+- [x] `lang/es/models.php`
+- [x] `lang/es/enums.php`
+- [x] `lang/es/validation.php`
 
-#### 7.1 Configuración de Idioma
-- [ ] Verificar `config/app.php` locale y fallback_locale
-- [ ] Instalar paquetes de traducción si es necesario
-- [ ] Configurar Filament para español
-- [ ] Tests de configuración
-
-**Archivos:**
-- `config/app.php`
-- `app/Providers/FilamentServiceProvider.php` (si existe)
-
-#### 7.2 Archivos de Traducción
-- [ ] Crear `lang/es/filament.php`
-- [ ] Crear `lang/es/models.php`
-- [ ] Crear `lang/es/enums.php`
-- [ ] Crear `lang/es/validation.php`
-- [ ] Tests
-
-**Archivos:**
-- `lang/es/filament.php`
-- `lang/es/models.php`
-- `lang/es/enums.php`
-- `lang/es/validation.php`
-
-#### 7.3 Traducción de Resources
-- [ ] CampaignResource
-- [ ] DepartmentResource
-- [ ] MunicipalityResource
-- [ ] NeighborhoodResource
-- [ ] VerificationCallResource
-- [ ] Todas las etiquetas y mensajes
-
-**Archivos:**
-- Todos los Resources en `app/Filament/Resources/`
-
-#### 7.4 Traducción de Componentes Volt
-- [ ] register.blade.php
-- [ ] queue.blade.php
-- [ ] Otros componentes Volt
-
-**Archivos:**
-- `resources/views/livewire/calls/register.blade.php`
-- `resources/views/livewire/calls/queue.blade.php`
-
-**Estimación:** 1-2 días
-**Prioridad:** ALTA (afecta UX inmediatamente)
-**Estado:** ⏳ Pendiente
+### 7.3 Traducción de Resources ✅
+- [x] Todos los Resources traducidos
+- [x] Etiquetas y mensajes en español
+- [x] Componentes Volt traducidos
 
 ---
 
-## � FASE 8: Gestión de Jerarquía y Permisos (NUEVO - CRÍTICO)
-**Objetivo:** Implementar UI completa para gestión de usuarios, roles y jerarquía territorial
+## 🖥️ FASE 8: Interfaces Web Optimizadas
+**Estado:** ⚠️ 30% COMPLETADO | 🔥 PRIORIDAD ALTA
 
-### Contexto
-El sistema tiene 5 roles definidos (SUPER_ADMIN, ADMIN_CAMPAIGN, COORDINATOR, LEADER, REVIEWER) pero:
-- NO existe UserResource para gestionar usuarios
-- NO existe VoterResource para que líderes registren votantes
-- NO existe interfaz para asignaciones territoriales
-- NO hay dashboards por rol
-- El workflow jerarquico no está implementado en UI
+### 8.1 App Web para Líderes ⚠️ PENDIENTE
+**Objetivo:** Vista móvil optimizada para que líderes registren votantes rápidamente.
 
-### Tareas
-
-#### 8.1 UserResource en Filament
-- [ ] Crear Resource completo para User
-- [ ] CRUD de usuarios
-- [ ] Asignación de roles
-- [ ] Asignación de campañas
-- [ ] Asignación territorial
-- [ ] Filtros por rol, campaña, territorio
-- [ ] Búsqueda avanzada
+#### Tareas Pendientes:
+- [ ] Crear layout `resources/views/layouts/app.blade.php`
+  - [ ] Diseño mobile-first
+  - [ ] Menú simplificado
+  - [ ] Logo de campaña
+- [ ] Middleware `EnsureUserHasRole`
+  ```php
+  Route::middleware(['auth', 'role:leader'])->prefix('app')->group(function () {
+      Route::get('/dashboard', LeaderDashboard::class);
+      Route::get('/register-voter', QuickVoterRegister::class);
+      Route::get('/my-voters', MyVoters::class);
+  });
+  ```
+- [ ] Componente Volt: Dashboard del Líder
+  ```php
+  // resources/views/livewire/leader/dashboard.blade.php
+  - Estadísticas personales (votantes registrados, confirmados, pendientes)
+  - Metas vs logros
+  - Botón grande "REGISTRAR VOTANTE"
+  ```
+- [ ] Componente Volt: Registro Rápido de Votantes
+  ```php
+  // resources/views/livewire/leader/quick-voter-register.blade.php
+  - Formulario optimizado (solo campos esenciales)
+  - Auto-guardado cada 3 segundos
+  - Validación en tiempo real
+  - Búsqueda por documento (verificar si ya existe)
+  - Botón "Registrar y Nuevo" (continuar registrando)
+  ```
+- [ ] Componente Volt: Mis Votantes
+  ```php
+  // resources/views/livewire/leader/my-voters.blade.php
+  - Lista de votantes del líder
+  - Filtros por estado
+  - Búsqueda rápida
+  - Edición rápida
+  ```
 - [ ] Tests (25+ tests)
 
 **Archivos:**
-- `app/Filament/Resources/UserResource.php`
-- `app/Filament/Resources/UserResource/Pages/`
-- `tests/Feature/Filament/UserResourceTest.php`
+- `resources/views/layouts/app.blade.php`
+- `app/Http/Middleware/EnsureUserHasRole.php`
+- `resources/views/livewire/leader/dashboard.blade.php`
+- `resources/views/livewire/leader/quick-voter-register.blade.php`
+- `resources/views/livewire/leader/my-voters.blade.php`
+- `routes/web.php` (actualizar)
+- `tests/Feature/Leader/` (todos)
 
-#### 8.2 VoterResource en Filament
-- [ ] Crear Resource completo para Voter
-- [ ] CRUD de votantes
-- [ ] Importación masiva
-- [ ] Gestión de estados (VoterStatus)
-- [ ] Asignación de líderes
-- [ ] Validación contra censo
-- [ ] Historial de validaciones
-- [ ] Filtros avanzados
-- [ ] Tests (30+ tests)
-
-**Archivos:**
-- `app/Filament/Resources/VoterResource.php`
-- `app/Filament/Resources/VoterResource/Pages/`
-- `app/Filament/Resources/VoterResource/Actions/`
-- `tests/Feature/Filament/VoterResourceTest.php`
-
-#### 8.3 SurveyResource en Filament
-- [ ] Crear Resource completo para Survey
-- [ ] CRUD de encuestas
-- [ ] Constructor de preguntas
-- [ ] Asignación de encuestas
-- [ ] Visualización de resultados
-- [ ] Exportación de datos
-- [ ] Tests (20+ tests)
-
-**Archivos:**
-- `app/Filament/Resources/SurveyResource.php`
-- `app/Filament/Resources/SurveyResource/Pages/`
-- `tests/Feature/Filament/SurveyResourceTest.php`
-
-#### 8.4 TerritorialAssignmentResource
-- [ ] Crear Resource para asignaciones territoriales
-- [ ] Asignar coordinadores a departamentos
-- [ ] Asignar líderes a municipios/barrios
-- [ ] Validar jerarquía
-- [ ] Tests (15+ tests)
-
-**Archivos:**
-- `app/Filament/Resources/TerritorialAssignmentResource.php`
-- `tests/Feature/Filament/TerritorialAssignmentResourceTest.php`
-
-#### 8.5 Dashboards por Rol
-- [ ] Dashboard para SUPER_ADMIN (overview completo)
-- [ ] Dashboard para ADMIN_CAMPAIGN (su campaña)
-- [ ] Dashboard para COORDINATOR (su territorio)
-- [ ] Dashboard para LEADER (sus votantes)
-- [ ] Dashboard para REVIEWER (call center)
-- [ ] Tests
-
-**Archivos:**
-- `app/Filament/Pages/Dashboards/SuperAdminDashboard.php`
-- `app/Filament/Pages/Dashboards/CampaignAdminDashboard.php`
-- `app/Filament/Pages/Dashboards/CoordinatorDashboard.php`
-- `app/Filament/Pages/Dashboards/LeaderDashboard.php`
-- `app/Filament/Pages/Dashboards/ReviewerDashboard.php`
-
-#### 8.6 Settings Page
-- [ ] Configuración general del sistema
-- [ ] Configuración por campaña
-- [ ] Tests
-
-**Archivos:**
-- `app/Filament/Pages/Settings.php`
-
-**Estimación:** 5-7 días
-**Prioridad:** CRÍTICA (workflow principal del sistema)
-**Estado:** ⏳ Pendiente
+**Estimación:** 3 días
 
 ---
 
-## �📊 FASE 9: Reportes y Analítica
-**Objetivo:** Dashboards y reportes estratégicos
+### 8.2 App Web para Coordinadores ⚠️ PENDIENTE
+**Objetivo:** Vista para coordinadores gestionen líderes y asignen anotadores/testigos.
 
-### Tareas
-
-#### 7.1 Widgets de Filament
-
-##### 7.1.1 Widget de Overview General
-- [ ] Total votantes por estado
-- [ ] Tasa de validación
-- [ ] Proyección electoral
-- [ ] Tests
-
-##### 7.1.2 Widget por Territorio
-- [ ] Mapa de calor
-- [ ] Gráfica por municipio
-- [ ] Gráfica por barrio
-- [ ] Tests
-
-##### 7.1.3 Widget por Líder
-- [ ] Ranking de líderes
-- [ ] Eficiencia de captación
-- [ ] Tasa de confirmación
-- [ ] Tests
-
-##### 7.1.4 Widget de Encuestas
-- [ ] Resultados visuales
-- [ ] Comparativas temporales
-- [ ] Tests
+#### Tareas Pendientes:
+- [ ] Rutas para coordinadores
+  ```php
+  Route::middleware(['auth', 'role:coordinator'])->prefix('app/coordinator')->group(function () {
+      Route::get('/dashboard', CoordinatorDashboard::class);
+      Route::get('/leaders', ManageLeaders::class);
+      Route::get('/assign-recorders', AssignVoteRecorders::class);
+      Route::get('/assign-witnesses', AssignWitnesses::class);
+      Route::get('/my-voters', CoordinatorVoters::class);
+  });
+  ```
+- [ ] Dashboard del Coordinador
+  - [ ] Estadísticas de territorio
+  - [ ] Lista de líderes bajo coordinación
+  - [ ] Performance de cada líder
+  - [ ] Votantes directos del coordinador
+- [ ] Gestión de Líderes
+  - [ ] Ver líderes asignados
+  - [ ] Ver votantes de cada líder
+  - [ ] Re-asignar territorios
+- [ ] Asignación de Anotadores
+  - [ ] Seleccionar users (coordinadores/líderes/votantes)
+  - [ ] Marcar flag `is_vote_recorder = true`
+  - [ ] Asignar mesa/territorio
+- [ ] Asignación de Testigos
+  - [ ] Seleccionar users
+  - [ ] Marcar flag `is_witness = true`
+  - [ ] Asignar mesa electoral
+  - [ ] Registrar monto de pago
+- [ ] Votantes Directos del Coordinador
+  - [ ] Registro de votantes propios (igual que líderes)
+  - [ ] Lista de votantes directos
+- [ ] Tests (20+ tests)
 
 **Archivos:**
-- `app/Filament/Widgets/CampaignOverviewWidget.php`
-- `app/Filament/Widgets/TerritoryMapWidget.php`
-- `app/Filament/Widgets/LeaderRankingWidget.php`
-- `app/Filament/Widgets/SurveyResultsWidget.php`
-- `tests/Feature/Widgets/` (todos)
+- `resources/views/livewire/coordinator/dashboard.blade.php`
+- `resources/views/livewire/coordinator/manage-leaders.blade.php`
+- `resources/views/livewire/coordinator/assign-vote-recorders.blade.php`
+- `resources/views/livewire/coordinator/assign-witnesses.blade.php`
+- `resources/views/livewire/coordinator/my-voters.blade.php`
+- `tests/Feature/Coordinator/` (todos)
 
-#### 7.2 Reportes Exportables
+**Estimación:** 2-3 días
 
-##### 7.2.1 Reporte de Votantes
-- [ ] Excel con filtros aplicados
-- [ ] PDF con resumen
-- [ ] Tests
+---
 
-##### 7.2.2 Reporte de Líderes
-- [ ] Performance por líder
-- [ ] Excel/PDF
-- [ ] Tests
+### 8.3 Sistema de Votación Día D ⚠️ PENDIENTE
+**Objetivo:** Anotadores marcan votantes como "votó" o "no votó" el día de elecciones.
 
-##### 7.2.3 Reporte de Territorio
-- [ ] Distribución geográfica
-- [ ] Proyecciones
-- [ ] Tests
+#### Tareas Pendientes:
+- [ ] Crear modelo `VoteRecord`
+  ```php
+  - id
+  - voter_id (FK)
+  - campaign_id (FK)
+  - recorded_by (FK a users) // El anotador
+  - vote_status (enum: voted, did_not_vote)
+  - voted_at (timestamp)
+  - polling_station (string) // Mesa de votación
+  - notes (text, nullable)
+  - timestamps
+  ```
+- [ ] Enum `VoteStatus`
+  ```php
+  case VOTED = 'voted';
+  case DID_NOT_VOTE = 'did_not_vote';
+  ```
+- [ ] Middleware `IsElectionDay`
+  ```php
+  public function handle(Request $request, Closure $next)
+  {
+      $electionDate = config('voting.election_date');
+
+      if (!$electionDate || now()->format('Y-m-d') !== $electionDate) {
+          abort(403, 'El sistema de votación solo está disponible el día de las elecciones.');
+      }
+
+      return $next($request);
+  }
+  ```
+- [ ] Configuración `config/voting.php`
+  ```php
+  return [
+      'election_date' => env('ELECTION_DATE', '2025-10-27'),
+      'vote_recording_enabled' => env('VOTE_RECORDING_ENABLED', false),
+  ];
+  ```
+- [ ] Rutas para anotadores (día D)
+  ```php
+  Route::middleware(['auth', 'user_flag:is_vote_recorder', 'is_election_day'])
+      ->prefix('app/voting')
+      ->group(function () {
+          Route::get('/dashboard', VotingDashboard::class);
+          Route::get('/record', RecordVotes::class);
+      });
+  ```
+- [ ] Componente Volt: Dashboard Votación (tiempo real)
+  - [ ] % de participación actual
+  - [ ] Votos registrados vs meta
+  - [ ] Gráfica votos por hora
+  - [ ] Comparativa con otras mesas
+- [ ] Componente Volt: Registrar Votos
+  - [ ] Vista móvil optimizada
+  - [ ] Búsqueda rápida (documento/nombre)
+  - [ ] Botones grandes "VOTÓ" / "NO VOTÓ"
+  - [ ] Confirmación visual (verde/rojo)
+  - [ ] Lista de votantes asignados a la mesa
+- [ ] Widget para Panel Admin: Dashboard Día D
+  - [ ] Mapa de calor en tiempo real
+  - [ ] Participación por territorio
+  - [ ] Ranking de mesas
+- [ ] Tests (20+ tests)
+
+**Archivos:**
+- `app/Models/VoteRecord.php`
+- `app/Enums/VoteStatus.php`
+- `app/Http/Middleware/IsElectionDay.php`
+- `config/voting.php`
+- `resources/views/livewire/voting/dashboard.blade.php`
+- `resources/views/livewire/voting/record-votes.blade.php`
+- `app/Filament/Widgets/ElectionDayDashboard.php`
+- `database/migrations/xxxx_create_vote_records_table.php`
+- `tests/Feature/Voting/` (todos)
+
+**Estimación:** 2-3 días
+
+---
+
+### 8.4 Dashboards Diferenciados por Rol ⚠️ PENDIENTE
+**Objetivo:** Cada rol ve un dashboard específico al entrar al sistema.
+
+#### Tareas Pendientes:
+- [ ] Dashboard SUPER_ADMIN (Panel Admin)
+  - [ ] Overview de todas las campañas
+  - [ ] Métricas globales del sistema
+  - [ ] Alertas y notificaciones
+  - [ ] Acceso a todos los módulos
+- [ ] Dashboard ADMIN_CAMPAIGN (Panel Admin)
+  - [ ] Vista de su campaña
+  - [ ] Todos los territorios de la campaña
+  - [ ] Performance de coordinadores
+  - [ ] Estadísticas generales
+- [ ] Dashboard COORDINATOR (App Web)
+  - [ ] Su territorio asignado
+  - [ ] Performance de líderes bajo su coordinación
+  - [ ] Sus votantes directos
+  - [ ] Estadísticas territoriales
+  - [ ] Si `is_special_coordinator = true`:
+    - [ ] Vista especial con foco en votantes directos
+    - [ ] Sin sección de líderes (o minimizada)
+- [ ] Dashboard LEADER (App Web)
+  - [ ] Estadísticas personales
+  - [ ] Sus votantes registrados
+  - [ ] Metas vs logros
+  - [ ] Ranking entre líderes
+- [ ] Dashboard REVIEWER (Panel Admin)
+  - [ ] Call center stats personales
+  - [ ] Votantes pendientes de validar
+  - [ ] Performance personal
+  - [ ] Cola de llamadas
+- [ ] Redirección automática al dashboard correcto
+  ```php
+  // En LoginResponse o middleware
+  return match (auth()->user()->role) {
+      UserRole::SUPER_ADMIN, UserRole::ADMIN_CAMPAIGN, UserRole::REVIEWER
+          => redirect()->route('filament.admin.pages.dashboard'),
+      UserRole::COORDINATOR
+          => redirect()->route('coordinator.dashboard'),
+      UserRole::LEADER
+          => redirect()->route('leader.dashboard'),
+      default
+          => redirect()->route('home'),
+  };
+  ```
+- [ ] Tests (15+ tests)
+
+**Archivos:**
+- `app/Filament/Pages/Dashboard.php` (customizar por rol)
+- `resources/views/livewire/dashboards/coordinator.blade.php`
+- `resources/views/livewire/dashboards/leader.blade.php`
+- `app/Http/Responses/LoginResponse.php` (customizar)
+- `tests/Feature/Dashboards/` (todos)
+
+**Estimación:** 2 días
+
+---
+
+### 8.5 Estadísticas para Coordinadores Especiales ⚠️ PENDIENTE
+**Objetivo:** Reportes y listados separados para coordinadores especiales.
+
+#### Tareas Pendientes:
+- [ ] Widget en Panel Admin: Coordinadores Especiales
+  ```php
+  // app/Filament/Widgets/SpecialCoordinatorsWidget.php
+  - Listado de coordinadores especiales
+  - Votantes directos de cada uno
+  - Performance comparativa
+  - Clasificación (concejal, senador, etc.)
+  ```
+- [ ] Filtros en VoterResource
+  - [ ] Filtro "Registrado por coordinador especial"
+  - [ ] Mostrar tipo de coordinador especial
+- [ ] Exportación específica
+  - [ ] Excel: "Votantes de Coordinadores Especiales"
+  - [ ] Separado por tipo de coordinador
+- [ ] Query scopes útiles
+  ```php
+  // En Voter.php
+  public function scopeFromSpecialCoordinators(Builder $query): void
+  {
+      $query->whereHas('registeredBy', function ($q) {
+          $q->where('role', UserRole::COORDINATOR)
+            ->where('is_special_coordinator', true);
+      });
+  }
+  ```
+- [ ] Tests (8+ tests)
+
+**Archivos:**
+- `app/Filament/Widgets/SpecialCoordinatorsWidget.php`
+- `app/Exports/SpecialCoordinatorVotersExport.php`
+- `tests/Feature/SpecialCoordinators/` (todos)
+
+**Estimación:** 1 día
+
+---
+
+## 📊 FASE 9: Reportes y Analítica
+**Estado:** ⚠️ 20% COMPLETADO | 🔥 PRIORIDAD MEDIA
+
+### 9.1 Widgets de Filament ⚠️ PARCIAL
+
+#### 9.1.1 Widget de Overview General ✅
+- [x] Total votantes por estado
+- [x] Tasa de validación básica
+
+#### 9.1.2 Widgets Pendientes ⚠️
+- [ ] Widget por Territorio
+  - [ ] Mapa de calor
+  - [ ] Gráfica por municipio
+  - [ ] Gráfica por barrio
+- [ ] Widget por Líder
+  - [ ] Ranking de líderes
+  - [ ] Eficiencia de captación
+  - [ ] Tasa de confirmación
+- [ ] Widget de Encuestas
+  - [ ] Resultados visuales
+  - [ ] Comparativas temporales
+- [ ] Tests (15+ tests)
+
+**Estimación:** 2 días
+
+---
+
+### 9.2 Reportes Exportables ⚠️ PENDIENTE
+
+#### Tareas Pendientes:
+- [ ] Reporte de Votantes Avanzado
+  - [ ] Excel con múltiples hojas
+    - [ ] Por territorio
+    - [ ] Por líder
+    - [ ] Por estado
+    - [ ] Por coordinador especial
+  - [ ] PDF con resumen ejecutivo
+  - [ ] Filtros dinámicos
+- [ ] Reporte de Líderes
+  - [ ] Performance individual
+  - [ ] Ranking general
+  - [ ] Comparativas territoriales
+  - [ ] Excel/PDF
+- [ ] Reporte de Coordinadores
+  - [ ] Eficiencia territorial
+  - [ ] Performance de líderes
+  - [ ] Votantes directos vs indirectos
+- [ ] Reporte de Testigos Electorales
+  - [ ] Lista completa
+  - [ ] Mesas asignadas
+  - [ ] Pagos totales
+  - [ ] Exportación para contabilidad
+- [ ] Reporte de Anotadores (post-elecciones)
+  - [ ] Participación registrada
+  - [ ] Votos por mesa
+  - [ ] Estadísticas día D
+- [ ] Tests (15+ tests)
 
 **Archivos:**
 - `app/Services/ReportGenerator.php`
-- `app/Exports/VotersExport.php`
-- `app/Exports/LeadersExport.php`
-- `tests/Feature/ReportGeneratorTest.php`
+- `app/Exports/VotersAdvancedExport.php`
+- `app/Exports/LeadersPerformanceExport.php`
+- `app/Exports/CoordinatorsReportExport.php`
+- `app/Exports/WitnessesExport.php`
+- `app/Exports/VoteRecordersExport.php`
+- `tests/Feature/Reports/` (todos)
 
-#### 7.3 API para Integraciones
-- [ ] Endpoints REST para datos
-- [ ] Autenticación con Sanctum
-- [ ] Versionado
-- [ ] Documentación
-- [ ] Tests
+**Estimación:** 3 días
+
+---
+
+### 9.3 API REST ⚠️ PENDIENTE (Prioridad Baja)
+
+#### Tareas Pendientes:
+- [ ] Instalar y configurar Laravel Sanctum
+- [ ] Crear estructura de API
+  ```
+  /api/v1/
+    ├── voters
+    ├── campaigns
+    ├── stats
+    ├── leaders
+    ├── coordinators
+    └── vote-records (día D)
+  ```
+- [ ] API Resources para transformación
+- [ ] Autenticación con tokens
+- [ ] Rate limiting
+- [ ] Documentación (Scribe/Scramble)
+- [ ] Tests API (30+ tests)
 
 **Archivos:**
 - `routes/api.php`
 - `app/Http/Controllers/Api/V1/` (controllers)
-- `app/Http/Resources/` (API Resources)
+- `app/Http/Resources/` (resources)
 - `tests/Feature/Api/` (tests)
 
-**Estado:** ⏳ Pendiente
+**Estimación:** 4 días
 
 ---
 
 ## 🧪 Testing y Calidad
 
-### Objetivos de Cobertura
-- [ ] 80%+ cobertura de código
-- [ ] Tests para todos los modelos
-- [ ] Tests para todos los Resources de Filament
-- [ ] Tests para todos los Volt components
-- [ ] Tests de integración
-- [ ] Tests de Browser (Pest v4)
+### Estado Actual:
+- ✅ **472 tests pasando**
+- ✅ Alta cobertura en modelos y servicios
+- ✅ Tests para Resources de Filament
 
-### Tests Críticos
-- [ ] Flujo completo de registro de votante
-- [ ] Validación contra censo
-- [ ] Sistema de permisos
-- [ ] Jerarquía de usuarios
-- [ ] Envío de mensajes
-- [ ] Generación de reportes
+### Tests Pendientes:
+- [ ] ~15 tests para User-Voter relation
+- [ ] ~10 tests para flags de clasificación
+- [ ] ~25 tests para App Web Líderes
+- [ ] ~20 tests para Sistema Votación Día D
+- [ ] ~20 tests para App Web Coordinadores
+- [ ] ~15 tests para Dashboards
+- [ ] ~8 tests para Coordinadores Especiales
+- [ ] ~15 tests para Widgets
+- [ ] ~15 tests para Reportes
+- [ ] ~30 tests para API (opcional)
 
-**Comando de Testing:**
-```bash
-php artisan test --coverage
-```
+**Meta Final:** 600+ tests
 
 ---
 
-## 📦 Dependencias Adicionales
+## 📅 Roadmap Recomendado
 
-### A Instalar Durante Desarrollo
+### Sprint 1 (Semana 1): Relaciones y Clasificaciones
+**Objetivo:** Completar el modelo de datos
 
+- **Día 1:**
+  - [ ] FASE 3.2: Relación User-Voter (1 día)
+  - [ ] Migración user_id en voters
+  - [ ] Observer para auto-crear votantes
+  - [ ] Comando migración users existentes
+  - [ ] Tests
+
+- **Día 2:**
+  - [ ] FASE 3.3: Flags de clasificación (0.5 día)
+  - [ ] Migración flags en users
+  - [ ] Actualizar UserResource
+  - [ ] Query scopes
+  - [ ] Tests
+
+### Sprint 2 (Semana 2): App Web Líderes
+**Objetivo:** Líderes pueden registrar votantes fácilmente
+
+- **Día 1-3:**
+  - [ ] FASE 8.1: App Web para Líderes (3 días)
+  - [ ] Layout app.blade.php
+  - [ ] Dashboard líder
+  - [ ] Registro rápido votantes
+  - [ ] Mis votantes
+  - [ ] Tests
+
+### Sprint 3 (Semana 3): App Web Coordinadores
+**Objetivo:** Coordinadores gestionan equipo
+
+- **Día 1-3:**
+  - [ ] FASE 8.2: App Web para Coordinadores (2-3 días)
+  - [ ] Dashboard coordinador
+  - [ ] Gestión de líderes
+  - [ ] Asignación anotadores/testigos
+  - [ ] Votantes directos
+  - [ ] Tests
+
+- **Día 4:**
+  - [ ] FASE 8.5: Estadísticas Coordinadores Especiales (1 día)
+  - [ ] Widget especial
+  - [ ] Filtros y exportaciones
+  - [ ] Tests
+
+### Sprint 4 (Semana 4): Sistema Votación Día D
+**Objetivo:** Sistema listo para día de elecciones
+
+- **Día 1-3:**
+  - [ ] FASE 8.3: Sistema Votación Día D (2-3 días)
+  - [ ] Modelo VoteRecord
+  - [ ] Middleware IsElectionDay
+  - [ ] Vista anotadores
+  - [ ] Dashboard tiempo real
+  - [ ] Tests
+
+### Sprint 5 (Semana 5): Dashboards y Widgets
+**Objetivo:** Cada rol tiene su vista optimizada
+
+- **Día 1-2:**
+  - [ ] FASE 8.4: Dashboards por Rol (2 días)
+  - [ ] Dashboard para cada rol
+  - [ ] Redirección automática
+  - [ ] Tests
+
+- **Día 3-4:**
+  - [ ] FASE 9.1: Widgets Avanzados (2 días)
+  - [ ] Widget territorio
+  - [ ] Widget líderes
+  - [ ] Widget encuestas
+  - [ ] Tests
+
+### Sprint 6+ (Opcional): Reportes y API
+**Prioridad:** BAJA - Solo si hay tiempo/necesidad
+
+- [ ] FASE 9.2: Reportes Exportables (3 días)
+- [ ] FASE 9.3: API REST (4 días)
+
+**Estimación Total:** 18-22 días de desarrollo
+
+---
+
+## 🎯 Prioridades Críticas
+
+### DEBE Completarse Antes de Elecciones:
+1. ✅ Relación User-Voter (coordinadores/líderes son votantes)
+2. ✅ Flags de clasificación (anotadores, testigos, especiales)
+3. 🔥 App Web para Líderes (registro rápido)
+4. 🔥 Sistema Votación Día D (marcar votos)
+5. 🔥 Asignación de anotadores por coordinadores
+6. ⚠️ Dashboards por rol
+
+### PUEDE Completarse Después:
+- Widgets avanzados
+- Reportes complejos
+- API REST
+- App móvil nativa
+
+---
+
+## 📦 Dependencias
+
+### Ya Instaladas:
+- ✅ `maatwebsite/excel` - Importación/exportación
+- ✅ `spatie/laravel-permission` - Roles y permisos
+- ✅ Filament v4 completo
+- ✅ Livewire v3 + Volt
+- ✅ Flux UI Free
+
+### Por Instalar (según necesidad):
 ```bash
-# Roles y Permisos
-composer require spatie/laravel-permission
-
-# Importación/Exportación
-composer require maatwebsite/excel
-
-# Generación de PDFs
+# Para reportes PDF avanzados
 composer require barryvdh/laravel-dompdf
 
-# API
+# Para API (Sprint 6+)
 composer require laravel/sanctum
 
-# Gráficas
-composer require filament/spatie-laravel-charts-plugin
-
-# Auditoría
+# Para auditoría completa (opcional)
 composer require owen-it/laravel-auditing
 ```
 
 ---
 
-## 📝 Documentación a Crear
+## 📝 Documentación
 
-Durante el desarrollo, crear:
-
-- [ ] `docs/API.md` - Documentación de API
-- [ ] `docs/ROLES.md` - Descripción de roles y permisos
-- [ ] `docs/WORKFLOW.md` - Flujo de trabajo del sistema
-- [ ] `docs/DEPLOYMENT.md` - Guía de despliegue
-- [ ] `docs/TESTING.md` - Guía de testing
-- [ ] README.md actualizado
-
----
-
-## 🔄 Proceso de Desarrollo
-
-### Para Cada Tarea:
-
-1. **Crear rama** de feature
-2. **Implementar** código
-3. **Escribir tests**
-4. **Ejecutar** tests
-5. **Ejecutar** Pint para formateo
-6. **Commit** con mensaje descriptivo
-7. **Marcar** tarea como completada en este plan
-8. **Merge** a main/develop
-
-### Comandos Útiles:
-
-```bash
-# Crear modelo con todo
-php artisan make:model Vote -mfsr
-
-# Crear Filament Resource
-php artisan make:filament-resource Voter --generate
-
-# Crear test
-php artisan make:test VoterTest --pest
-
-# Ejecutar tests
-php artisan test --filter=VoterTest
-
-# Formatear código
-vendor/bin/pint --dirty
-```
-
----
-
-## 📈 Tracking de Progreso
-
-### Resumen por Fase
-
-- [x] **FASE 0:** Configuración Base (4/4 tareas) ✅
-- [x] **FASE 1:** Estructura Territorial (3/3 módulos) ✅
-- [x] **FASE 2:** Sistema Multi-Campaña (3/3 módulos) ✅
-- [x] **FASE 3:** Gestión de Usuarios (4/4 módulos) ✅
-- [x] **FASE 4:** Módulo de Votantes (4/4 módulos) ✅
-- [x] **FASE 5:** Validación y Censo (4/4 módulos) ✅
-- [x] **FASE 6:** Módulos Estratégicos (10/10 sub-módulos) ✅
-- [ ] **FASE 7:** Sistema de Traducción (0/4 módulos) ⏳ URGENTE
-- [ ] **FASE 8:** Gestión de Jerarquía y Permisos (0/6 módulos) ⏳ CRÍTICO
-- [ ] **FASE 9:** Reportes y Analítica (0/3 módulos) ⏳
-
-### Progreso General
-**70% Completo** (24/34 módulos principales)
-
-**Estado Actual:**
-- ✅ Infraestructura base completada
-- ✅ Modelos core implementados
-- ✅ Sistema de encuestas funcionando
-- ✅ Call center operativo
-- ⚠️ **CRÍTICO:** Sistema completamente en inglés (necesita traducción)
-- ⚠️ **CRÍTICO:** Falta UI para gestión de usuarios y roles
-- ⚠️ **CRÍTICO:** Falta UI para gestión de votantes
-- ⚠️ **BLOQUEANTE:** No hay interfaz para workflow de jerarquía
-
----
-
-## 🎯 Próximos Pasos Inmediatos
-
-### PRIORIDAD ALTA (Completar Primero):
-
-1. **FASE 7:** Sistema de Traducción (1-2 días)
-   - Configurar Laravel para español
-   - Traducir todos los Resources de Filament
-   - Traducir componentes Volt
-   - Crear archivos de idioma
-   - **Impacto:** Mejora UX inmediatamente
-
-2. **FASE 8.1:** UserResource (2-3 días)
-   - CRUD completo de usuarios
-   - Asignación de roles
-   - Asignación de campañas
-   - Asignación territorial
-   - **Impacto:** Habilita gestión de jerarquía
-
-3. **FASE 8.2:** VoterResource (2-3 días)
-   - CRUD completo de votantes
-   - Importación masiva
-   - Gestión de estados
-   - Asignación de líderes
-   - **Impacto:** Habilita workflow principal
-
-### PRIORIDAD MEDIA:
-
-4. **FASE 8.3:** SurveyResource (1-2 días)
-   - CRUD de encuestas
-   - Constructor de preguntas
-   - Visualización de resultados
-
-5. **FASE 8.4:** TerritorialAssignmentResource (1 día)
-   - Asignaciones territoriales
-
-6. **FASE 8.5:** Dashboards por Rol (2-3 días)
-   - Dashboard específico para cada rol
-
-### PRIORIDAD BAJA:
-
-7. **FASE 9:** Reportes y Analítica
-   - Widgets avanzados
-   - Exportaciones
-   - API
-
-### Orden Recomendado:
-```
-FASE 7 (Traducción) → FASE 8.1 (Users) → FASE 8.2 (Voters) → FASE 8.3 (Surveys) → FASE 8.4-8.6 → FASE 9
-```
-
-**Estimación Total Restante:** 12-15 días de desarrollo
-
----
-
-## ⚠️ Hallazgos Críticos del Sistema
-
-### Roles Definidos (UserRole enum):
-1. **SUPER_ADMIN** - Acceso total al sistema
-2. **ADMIN_CAMPAIGN** - Administrador de campaña
-3. **COORDINATOR** - Coordinador territorial (gestiona líderes)
-4. **LEADER** - Líder territorial (registra votantes)
-5. **REVIEWER** - Revisor (valida y hace llamadas)
-
-### Problemas Identificados:
-- ✅ Modelos creados y funcionando
-- ✅ Relaciones entre modelos correctas
-- ✅ Tests pasando (410 tests, 945 assertions)
-- ❌ **NO existe UserResource** (no se pueden gestionar usuarios/roles)
-- ❌ **NO existe VoterResource** (líderes no pueden registrar votantes)
-- ❌ **NO existe SurveyResource** (no se pueden crear/gestionar encuestas)
-- ❌ **NO existe TerritorialAssignmentResource** (no se pueden hacer asignaciones)
-- ❌ **Sistema completamente en inglés** (configurado 'es' pero sin traducciones)
-- ❌ **NO hay dashboards por rol** (todos ven lo mismo)
-- ❌ **Workflow jerárquico no implementado en UI**
-
-### Workflow Esperado vs Actual:
-
-**Esperado:**
-```
-Admin → Crea campaña → Asigna coordinador
-Coordinador → Asigna territorio → Gestiona líderes
-Líder → Registra votantes → Valida datos
-Revisor → Valida votantes → Hace llamadas
-```
-
-**Actual:**
-```
-❌ No hay UI para estas operaciones
-✅ Solo modelos y relaciones en base de datos
-```
-
-### Decisión de Arquitectura:
-El sistema debe priorizar **completar la UI de gestión básica** antes de reportes avanzados, porque sin UserResource y VoterResource, el workflow principal no funciona.
-
----
-
-## 📞 Notas y Consideraciones
-
-### Decisiones Tomadas:
-- ✅ Coordinadores y Líderes son Users con roles (UserRole enum)
-- ✅ Sistema usa Spatie Permission para roles
-- ✅ Multi-campaña implementado (soft multi-tenancy)
-- ✅ SQLite para testing, MySQL para producción
-- ✅ Filament v4 como panel admin principal
-- ✅ Volt para componentes interactivos
-- ✅ Pest v4 para testing (incluye browser tests)
-
-### Decisiones Pendientes:
-- [ ] ¿Qué API usar para WhatsApp? (Twilio, official API, etc)
-- [ ] ¿Qué API usar para SMS? (ver `docs/INTEGRACION_HABLAME_SMS.md`)
-- [ ] ¿Implementar notificaciones push?
-- [ ] ¿Usar Redis para cache y queues en producción?
-
-### Optimizaciones Futuras:
-- Cache de queries frecuentes (Redis)
-- Queue workers para jobs pesados
-- CDN para assets estáticos
-- Backup automático de base de datos
-- Monitoreo con Laravel Pulse
-
----
-
-## 🎓 Recursos de Documentación
-
-### Documentación Creada:
+### Documentación Existente:
 - ✅ `docs/DECISIONES.md` - Decisiones de arquitectura
 - ✅ `docs/PATRON_ENUMS.md` - Patrón para enums
 - ✅ `docs/CHEATSHEET.md` - Comandos útiles
 - ✅ `docs/INTEGRACION_HABLAME_SMS.md` - Integración SMS
-- ✅ `docs/SURVEY_EXPORT_INTEGRATION.md` - Exportación de encuestas
+- ✅ `docs/SURVEY_EXPORT_INTEGRATION.md` - Exportación encuestas
 - ✅ `docs/GUIA_USO_PLAN.md` - Guía de uso del plan
 
 ### Documentación Pendiente:
-- [ ] `docs/API.md` - Documentación de API (cuando se implemente)
+- [ ] `docs/JERARQUIA_USUARIOS.md` - Explicar jerarquía user-voter
+- [ ] `docs/SISTEMA_VOTACION_DIA_D.md` - Guía sistema votación
 - [ ] `docs/DEPLOYMENT.md` - Guía de despliegue
-- [ ] `docs/ROLES.md` - Descripción detallada de roles y permisos
-- [ ] `docs/TESTING.md` - Guía completa de testing
-- [ ] README.md mejorado con screenshots
+- [ ] `docs/API.md` - Documentación API (si se implementa)
 
 ---
 
-**Última Actualización:** 2025-01-21
-**Actualizar este plan** conforme avancemos en el desarrollo.
+## 🎓 Estándares de Código
 
-**Estado:** 70% completo - Fases críticas identificadas y priorizadas
+### Decisiones Tomadas:
+- ✅ **Import Statements:** SIEMPRE usar `use` explícitos, NUNCA alias
+  ```php
+  // ✅ Correcto
+  use Filament\Forms\Components\Select;
+  use Filament\Forms\Components\TextInput;
+
+  // ❌ Incorrecto
+  use Filament\Forms;
+  Forms\Components\Select::make()
+  ```
+- ✅ Formateo con Laravel Pint antes de commit
+- ✅ Tests con Pest v4
+- ✅ Convenciones Laravel 12
+- ✅ Filament v4 best practices
+
+---
+
+## 🎯 Métricas de Éxito
+
+### Al Completar Sprint 1-5:
+- [ ] Coordinadores y líderes tienen registro como votantes
+- [ ] Flags de clasificación funcionando (anotadores, testigos, especiales)
+- [ ] Líderes registran 100+ votantes/día desde app móvil
+- [ ] Sistema votación listo para día D (1000+ votos/hora)
+- [ ] Cada rol tiene dashboard específico
+- [ ] 600+ tests pasando
+- [ ] < 200ms response time promedio
+
+---
+
+**Última Actualización:** 2025-11-08
+**Próxima Revisión:** Después de completar Sprint 1
+**Progreso:** 85% → Meta 100% en 18-22 días

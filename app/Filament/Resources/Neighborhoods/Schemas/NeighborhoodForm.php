@@ -26,7 +26,7 @@ class NeighborhoodForm
                     ->label('Barrio Global')
                     ->helperText('Los barrios globales están disponibles para todas las campañas')
                     ->default(true)
-                    ->reactive(),
+                    ->live(),
                 Select::make('campaign_id')
                     ->label('Campaña')
                     ->helperText('Solo necesario si el barrio es específico de una campaña')

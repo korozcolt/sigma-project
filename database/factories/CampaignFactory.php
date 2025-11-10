@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\CampaignScope;
 use App\Enums\CampaignStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -29,6 +30,11 @@ class CampaignFactory extends Factory
             'end_date' => fake()->optional()->dateTimeBetween($startDate, $electionDate),
             'election_date' => $electionDate,
             'status' => CampaignStatus::DRAFT,
+            'scope' => fake()->randomElement([
+                CampaignScope::Municipal,
+                CampaignScope::Departamental,
+                CampaignScope::Regional,
+            ]),
             'settings' => [
                 'welcome_message' => '¡Bienvenido a nuestra campaña!',
                 'birthday_message' => '¡Feliz cumpleaños! Que tengas un excelente día.',
@@ -67,6 +73,36 @@ class CampaignFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => CampaignStatus::COMPLETED,
             'end_date' => fake()->dateTimeBetween('-1 month', 'now'),
+        ]);
+    }
+
+    /**
+     * Indicate that the campaign is municipal.
+     */
+    public function municipal(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'scope' => CampaignScope::Municipal,
+        ]);
+    }
+
+    /**
+     * Indicate that the campaign is departamental.
+     */
+    public function departamental(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'scope' => CampaignScope::Departamental,
+        ]);
+    }
+
+    /**
+     * Indicate that the campaign is regional.
+     */
+    public function regional(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'scope' => CampaignScope::Regional,
         ]);
     }
 }

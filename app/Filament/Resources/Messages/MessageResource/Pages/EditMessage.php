@@ -12,10 +12,13 @@ class EditMessage extends EditRecord
 {
     protected static string $resource = MessageResource::class;
 
+    protected static ?string $title = 'Editar Mensaje';
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->label('Eliminar'),
         ];
     }
 }

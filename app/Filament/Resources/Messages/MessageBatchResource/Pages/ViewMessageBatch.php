@@ -14,10 +14,13 @@ class ViewMessageBatch extends ViewRecord
 {
     protected static string $resource = MessageBatchResource::class;
 
+    protected static ?string $title = 'Ver Envío Masivo';
+
     protected function getHeaderActions(): array
     {
         return [
             Actions\EditAction::make()
+                ->label('Editar')
                 ->visible(fn ($record) => $record->status === 'pending'),
         ];
     }

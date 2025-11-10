@@ -28,6 +28,71 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - Use descriptive names for variables and methods. For example, `isRegisteredForDiscounts`, not `discount()`.
 - Check for existing components to reuse before writing a new one.
 
+## Import Statements - CRITICAL RULE ⚠️
+- **ALWAYS use explicit `use` statements** for ALL class references in PHP files
+- **NEVER use namespace aliases** like `Forms\Components\TextInput` or `Tables\Columns\TextColumn`
+- **NEVER use full namespace paths** like `\Illuminate\Database\Eloquent\Relations\BelongsTo`
+- **NEVER use inline namespace references** like `\App\Models\User::class`
+- Import each class individually at the top of the file with `use`
+- This is a STRICT requirement that prevents errors and improves code quality
+- Violation of this rule will cause immediate failures
+
+### ✅ CORRECT Examples (ALWAYS DO THIS):
+```php
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\User;
+use App\Observers\UserObserver;
+
+// Correcto - usando clases importadas
+Section::make('Title')
+    ->schema([
+        TextInput::make('name'),
+        Select::make('type'),
+    ]);
+
+// Correcto - relaciones
+public function user(): BelongsTo  // ✅ Correcto
+{
+    return $this->belongsTo(User::class);
+}
+
+// Correcto - tests
+expect($user->voter())->toBeInstanceOf(HasOne::class);  // ✅ Correcto
+$observer = new UserObserver;  // ✅ Correcto
+```
+
+### ❌ INCORRECT Examples (NEVER DO THIS):
+```php
+use Filament\Forms;
+
+// ❌ PROHIBIDO - Namespace aliases
+Forms\Components\Section::make('Title')
+    ->schema([
+        Forms\Components\TextInput::make('name'),
+    ]);
+
+// ❌ PROHIBIDO - Full namespace paths
+public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+{
+    return $this->belongsTo(\App\Models\User::class);
+}
+
+// ❌ PROHIBIDO - Inline namespace en tests
+expect($user->voter())->toBeInstanceOf(\Illuminate\Database\Eloquent\Relations\HasOne::class);
+$observer = new \App\Observers\UserObserver;
+```
+
+**WHY THIS MATTERS:**
+- Prevents "Class not found" errors
+- Improves IDE autocomplete and refactoring
+- Makes code more readable and maintainable
+- Follows Laravel and PHP best practices
+- **Violating this rule WILL cause compilation/runtime errors**
+
 ## Verification Scripts
 - Do not create verification scripts or tinker when tests cover that functionality and prove it works. Unit and feature tests are more important.
 

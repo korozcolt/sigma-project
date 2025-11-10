@@ -12,10 +12,17 @@ class CreateMessageTemplate extends CreateRecord
 {
     protected static string $resource = MessageTemplateResource::class;
 
+    protected static ?string $title = 'Crear Plantilla de Mensaje';
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['created_by'] = Auth::id();
 
         return $data;
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 }

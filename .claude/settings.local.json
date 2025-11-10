@@ -14,7 +14,20 @@
       "mcp__laravel-boost__search-docs",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git log:*)",
+      "Bash(composer show:*)",
+      "Bash(php -d memory_limit=512M artisan test:*)",
+      "WebSearch",
+      "Bash(php -d memory_limit=1024M artisan test:*)",
+      "mcp__laravel-boost__database-query",
+      "Bash(php:*)",
+      "mcp__laravel-boost__read-log-entries",
+      "mcp__laravel-boost__last-error",
+      "mcp__laravel-boost__list-artisan-commands",
+      "mcp__laravel-boost__get-absolute-url",
+      "mcp__laravel-boost__tinker",
+      "Bash(find:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

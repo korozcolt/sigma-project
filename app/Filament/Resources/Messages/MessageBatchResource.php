@@ -8,18 +8,20 @@ use App\Filament\Resources\Messages\MessageBatchResource\Pages;
 use App\Filament\Resources\Messages\Schemas\MessageBatchForm;
 use App\Filament\Resources\Messages\Tables\MessageBatchesTable;
 use App\Models\MessageBatch;
+use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class MessageBatchResource extends Resource
 {
     protected static ?string $model = MessageBatch::class;
 
-    protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxStack;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Mensajería';
+    protected static UnitEnum|string|null $navigationGroup = 'Mensajería';
 
     protected static ?int $navigationSort = 3;
 

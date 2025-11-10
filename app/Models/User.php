@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -35,7 +36,11 @@ class User extends Authenticatable
         'municipality_id',
         'neighborhood_id',
         'profile_photo_path',
-        'voter_id',
+        'is_vote_recorder',
+        'is_witness',
+        'witness_assigned_station',
+        'witness_payment_amount',
+        'is_special_coordinator',
     ];
 
     /**
@@ -61,6 +66,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'birth_date' => 'date',
+            'is_vote_recorder' => 'boolean',
+            'is_witness' => 'boolean',
+            'is_special_coordinator' => 'boolean',
+            'witness_payment_amount' => 'decimal:2',
         ];
     }
 
@@ -93,11 +102,20 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the voter profile for this user (if exists)
+     * Get the voter profile for this user (coordinadores y líderes tienen su propio registro como votante)
      */
-    public function voter(): BelongsTo
+    public function voter(): HasOne
     {
-        return $this->belongsTo(Voter::class);
+        return $this->hasOne(Voter::class);
+    }
+
+    /**
+     * Get the voters directly registered by this user
+     * Alias de registeredVoters() para mayor claridad
+     */
+    public function directVoters(): HasMany
+    {
+        return $this->registeredVoters();
     }
 
     /**
@@ -132,5 +150,38 @@ class User extends Authenticatable
     public function registeredVoters(): HasMany
     {
         return $this->hasMany(Voter::class, 'registered_by');
+    }
+
+    /**
+     * Scope query to only include vote recorders
+     */
+    public function scopeVoteRecorders($query)
+    {
+        return $query->where('is_vote_recorder', true);
+    }
+
+    /**
+     * Scope query to only include witnesses
+     */
+    public function scopeWitnesses($query)
+    {
+        return $query->where('is_witness', true);
+    }
+
+    /**
+     * Scope query to only include special coordinators
+     */
+    public function scopeSpecialCoordinators($query)
+    {
+        return $query->where('is_special_coordinator', true);
+    }
+
+    /**
+     * Scope query to only include assigned witnesses (with station)
+     */
+    public function scopeAssignedWitnesses($query)
+    {
+        return $query->where('is_witness', true)
+            ->whereNotNull('witness_assigned_station');
     }
 }

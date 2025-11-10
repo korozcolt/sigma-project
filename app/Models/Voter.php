@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Voter extends Model
@@ -18,6 +17,7 @@ class Voter extends Model
 
     protected $fillable = [
         'campaign_id',
+        'user_id',
         'document_number',
         'first_name',
         'last_name',
@@ -80,9 +80,17 @@ class Voter extends Model
         return $this->hasMany(SurveyResponse::class);
     }
 
-    public function user(): HasOne
+    public function verificationCalls(): HasMany
     {
-        return $this->hasOne(User::class);
+        return $this->hasMany(VerificationCall::class);
+    }
+
+    /**
+     * Get the User associated with this voter (si es coordinador o líder)
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function scopePendingReview(Builder $query): void

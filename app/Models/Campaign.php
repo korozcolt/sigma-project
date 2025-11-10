@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CampaignScope;
 use App\Enums\CampaignStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,6 +30,7 @@ class Campaign extends Model
         'end_date',
         'election_date',
         'status',
+        'scope',
         'settings',
         'created_by',
     ];
@@ -43,6 +45,7 @@ class Campaign extends Model
             'end_date' => 'date',
             'election_date' => 'date',
             'status' => CampaignStatus::class,
+            'scope' => CampaignScope::class,
             'settings' => 'array',
         ];
     }
@@ -119,5 +122,29 @@ class Campaign extends Model
     public function scopeCompleted(Builder $query): void
     {
         $query->where('status', CampaignStatus::COMPLETED);
+    }
+
+    /**
+     * Scope a query to only include departamental campaigns.
+     */
+    public function scopeDepartamental(Builder $query): void
+    {
+        $query->where('scope', CampaignScope::Departamental);
+    }
+
+    /**
+     * Scope a query to only include municipal campaigns.
+     */
+    public function scopeMunicipal(Builder $query): void
+    {
+        $query->where('scope', CampaignScope::Municipal);
+    }
+
+    /**
+     * Scope a query to only include regional campaigns.
+     */
+    public function scopeRegional(Builder $query): void
+    {
+        $query->where('scope', CampaignScope::Regional);
     }
 }

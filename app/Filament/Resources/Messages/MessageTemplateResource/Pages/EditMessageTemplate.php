@@ -12,10 +12,13 @@ class EditMessageTemplate extends EditRecord
 {
     protected static string $resource = MessageTemplateResource::class;
 
+    protected static ?string $title = 'Editar Plantilla de Mensaje';
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->label('Eliminar'),
         ];
     }
 }

@@ -51,36 +51,80 @@ class HablameSmsService
             $response = Http::withHeaders([
                 'X-Hablame-Key' => $this->apiKey,
                 'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
             ])
                 ->timeout(30)
                 ->post("{$this->apiUrl}/sms/v5/send", [
-                    'to' => [$phone],
-                    'from' => $this->from,
-                    'message' => $message->content,
-                    'priority' => 1,
+                    'messages' => [
+                        [
+                            'to' => $phone,
+                            'text' => $message->content,
+                        ],
+                    ],
                 ]);
-
-            // Log de la solicitud
-            Log::info('Hablame SMS API Request', [
-                'message_id' => $message->id,
-                'to' => $phone,
-                'from' => $this->from,
-                'status' => $response->status(),
-            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
+                $payload = $data['payLoad'] ?? [];
+                $messages = $payload['messages'] ?? [];
+                $firstMessage = $messages[0] ?? [];
 
-                return [
+                // Log completo de la respuesta para debug
+                Log::info('Hablame SMS API Full Response', [
+                    'message_id' => $message->id,
+                    'response' => $data,
+                ]);
+
+                // Calcular mensajes enviados vs fallidos basado en statusId
+                // statusId 102 = enviado exitosamente
+                // statusId 106 = programado/en cola (también es exitoso)
+                $sent = 0;
+                $failed = 0;
+                $totalCost = 0;
+
+                foreach ($messages as $msg) {
+                    $statusId = $msg['statusId'] ?? 0;
+
+                    Log::info('Processing message statusId', [
+                        'statusId' => $statusId,
+                        'message' => $msg,
+                    ]);
+
+                    // Considerar exitosos: 102 (enviado) y 106 (programado/en cola)
+                    if (in_array($statusId, [102, 106])) {
+                        $sent++;
+                    } else {
+                        $failed++;
+                    }
+                    $totalCost += $msg['price'] ?? 0;
+                }
+
+                $result = [
                     'success' => true,
-                    'batch_id' => $data['payLoad']['batch_id'] ?? null,
-                    'sent' => $data['payLoad']['sent'] ?? 0,
-                    'failed' => $data['payLoad']['failed'] ?? 0,
-                    'cost' => $data['payLoad']['cost'] ?? 0,
+                    // Preferir batch_id del payload si está disponible; de lo contrario usar id del primer mensaje
+                    'batch_id' => $payload['batch_id'] ?? ($firstMessage['id'] ?? null),
+                    'sent' => $sent,
+                    'failed' => $failed,
+                    'cost' => $totalCost,
+                    'sms_qty' => $payload['smsQty'] ?? 1,
                     'status_code' => $data['statusCode'] ?? 200,
                     'status_message' => $data['statusMessage'] ?? 'OK',
                     'response_time' => $data['responseTime'] ?? null,
+                    'account_id' => $payload['accountId'] ?? null,
+                    'send_date' => $payload['sendDate'] ?? null,
                 ];
+
+                // Log de respuesta exitosa
+                Log::info('Hablame SMS API Success', [
+                    'message_id' => $message->id,
+                    'to' => $phone,
+                    'batch_id' => $result['batch_id'],
+                    'sent' => $result['sent'],
+                    'cost' => $result['cost'],
+                    'response_time' => $result['response_time'].'s',
+                ]);
+
+                return $result;
             }
 
             // Manejo de errores HTTP
@@ -167,26 +211,22 @@ class HablameSmsService
     }
 
     /**
-     * Formatear número de teléfono a formato internacional
+     * Formatear número de teléfono para API Hablame
+     * La API acepta números de 10 dígitos sin prefijo internacional
      */
     protected function formatPhoneNumber(string $phone): ?string
     {
-        // Eliminar espacios, guiones y paréntesis
-        $phone = preg_replace('/[\s\-\(\)]/', '', $phone);
+        // Eliminar espacios, guiones, paréntesis y símbolos
+        $phone = preg_replace('/[\s\-\(\)\+]/', '', $phone);
 
-        // Si ya tiene +57, retornar
-        if (str_starts_with($phone, '+57')) {
-            return $phone;
+        // Si empieza con 57 (código de Colombia), removerlo para tener solo 10 dígitos
+        if (str_starts_with($phone, '57') && strlen($phone) === 12) {
+            $phone = substr($phone, 2);
         }
 
-        // Si empieza con 57, agregar +
-        if (str_starts_with($phone, '57')) {
-            return '+'.$phone;
-        }
-
-        // Si es número de 10 dígitos (Colombia), agregar +57
+        // Validar que sea número de 10 dígitos válido para Colombia (inicia con 3)
         if (strlen($phone) === 10 && preg_match('/^3\d{9}$/', $phone)) {
-            return '+57'.$phone;
+            return $phone;
         }
 
         // Número inválido
@@ -199,9 +239,11 @@ class HablameSmsService
     protected function sandboxResponse(string $phone, string $content): array
     {
         Log::info('Hablame SMS Sandbox Mode', [
-            'to' => $phone,
-            'from' => $this->from,
-            'message' => $content,
+            'request' => [
+                'messages' => [
+                    ['to' => $phone, 'text' => $content],
+                ],
+            ],
         ]);
 
         return [

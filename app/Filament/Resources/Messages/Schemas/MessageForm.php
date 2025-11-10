@@ -6,7 +6,12 @@ namespace App\Filament\Resources\Messages\Schemas;
 
 use App\Models\MessageTemplate;
 use App\Models\Voter;
-use Filament\Forms;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class MessageForm
@@ -14,32 +19,43 @@ class MessageForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Section::make('Información del Mensaje')
+            Section::make('Información del Mensaje')
                 ->schema([
-                    Forms\Components\Select::make('campaign_id')
+                    Select::make('campaign_id')
                         ->label('Campaña')
                         ->relationship('campaign', 'name')
                         ->required()
                         ->searchable()
                         ->preload(),
 
-                    Forms\Components\Select::make('voter_id')
+                    Select::make('voter_id')
                         ->label('Votante')
-                        ->relationship('voter', 'full_name')
+                        // Usamos una columna real para evitar errores SQL y calculamos la etiqueta
+                        ->relationship('voter', 'first_name')
                         ->required()
                         ->searchable()
-                        ->getSearchResultsUsing(fn (string $search) => Voter::where('full_name', 'like', "%{$search}%")
-                            ->orWhere('document_number', 'like', "%{$search}%")
+                        ->getSearchResultsUsing(fn (string $search) => Voter::query()
+                            ->where(function ($q) use ($search) {
+                                $q->whereRaw('CONCAT(first_name, " ", last_name) LIKE ?', ["%{$search}%"])
+                                    ->orWhere('first_name', 'like', "%{$search}%")
+                                    ->orWhere('last_name', 'like', "%{$search}%")
+                                    ->orWhere('document_number', 'like', "%{$search}%");
+                            })
                             ->limit(50)
-                            ->pluck('full_name', 'id'))
-                        ->getOptionLabelUsing(fn ($value): ?string => Voter::find($value)?->full_name),
+                            ->get()
+                            ->mapWithKeys(fn (Voter $voter) => [
+                                $voter->id => sprintf('%s - %s', $voter->full_name, $voter->document_number),
+                            ]))
+                        ->getOptionLabelUsing(fn ($value): ?string => (
+                            ($v = Voter::find($value)) ? sprintf('%s - %s', $v->full_name, $v->document_number) : null
+                        )),
 
-                    Forms\Components\Select::make('template_id')
+                    Select::make('template_id')
                         ->label('Plantilla')
                         ->relationship('template', 'name')
                         ->searchable()
                         ->preload()
-                        ->reactive()
+                        ->live()
                         ->afterStateUpdated(function ($state, callable $set) {
                             if ($state) {
                                 $template = MessageTemplate::find($state);
@@ -52,7 +68,7 @@ class MessageForm
                             }
                         }),
 
-                    Forms\Components\Select::make('type')
+                    Select::make('type')
                         ->label('Tipo')
                         ->options([
                             'birthday' => 'Cumpleaños',
@@ -62,7 +78,7 @@ class MessageForm
                         ])
                         ->required(),
 
-                    Forms\Components\Select::make('channel')
+                    Select::make('channel')
                         ->label('Canal')
                         ->options([
                             'whatsapp' => 'WhatsApp',
@@ -71,7 +87,7 @@ class MessageForm
                         ])
                         ->required(),
 
-                    Forms\Components\Select::make('status')
+                    Select::make('status')
                         ->label('Estado')
                         ->options([
                             'pending' => 'Pendiente',
@@ -85,41 +101,41 @@ class MessageForm
                         ->required(),
                 ])->columns(2),
 
-            Forms\Components\Section::make('Contenido del Mensaje')
+            Section::make('Contenido del Mensaje')
                 ->schema([
-                    Forms\Components\TextInput::make('subject')
+                    TextInput::make('subject')
                         ->label('Asunto')
                         ->maxLength(255)
-                        ->visible(fn (Forms\Get $get) => $get('channel') === 'email'),
+                        ->visible(fn ($get) => $get('channel') === 'email'),
 
-                    Forms\Components\Textarea::make('content')
+                    Textarea::make('content')
                         ->label('Contenido')
                         ->required()
                         ->rows(5)
                         ->helperText('Variables disponibles: {{nombre}}, {{fecha}}, {{candidato}}, etc.'),
                 ]),
 
-            Forms\Components\Section::make('Programación')
+            Section::make('Programación')
                 ->schema([
-                    Forms\Components\DateTimePicker::make('scheduled_for')
+                    DateTimePicker::make('scheduled_for')
                         ->label('Programar para')
                         ->seconds(false)
-                        ->visible(fn (Forms\Get $get) => $get('status') === 'scheduled'),
+                        ->visible(fn ($get) => $get('status') === 'scheduled'),
                 ])->collapsed(),
 
-            Forms\Components\Section::make('Metadatos (Opcional)')
+            Section::make('Metadatos (Opcional)')
                 ->schema([
-                    Forms\Components\TextInput::make('external_id')
+                    TextInput::make('external_id')
                         ->label('ID Externo')
                         ->maxLength(255)
                         ->disabled(),
 
-                    Forms\Components\Textarea::make('error_message')
+                    Textarea::make('error_message')
                         ->label('Mensaje de Error')
                         ->rows(2)
                         ->disabled(),
 
-                    Forms\Components\KeyValue::make('metadata')
+                    KeyValue::make('metadata')
                         ->label('Metadata')
                         ->keyLabel('Clave')
                         ->valueLabel('Valor'),

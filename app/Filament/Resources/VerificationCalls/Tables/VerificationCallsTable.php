@@ -22,15 +22,29 @@ class VerificationCallsTable
                     ->label('#')
                     ->sortable(),
 
-                TextColumn::make('voter.full_name')
-                    ->label('Votante')
+                TextColumn::make('caller.name')
+                    ->label('Líder')
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('caller.name')
-                    ->label('Agente')
-                    ->searchable()
-                    ->sortable(),
+                TextColumn::make('voter_display')
+                    ->label('Votante')
+                    ->getStateUsing(fn ($record) => $record->voter
+                        ? sprintf('%s - %s', $record->voter->full_name, $record->voter->document_number)
+                        : '—')
+                    ->searchable(query: function ($query, $search) {
+                        $query->whereHas('voter', function ($q) use ($search) {
+                            $q->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"])
+                                ->orWhere('first_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhere('document_number', 'like', "%{$search}%");
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        $query->join('voters', 'voters.id', '=', 'verification_calls.voter_id')
+                            ->orderByRaw("CONCAT(voters.first_name, ' ', voters.last_name) {$direction}")
+                            ->select('verification_calls.*');
+                    }),
 
                 TextColumn::make('call_date')
                     ->label('Fecha')
@@ -83,7 +97,7 @@ class VerificationCallsTable
                     ->multiple(),
 
                 SelectFilter::make('caller_id')
-                    ->label('Agente')
+                    ->label('Líder')
                     ->relationship('caller', 'name')
                     ->searchable()
                     ->preload()

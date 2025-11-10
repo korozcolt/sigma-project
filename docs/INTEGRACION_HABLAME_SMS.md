@@ -77,37 +77,85 @@ HABLAME_ENABLED=true               # Flag para habilitar/deshabilitar en desarro
 POST https://www.hablame.co/api/sms/v5/send
 ```
 
-**Request Body**:
+**Request Body** (formato actualizado v5):
 ```json
 {
-  "to": ["+573001234567", "+573009876543"],
-  "from": "SIGMA",
-  "message": "¡Feliz cumpleaños! Desde SIGMA te deseamos lo mejor.",
-  "priority": 1
+  "messages": [
+    {
+      "to": "3001234567",
+      "text": "¡Feliz cumpleaños! Desde SIGMA te deseamos lo mejor."
+    },
+    {
+      "to": "3009876543",
+      "text": "¡Feliz cumpleaños! Desde SIGMA te deseamos lo mejor."
+    }
+  ]
 }
 ```
 
-**Response (201 Created)**:
+**Nota importante**: Los números de teléfono deben ser de 10 dígitos sin el prefijo +57 o 57.
+
+**Response (200 OK)**:
 ```json
 {
   "payLoad": {
-    "batch_id": "abc123456",
-    "sent": 2,
-    "failed": 0,
-    "cost": 0.068
+    "accountId": 10010002,
+    "billingAccount": 99910010002,
+    "campaignId": null,
+    "campaignName": null,
+    "certificate": true,
+    "deliveryReceiptUrl": "https://www.hablame.co",
+    "flash": false,
+    "from": "9409110000",
+    "ip": "200.189.27.71",
+    "messages": [
+      {
+        "areaId": 0,
+        "areaName": "",
+        "costCenter": 123,
+        "countryId": null,
+        "encoding": "gsm",
+        "id": "fb640ade-cc11-48d1-a45f-39578c509373",
+        "partsQty": 1,
+        "price": 0,
+        "reference01": null,
+        "reference02": null,
+        "reference03": null,
+        "statusId": 102,
+        "text": "Hola SMS de prueba Hablame",
+        "textLength": 26,
+        "to": "3001234567"
+      }
+    ],
+    "priority": true,
+    "sendDate": "2025-06-20 08:59:00",
+    "shortenUrls": false,
+    "smsQty": 1
   },
-  "statusCode": 201,
-  "statusMessage": "Message sent successfully",
-  "timestamp": "2024-11-03T14:22:10Z",
-  "responseTime": "85"
+  "responseTime": 2.29,
+  "statusCode": 200,
+  "statusMessage": "OK",
+  "timeStamp": "2025-06-20T08:59:32-05:00"
 }
 ```
 
 **Campos importantes**:
-- `batch_id`: Identificador para seguimiento y auditoría
-- `sent`: Mensajes enviados exitosamente
-- `failed`: Mensajes fallidos
-- `cost`: Costo total del envío
+- `messages[].id`: UUID único del mensaje para seguimiento
+- `messages[].statusId`: Estado del mensaje (ver tabla abajo)
+- `messages[].price`: Costo individual del mensaje
+- `smsQty`: Cantidad total de SMS enviados
+- `accountId`: ID de la cuenta Hablame
+- `sendDate`: Fecha programada de envío
+
+**Status IDs (messages[].statusId)**:
+| statusId | Descripción |
+|----------|-------------|
+| 101 | Mensaje en cola |
+| 102 | Mensaje enviado exitosamente |
+| 103 | Mensaje fallido |
+| 104 | Número inválido |
+| 105 | Sin saldo |
+| 106 | Mensaje programado/en cola (exitoso) |
 
 ### 4.2 Información de cuenta
 
@@ -327,11 +375,18 @@ class HablameSmsService implements SmsProviderInterface
     public function send(string $to, string $message, ?string $from = null): array
     {
         $response = $this->client->post("{$this->apiUrl}/sms/v5/send", [
-            'headers' => ['X-Hablame-Key' => $this->apiKey],
+            'headers' => [
+                'X-Hablame-Key' => $this->apiKey,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ],
             'json' => [
-                'to' => [$to],
-                'from' => $from ?? $this->fromName,
-                'message' => $message,
+                'messages' => [
+                    [
+                        'to' => $to, // 10 dígitos sin +57
+                        'text' => $message,
+                    ],
+                ],
             ],
         ]);
 

@@ -11,7 +11,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Get;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Hash;
@@ -119,7 +119,7 @@ class UserForm
                             ->relationship(
                                 name: 'neighborhood',
                                 titleAttribute: 'name',
-                                modifyQueryUsing: fn ($query, Get $get) => $query
+                                modifyQueryUsing: fn ($query, $get) => $query
                                     ->when(
                                         $get('municipality_id'),
                                         fn ($query, $municipalityId) => $query->where('municipality_id', $municipalityId)
@@ -128,7 +128,7 @@ class UserForm
                             )
                             ->searchable()
                             ->preload()
-                            ->disabled(fn (Get $get): bool => ! $get('municipality_id'))
+                            ->disabled(fn ($get): bool => ! $get('municipality_id'))
                             ->helperText('Seleccione primero un municipio'),
                     ])
                     ->columns(2),
@@ -144,6 +144,44 @@ class UserForm
                             ->helperText('Seleccione los roles del usuario en el sistema')
                             ->columnSpanFull(),
                     ]),
+
+                Section::make('Clasificación de Usuario')
+                    ->description('Flags especiales para clasificar usuarios según sus funciones específicas')
+                    ->schema([
+                        Toggle::make('is_vote_recorder')
+                            ->label('Anotador')
+                            ->helperText('Usuario encargado de registrar votos el día de las elecciones')
+                            ->inline(false),
+
+                        Toggle::make('is_special_coordinator')
+                            ->label('Coordinador Especial')
+                            ->helperText('Coordinador con perfil especial (concejal, senador, etc.)')
+                            ->inline(false),
+
+                        Toggle::make('is_witness')
+                            ->label('Testigo Electoral')
+                            ->helperText('Usuario asignado como testigo en mesa electoral')
+                            ->live()
+                            ->inline(false),
+
+                        TextInput::make('witness_assigned_station')
+                            ->label('Mesa Electoral Asignada')
+                            ->helperText('Número de mesa electoral donde actuará como testigo')
+                            ->maxLength(255)
+                            ->visible(fn (Get $get): bool => $get('is_witness')),
+
+                        TextInput::make('witness_payment_amount')
+                            ->label('Monto de Pago')
+                            ->helperText('Cantidad a pagar al testigo electoral')
+                            ->numeric()
+                            ->prefix('$')
+                            ->minValue(0)
+                            ->maxValue(9999999.99)
+                            ->visible(fn (Get $get): bool => $get('is_witness')),
+                    ])
+                    ->columns(2)
+                    ->collapsible()
+                    ->collapsed(),
 
                 Section::make('Registro como Votante')
                     ->description('Los coordinadores y líderes deben estar incluidos en la base de datos electoral para las estadísticas')

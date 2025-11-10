@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Campaigns\Tables;
 
+use App\Enums\CampaignScope;
 use App\Enums\CampaignStatus;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -30,6 +31,10 @@ class CampaignsTable
                     ->sortable(),
                 TextColumn::make('status')
                     ->label('Estado')
+                    ->badge()
+                    ->sortable(),
+                TextColumn::make('scope')
+                    ->label('Alcance')
                     ->badge()
                     ->sortable(),
                 TextColumn::make('start_date')
@@ -69,6 +74,9 @@ class CampaignsTable
                 SelectFilter::make('status')
                     ->label('Estado')
                     ->options(CampaignStatus::class),
+                SelectFilter::make('scope')
+                    ->label('Alcance')
+                    ->options(CampaignScope::options()),
                 TrashedFilter::make(),
             ])
             ->recordActions([

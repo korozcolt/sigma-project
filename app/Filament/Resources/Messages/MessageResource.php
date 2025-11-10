@@ -8,20 +8,24 @@ use App\Filament\Resources\Messages\MessageResource\Pages;
 use App\Filament\Resources\Messages\Schemas\MessageForm;
 use App\Filament\Resources\Messages\Tables\MessagesTable;
 use App\Models\Message;
+use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class MessageResource extends Resource
 {
     protected static ?string $model = Message::class;
 
-    protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelope;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelope;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Mensajería';
+    protected static UnitEnum|string|null $navigationGroup = 'Mensajería';
 
     protected static ?int $navigationSort = 1;
+
+    protected static ?string $navigationLabel = 'Mensajes';
 
     public static function form(Schema $schema): Schema
     {

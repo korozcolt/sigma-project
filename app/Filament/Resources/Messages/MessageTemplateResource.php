@@ -8,18 +8,20 @@ use App\Filament\Resources\Messages\MessageTemplateResource\Pages;
 use App\Filament\Resources\Messages\Schemas\MessageTemplateForm;
 use App\Filament\Resources\Messages\Tables\MessageTemplatesTable;
 use App\Models\MessageTemplate;
+use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class MessageTemplateResource extends Resource
 {
     protected static ?string $model = MessageTemplate::class;
 
-    protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Mensajería';
+    protected static UnitEnum|string|null $navigationGroup = 'Mensajería';
 
     protected static ?int $navigationSort = 2;
 

@@ -4,7 +4,14 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Messages\Schemas;
 
-use Filament\Forms;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class MessageTemplateForm
@@ -12,22 +19,22 @@ class MessageTemplateForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Section::make('Información de la Plantilla')
+            Section::make('Información de la Plantilla')
                 ->schema([
-                    Forms\Components\TextInput::make('name')
+                    TextInput::make('name')
                         ->label('Nombre de la Plantilla')
                         ->required()
                         ->maxLength(255)
                         ->unique(ignoreRecord: true),
 
-                    Forms\Components\Select::make('campaign_id')
+                    Select::make('campaign_id')
                         ->label('Campaña')
                         ->relationship('campaign', 'name')
                         ->required()
                         ->searchable()
                         ->preload(),
 
-                    Forms\Components\Select::make('type')
+                    Select::make('type')
                         ->label('Tipo')
                         ->options([
                             'birthday' => 'Cumpleaños',
@@ -37,7 +44,7 @@ class MessageTemplateForm
                         ])
                         ->required(),
 
-                    Forms\Components\Select::make('channel')
+                    Select::make('channel')
                         ->label('Canal')
                         ->options([
                             'whatsapp' => 'WhatsApp',
@@ -45,36 +52,36 @@ class MessageTemplateForm
                             'email' => 'Email',
                         ])
                         ->required()
-                        ->reactive(),
+                        ->live(),
 
-                    Forms\Components\Toggle::make('is_active')
+                    Toggle::make('is_active')
                         ->label('Activa')
                         ->default(true)
                         ->inline(false),
                 ])->columns(2),
 
-            Forms\Components\Section::make('Contenido del Mensaje')
+            Section::make('Contenido del Mensaje')
                 ->schema([
-                    Forms\Components\TextInput::make('subject')
+                    TextInput::make('subject')
                         ->label('Asunto')
                         ->maxLength(255)
-                        ->visible(fn (Forms\Get $get) => $get('channel') === 'email')
+                        ->visible(fn ($get) => $get('channel') === 'email')
                         ->helperText('Variables: {{nombre}}, {{candidato}}'),
 
-                    Forms\Components\Textarea::make('content')
+                    Textarea::make('content')
                         ->label('Contenido del Mensaje')
                         ->required()
                         ->rows(6)
                         ->helperText('Variables disponibles: {{nombre}}, {{edad}}, {{candidato}}, {{fecha}}, {{barrio}}, {{municipio}}'),
 
-                    Forms\Components\Placeholder::make('preview_help')
+                    Placeholder::make('preview_help')
                         ->label('Vista Previa')
                         ->content('Las variables se reemplazarán automáticamente al enviar el mensaje.'),
                 ]),
 
-            Forms\Components\Section::make('Control Anti-Spam')
+            Section::make('Control Anti-Spam')
                 ->schema([
-                    Forms\Components\TextInput::make('max_per_voter_per_day')
+                    TextInput::make('max_per_voter_per_day')
                         ->label('Máximo por Votante al Día')
                         ->numeric()
                         ->default(3)
@@ -82,7 +89,7 @@ class MessageTemplateForm
                         ->maxValue(50)
                         ->helperText('Límite de mensajes que un votante puede recibir en un día'),
 
-                    Forms\Components\TextInput::make('max_per_campaign_per_hour')
+                    TextInput::make('max_per_campaign_per_hour')
                         ->label('Máximo por Campaña por Hora')
                         ->numeric()
                         ->default(100)
@@ -91,19 +98,19 @@ class MessageTemplateForm
                         ->helperText('Límite de mensajes que la campaña puede enviar en una hora'),
                 ])->columns(2),
 
-            Forms\Components\Section::make('Horarios Permitidos')
+            Section::make('Horarios Permitidos')
                 ->schema([
-                    Forms\Components\TimePicker::make('allowed_start_time')
+                    TimePicker::make('allowed_start_time')
                         ->label('Hora de Inicio')
                         ->default('08:00')
                         ->seconds(false),
 
-                    Forms\Components\TimePicker::make('allowed_end_time')
+                    TimePicker::make('allowed_end_time')
                         ->label('Hora de Fin')
                         ->default('20:00')
                         ->seconds(false),
 
-                    Forms\Components\CheckboxList::make('allowed_days')
+                    CheckboxList::make('allowed_days')
                         ->label('Días Permitidos')
                         ->options([
                             'monday' => 'Lunes',

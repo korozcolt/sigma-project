@@ -6,9 +6,11 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
 class UsersTable
@@ -55,6 +57,33 @@ class UsersTable
                     ->separator(',')
                     ->searchable()
                     ->toggleable(),
+
+                IconColumn::make('is_vote_recorder')
+                    ->label('Anotador')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-pencil-square')
+                    ->falseIcon('heroicon-o-x-mark')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                IconColumn::make('is_witness')
+                    ->label('Testigo')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-eye')
+                    ->falseIcon('heroicon-o-x-mark')
+                    ->trueColor('info')
+                    ->falseColor('gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                IconColumn::make('is_special_coordinator')
+                    ->label('Coord. Especial')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-star')
+                    ->falseIcon('heroicon-o-x-mark')
+                    ->trueColor('warning')
+                    ->falseColor('gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('campaigns_count')
                     ->label('Campañas')
@@ -117,6 +146,39 @@ class UsersTable
                     ->relationship('neighborhood', 'name')
                     ->searchable()
                     ->preload(),
+
+                TernaryFilter::make('is_vote_recorder')
+                    ->label('Anotador')
+                    ->placeholder('Todos')
+                    ->trueLabel('Solo anotadores')
+                    ->falseLabel('No anotadores')
+                    ->queries(
+                        true: fn ($query) => $query->where('is_vote_recorder', true),
+                        false: fn ($query) => $query->where('is_vote_recorder', false),
+                        blank: fn ($query) => $query,
+                    ),
+
+                TernaryFilter::make('is_witness')
+                    ->label('Testigo Electoral')
+                    ->placeholder('Todos')
+                    ->trueLabel('Solo testigos')
+                    ->falseLabel('No testigos')
+                    ->queries(
+                        true: fn ($query) => $query->where('is_witness', true),
+                        false: fn ($query) => $query->where('is_witness', false),
+                        blank: fn ($query) => $query,
+                    ),
+
+                TernaryFilter::make('is_special_coordinator')
+                    ->label('Coordinador Especial')
+                    ->placeholder('Todos')
+                    ->trueLabel('Solo coordinadores especiales')
+                    ->falseLabel('No coordinadores especiales')
+                    ->queries(
+                        true: fn ($query) => $query->where('is_special_coordinator', true),
+                        false: fn ($query) => $query->where('is_special_coordinator', false),
+                        blank: fn ($query) => $query,
+                    ),
             ])
             ->recordActions([
                 ViewAction::make(),

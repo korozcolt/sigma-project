@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Messages\Schemas;
 
-use Filament\Forms;
+use App\Models\MessageTemplate;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class MessageBatchForm
@@ -12,30 +17,30 @@ class MessageBatchForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Section::make('Información del Envío')
+            Section::make('Información del Envío')
                 ->schema([
-                    Forms\Components\TextInput::make('name')
+                    TextInput::make('name')
                         ->label('Nombre del Envío')
                         ->required()
                         ->maxLength(255),
 
-                    Forms\Components\Select::make('campaign_id')
+                    Select::make('campaign_id')
                         ->label('Campaña')
                         ->relationship('campaign', 'name')
                         ->required()
                         ->searchable()
                         ->preload(),
 
-                    Forms\Components\Select::make('template_id')
+                    Select::make('template_id')
                         ->label('Plantilla')
                         ->relationship('template', 'name')
                         ->required()
                         ->searchable()
                         ->preload()
-                        ->reactive()
+                        ->live()
                         ->afterStateUpdated(function ($state, callable $set) {
                             if ($state) {
-                                $template = \App\Models\MessageTemplate::find($state);
+                                $template = MessageTemplate::find($state);
                                 if ($template) {
                                     $set('type', $template->type);
                                     $set('channel', $template->channel);
@@ -43,7 +48,7 @@ class MessageBatchForm
                             }
                         }),
 
-                    Forms\Components\Select::make('type')
+                    Select::make('type')
                         ->label('Tipo')
                         ->options([
                             'birthday' => 'Cumpleaños',
@@ -54,7 +59,7 @@ class MessageBatchForm
                         ->required()
                         ->disabled(),
 
-                    Forms\Components\Select::make('channel')
+                    Select::make('channel')
                         ->label('Canal')
                         ->options([
                             'whatsapp' => 'WhatsApp',
@@ -64,7 +69,7 @@ class MessageBatchForm
                         ->required()
                         ->disabled(),
 
-                    Forms\Components\Select::make('status')
+                    Select::make('status')
                         ->label('Estado')
                         ->options([
                             'pending' => 'Pendiente',
@@ -77,64 +82,64 @@ class MessageBatchForm
                         ->disabled(fn ($record) => $record !== null),
                 ])->columns(2),
 
-            Forms\Components\Section::make('Destinatarios')
+            Section::make('Destinatarios')
                 ->schema([
-                    Forms\Components\TextInput::make('total_recipients')
+                    TextInput::make('total_recipients')
                         ->label('Total de Destinatarios')
                         ->numeric()
                         ->required()
                         ->minValue(1)
                         ->helperText('Número total de votantes que recibirán el mensaje'),
 
-                    Forms\Components\KeyValue::make('filters')
+                    KeyValue::make('filters')
                         ->label('Filtros Aplicados')
                         ->keyLabel('Campo')
                         ->valueLabel('Valor')
                         ->helperText('Filtros usados para seleccionar destinatarios (ej: municipality_id, neighborhood_id, etc.)'),
                 ])->columns(2),
 
-            Forms\Components\Section::make('Programación')
+            Section::make('Programación')
                 ->schema([
-                    Forms\Components\DateTimePicker::make('scheduled_for')
+                    DateTimePicker::make('scheduled_for')
                         ->label('Programar Para')
                         ->seconds(false)
                         ->helperText('Dejar vacío para envío inmediato'),
                 ]),
 
-            Forms\Components\Section::make('Estadísticas')
+            Section::make('Estadísticas')
                 ->schema([
-                    Forms\Components\TextInput::make('sent_count')
+                    TextInput::make('sent_count')
                         ->label('Enviados')
                         ->numeric()
                         ->default(0)
                         ->disabled(),
 
-                    Forms\Components\TextInput::make('failed_count')
+                    TextInput::make('failed_count')
                         ->label('Fallidos')
                         ->numeric()
                         ->default(0)
                         ->disabled(),
 
-                    Forms\Components\TextInput::make('delivered_count')
+                    TextInput::make('delivered_count')
                         ->label('Entregados')
                         ->numeric()
                         ->default(0)
                         ->disabled(),
 
-                    Forms\Components\DateTimePicker::make('started_at')
+                    DateTimePicker::make('started_at')
                         ->label('Iniciado')
                         ->disabled(),
 
-                    Forms\Components\DateTimePicker::make('completed_at')
+                    DateTimePicker::make('completed_at')
                         ->label('Completado')
                         ->disabled(),
                 ])
                 ->columns(3)
                 ->visible(fn ($record) => $record !== null),
 
-            Forms\Components\Section::make('Metadatos (Opcional)')
+            Section::make('Metadatos (Opcional)')
                 ->schema([
-                    Forms\Components\KeyValue::make('metadata')
+                    KeyValue::make('metadata')
                         ->label('Metadata')
                         ->keyLabel('Clave')
                         ->valueLabel('Valor'),

@@ -12,10 +12,13 @@ class EditMessageBatch extends EditRecord
 {
     protected static string $resource = MessageBatchResource::class;
 
+    protected static ?string $title = 'Editar Envío Masivo';
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->label('Eliminar'),
         ];
     }
 }
