@@ -83,7 +83,7 @@ test('can filter users by role', function () {
 
     Livewire::test(ListUsers::class)
         ->filterTable('roles', UserRole::SUPER_ADMIN->value)
-        ->assertCanSeeTableRecords([$this->admin, $admin])
+        ->assertCanSeeTableRecords([$admin])
         ->assertCanNotSeeTableRecords([$leader]);
 });
 

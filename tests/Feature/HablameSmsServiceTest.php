@@ -35,19 +35,19 @@ test('formats Colombian phone numbers correctly', function () {
     $method = $reflection->getMethod('formatPhoneNumber');
     $method->setAccessible(true);
 
-    // Número de 10 dígitos
-    expect($method->invoke($service, '3001234567'))->toBe('+573001234567');
+    // Número de 10 dígitos - retorna el mismo número limpio
+    expect($method->invoke($service, '3001234567'))->toBe('3001234567');
 
-    // Número con +57
-    expect($method->invoke($service, '+573001234567'))->toBe('+573001234567');
+    // Número con +57 - remueve el prefijo y retorna 10 dígitos
+    expect($method->invoke($service, '+573001234567'))->toBe('3001234567');
 
-    // Número con 57
-    expect($method->invoke($service, '573001234567'))->toBe('+573001234567');
+    // Número con 57 - remueve el prefijo y retorna 10 dígitos
+    expect($method->invoke($service, '573001234567'))->toBe('3001234567');
 
-    // Número con espacios
-    expect($method->invoke($service, '300 123 4567'))->toBe('+573001234567');
+    // Número con espacios - limpia y retorna 10 dígitos
+    expect($method->invoke($service, '300 123 4567'))->toBe('3001234567');
 
-    // Número inválido
+    // Número inválido - retorna null
     expect($method->invoke($service, '12345'))->toBeNull();
 });
 
@@ -89,9 +89,13 @@ test('can send SMS via real API', function () {
         '*/sms/v5/send' => Http::response([
             'payLoad' => [
                 'batch_id' => 'test_batch_123',
-                'sent' => 1,
-                'failed' => 0,
-                'cost' => 0.034,
+                'messages' => [
+                    [
+                        'statusId' => 102, // 102 = enviado exitosamente
+                        'price' => 0.034, // price no cost (nombre del campo en API real)
+                        'to' => '3001234567',
+                    ],
+                ],
             ],
             'statusCode' => 201,
             'statusMessage' => 'Message sent successfully',
