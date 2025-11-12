@@ -144,7 +144,7 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Features::registration(), // Disabled - Registration is only available to authorized users
         Features::resetPasswords(),
         Features::emailVerification(),
         // Features::updateProfileInformation(),

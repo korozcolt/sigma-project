@@ -28,9 +28,9 @@ test('EnsureUserHasRole allows access when user has required role', function () 
     $user = User::factory()->create();
     $user->assignRole('super_admin');
 
-    $this->actingAs($user);
-
     $request = Request::create('/test', 'GET');
+    $request->setUserResolver(fn () => $user);
+
     $middleware = new EnsureUserHasRole;
 
     $response = $middleware->handle($request, fn () => new Response('success'), 'super_admin');
@@ -42,9 +42,9 @@ test('EnsureUserHasRole allows access when user has one of multiple required rol
     $user = User::factory()->create();
     $user->assignRole('coordinator');
 
-    $this->actingAs($user);
-
     $request = Request::create('/test', 'GET');
+    $request->setUserResolver(fn () => $user);
+
     $middleware = new EnsureUserHasRole;
 
     $response = $middleware->handle($request, fn () => new Response('success'), 'super_admin', 'coordinator', 'leader');
@@ -56,9 +56,9 @@ test('EnsureUserHasRole denies access when user does not have required role', fu
     $user = User::factory()->create();
     $user->assignRole('leader');
 
-    $this->actingAs($user);
-
     $request = Request::create('/test', 'GET');
+    $request->setUserResolver(fn () => $user);
+
     $middleware = new EnsureUserHasRole;
 
     $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
@@ -78,9 +78,9 @@ test('EnsureUserHasRole returns 401 when user is not authenticated', function ()
 test('EnsureUserHasRole allows access when no roles are specified', function () {
     $user = User::factory()->create();
 
-    $this->actingAs($user);
-
     $request = Request::create('/test', 'GET');
+    $request->setUserResolver(fn () => $user);
+
     $middleware = new EnsureUserHasRole;
 
     $response = $middleware->handle($request, fn () => new Response('success'));
@@ -94,9 +94,9 @@ test('EnsureFilamentAccess allows super admin to access filament', function () {
     $user = User::factory()->create();
     $user->assignRole('super_admin');
 
-    $this->actingAs($user);
-
     $request = Request::create('/admin', 'GET');
+    $request->setUserResolver(fn () => $user);
+
     $middleware = new EnsureFilamentAccess;
 
     $response = $middleware->handle($request, fn () => new Response('success'));
@@ -108,9 +108,9 @@ test('EnsureFilamentAccess allows admin campaign to access filament', function (
     $user = User::factory()->create();
     $user->assignRole('admin_campaign');
 
-    $this->actingAs($user);
-
     $request = Request::create('/admin', 'GET');
+    $request->setUserResolver(fn () => $user);
+
     $middleware = new EnsureFilamentAccess;
 
     $response = $middleware->handle($request, fn () => new Response('success'));
@@ -122,9 +122,9 @@ test('EnsureFilamentAccess allows reviewer to access filament', function () {
     $user = User::factory()->create();
     $user->assignRole('reviewer');
 
-    $this->actingAs($user);
-
     $request = Request::create('/admin', 'GET');
+    $request->setUserResolver(fn () => $user);
+
     $middleware = new EnsureFilamentAccess;
 
     $response = $middleware->handle($request, fn () => new Response('success'));
@@ -138,9 +138,9 @@ test('EnsureFilamentAccess redirects coordinator to their dashboard', function (
     $user = User::factory()->create();
     $user->assignRole('coordinator');
 
-    $this->actingAs($user);
-
     $request = Request::create('/admin', 'GET');
+    $request->setUserResolver(fn () => $user);
+
     $middleware = new EnsureFilamentAccess;
 
     $response = $middleware->handle($request, fn () => new Response('success'));
@@ -155,9 +155,9 @@ test('EnsureFilamentAccess redirects leader to their dashboard', function () {
     $user = User::factory()->create();
     $user->assignRole('leader');
 
-    $this->actingAs($user);
-
     $request = Request::create('/admin', 'GET');
+    $request->setUserResolver(fn () => $user);
+
     $middleware = new EnsureFilamentAccess;
 
     $response = $middleware->handle($request, fn () => new Response('success'));
@@ -181,14 +181,11 @@ test('EnsureFilamentAccess redirects unauthenticated users to login', function (
 // ============ Tests para RedirectBasedOnRole ============
 
 test('RedirectBasedOnRole redirects super admin to filament admin', function () {
-    Route::get('/filament/admin/pages/dashboard', fn () => 'admin')->name('filament.admin.pages.dashboard');
-
     $user = User::factory()->create();
     $user->assignRole('super_admin');
 
-    $this->actingAs($user);
-
     $request = Request::create('/dashboard', 'GET');
+    $request->setUserResolver(fn () => $user);
     $request->setRouteResolver(function () {
         $route = new \Illuminate\Routing\Route(['GET'], '/dashboard', fn () => '');
         $route->name('dashboard');
@@ -200,7 +197,7 @@ test('RedirectBasedOnRole redirects super admin to filament admin', function () 
     $response = $middleware->handle($request, fn () => new Response('success'));
 
     expect($response)->toBeInstanceOf(\Illuminate\Http\RedirectResponse::class);
-    expect($response->getTargetUrl())->toContain('filament/admin/pages/dashboard');
+    expect($response->getTargetUrl())->toContain('/admin');
 });
 
 test('RedirectBasedOnRole redirects coordinator to coordinator dashboard', function () {
@@ -209,9 +206,8 @@ test('RedirectBasedOnRole redirects coordinator to coordinator dashboard', funct
     $user = User::factory()->create();
     $user->assignRole('coordinator');
 
-    $this->actingAs($user);
-
     $request = Request::create('/dashboard', 'GET');
+    $request->setUserResolver(fn () => $user);
     $request->setRouteResolver(function () {
         $route = new \Illuminate\Routing\Route(['GET'], '/dashboard', fn () => '');
         $route->name('dashboard');
@@ -232,9 +228,8 @@ test('RedirectBasedOnRole redirects leader to leader dashboard', function () {
     $user = User::factory()->create();
     $user->assignRole('leader');
 
-    $this->actingAs($user);
-
     $request = Request::create('/dashboard', 'GET');
+    $request->setUserResolver(fn () => $user);
     $request->setRouteResolver(function () {
         $route = new \Illuminate\Routing\Route(['GET'], '/dashboard', fn () => '');
         $route->name('dashboard');

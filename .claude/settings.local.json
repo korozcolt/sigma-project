@@ -27,7 +27,8 @@
       "mcp__laravel-boost__list-artisan-commands",
       "mcp__laravel-boost__get-absolute-url",
       "mcp__laravel-boost__tinker",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run build:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

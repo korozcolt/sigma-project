@@ -24,6 +24,7 @@ class Campaign extends Model
      */
     protected $fillable = [
         'name',
+        'logo_path',
         'description',
         'candidate_name',
         'start_date',
@@ -146,5 +147,21 @@ class Campaign extends Model
     public function scopeRegional(Builder $query): void
     {
         $query->where('scope', CampaignScope::Regional);
+    }
+
+    /**
+     * Get the URL for the campaign logo
+     */
+    public function getLogoUrlAttribute(): ?string
+    {
+        return $this->logo_path ? \Storage::url($this->logo_path) : null;
+    }
+
+    /**
+     * Check if the campaign has a logo
+     */
+    public function hasLogo(): bool
+    {
+        return ! empty($this->logo_path);
     }
 }

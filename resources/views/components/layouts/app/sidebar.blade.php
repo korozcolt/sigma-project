@@ -7,14 +7,47 @@
         <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
-            <a href="{{ route('dashboard') }}" class="me-5 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
-                <x-app-logo />
+            <a href="{{ auth()->user()->hasRole('admin_campaign') ? route('campaign-admin.dashboard') : (auth()->user()->hasRole('coordinator') ? route('coordinator.dashboard') : route('dashboard')) }}" class="me-5 flex items-center gap-3" wire:navigate>
+                @php
+                    $campaign = auth()->user()->campaigns->first();
+                @endphp
+
+                @if($campaign && $campaign->hasLogo())
+                    <img src="{{ $campaign->logo_url }}" alt="Logo" class="size-8 rounded-md object-cover">
+                @else
+                    <div class="flex aspect-square size-8 items-center justify-center rounded-md bg-accent-content text-accent-foreground">
+                        <x-app-logo-icon class="size-5 fill-current text-white dark:text-black" />
+                    </div>
+                @endif
+
+                <div class="flex flex-col">
+                    <span class="text-sm font-semibold text-zinc-900 dark:text-white">
+                        {{ $campaign?->name ?? config('app.name') }}
+                    </span>
+                    @if(auth()->user()->hasRole('admin_campaign'))
+                        <span class="text-xs text-zinc-500 dark:text-zinc-400">Administrador de Campaña</span>
+                    @elseif(auth()->user()->hasRole('coordinator'))
+                        <span class="text-xs text-zinc-500 dark:text-zinc-400">Coordinador</span>
+                    @endif
+                </div>
             </a>
 
             <flux:navlist variant="outline">
-                <flux:navlist.group :heading="__('Platform')" class="grid">
-                    <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
-                </flux:navlist.group>
+                @if(auth()->user()->hasRole('admin_campaign'))
+                    <flux:navlist.group :heading="__('Campaign Admin')" class="grid">
+                        <flux:navlist.item icon="chart-bar" :href="route('campaign-admin.dashboard')" :current="request()->routeIs('campaign-admin.*')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
+                    </flux:navlist.group>
+                @elseif(auth()->user()->hasRole('coordinator'))
+                    <flux:navlist.group :heading="__('Coordinación')" class="grid">
+                        <flux:navlist.item icon="home" :href="route('coordinator.dashboard')" :current="request()->routeIs('coordinator.dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
+                        <flux:navlist.item icon="users" :href="route('coordinator.leaders')" :current="request()->routeIs('coordinator.leaders*')" wire:navigate>{{ __('Líderes') }}</flux:navlist.item>
+                        <flux:navlist.item icon="bolt" href="/coordinator/dia-d" :current="request()->is('coordinator/dia-d')" wire:navigate>{{ __('Día D') }}</flux:navlist.item>
+                    </flux:navlist.group>
+                @else
+                    <flux:navlist.group :heading="__('Platform')" class="grid">
+                        <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
+                    </flux:navlist.group>
+                @endif
             </flux:navlist>
 
             <flux:spacer />

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Campaigns\Schemas;
 use App\Enums\CampaignScope;
 use App\Enums\CampaignStatus;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -25,6 +26,19 @@ class CampaignForm
                             ->required()
                             ->maxLength(255)
                             ->columnSpanFull(),
+                        FileUpload::make('logo_path')
+                            ->label('Logo de la Campaña')
+                            ->image()
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([
+                                '1:1',
+                                '16:9',
+                            ])
+                            ->maxSize(2048)
+                            ->directory('campaign-logos')
+                            ->visibility('public')
+                            ->columnSpanFull()
+                            ->helperText('Sube el logo de la campaña (máx. 2MB). Se mostrará en los reportes y en la aplicación.'),
                         Textarea::make('description')
                             ->label('Descripción')
                             ->rows(3)

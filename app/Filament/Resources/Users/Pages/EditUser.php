@@ -26,17 +26,14 @@ class EditUser extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Cargar roles actuales del usuario
-        $data['roles'] = $this->record->roles->pluck('name')->toArray();
+        // Cargar IDs de roles actuales del usuario para el campo relationship
+        $data['roles'] = $this->record->roles->pluck('id')->toArray();
 
         return $data;
     }
 
     protected function afterSave(): void
     {
-        // Sincronizar roles si fueron modificados
-        if (isset($this->data['roles'])) {
-            $this->record->syncRoles($this->data['roles']);
-        }
+        // No need to manually sync roles - the relationship field handles it automatically
     }
 }
