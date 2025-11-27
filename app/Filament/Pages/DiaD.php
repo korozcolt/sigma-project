@@ -9,6 +9,7 @@ use App\Filament\Widgets\DiaDStatsOverview;
 use App\Models\Campaign;
 use App\Models\ValidationHistory;
 use App\Models\Voter;
+use App\Models\VoteRecord;
 use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -129,10 +130,37 @@ class DiaD extends Page
             return;
         }
 
+        $campaign = Campaign::where('status', 'active')->first();
+
+        // Verificar si ya existe un registro de voto para este votante
+        $existingRecord = VoteRecord::where('voter_id', $voter->id)
+            ->where('campaign_id', $campaign->id)
+            ->first();
+
+        if ($existingRecord) {
+            Notification::make()
+                ->title('Este votante ya tiene un registro de voto')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
         $previous = $voter->status;
         $voter->update([
             'status' => VoterStatus::VOTED,
             'voted_at' => now(),
+        ]);
+
+        // Crear registro detallado del voto
+        VoteRecord::create([
+            'voter_id' => $voter->id,
+            'campaign_id' => $campaign->id,
+            'recorded_by' => Auth::id(),
+            'voted_at' => now(),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'notes' => 'Voto registrado en sistema Día D',
         ]);
 
         ValidationHistory::create([

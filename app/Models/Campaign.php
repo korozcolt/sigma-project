@@ -86,6 +86,14 @@ class Campaign extends Model
     }
 
     /**
+     * Get the vote records for this campaign
+     */
+    public function voteRecords(): HasMany
+    {
+        return $this->hasMany(VoteRecord::class);
+    }
+
+    /**
      * Get the census records for this campaign
      */
     public function censusRecords(): HasMany

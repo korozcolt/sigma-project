@@ -85,6 +85,11 @@ class Voter extends Model
         return $this->hasMany(VerificationCall::class);
     }
 
+    public function voteRecords(): HasMany
+    {
+        return $this->hasMany(VoteRecord::class);
+    }
+
     /**
      * Get the User associated with this voter (si es coordinador o líder)
      */
