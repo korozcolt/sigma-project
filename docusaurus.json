@@ -1,0 +1,210 @@
+[
+  {
+    "route": "/",
+    "name": "home"
+  },
+  {
+    "route": "/login",
+    "name": "login"
+  },
+  {
+    "route": "/forgot-password",
+    "name": "forgot-password"
+  },
+  {
+    "route": "/two-factor-challenge",
+    "name": "two-factor-challenge"
+  },
+  {
+    "route": "/dashboard",
+    "name": "dashboard"
+  },
+  {
+    "route": "/settings",
+    "name": "settings"
+  },
+  {
+    "route": "/settings/profile",
+    "name": "settings-profile"
+  },
+  {
+    "route": "/settings/password",
+    "name": "settings-password"
+  },
+  {
+    "route": "/settings/appearance",
+    "name": "settings-appearance"
+  },
+  {
+    "route": "/settings/two-factor",
+    "name": "settings-two-factor"
+  },
+  {
+    "route": "/admin",
+    "name": "admin-dashboard"
+  },
+  {
+    "route": "/admin/login",
+    "name": "admin-login"
+  },
+  {
+    "route": "/admin/voters",
+    "name": "admin-voters-list"
+  },
+  {
+    "route": "/admin/voters/create",
+    "name": "admin-voters-create"
+  },
+  {
+    "route": "/admin/campaigns",
+    "name": "admin-campaigns-list"
+  },
+  {
+    "route": "/admin/campaigns/create",
+    "name": "admin-campaigns-create"
+  },
+  {
+    "route": "/admin/users",
+    "name": "admin-users-list"
+  },
+  {
+    "route": "/admin/users/create",
+    "name": "admin-users-create"
+  },
+  {
+    "route": "/admin/call-center",
+    "name": "admin-call-center"
+  },
+  {
+    "route": "/admin/dia-d",
+    "name": "admin-dia-d"
+  },
+  {
+    "route": "/admin/manage-election-events",
+    "name": "admin-manage-election-events"
+  },
+  {
+    "route": "/admin/election-events",
+    "name": "admin-election-events-list"
+  },
+  {
+    "route": "/admin/election-events/create",
+    "name": "admin-election-events-create"
+  },
+  {
+    "route": "/admin/departments",
+    "name": "admin-departments-list"
+  },
+  {
+    "route": "/admin/departments/create",
+    "name": "admin-departments-create"
+  },
+  {
+    "route": "/admin/municipalities",
+    "name": "admin-municipalities-list"
+  },
+  {
+    "route": "/admin/municipalities/create",
+    "name": "admin-municipalities-create"
+  },
+  {
+    "route": "/admin/neighborhoods",
+    "name": "admin-neighborhoods-list"
+  },
+  {
+    "route": "/admin/neighborhoods/create",
+    "name": "admin-neighborhoods-create"
+  },
+  {
+    "route": "/admin/surveys",
+    "name": "admin-surveys-list"
+  },
+  {
+    "route": "/admin/surveys/create",
+    "name": "admin-surveys-create"
+  },
+  {
+    "route": "/admin/messages",
+    "name": "admin-messages-list"
+  },
+  {
+    "route": "/admin/messages/create",
+    "name": "admin-messages-create"
+  },
+  {
+    "route": "/admin/messages/message-templates",
+    "name": "admin-message-templates-list"
+  },
+  {
+    "route": "/admin/messages/message-templates/create",
+    "name": "admin-message-templates-create"
+  },
+  {
+    "route": "/admin/messages/message-batches",
+    "name": "admin-message-batches-list"
+  },
+  {
+    "route": "/admin/messages/message-batches/create",
+    "name": "admin-message-batches-create"
+  },
+  {
+    "route": "/admin/verification-calls",
+    "name": "admin-verification-calls-list"
+  },
+  {
+    "route": "/admin/verification-calls/create",
+    "name": "admin-verification-calls-create"
+  },
+  {
+    "route": "/campaign-admin/dashboard",
+    "name": "campaign-admin-dashboard"
+  },
+  {
+    "route": "/coordinator",
+    "name": "coordinator-home"
+  },
+  {
+    "route": "/coordinator/dashboard",
+    "name": "coordinator-dashboard"
+  },
+  {
+    "route": "/coordinator/login",
+    "name": "coordinator-login"
+  },
+  {
+    "route": "/coordinator/dia-d",
+    "name": "coordinator-dia-d"
+  },
+  {
+    "route": "/coordinator/leaders",
+    "name": "coordinator-leaders-list"
+  },
+  {
+    "route": "/coordinator/leaders/create",
+    "name": "coordinator-leaders-create"
+  },
+  {
+    "route": "/leader",
+    "name": "leader-home"
+  },
+  {
+    "route": "/leader/dashboard",
+    "name": "leader-dashboard"
+  },
+  {
+    "route": "/leader/login",
+    "name": "leader-login"
+  },
+  {
+    "route": "/leader/dia-d",
+    "name": "leader-dia-d"
+  },
+  {
+    "route": "/leader/my-voters",
+    "name": "leader-my-voters"
+  },
+  {
+    "route": "/leader/register-voter",
+    "name": "leader-register-voter"
+  }
+]

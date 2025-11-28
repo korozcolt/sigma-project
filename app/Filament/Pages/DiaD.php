@@ -7,6 +7,7 @@ namespace App\Filament\Pages;
 use App\Enums\VoterStatus;
 use App\Filament\Widgets\DiaDStatsOverview;
 use App\Models\Campaign;
+use App\Models\ElectionEvent;
 use App\Models\ValidationHistory;
 use App\Models\Voter;
 use App\Models\VoteRecord;
@@ -131,15 +132,26 @@ class DiaD extends Page
         }
 
         $campaign = Campaign::where('status', 'active')->first();
+        $activeEvent = ElectionEvent::where('is_active', true)->first();
 
-        // Verificar si ya existe un registro de voto para este votante
+        if (! $activeEvent) {
+            Notification::make()
+                ->title('No hay ningún evento electoral activo en este momento')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        // Verificar si ya existe un registro de voto para este votante en este evento
         $existingRecord = VoteRecord::where('voter_id', $voter->id)
-            ->where('campaign_id', $campaign->id)
+            ->where('election_event_id', $activeEvent->id)
             ->first();
 
         if ($existingRecord) {
+            $eventType = $activeEvent->isSimulation() ? 'simulacro' : 'evento electoral';
             Notification::make()
-                ->title('Este votante ya tiene un registro de voto')
+                ->title("Este votante ya tiene un registro de voto en este {$eventType}")
                 ->warning()
                 ->send();
 
@@ -152,15 +164,16 @@ class DiaD extends Page
             'voted_at' => now(),
         ]);
 
-        // Crear registro detallado del voto
+        // Crear registro detallado del voto con referencia al evento
         VoteRecord::create([
             'voter_id' => $voter->id,
             'campaign_id' => $campaign->id,
+            'election_event_id' => $activeEvent->id,
             'recorded_by' => Auth::id(),
             'voted_at' => now(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
-            'notes' => 'Voto registrado en sistema Día D',
+            'notes' => "Voto registrado en {$activeEvent->name}",
         ]);
 
         ValidationHistory::create([
@@ -169,7 +182,7 @@ class DiaD extends Page
             'new_status' => VoterStatus::VOTED,
             'validated_by' => Auth::id(),
             'validation_type' => 'election',
-            'notes' => 'Marcado en Día D como VOTÓ',
+            'notes' => "Marcado en Día D como VOTÓ - {$activeEvent->name}",
         ]);
 
         Notification::make()->title('Votante marcado como VOTÓ')->success()->send();

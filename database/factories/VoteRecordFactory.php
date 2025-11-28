@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Models\Campaign;
+use App\Models\ElectionEvent;
 use App\Models\User;
 use App\Models\Voter;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -22,6 +25,7 @@ class VoteRecordFactory extends Factory
         return [
             'voter_id' => Voter::factory(),
             'campaign_id' => Campaign::factory(),
+            'election_event_id' => ElectionEvent::factory(),
             'recorded_by' => User::factory(),
             'voted_at' => fake()->dateTimeBetween('-1 day', 'now'),
             'photo_path' => fake()->boolean(60) ? 'votes/'.fake()->uuid().'.jpg' : null,

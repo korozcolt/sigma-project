@@ -2,12 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Enums\CampaignStatus;
 use App\Http\Middleware\IsElectionDay;
-use App\Models\Campaign;
+use App\Models\ElectionEvent;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 use function Pest\Laravel\actingAs;
 
@@ -16,13 +14,10 @@ beforeEach(function () {
     $this->user = User::factory()->create();
 });
 
-it('allows access on election day', function () {
+it('allows access when there is an active event today', function () {
     actingAs($this->user);
 
-    $campaign = Campaign::factory()->create([
-        'status' => CampaignStatus::ACTIVE,
-        'election_date' => Carbon::today(),
-    ]);
+    ElectionEvent::factory()->today()->active()->create();
 
     $request = Request::create('/dia-d', 'GET');
     $request->setUserResolver(fn () => $this->user);
@@ -32,13 +27,10 @@ it('allows access on election day', function () {
     expect($response->getContent())->toBe('OK');
 });
 
-it('redirects when no active campaign exists', function () {
+it('redirects when no active event exists', function () {
     actingAs($this->user);
 
-    Campaign::factory()->create([
-        'status' => CampaignStatus::DRAFT,
-        'election_date' => Carbon::today(),
-    ]);
+    ElectionEvent::factory()->today()->inactive()->create();
 
     $request = Request::create('/dia-d', 'GET');
     $request->setUserResolver(fn () => $this->user);
@@ -49,13 +41,38 @@ it('redirects when no active campaign exists', function () {
         ->and($response->headers->get('Location'))->toContain(route('home', absolute: false));
 });
 
-it('redirects when campaign has no election date', function () {
+it('redirects when accessed before event day', function () {
     actingAs($this->user);
 
-    Campaign::factory()->create([
-        'status' => CampaignStatus::ACTIVE,
-        'election_date' => null,
-    ]);
+    ElectionEvent::factory()->future()->active()->create();
+
+    $request = Request::create('/dia-d', 'GET');
+    $request->setUserResolver(fn () => $this->user);
+
+    $response = $this->middleware->handle($request, fn () => response('OK'));
+
+    expect($response->getStatusCode())->toBe(302)
+        ->and($response->headers->get('Location'))->toContain(route('home', absolute: false));
+});
+
+it('redirects when accessed after event day', function () {
+    actingAs($this->user);
+
+    ElectionEvent::factory()->past()->active()->create();
+
+    $request = Request::create('/dia-d', 'GET');
+    $request->setUserResolver(fn () => $this->user);
+
+    $response = $this->middleware->handle($request, fn () => response('OK'));
+
+    expect($response->getStatusCode())->toBe(302)
+        ->and($response->headers->get('Location'))->toContain(route('home', absolute: false));
+});
+
+it('includes appropriate message when redirecting before event day', function () {
+    actingAs($this->user);
+
+    ElectionEvent::factory()->future()->active()->create();
 
     $request = Request::create('/dia-d', 'GET');
     $request->setUserResolver(fn () => $this->user);
@@ -63,49 +80,32 @@ it('redirects when campaign has no election date', function () {
     $response = $this->middleware->handle($request, fn () => response('OK'));
 
     expect($response->getStatusCode())->toBe(302);
+    expect(session()->has('warning'))->toBeTrue();
+    expect(session('warning'))->toContain('Aún no es la fecha correcta');
 });
 
-it('redirects when accessed before election day', function () {
+it('includes appropriate message when redirecting after event day', function () {
     actingAs($this->user);
 
-    $campaign = Campaign::factory()->create([
-        'status' => CampaignStatus::ACTIVE,
-        'election_date' => Carbon::tomorrow(),
-    ]);
+    ElectionEvent::factory()->past()->active()->create();
 
     $request = Request::create('/dia-d', 'GET');
     $request->setUserResolver(fn () => $this->user);
 
     $response = $this->middleware->handle($request, fn () => response('OK'));
 
-    expect($response->getStatusCode())->toBe(302)
-        ->and($response->headers->get('Location'))->toContain(route('home', absolute: false));
+    expect($response->getStatusCode())->toBe(302);
+    expect(session()->has('warning'))->toBeTrue();
+    expect(session('warning'))->toContain('El evento ha finalizado');
 });
 
-it('redirects when accessed after election day', function () {
+it('blocks access when event is outside time range', function () {
     actingAs($this->user);
 
-    $campaign = Campaign::factory()->create([
-        'status' => CampaignStatus::ACTIVE,
-        'election_date' => Carbon::yesterday(),
-    ]);
-
-    $request = Request::create('/dia-d', 'GET');
-    $request->setUserResolver(fn () => $this->user);
-
-    $response = $this->middleware->handle($request, fn () => response('OK'));
-
-    expect($response->getStatusCode())->toBe(302)
-        ->and($response->headers->get('Location'))->toContain(route('home', absolute: false));
-});
-
-it('includes appropriate message when redirecting before election day', function () {
-    actingAs($this->user);
-
-    $electionDate = Carbon::tomorrow();
-    Campaign::factory()->create([
-        'status' => CampaignStatus::ACTIVE,
-        'election_date' => $electionDate,
+    $now = now();
+    ElectionEvent::factory()->today()->active()->create([
+        'start_time' => $now->copy()->addHour()->format('H:i:s'),
+        'end_time' => $now->copy()->addHours(2)->format('H:i:s'),
     ]);
 
     $request = Request::create('/dia-d', 'GET');
@@ -115,24 +115,5 @@ it('includes appropriate message when redirecting before election day', function
 
     expect($response->getStatusCode())->toBe(302);
     expect(session()->has('warning'))->toBeTrue();
-    expect(session('warning'))->toContain('Aún no es el día de votación');
-});
-
-it('includes appropriate message when redirecting after election day', function () {
-    actingAs($this->user);
-
-    $electionDate = Carbon::yesterday();
-    Campaign::factory()->create([
-        'status' => CampaignStatus::ACTIVE,
-        'election_date' => $electionDate,
-    ]);
-
-    $request = Request::create('/dia-d', 'GET');
-    $request->setUserResolver(fn () => $this->user);
-
-    $response = $this->middleware->handle($request, fn () => response('OK'));
-
-    expect($response->getStatusCode())->toBe(302);
-    expect(session()->has('warning'))->toBeTrue();
-    expect(session('warning'))->toContain('El periodo de votación ha finalizado');
+    expect(session('warning'))->toContain('no está dentro del horario permitido');
 });

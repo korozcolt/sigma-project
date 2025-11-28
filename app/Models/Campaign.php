@@ -94,6 +94,14 @@ class Campaign extends Model
     }
 
     /**
+     * Get the election events for this campaign
+     */
+    public function electionEvents(): HasMany
+    {
+        return $this->hasMany(ElectionEvent::class);
+    }
+
+    /**
      * Get the census records for this campaign
      */
     public function censusRecords(): HasMany

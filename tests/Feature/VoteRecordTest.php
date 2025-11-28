@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Models\Campaign;
 use App\Models\User;
-use App\Models\VoteRecord;
 use App\Models\Voter;
+use App\Models\VoteRecord;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -39,6 +39,7 @@ it('has fillable attributes', function () {
     $fillable = [
         'voter_id',
         'campaign_id',
+        'election_event_id',
         'recorded_by',
         'voted_at',
         'photo_path',

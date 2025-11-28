@@ -16,6 +16,7 @@ class VoteRecord extends Model
     protected $fillable = [
         'voter_id',
         'campaign_id',
+        'election_event_id',
         'recorded_by',
         'voted_at',
         'photo_path',
@@ -49,6 +50,11 @@ class VoteRecord extends Model
     public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    public function electionEvent(): BelongsTo
+    {
+        return $this->belongsTo(ElectionEvent::class);
     }
 
     public function getLocationAttribute(): ?string
