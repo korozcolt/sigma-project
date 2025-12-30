@@ -11,6 +11,7 @@ use App\Models\VoteRecord;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\assertDatabaseMissing;
 
 beforeEach(function () {
     $this->seed(\Database\Seeders\RoleSeeder::class);
@@ -153,6 +154,38 @@ it('muestra error al intentar votar sin evento activo', function () {
         ->click('Buscar')
         ->click('Marcar VOTÓ')
         ->assertSee('No hay ningún evento electoral activo en este momento');
+});
+
+it('permite marcar NO VOTÓ desde la UI', function () {
+    actingAs($this->user);
+
+    $event = ElectionEvent::factory()->today()->active()->for($this->campaign)->create();
+
+    $voter = Voter::factory()->for($this->campaign)->create([
+        'document_number' => '55667788',
+        'status' => VoterStatus::CONFIRMED,
+    ]);
+
+    $page = visit('/admin/dia-d');
+
+    $page->fill('input[placeholder="Número de documento..."]', '55667788')
+        ->click('Buscar')
+        ->assertSee('Marcar NO VOTÓ')
+        ->click('Marcar NO VOTÓ')
+        ->assertSee('Votante marcado como NO VOTÓ');
+
+    expect($voter->fresh()->status)->toBe(VoterStatus::DID_NOT_VOTE);
+
+    // No debe crearse un VoteRecord
+    assertDatabaseMissing('vote_records', ['voter_id' => $voter->id]);
+
+    // Debe crearse un histórico de validación
+    assertDatabaseHas('validation_histories', [
+        'voter_id' => $voter->id,
+        'previous_status' => VoterStatus::CONFIRMED->value,
+        'new_status' => VoterStatus::DID_NOT_VOTE->value,
+        'validation_type' => 'election',
+    ]);
 });
 
 it('muestra estadísticas correctas en día D', function () {
