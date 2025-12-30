@@ -23,10 +23,10 @@
     </x-filament::section>
 
     {{-- Información del Votante --}}
-    @if ($voterId)
+    @if ($voterId ?? false)
         <x-filament::section>
             <x-slot name="heading">{{ $voterData['full_name'] ?? 'N/A' }}</x-slot>
-            <x-slot name="description">CC {{ $voterData['document_number'] ?? 'N/A' }}</x-slot>
+            <x-slot name="description">CC {{ $voterData['document_number'] ?? 'N/A' }}</x-slot> 
 
             <div class="space-y-4">
                 {{-- Información de Contacto --}}
@@ -59,7 +59,7 @@
 
                 {{-- Botones de Acción --}}
                 <div class="grid gap-3 pt-2 md:grid-cols-2">
-                    @if ($canMarkVoted)
+                    @if ($canMarkVoted ?? false)
                         <x-filament::button
                             color="success"
                             wire:click="markVoted"
@@ -73,7 +73,7 @@
                         </div>
                     @endif
 
-                    @if ($canMarkDidNotVote)
+                    @if ($canMarkDidNotVote ?? false)
                         <x-filament::button
                             color="danger"
                             wire:click="markDidNotVote"
