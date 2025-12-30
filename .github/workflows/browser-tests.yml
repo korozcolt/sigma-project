@@ -59,9 +59,12 @@ jobs:
       - name: Build assets
         run: npm run build
 
-      - name: Run Browser tests
+      - name: Run Browser tests (with 1 retry)
         continue-on-error: false
-        run: ./vendor/bin/pest tests/Browser --testsuite=browser -vvv || echo "Pest exited with non-zero code"
+        run: |
+          ./vendor/bin/pest tests/Browser --testsuite=browser -vvv || (
+            echo "First run failed, retrying..." && ./vendor/bin/pest tests/Browser --testsuite=browser -vvv
+          )
 
       - name: Upload Browser screenshots
         if: always()
