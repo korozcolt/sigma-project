@@ -400,6 +400,14 @@ El sistema está **COMPLETO AL 95%** y listo para usar en elecciones reales.
 
 ## 📝 Notas de Desarrollo
 
+### Estrategia de pruebas E2E (Resumen)
+- Favor usar `data-testid` en elementos interactivos críticos (`dia-d`, botones de acción, export, inputs) para hacer las pruebas menos frágiles frente a traducciones o cambios en texto. 🔖
+- Para flujos que NO requieren render completo del navegador (p. ej. llamadas directas a métodos Livewire que no dependen de JS), preferir tests Livewire (rápidos y deterministas). ⚡
+- Las pruebas Browser se ejecutan con Playwright vía `pest-plugin-browser` en CI. Se capturan screenshots y logs en fallos y el job reintenta 1 vez automáticamente. 📸
+- Enlocal: ejecutar `./vendor/bin/pest tests/Browser -vvv` o la suite completa `./vendor/bin/pest`. Para debugging, revisar `Tests/Browser/Screenshots` generadas localmente en fallos.
+- Si encuentras un test intermitente: agrega `->dumpConsole()` / screenshots en el test y eleva a prioridad para reproducir en CI o localmente.
+
+
 ### 2025-11-27 02:50 ✅ SISTEMA DÍA D COMPLETO + DOCS CONSOLIDADOS
 - ✅ Implementado VoteRecord modelo (evidencia electoral completa)
 - ✅ Implementado IsElectionDay middleware (control temporal)
