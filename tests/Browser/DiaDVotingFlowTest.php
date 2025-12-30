@@ -52,12 +52,12 @@ it('flujo completo: activar evento y registrar voto', function () {
     $page = visit('/admin/dia-d');
 
     $page->assertSee('Búsqueda de Votante')
-        ->fill('input[placeholder="Número de documento..."]', '12345678')
-        ->click('Buscar')
+        ->fill('input[data-testid="dia-d:document-input"]', '12345678')
+        ->click('button[data-testid="dia-d:search-button"]')
         ->assertSee('Juan')
         ->assertSee('Pérez')
         ->assertSee('Marcar VOTÓ')
-        ->click('Marcar VOTÓ')
+        ->click('button[data-testid="dia-d:mark-voted"]')
         ->assertSee('Votante marcado como VOTÓ');
 
     // Verificar que se creó el VoteRecord vinculado al evento
@@ -90,9 +90,9 @@ it('previene voto duplicado en el mismo evento', function () {
 
     $page = visit('/admin/dia-d');
 
-    $page->fill('input[placeholder="Número de documento..."]', '87654321')
-        ->click('Buscar')
-        ->click('Marcar VOTÓ')
+    $page->fill('input[data-testid="dia-d:document-input"]', '87654321')
+        ->click('button[data-testid="dia-d:search-button"]')
+        ->click('button[data-testid="dia-d:mark-voted"]')
         ->assertSee('Este votante ya tiene un registro de voto');
 });
 
@@ -127,10 +127,10 @@ it('permite voto en simulacro diferente para mismo votante', function () {
     // Debe permitir votar en el nuevo simulacro
     $page = visit('/admin/dia-d');
 
-    $page->fill('input[placeholder="Número de documento..."]', '11223344')
-        ->click('Buscar')
+    $page->fill('input[data-testid="dia-d:document-input"]', '11223344')
+        ->click('button[data-testid="dia-d:search-button"]')
         ->assertSee('Marcar VOTÓ') // Debe permitir votar nuevamente
-        ->click('Marcar VOTÓ')
+        ->click('button[data-testid="dia-d:mark-voted"]')
         ->assertSee('Votante marcado como VOTÓ');
 
     // Debe haber 2 vote records (uno por cada simulacro)
@@ -150,9 +150,9 @@ it('muestra error al intentar votar sin evento activo', function () {
 
     $page = visit('/admin/dia-d');
 
-    $page->fill('input[placeholder="Número de documento..."]', '99887766')
-        ->click('Buscar')
-        ->click('Marcar VOTÓ')
+    $page->fill('input[data-testid="dia-d:document-input"]', '99887766')
+        ->click('button[data-testid="dia-d:search-button"]')
+        ->click('button[data-testid="dia-d:mark-voted"]')
         ->assertSee('No hay ningún evento electoral activo en este momento');
 });
 
@@ -168,10 +168,10 @@ it('permite marcar NO VOTÓ desde la UI', function () {
 
     $page = visit('/admin/dia-d');
 
-    $page->fill('input[placeholder="Número de documento..."]', '55667788')
-        ->click('Buscar')
+    $page->fill('input[data-testid="dia-d:document-input"]', '55667788')
+        ->click('button[data-testid="dia-d:search-button"]')
         ->assertSee('Marcar NO VOTÓ')
-        ->click('Marcar NO VOTÓ')
+        ->click('button[data-testid="dia-d:mark-did-not-vote"]')
         ->assertSee('Votante marcado como NO VOTÓ');
 
     expect($voter->fresh()->status)->toBe(VoterStatus::DID_NOT_VOTE);

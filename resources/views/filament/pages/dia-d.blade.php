@@ -12,10 +12,11 @@
                             placeholder="Número de documento..."
                             wire:model.defer="documentNumber"
                             autofocus
+                            data-testid="dia-d:document-input"
                         />
                     </x-filament::input.wrapper>
                 </div>
-                <x-filament::button type="submit" icon="heroicon-o-magnifying-glass">
+                <x-filament::button type="submit" icon="heroicon-o-magnifying-glass" data-testid="dia-d:search-button">
                     Buscar
                 </x-filament::button>
             </div>
@@ -64,6 +65,7 @@
                             color="success"
                             wire:click="markVoted"
                             icon="heroicon-o-hand-thumb-up"
+                            data-testid="dia-d:mark-voted"
                         >
                             Marcar VOTÓ
                         </x-filament::button>
@@ -79,6 +81,7 @@
                             wire:click="markDidNotVote"
                             icon="heroicon-o-hand-thumb-down"
                             outlined
+                            data-testid="dia-d:mark-did-not-vote"
                         >
                             Marcar NO VOTÓ
                         </x-filament::button>
