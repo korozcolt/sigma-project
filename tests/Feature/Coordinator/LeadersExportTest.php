@@ -38,3 +38,13 @@ it('allows coordinator to export leaders list', function () {
     $this->assertStringContainsString('lideres.xlsx', $response->headers->get('content-disposition'));
     $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('content-type'));
 });
+
+it('forbids non-coordinator users from exporting leaders', function () {
+    $leader = User::factory()->create(['municipality_id' => $this->municipality->id]);
+    $leader->assignRole('leader');
+    $leader->campaigns()->attach($this->campaign);
+
+    $response = $this->actingAs($leader)->get(route('coordinator.leaders.export'));
+
+    $response->assertForbidden();
+});
