@@ -43,6 +43,7 @@
 - ✅ **FASE 6.1** - Sistema de Encuestas completado
 - ✅ Logo agregado a campañas (migración creada)
 - ✅ Exportación de votantes a Excel
+- ✅ Exportación de líderes a Excel (Coordinador) ✅ NUEVO
 - ✅ Múltiples paneles Filament (Admin, Leader, Coordinator)
 - ✅ Página Día D para jornada electoral
 - ✅ Widgets: DiaDStatsOverview, CampaignStatsOverview, etc.

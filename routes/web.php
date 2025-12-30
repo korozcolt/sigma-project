@@ -47,6 +47,8 @@ Route::middleware(['auth', 'role:coordinator'])->prefix('coordinator')->name('co
     Volt::route('leaders', 'coordinator.leaders')->name('leaders');
     Volt::route('leaders/create', 'coordinator.create-leader')->name('leaders.create');
     Volt::route('leaders/{leader}/voters', 'coordinator.leader-voters')->name('leaders.voters');
+
+    Route::get('leaders/export', [\App\Http\Controllers\Coordinator\LeadersExportController::class, '__invoke'])->name('leaders.export');
 });
 
 // Leader routes
