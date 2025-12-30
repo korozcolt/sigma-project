@@ -33,6 +33,7 @@
 - [x] **25 tests nuevos** - VoteRecord (18) + IsElectionDay (7)
 - [x] **Consolidación de documentación** - De 20 a 4 archivos .md
 - [x] **Migración election_date nullable** - Flexibilidad en campañas
+- [x] **Estabilización E2E** - Añadidos `data-testid` a vistas y pruebas Browser para Día D y export de líderes
 
 ### Completado Recientemente (Noviembre 2025)
 - ✅ **FASE 8.2** - VoterResource con integración User-Voter completado
@@ -305,12 +306,12 @@
 
 ### 9.2 Reportes Exportables ⏳
 - [x] Exportación de votantes
-- [ ] Reporte de líderes
+- [x] Reporte de líderes
 - [ ] Reporte de coordinadores
 - [ ] Reporte de testigos electorales
 - [ ] Reporte de anotadores
 
-**Progreso:** 1/5 (20%) ⏳
+**Progreso:** 2/5 (40%) ⏳
 
 ### 9.3 API REST ⏳
 - [ ] Instalar Laravel Sanctum
@@ -367,7 +368,7 @@
 - ✅ Calls: 100%
 - ✅ Middleware: 100%
 - ✅ Filament Resources: 95% (11 tests skipped con TODO)
-- ⏳ Browser: 0%
+- ⏳ Browser: Parcial (E2E tests added for Día D and Leaders export)
 
 ---
 
