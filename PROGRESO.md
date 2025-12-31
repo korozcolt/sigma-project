@@ -34,6 +34,7 @@
 - [x] **Consolidación de documentación** - De 20 a 4 archivos .md
 - [x] **Migración election_date nullable** - Flexibilidad en campañas
 - [x] **Estabilización E2E** - Añadidos `data-testid` a vistas y pruebas Browser para Día D y export de líderes
+- [x] **Corregir accesos y permisos por rol** - Reemplazados literales de rol por `UserRole` en middlewares y panel providers
 
 ### Completado Recientemente (Noviembre 2025)
 - ✅ **FASE 8.2** - VoterResource con integración User-Voter completado
@@ -307,11 +308,11 @@
 ### 9.2 Reportes Exportables ⏳
 - [x] Exportación de votantes
 - [x] Reporte de líderes
-- [ ] Reporte de coordinadores
-- [ ] Reporte de testigos electorales
-- [ ] Reporte de anotadores
+- [x] Reporte de coordinadores ✅ NUEVO
+- [x] Reporte de testigos electorales ✅ NUEVO
+- [x] Reporte de anotadores ✅ NUEVO
 
-**Progreso:** 2/5 (40%) ⏳
+**Progreso:** 5/5 (100%) ✅
 
 ### 9.3 API REST ⏳
 - [ ] Instalar Laravel Sanctum
@@ -418,6 +419,7 @@ El sistema está **COMPLETO AL 95%** y listo para usar en elecciones reales.
 - ✅ Eliminados 16 archivos duplicados/innecesarios
 - ✅ README.md completamente reescrito y conciso
 - ✅ 650+ tests pasando (98.5% pass rate)
+- ✅ Normalizado el manejo de `VoterStatus` en consultas y exports para evitar TypeErrors (VotersExport + Voter scopes)
 - 🎯 **Sistema electoral 100% funcional con evidencia**
 
 ### 2025-11-11 19:15 🚀 PROYECTO LISTO PARA PRODUCCIÓN

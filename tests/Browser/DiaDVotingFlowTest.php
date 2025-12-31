@@ -203,3 +203,26 @@ it('muestra estadísticas correctas en día D', function () {
     $page->assertSee('Jornada Electoral (Día D)');
     // Las estadísticas se muestran en widgets, verificar que la página carga
 });
+
+it('muestra advertencia cuando se busca con input vacío', function () {
+    actingAs($this->user);
+
+    $event = ElectionEvent::factory()->today()->active()->for($this->campaign)->create();
+
+    $page = visit('/admin/dia-d');
+
+    $page->click('button[data-testid="dia-d:search-button"]')
+        ->assertSee('Ingrese un número de documento');
+});
+
+it('muestra mensaje cuando el votante no existe en la campaña activa', function () {
+    actingAs($this->user);
+
+    $event = ElectionEvent::factory()->today()->active()->for($this->campaign)->create();
+
+    $page = visit('/admin/dia-d');
+
+    $page->fill('input[data-testid="dia-d:document-input"]', '00000000')
+        ->click('button[data-testid="dia-d:search-button"]')
+        ->assertSee('Votante no encontrado en la campaña activa');
+});

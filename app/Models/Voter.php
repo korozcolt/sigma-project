@@ -100,27 +100,27 @@ class Voter extends Model
 
     public function scopePendingReview(Builder $query): void
     {
-        $query->where('status', VoterStatus::PENDING_REVIEW);
+        $query->where('status', VoterStatus::PENDING_REVIEW->value);
     }
 
     public function scopeVerifiedCensus(Builder $query): void
     {
-        $query->where('status', VoterStatus::VERIFIED_CENSUS);
+        $query->where('status', VoterStatus::VERIFIED_CENSUS->value);
     }
 
     public function scopeConfirmed(Builder $query): void
     {
-        $query->where('status', VoterStatus::CONFIRMED);
+        $query->where('status', VoterStatus::CONFIRMED->value);
     }
 
     public function scopeVoted(Builder $query): void
     {
-        $query->where('status', VoterStatus::VOTED);
+        $query->where('status', VoterStatus::VOTED->value);
     }
 
     public function scopeDidNotVote(Builder $query): void
     {
-        $query->where('status', VoterStatus::DID_NOT_VOTE);
+        $query->where('status', VoterStatus::DID_NOT_VOTE->value);
     }
 
     public function scopeForCampaign(Builder $query, int $campaignId): void

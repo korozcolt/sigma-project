@@ -27,7 +27,7 @@
     @if ($voterId ?? false)
         <x-filament::section>
             <x-slot name="heading">{{ $voterData['full_name'] ?? 'N/A' }}</x-slot>
-            <x-slot name="description">CC {{ $voterData['document_number'] ?? 'N/A' }}</x-slot> 
+            <x-slot name="description">CC {{ $voterData['document_number'] ?? 'N/A' }}</x-slot>
 
             <div class="space-y-4">
                 {{-- Información de Contacto --}}

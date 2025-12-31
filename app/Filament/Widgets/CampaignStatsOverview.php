@@ -58,7 +58,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
         }
 
         $confirmed = Voter::where('campaign_id', $activeCampaign->id)
-            ->where('status', VoterStatus::CONFIRMED)
+            ->where('status', VoterStatus::CONFIRMED->value)
             ->count();
 
         $total = Voter::where('campaign_id', $activeCampaign->id)->count();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\UserRole;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,19 +25,19 @@ class RedirectBasedOnRole
         }
 
         // Redirigir al dashboard correspondiente según el rol
-        if ($request->user()->hasRole('super_admin')) {
+        if ($request->user()->hasRole(UserRole::SUPER_ADMIN->value)) {
             return redirect()->route('filament.admin.pages.dashboard');
         }
 
-        if ($request->user()->hasRole('admin_campaign')) {
+        if ($request->user()->hasRole(UserRole::ADMIN_CAMPAIGN->value)) {
             return redirect()->route('campaign-admin.dashboard');
         }
 
-        if ($request->user()->hasRole('coordinator')) {
+        if ($request->user()->hasRole(UserRole::COORDINATOR->value)) {
             return redirect()->route('coordinator.dashboard');
         }
 
-        if ($request->user()->hasRole('leader')) {
+        if ($request->user()->hasRole(UserRole::LEADER->value)) {
             return redirect()->route('leader.dashboard');
         }
 
@@ -50,10 +51,10 @@ class RedirectBasedOnRole
     private function isCorrectDashboard($user, ?string $currentRoute): bool
     {
         $dashboardMap = [
-            'super_admin' => ['filament.admin.pages.dashboard', 'filament.admin.*'],
-            'admin_campaign' => ['campaign-admin.dashboard', 'campaign-admin.*'],
-            'coordinator' => ['coordinator.dashboard', 'coordinator.*'],
-            'leader' => ['leader.dashboard', 'leader.*'],
+            UserRole::SUPER_ADMIN->value => ['filament.admin.pages.dashboard', 'filament.admin.*'],
+            UserRole::ADMIN_CAMPAIGN->value => ['campaign-admin.dashboard', 'campaign-admin.*'],
+            UserRole::COORDINATOR->value => ['coordinator.dashboard', 'coordinator.*'],
+            UserRole::LEADER->value => ['leader.dashboard', 'leader.*'],
         ];
 
         foreach ($dashboardMap as $role => $routes) {

@@ -38,6 +38,11 @@ Route::middleware(['auth'])->group(function () {
 // Campaign Admin routes
 Route::middleware(['auth', 'role:admin_campaign'])->prefix('campaign-admin')->name('campaign-admin.')->group(function () {
     Volt::route('dashboard', 'campaign-admin.dashboard')->name('dashboard');
+
+    // Exportes de usuarios
+    Route::get('users/export/coordinators', [\App\Http\Controllers\CampaignAdmin\CoordinatorsExportController::class, '__invoke'])->name('users.export.coordinators');
+    Route::get('users/export/witnesses', [\App\Http\Controllers\CampaignAdmin\WitnessesExportController::class, '__invoke'])->name('users.export.witnesses');
+    Route::get('users/export/annotators', [\App\Http\Controllers\CampaignAdmin\AnnotatorsExportController::class, '__invoke'])->name('users.export.annotators');
 });
 
 // Coordinator routes

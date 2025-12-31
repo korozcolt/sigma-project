@@ -353,7 +353,7 @@ test('can update user password', function () {
 });
 
 test('password is optional when editing', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['document_number' => '1234567890', 'phone' => '3001234567']);
     $originalPassword = $user->password;
 
     Livewire::test(EditUser::class, ['record' => $user->id])
