@@ -142,7 +142,7 @@ class UserForm
                             ->multiple()
                             ->preload()
                             ->searchable()
-                            ->options(fn () => collect(UserRole::cases())->mapWithKeys(fn ($role) => [$role->value => $role->getLabel()]))
+                            ->getOptionLabelFromRecordUsing(fn ($record) => UserRole::tryFrom($record->name)?->getLabel() ?? $record->name)
                             ->helperText('Seleccione los roles del usuario en el sistema')
                             ->columnSpanFull(),
                     ]),
