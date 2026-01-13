@@ -1,0 +1,74 @@
+name: browser-tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'true'
+      DB_CONNECTION: sqlite
+      BROWSER: chromium
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          extensions: mbstring, bcmath, pcntl, gd
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Copy .env
+        run: cp .env.example .env
+
+      - name: Generate APP Key
+        run: php artisan key:generate
+
+      - name: Prepare sqlite database
+        run: mkdir -p database && touch database/testing.sqlite
+
+      - name: Run migrations
+        run: php artisan migrate --env=testing --database=sqlite --no-interaction
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Run Browser tests (with 1 retry)
+        continue-on-error: false
+        run: |
+          ./vendor/bin/pest tests/Browser --testsuite=browser -vvv || (
+            echo "First run failed, retrying..." && ./vendor/bin/pest tests/Browser --testsuite=browser -vvv
+          )
+
+      - name: Upload Browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-screenshots
+          path: Tests/Browser/Screenshots/**

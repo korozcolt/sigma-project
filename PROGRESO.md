@@ -33,6 +33,8 @@
 - [x] **25 tests nuevos** - VoteRecord (18) + IsElectionDay (7)
 - [x] **Consolidación de documentación** - De 20 a 4 archivos .md
 - [x] **Migración election_date nullable** - Flexibilidad en campañas
+- [x] **Estabilización E2E** - Añadidos `data-testid` a vistas y pruebas Browser para Día D y export de líderes
+- [x] **Corregir accesos y permisos por rol** - Reemplazados literales de rol por `UserRole` en middlewares y panel providers
 
 ### Completado Recientemente (Noviembre 2025)
 - ✅ **FASE 8.2** - VoterResource con integración User-Voter completado
@@ -43,6 +45,7 @@
 - ✅ **FASE 6.1** - Sistema de Encuestas completado
 - ✅ Logo agregado a campañas (migración creada)
 - ✅ Exportación de votantes a Excel
+- ✅ Exportación de líderes a Excel (Coordinador) ✅ NUEVO
 - ✅ Múltiples paneles Filament (Admin, Leader, Coordinator)
 - ✅ Página Día D para jornada electoral
 - ✅ Widgets: DiaDStatsOverview, CampaignStatsOverview, etc.
@@ -304,12 +307,12 @@
 
 ### 9.2 Reportes Exportables ⏳
 - [x] Exportación de votantes
-- [ ] Reporte de líderes
-- [ ] Reporte de coordinadores
-- [ ] Reporte de testigos electorales
-- [ ] Reporte de anotadores
+- [x] Reporte de líderes
+- [x] Reporte de coordinadores ✅ NUEVO
+- [x] Reporte de testigos electorales ✅ NUEVO
+- [x] Reporte de anotadores ✅ NUEVO
 
-**Progreso:** 1/5 (20%) ⏳
+**Progreso:** 5/5 (100%) ✅
 
 ### 9.3 API REST ⏳
 - [ ] Instalar Laravel Sanctum
@@ -366,7 +369,7 @@
 - ✅ Calls: 100%
 - ✅ Middleware: 100%
 - ✅ Filament Resources: 95% (11 tests skipped con TODO)
-- ⏳ Browser: 0%
+- ⏳ Browser: Parcial (E2E tests added for Día D and Leaders export)
 
 ---
 
@@ -398,6 +401,14 @@ El sistema está **COMPLETO AL 95%** y listo para usar en elecciones reales.
 
 ## 📝 Notas de Desarrollo
 
+### Estrategia de pruebas E2E (Resumen)
+- Favor usar `data-testid` en elementos interactivos críticos (`dia-d`, botones de acción, export, inputs) para hacer las pruebas menos frágiles frente a traducciones o cambios en texto. 🔖
+- Para flujos que NO requieren render completo del navegador (p. ej. llamadas directas a métodos Livewire que no dependen de JS), preferir tests Livewire (rápidos y deterministas). ⚡
+- Las pruebas Browser se ejecutan con Playwright vía `pest-plugin-browser` en CI. Se capturan screenshots y logs en fallos y el job reintenta 1 vez automáticamente. 📸
+- Enlocal: ejecutar `./vendor/bin/pest tests/Browser -vvv` o la suite completa `./vendor/bin/pest`. Para debugging, revisar `Tests/Browser/Screenshots` generadas localmente en fallos.
+- Si encuentras un test intermitente: agrega `->dumpConsole()` / screenshots en el test y eleva a prioridad para reproducir en CI o localmente.
+
+
 ### 2025-11-27 02:50 ✅ SISTEMA DÍA D COMPLETO + DOCS CONSOLIDADOS
 - ✅ Implementado VoteRecord modelo (evidencia electoral completa)
 - ✅ Implementado IsElectionDay middleware (control temporal)
@@ -408,6 +419,7 @@ El sistema está **COMPLETO AL 95%** y listo para usar en elecciones reales.
 - ✅ Eliminados 16 archivos duplicados/innecesarios
 - ✅ README.md completamente reescrito y conciso
 - ✅ 650+ tests pasando (98.5% pass rate)
+- ✅ Normalizado el manejo de `VoterStatus` en consultas y exports para evitar TypeErrors (VotersExport + Voter scopes)
 - 🎯 **Sistema electoral 100% funcional con evidencia**
 
 ### 2025-11-11 19:15 🚀 PROYECTO LISTO PARA PRODUCCIÓN

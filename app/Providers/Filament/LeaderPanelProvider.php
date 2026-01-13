@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Enums\UserRole;
 use App\Filament\Pages\DiaD;
 use App\Filament\Widgets\CampaignStatsOverview;
 use App\Filament\Widgets\TerritorialDistributionChart;
@@ -56,7 +57,7 @@ class LeaderPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-                \App\Http\Middleware\EnsureUserHasRole::class.':leader',
+                \App\Http\Middleware\EnsureUserHasRole::class.':'.UserRole::LEADER->value,
             ]);
     }
 }

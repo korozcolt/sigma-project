@@ -17,6 +17,9 @@ use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
 use function Pest\Laravel\actingAs;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     // Crear roles si no existen
@@ -102,7 +105,8 @@ test('can filter voters by municipality', function () {
     $municipality = Municipality::factory()->create();
 
     $voterInMunicipality = Voter::factory()->create(['municipality_id' => $municipality->id]);
-    $voterNotInMunicipality = Voter::factory()->create();
+    $otherMunicipality = Municipality::factory()->create();
+    $voterNotInMunicipality = Voter::factory()->create(['municipality_id' => $otherMunicipality->id]);
 
     Livewire::test(ListVoters::class)
         ->filterTable('municipality_id', $municipality->id)
@@ -260,6 +264,8 @@ test('can edit voter', function () {
     $voter = Voter::factory()->create([
         'first_name' => 'Original',
         'last_name' => 'Name',
+        'municipality_id' => Municipality::factory()->create()->id,
+        'neighborhood_id' => null,
     ]);
 
     Livewire::test(EditVoter::class, ['record' => $voter->id])

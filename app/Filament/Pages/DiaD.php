@@ -72,7 +72,7 @@ class DiaD extends Page
         }
 
         $this->stats['total'] = Voter::forCampaign($campaign->id)->count();
-        $this->stats['confirmed'] = Voter::forCampaign($campaign->id)->where('status', VoterStatus::CONFIRMED)->count();
+        $this->stats['confirmed'] = Voter::forCampaign($campaign->id)->where('status', VoterStatus::CONFIRMED->value)->count();
         $this->stats['voted'] = Voter::forCampaign($campaign->id)->voted()->count();
         $this->stats['did_not_vote'] = Voter::forCampaign($campaign->id)->didNotVote()->count();
     }

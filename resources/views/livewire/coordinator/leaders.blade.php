@@ -65,9 +65,14 @@ new class extends Component {
             <flux:heading size="xl">Gestión de Líderes</flux:heading>
             <flux:subheading>Administra tu equipo de líderes</flux:subheading>
         </div>
-        <flux:button variant="primary" :href="route('coordinator.leaders.create')" wire:navigate icon="user-plus">
-            Agregar Líder
-        </flux:button>
+        <div class="flex items-center gap-2">
+            <flux:button variant="outline" :href="route('coordinator.leaders.export')" icon="arrow-down-tray" data-testid="coordinator:export-leaders">
+                Exportar Líderes
+            </flux:button>
+            <flux:button variant="primary" :href="route('coordinator.leaders.create')" wire:navigate icon="user-plus">
+                Agregar Líder
+            </flux:button>
+        </div>
     </div>
 
     <!-- Stats Summary -->

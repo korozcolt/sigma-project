@@ -89,7 +89,7 @@ class VoterValidationService
     public function validatePendingVoters(int $campaignId): array
     {
         $pendingVoters = Voter::where('campaign_id', $campaignId)
-            ->where('status', VoterStatus::PENDING_REVIEW)
+            ->where('status', VoterStatus::PENDING_REVIEW->value)
             ->get();
 
         $validated = 0;

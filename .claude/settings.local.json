@@ -28,7 +28,11 @@
       "mcp__laravel-boost__get-absolute-url",
       "mcp__laravel-boost__tinker",
       "Bash(find:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(vendor/bin/pest:*)",
+      "Bash(npm install:*)",
+      "Bash(npx playwright install)",
+      "Bash(python3:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

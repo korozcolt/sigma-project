@@ -23,7 +23,7 @@ class DiaDStatsOverview extends StatsOverviewWidget
         }
 
         $total = Voter::forCampaign($campaign->id)->count();
-        $confirmed = Voter::forCampaign($campaign->id)->where('status', VoterStatus::CONFIRMED)->count();
+        $confirmed = Voter::forCampaign($campaign->id)->where('status', VoterStatus::CONFIRMED->value)->count();
         $voted = Voter::forCampaign($campaign->id)->voted()->count();
         $didNotVote = Voter::forCampaign($campaign->id)->didNotVote()->count();
 

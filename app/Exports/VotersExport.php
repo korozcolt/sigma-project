@@ -46,7 +46,12 @@ class VotersExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMappi
         $this->campaignIds = is_null($campaignId) ? null : (is_array($campaignId) ? $campaignId : [$campaignId]);
         $this->municipalityIds = is_null($municipalityId) ? null : (is_array($municipalityId) ? $municipalityId : [$municipalityId]);
         $this->neighborhoodIds = is_null($neighborhoodId) ? null : (is_array($neighborhoodId) ? $neighborhoodId : [$neighborhoodId]);
+        // Normalize statuses: accept both BackedEnums and scalar values (strings)
         $this->statuses = is_null($status) ? null : (is_array($status) ? $status : [$status]);
+
+        if ($this->statuses) {
+            $this->statuses = array_map(fn ($s) => (is_object($s) && property_exists($s, 'value')) ? $s->value : $s, $this->statuses);
+        }
         $this->registeredByIds = is_null($registeredBy) ? null : (is_array($registeredBy) ? $registeredBy : [$registeredBy]);
         $this->queryBuilder = $queryBuilder;
         $this->createdFrom = $createdFrom;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\UserRole;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,16 +22,16 @@ class EnsureFilamentAccess
         }
 
         // Roles permitidos en el panel de Filament
-        $allowedRoles = ['super_admin', 'admin_campaign', 'reviewer'];
+        $allowedRoles = [UserRole::SUPER_ADMIN->value, UserRole::ADMIN_CAMPAIGN->value, UserRole::REVIEWER->value];
 
         // Verificar si el usuario tiene alguno de los roles permitidos
         if (! $request->user()->hasAnyRole($allowedRoles)) {
             // Redirigir según el rol del usuario
-            if ($request->user()->hasRole('coordinator')) {
+            if ($request->user()->hasRole(UserRole::COORDINATOR->value)) {
                 return redirect()->route('coordinator.dashboard');
             }
 
-            if ($request->user()->hasRole('leader')) {
+            if ($request->user()->hasRole(UserRole::LEADER->value)) {
                 return redirect()->route('leader.dashboard');
             }
 
