@@ -126,8 +126,18 @@ class User extends Authenticatable implements FilamentUser
     public function campaigns(): BelongsToMany
     {
         return $this->belongsToMany(Campaign::class, 'campaign_user')
+            ->using(CampaignUser::class)
             ->withPivot('role_id', 'assigned_at', 'assigned_by')
             ->withTimestamps();
+    }
+
+    /**
+     * Get the campaign assignments (pivot records) for this user
+     * Used for Filament forms with repeaters
+     */
+    public function campaignAssignments(): HasMany
+    {
+        return $this->hasMany(CampaignUser::class);
     }
 
     /**

@@ -87,8 +87,18 @@ class Campaign extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'campaign_user')
+            ->using(CampaignUser::class)
             ->withPivot('role_id', 'assigned_at', 'assigned_by')
             ->withTimestamps();
+    }
+
+    /**
+     * Get the team member assignments (pivot records) for this campaign
+     * Used for Filament forms with repeaters
+     */
+    public function teamMembers(): HasMany
+    {
+        return $this->hasMany(CampaignUser::class);
     }
 
     /**

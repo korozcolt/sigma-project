@@ -227,11 +227,11 @@ class UserForm
                     ->schema([
                         Repeater::make('campaignAssignments')
                             ->label('Campañas Asignadas')
-                            ->relationship('campaigns')
+                            ->relationship('campaignAssignments')
                             ->schema([
-                                Select::make('id')
+                                Select::make('campaign_id')
                                     ->label('Campaña')
-                                    ->options(Campaign::query()->pluck('name', 'id'))
+                                    ->relationship('campaign', 'name')
                                     ->required()
                                     ->distinct()
                                     ->disableOptionsWhenSelectedInSiblingRepeaterItems()
@@ -253,7 +253,7 @@ class UserForm
                             ->addActionLabel('Agregar Campaña')
                             ->reorderable(false)
                             ->collapsible()
-                            ->itemLabel(fn (array $state): ?string => Campaign::find($state['id'])?->name ?? null)
+                            ->itemLabel(fn (array $state): ?string => Campaign::find($state['campaign_id'] ?? null)?->name ?? null)
                             ->columnSpanFull(),
                     ])
                     ->collapsible()
