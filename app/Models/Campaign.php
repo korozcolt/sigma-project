@@ -37,6 +37,20 @@ class Campaign extends Model
     ];
 
     /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($campaign) {
+            if (! $campaign->created_by && auth()->check()) {
+                $campaign->created_by = auth()->id();
+            }
+        });
+    }
+
+    /**
      * Get the attributes that should be cast.
      */
     protected function casts(): array
