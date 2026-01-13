@@ -87,7 +87,6 @@ class TopLeadersTable extends TableWidget
                     })
                     ->icon('heroicon-m-user-group'),
             ])
-            ->defaultSort('registered_voters_count', 'desc')
             ->paginated(false);
     }
 }
