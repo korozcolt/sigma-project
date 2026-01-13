@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use App\Enums\UserRole;
 use App\Models\Campaign;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
@@ -141,6 +142,7 @@ class UserForm
                             ->multiple()
                             ->preload()
                             ->searchable()
+                            ->options(fn () => collect(UserRole::cases())->mapWithKeys(fn ($role) => [$role->value => $role->getLabel()]))
                             ->helperText('Seleccione los roles del usuario en el sistema')
                             ->columnSpanFull(),
                     ]),
@@ -237,7 +239,13 @@ class UserForm
 
                                 Select::make('role_id')
                                     ->label('Rol en la Campaña')
-                                    ->options(Role::query()->pluck('name', 'id'))
+                                    ->options(function () {
+                                        return Role::query()->get()->mapWithKeys(function ($role) {
+                                            $userRole = UserRole::tryFrom($role->name);
+
+                                            return [$role->id => $userRole ? $userRole->getLabel() : $role->name];
+                                        });
+                                    })
                                     ->required()
                                     ->helperText('Rol específico para esta campaña'),
                             ])

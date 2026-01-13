@@ -32,7 +32,8 @@
       "Bash(vendor/bin/pest:*)",
       "Bash(npm install:*)",
       "Bash(npx playwright install)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(grep:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Voters\Tables;
 
+use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Models\Voter;
 use Filament\Actions\BulkActionGroup;
@@ -26,13 +27,21 @@ class VotersTable
                     ->weight('bold')
                     ->description(function (Voter $record): ?string {
                         if ($record->isSystemUser()) {
-                            $roles = $record->user->roles->pluck('name')->map(fn ($role) => match ($role) {
-                                'super_admin' => '👑 Super Admin',
-                                'admin_campaign' => '🎯 Admin Campaña',
-                                'coordinator' => '📍 Coordinador',
-                                'leader' => '⭐ Líder',
-                                'reviewer' => '📞 Revisor',
-                                default => $role,
+                            $roles = $record->user->roles->pluck('name')->map(function ($roleName) {
+                                $userRole = UserRole::tryFrom($roleName);
+                                if (! $userRole) {
+                                    return $roleName;
+                                }
+
+                                $emoji = match ($userRole) {
+                                    UserRole::SUPER_ADMIN => '👑',
+                                    UserRole::ADMIN_CAMPAIGN => '🎯',
+                                    UserRole::COORDINATOR => '📍',
+                                    UserRole::LEADER => '⭐',
+                                    UserRole::REVIEWER => '📞',
+                                };
+
+                                return $emoji.' '.$userRole->getLabel();
                             })->join(', ');
 
                             return $roles;

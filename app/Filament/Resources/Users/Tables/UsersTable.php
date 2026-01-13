@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Enums\UserRole;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -56,7 +57,8 @@ class UsersTable
                     ->badge()
                     ->separator(',')
                     ->searchable()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->formatStateUsing(fn (string $state): string => UserRole::tryFrom($state)?->getLabel() ?? $state),
 
                 IconColumn::make('is_vote_recorder')
                     ->label('Anotador')
@@ -127,7 +129,8 @@ class UsersTable
                     ->label('Rol')
                     ->relationship('roles', 'name')
                     ->multiple()
-                    ->preload(),
+                    ->preload()
+                    ->options(fn () => collect(UserRole::cases())->mapWithKeys(fn ($role) => [$role->value => $role->getLabel()])),
 
                 SelectFilter::make('campaigns')
                     ->label('Campaña')
