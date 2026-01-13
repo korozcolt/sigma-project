@@ -14,15 +14,8 @@
     <nav class="fixed top-0 z-50 w-full border-b border-zinc-200/50 bg-white/80 backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-16 items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="relative flex aspect-square size-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 shadow-lg shadow-blue-500/30">
-                        <svg class="size-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                        </svg>
-                    </div>
-                    <span class="bg-gradient-to-r from-zinc-900 to-zinc-700 bg-clip-text text-lg font-bold text-transparent dark:from-white dark:to-zinc-400">
-                        {{ config('app.name') }}
-                    </span>
+                <div class="flex items-center">
+                    <img src="{{ asset('images/logo-sigma_small.webp') }}" alt="{{ config('app.name') }}" class="h-10 w-auto" />
                 </div>
                 @if (Route::has('login'))
                     <div class="flex items-center gap-3">
@@ -34,7 +27,7 @@
                                 Dashboard
                             </a>
                         @else
-                            <a href="{{ route('login') }}" class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-blue-500/30 transition-all hover:shadow-xl hover:shadow-blue-500/40">
+                            <a href="{{ route('login') }}" class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#e74f32] to-[#0172b9] px-4 py-2 text-sm font-medium text-white shadow-lg shadow-[#e74f32]/30 transition-all hover:shadow-xl hover:shadow-[#0172b9]/40">
                                 Iniciar Sesión
                                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
@@ -65,7 +58,7 @@
 
         <!-- Glow Effects -->
         <div class="absolute left-1/2 top-0 -z-10 -translate-x-1/2">
-            <div class="h-[600px] w-[600px] rounded-full bg-gradient-to-r from-blue-400 to-purple-400 opacity-20 blur-3xl dark:opacity-10"></div>
+            <div class="h-[600px] w-[600px] rounded-full bg-gradient-to-r from-[#e74f32] to-[#ff6b4a] opacity-20 blur-3xl dark:opacity-20"></div>
         </div>
 
         <div class="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-32">
@@ -74,11 +67,16 @@
                 <div class="absolute -left-4 -top-4 size-24 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 blur-2xl"></div>
 
                 <div class="relative text-center">
+                    <!-- Logo -->
+                    <div class="mb-8 flex justify-center">
+                        <img src="{{ asset('images/logo-sigma_small.webp') }}" alt="{{ config('app.name') }}" class="h-20 w-auto sm:h-24" />
+                    </div>
+
                     <!-- Badge -->
-                    <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/50 dark:text-blue-400">
+                    <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-[#e74f32]/30 bg-[#e74f32]/10 px-4 py-1.5 text-sm font-medium text-[#e74f32] dark:border-[#e74f32]/50 dark:bg-[#e74f32]/20 dark:text-[#e74f32]">
                         <span class="relative flex size-2">
-                            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
-                            <span class="relative inline-flex size-2 rounded-full bg-blue-500"></span>
+                            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#e74f32] opacity-75"></span>
+                            <span class="relative inline-flex size-2 rounded-full bg-[#e74f32]"></span>
                         </span>
                         Sistema de Gestión Electoral
                     </div>
@@ -86,15 +84,16 @@
                     <h1 class="mx-auto max-w-4xl text-5xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-6xl lg:text-7xl">
                         Gestiona tu
                         <span class="relative inline-block">
-                            <span class="relative bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+                            <span class="relative bg-gradient-to-r from-[#e74f32] via-[#ff6b4a] to-[#e74f32] bg-clip-text text-transparent dark:from-[#ff6b4a] dark:via-[#e74f32] dark:to-[#ff6b4a]">
                                 Campaña Política
                             </span>
                             <svg class="absolute -bottom-2 left-0 w-full" height="8" viewBox="0 0 200 8" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M1 5.5C40 2.5 80 2 120 3.5C160 5 180 6.5 199 5.5" stroke="url(#gradient-line)" stroke-width="3" stroke-linecap="round"/>
                                 <defs>
                                     <linearGradient id="gradient-line" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" style="stop-color:#3b82f6"/>
-                                        <stop offset="100%" style="stop-color:#a855f7"/>
+                                        <stop offset="0%" style="stop-color:#e74f32"/>
+                                        <stop offset="50%" style="stop-color:#ff6b4a"/>
+                                        <stop offset="100%" style="stop-color:#e74f32"/>
                                     </linearGradient>
                                 </defs>
                             </svg>
@@ -109,14 +108,14 @@
 
                     <div class="mt-10 flex items-center justify-center gap-4">
                         @auth
-                            <a href="{{ url('/dashboard') }}" class="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-4 text-base font-semibold text-white shadow-xl shadow-blue-500/30 transition-all hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/40">
+                            <a href="{{ url('/dashboard') }}" class="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0172b9] to-[#e74f32] px-8 py-4 text-base font-semibold text-white shadow-xl shadow-[#0172b9]/30 transition-all hover:scale-105 hover:shadow-2xl hover:shadow-[#e74f32]/40">
                                 Ir al Dashboard
                                 <svg class="size-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                                 </svg>
                             </a>
                         @else
-                            <a href="{{ route('login') }}" class="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-4 text-base font-semibold text-white shadow-xl shadow-blue-500/30 transition-all hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/40">
+                            <a href="{{ route('login') }}" class="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0172b9] to-[#e74f32] px-8 py-4 text-base font-semibold text-white shadow-xl shadow-[#0172b9]/30 transition-all hover:scale-105 hover:shadow-2xl hover:shadow-[#e74f32]/40">
                                 Iniciar Sesión
                                 <svg class="size-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
@@ -184,7 +183,7 @@
                     <!-- Feature 1 -->
                     <div class="group relative bg-white p-8 transition-all hover:bg-zinc-50 dark:bg-zinc-950 dark:hover:bg-zinc-900">
                         <div class="relative">
-                            <div class="inline-flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30">
+                            <div class="inline-flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#0172b9] to-[#e74f32] shadow-lg shadow-[#0172b9]/30">
                                 <svg class="size-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                                 </svg>
@@ -196,13 +195,13 @@
                                 Organiza coordinadores, líderes y voluntarios con roles y permisos específicos para cada nivel.
                             </p>
                         </div>
-                        <div class="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-blue-500 to-blue-600 transition-all group-hover:w-full"></div>
+                        <div class="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-[#0172b9] to-[#e74f32] transition-all group-hover:w-full"></div>
                     </div>
 
                     <!-- Feature 2 -->
                     <div class="group relative bg-white p-8 transition-all hover:bg-zinc-50 dark:bg-zinc-950 dark:hover:bg-zinc-900">
                         <div class="relative">
-                            <div class="inline-flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/30">
+                            <div class="inline-flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#e74f32] to-[#0172b9] shadow-lg shadow-[#e74f32]/30">
                                 <svg class="size-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                                 </svg>
@@ -214,13 +213,13 @@
                                 Sistema completo de registro y seguimiento de votantes con métricas en tiempo real y análisis predictivo.
                             </p>
                         </div>
-                        <div class="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-green-500 to-green-600 transition-all group-hover:w-full"></div>
+                        <div class="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-[#e74f32] to-[#0172b9] transition-all group-hover:w-full"></div>
                     </div>
 
                     <!-- Feature 3 -->
                     <div class="group relative bg-white p-8 transition-all hover:bg-zinc-50 dark:bg-zinc-950 dark:hover:bg-zinc-900">
                         <div class="relative">
-                            <div class="inline-flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg shadow-purple-500/30">
+                            <div class="inline-flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#0172b9] to-[#e74f32] shadow-lg shadow-[#0172b9]/30">
                                 <svg class="size-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                                 </svg>
@@ -232,7 +231,7 @@
                                 Visualiza el progreso con dashboards interactivos, reportes detallados y gráficos en tiempo real.
                             </p>
                         </div>
-                        <div class="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-purple-500 to-purple-600 transition-all group-hover:w-full"></div>
+                        <div class="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-[#0172b9] to-[#e74f32] transition-all group-hover:w-full"></div>
                     </div>
 
                     <!-- Feature 4 -->
@@ -470,7 +469,7 @@
     <!-- CTA Section -->
     <section class="relative overflow-hidden py-20 sm:py-28">
         <div class="absolute inset-0 -z-10">
-            <div class="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700"></div>
+            <div class="absolute inset-0 bg-gradient-to-br from-[#0172b9] via-[#0172b9] to-[#e74f32]"></div>
             <svg class="absolute inset-0 h-full w-full opacity-10" aria-hidden="true">
                 <defs>
                     <pattern id="cta-pattern" width="60" height="60" patternUnits="userSpaceOnUse">
@@ -502,14 +501,14 @@
 
                 <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
                     @auth
-                        <a href="{{ url('/dashboard') }}" class="group inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-blue-600 shadow-xl transition-all hover:scale-105 hover:shadow-2xl">
+                        <a href="{{ url('/dashboard') }}" class="group inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-[#e74f32] shadow-xl transition-all hover:scale-105 hover:shadow-2xl hover:text-[#0172b9]">
                             Ir al Dashboard
                             <svg class="size-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                             </svg>
                         </a>
                     @else
-                        <a href="{{ route('login') }}" class="group inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-blue-600 shadow-xl transition-all hover:scale-105 hover:shadow-2xl">
+                        <a href="{{ route('login') }}" class="group inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-[#e74f32] shadow-xl transition-all hover:scale-105 hover:shadow-2xl hover:text-[#0172b9]">
                             Iniciar Sesión
                             <svg class="size-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
@@ -546,16 +545,8 @@
     <footer class="border-t border-zinc-200 bg-zinc-50 py-12 dark:border-zinc-800 dark:bg-zinc-900">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col items-center justify-between gap-6 sm:flex-row">
-                <div class="flex items-center gap-3">
-                    <div class="relative flex aspect-square size-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 shadow-lg shadow-blue-500/30">
-                        <svg class="size-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <span class="block text-sm font-bold text-zinc-900 dark:text-white">{{ config('app.name') }}</span>
-                        <span class="block text-xs text-zinc-600 dark:text-zinc-400">Gestión de Campañas Políticas</span>
-                    </div>
+                <div class="flex items-center">
+                    <img src="{{ asset('images/logo-sigma_small.webp') }}" alt="{{ config('app.name') }}" class="h-10 w-auto" />
                 </div>
 
                 <div class="flex flex-col items-center gap-4 sm:flex-row sm:gap-8">

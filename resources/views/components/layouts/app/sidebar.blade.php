@@ -14,22 +14,19 @@
 
                 @if($campaign && $campaign->hasLogo())
                     <img src="{{ $campaign->logo_url }}" alt="Logo" class="size-8 rounded-md object-cover">
-                @else
-                    <div class="flex aspect-square size-8 items-center justify-center rounded-md bg-accent-content text-accent-foreground">
-                        <x-app-logo-icon class="size-5 fill-current text-white dark:text-black" />
+                    <div class="flex flex-col">
+                        <span class="text-sm font-semibold text-zinc-900 dark:text-white">
+                            {{ $campaign->name }}
+                        </span>
+                        @if(auth()->user()->hasRole('admin_campaign'))
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400">Administrador de Campaña</span>
+                        @elseif(auth()->user()->hasRole('coordinator'))
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400">Coordinador</span>
+                        @endif
                     </div>
+                @else
+                    <x-app-logo-icon class="h-8 w-auto" />
                 @endif
-
-                <div class="flex flex-col">
-                    <span class="text-sm font-semibold text-zinc-900 dark:text-white">
-                        {{ $campaign?->name ?? config('app.name') }}
-                    </span>
-                    @if(auth()->user()->hasRole('admin_campaign'))
-                        <span class="text-xs text-zinc-500 dark:text-zinc-400">Administrador de Campaña</span>
-                    @elseif(auth()->user()->hasRole('coordinator'))
-                        <span class="text-xs text-zinc-500 dark:text-zinc-400">Coordinador</span>
-                    @endif
-                </div>
             </a>
 
             <flux:navlist variant="outline">
