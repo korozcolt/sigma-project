@@ -18,11 +18,6 @@ class CreateUser extends CreateRecord
 
     protected function afterCreate(): void
     {
-        // Sincronizar roles si fueron seleccionados
-        if ($this->data['roles'] ?? false) {
-            $this->record->syncRoles($this->data['roles']);
-        }
-
         // Crear Voter si se marcó el toggle
         if ($this->data['register_as_voter'] ?? false) {
             $this->createVoterProfile();
