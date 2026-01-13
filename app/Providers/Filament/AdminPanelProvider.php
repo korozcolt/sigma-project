@@ -49,6 +49,15 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Gestión')
                     ->collapsed(false),
                 NavigationGroup::make()
+                    ->label('Call Center')
+                    ->collapsed(false),
+                NavigationGroup::make()
+                    ->label('Mensajería')
+                    ->collapsed(false),
+                NavigationGroup::make()
+                    ->label('Jornada Electoral')
+                    ->collapsed(false),
+                NavigationGroup::make()
                     ->label('Configuración')
                     ->collapsed(false),
             ])
