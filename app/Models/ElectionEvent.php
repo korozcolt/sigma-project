@@ -71,15 +71,22 @@ class ElectionEvent extends Model
         return $this->is_active;
     }
 
-    public function isWithinTimeRange(): bool
+public function isWithinTimeRange(): bool
     {
         if (! $this->start_time || ! $this->end_time) {
             return true;
         }
 
-        $now = now()->format('H:i:s');
+        $now = now();
+        $startTime = now()->setTimeFromTimeString($this->start_time);
+        $endTime = now()->setTimeFromTimeString($this->end_time);
 
-        return $now >= $this->start_time && $now <= $this->end_time;
+        // Handle case where end time is after midnight (crosses day boundary)
+        if ($endTime->lt($startTime)) {
+            return $now->gte($startTime) || $now->lte($endTime);
+        }
+
+        return $now->gte($startTime) && $now->lte($endTime);
     }
 
     public function activate(): bool

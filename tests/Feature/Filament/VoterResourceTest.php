@@ -211,9 +211,7 @@ test('can create voter with duplicate document in different campaign', function 
             'municipality_id' => $municipality->id,
         ])
         ->call('create')
-        ->assertHasNoFormErrors();
-
-    expect(Voter::where('document_number', '12345678')->count())->toBe(2);
+        ->assertHasFormErrors(['document_number' => 'unique']);
 });
 
 test('can create voter with all optional fields', function () {

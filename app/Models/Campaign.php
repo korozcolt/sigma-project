@@ -48,6 +48,17 @@ class Campaign extends Model
                 $campaign->created_by = auth()->id();
             }
         });
+
+        static::saved(function (Campaign $campaign): void {
+            if ($campaign->status !== CampaignStatus::ACTIVE) {
+                return;
+            }
+
+            static::query()
+                ->whereKeyNot($campaign->getKey())
+                ->where('status', CampaignStatus::ACTIVE->value)
+                ->update(['status' => CampaignStatus::PAUSED->value]);
+        });
     }
 
     /**

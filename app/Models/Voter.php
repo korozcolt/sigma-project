@@ -85,6 +85,11 @@ class Voter extends Model
         return $this->hasMany(VerificationCall::class);
     }
 
+    public function callAssignments(): HasMany
+    {
+        return $this->hasMany(CallAssignment::class);
+    }
+
     public function voteRecords(): HasMany
     {
         return $this->hasMany(VoteRecord::class);

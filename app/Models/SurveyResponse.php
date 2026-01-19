@@ -17,6 +17,7 @@ class SurveyResponse extends Model
         'survey_question_id',
         'voter_id',
         'answered_by',
+        'verification_call_id',
         'response_value',
         'responded_at',
     ];
@@ -46,6 +47,11 @@ class SurveyResponse extends Model
     public function answerer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'answered_by');
+    }
+
+    public function verificationCall(): BelongsTo
+    {
+        return $this->belongsTo(VerificationCall::class, 'verification_call_id');
     }
 
     public function scopeForSurvey(Builder $query, int $surveyId): void

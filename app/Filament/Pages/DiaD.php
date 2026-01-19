@@ -16,9 +16,13 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 class DiaD extends Page
 {
+    use WithFileUploads;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBolt;
 
     protected static ?string $navigationLabel = 'Jornada Electoral (Día D)';
@@ -42,6 +46,14 @@ class DiaD extends Page
     public ?int $voterId = null;
 
     public array $voterData = [];
+
+    public ?TemporaryUploadedFile $photo = null;
+
+    public ?string $latitude = null;
+
+    public ?string $longitude = null;
+
+    public ?string $pollingStation = null;
 
     public array $stats = [
         'total' => 0,
@@ -84,6 +96,10 @@ class DiaD extends Page
         $this->voter = null;
         $this->voterId = null;
         $this->voterData = [];
+        $this->photo = null;
+        $this->latitude = null;
+        $this->longitude = null;
+        $this->pollingStation = null;
         $this->updateActionPermissions();
 
         if (! $campaign) {
@@ -123,6 +139,12 @@ class DiaD extends Page
         $this->updateActionPermissions();
     }
 
+    public function captureCoordinates(float $latitude, float $longitude): void
+    {
+        $this->latitude = number_format($latitude, 7, '.', '');
+        $this->longitude = number_format($longitude, 7, '.', '');
+    }
+
     public function markVoted(): void
     {
         if (! $this->voterId || ! ($voter = Voter::find($this->voterId))) {
@@ -142,6 +164,16 @@ class DiaD extends Page
 
             return;
         }
+
+        $this->validate([
+            'photo' => ['required', 'image', 'max:5120'],
+            'latitude' => ['required'],
+            'longitude' => ['required'],
+        ], [
+            'photo.required' => 'Debe subir una foto como evidencia.',
+            'latitude.required' => 'Debe capturar la ubicación (GPS).',
+            'longitude.required' => 'Debe capturar la ubicación (GPS).',
+        ]);
 
         // Verificar si ya existe un registro de voto para este votante en este evento
         $existingRecord = VoteRecord::where('voter_id', $voter->id)
@@ -164,6 +196,17 @@ class DiaD extends Page
             'voted_at' => now(),
         ]);
 
+        $photoPath = $this->photo?->storePublicly("vote-records/{$activeEvent->id}", 'public');
+
+        if (! $photoPath) {
+            Notification::make()
+                ->title('No se pudo guardar la foto')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
         // Crear registro detallado del voto con referencia al evento
         VoteRecord::create([
             'voter_id' => $voter->id,
@@ -171,6 +214,10 @@ class DiaD extends Page
             'election_event_id' => $activeEvent->id,
             'recorded_by' => Auth::id(),
             'voted_at' => now(),
+            'photo_path' => $photoPath,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
+            'polling_station' => $this->pollingStation,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
             'notes' => "Voto registrado en {$activeEvent->name}",

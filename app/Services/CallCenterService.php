@@ -106,9 +106,10 @@ class CallCenterService
             [
                 'survey_id' => $call->survey_id,
                 'survey_question_id' => $questionId,
-                'voter_id' => $call->voter_id,
+                'verification_call_id' => $call->id,
             ],
             [
+                'voter_id' => $call->voter_id,
                 'response_value' => $responseValue,
                 'answered_by' => $answeredBy,
                 'responded_at' => now(),

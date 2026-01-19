@@ -34,11 +34,9 @@ class VoterForm
                         TextInput::make('document_number')
                             ->label('Número de Documento')
                             ->required()
-                            ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
-                                return $rule->where('campaign_id', $get('campaign_id'));
-                            })
+                            ->unique(ignoreRecord: true)
                             ->maxLength(255)
-                            ->helperText('Debe ser único por campaña'),
+                            ->helperText('Debe ser único en todo el sistema'),
 
                         DatePicker::make('birth_date')
                             ->label('Fecha de Nacimiento')
@@ -120,7 +118,9 @@ class VoterForm
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->default(fn () => Campaign::query()->where('status', 'active')->first()?->id)
+                            ->default(fn () => Campaign::query()->where('status', 'active')->first()?->id ?? Campaign::query()->first()?->id)
+                            ->disabled(fn (): bool => Campaign::count() <= 1)
+                            ->dehydrated()
                             ->helperText('Campaña a la que pertenece el votante'),
 
                         Select::make('status')

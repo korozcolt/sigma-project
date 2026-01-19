@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CallResult;
 use App\Models\CallAssignment;
 use App\Models\Campaign;
 use App\Models\User;
@@ -10,6 +11,71 @@ use Illuminate\Support\Collection;
 
 class CallAssignmentService
 {
+    /**
+     * Load a batch of call assignments for a caller (locks voters to that caller).
+     *
+     * @return int The number of assignments created.
+     */
+    public function loadBatchForCaller(
+        Campaign $campaign,
+        User $caller,
+        User $assignedBy,
+        int $targetQueueSize = 5,
+        string $priority = 'medium',
+    ): int {
+        $current = CallAssignment::query()
+            ->forCampaign($campaign->id)
+            ->forCaller($caller->id)
+            ->whereIn('status', ['pending', 'in_progress'])
+            ->count();
+
+        $slots = max(0, $targetQueueSize - $current);
+
+        if ($slots === 0) {
+            return 0;
+        }
+
+        $eligibleVoters = Voter::query()
+            ->where('campaign_id', $campaign->id)
+            ->whereNotNull('phone')
+            ->whereDoesntHave('callAssignments', function ($query) {
+                $query->whereIn('status', ['pending', 'in_progress']);
+            })
+            ->where(function ($query) {
+                $query
+                    ->whereDoesntHave('verificationCalls', function ($q) {
+                        $q->whereIn('call_result', [
+                            CallResult::ANSWERED->value,
+                            CallResult::CONFIRMED->value,
+                        ]);
+                    })
+                    ->orWhereHas('verificationCalls', function ($q) {
+                        $q->whereIn('call_result', [
+                            CallResult::NO_ANSWER->value,
+                            CallResult::BUSY->value,
+                            CallResult::CALLBACK_REQUESTED->value,
+                        ])
+                            ->where('attempt_number', '<', 3);
+                    });
+            })
+            ->orderByRaw('COALESCE((SELECT MAX(call_date) FROM verification_calls WHERE verification_calls.voter_id = voters.id), voters.created_at) ASC')
+            ->limit($slots)
+            ->get();
+
+        if ($eligibleVoters->isEmpty()) {
+            return 0;
+        }
+
+        $this->assignVoters(
+            campaign: $campaign,
+            caller: $caller,
+            voters: $eligibleVoters,
+            assignedBy: $assignedBy,
+            priority: $priority,
+        );
+
+        return $eligibleVoters->count();
+    }
     /**
      * Assign voters to a caller with balanced distribution
      */

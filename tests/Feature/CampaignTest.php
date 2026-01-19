@@ -132,7 +132,7 @@ it('scope active returns only active campaigns', function () {
 
     $activeCampaigns = Campaign::active()->get();
 
-    expect($activeCampaigns)->toHaveCount(2);
+    expect($activeCampaigns)->toHaveCount(1);
     expect($activeCampaigns->every(fn ($c) => $c->status === CampaignStatus::ACTIVE))->toBeTrue();
 });
 

@@ -42,6 +42,79 @@
                     </div>
                 </div>
 
+                {{-- Evidencia (solo para marcar VOTÓ) --}}
+                <div
+                    class="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/20"
+                    x-data="{
+                        requesting: false,
+                        request() {
+                            if (!navigator.geolocation) { return; }
+                            this.requesting = true;
+                            navigator.geolocation.getCurrentPosition(
+                                (pos) => {
+                                    $wire.captureCoordinates(pos.coords.latitude, pos.coords.longitude);
+                                    this.requesting = false;
+                                },
+                                () => { this.requesting = false; },
+                                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+                            );
+                        },
+                        init() { this.request(); },
+                    }"
+                >
+                    <div class="text-sm font-medium text-gray-700 dark:text-gray-200">Evidencia (obligatoria para marcar VOTÓ)</div>
+
+                    <div class="grid gap-3 md:grid-cols-2">
+                        <div>
+                            <label class="mb-1 block text-xs text-gray-600 dark:text-gray-400">Foto</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                wire:model="photo"
+                                data-testid="dia-d:photo-input"
+                                class="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm dark:border-gray-700 dark:bg-gray-950"
+                            />
+                            @error('photo')
+                                <div class="mt-1 text-xs text-danger-600">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">GPS</div>
+                                    <div class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                        @if($latitude && $longitude)
+                                            {{ $latitude }}, {{ $longitude }}
+                                        @else
+                                            Sin capturar
+                                        @endif
+                                    </div>
+                                </div>
+                                <x-filament::button type="button" size="sm" outlined x-on:click="request()" x-bind:disabled="requesting">
+                                    <span x-show="!requesting">Capturar</span>
+                                    <span x-show="requesting">Capturando...</span>
+                                </x-filament::button>
+                            </div>
+                            @error('latitude')
+                                <div class="text-xs text-danger-600">{{ $message }}</div>
+                            @enderror
+                            @error('longitude')
+                                <div class="text-xs text-danger-600">{{ $message }}</div>
+                            @enderror
+
+                            <x-filament::input.wrapper>
+                                <x-filament::input
+                                    type="text"
+                                    placeholder="Puesto de votación (opcional)"
+                                    wire:model.defer="pollingStation"
+                                />
+                            </x-filament::input.wrapper>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Estado --}}
                 <div>
                     <span class="text-xs text-gray-500 dark:text-gray-400">Estado:</span>

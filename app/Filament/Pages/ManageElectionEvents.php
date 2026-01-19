@@ -7,6 +7,7 @@ namespace App\Filament\Pages;
 use App\Models\Campaign;
 use App\Models\ElectionEvent;
 use BackedEnum;
+use App\Jobs\FinalizeElectionEvent;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -223,6 +224,11 @@ class ManageElectionEvents extends Page
         $event = ElectionEvent::findOrFail($eventId);
 
         if ($event->deactivate()) {
+            $userId = Auth::id();
+            if ($userId) {
+                FinalizeElectionEvent::dispatchSync($event->id, $userId);
+            }
+
             Notification::make()
                 ->title('Evento desactivado')
                 ->body("El evento '{$event->name}' ha sido desactivado.")

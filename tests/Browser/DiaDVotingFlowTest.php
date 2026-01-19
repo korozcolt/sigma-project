@@ -49,11 +49,13 @@ it('flujo completo: activar evento y registrar voto', function () {
         'status' => VoterStatus::CONFIRMED,
     ]);
 
-    $page = visit('/admin/dia-d');
+    $page = visit('/admin/dia-d')->geolocation(4.7110, -74.0721);
 
     $page->assertSee('Búsqueda de Votante')
         ->fill('input[data-testid="dia-d:document-input"]', '12345678')
         ->click('button[data-testid="dia-d:search-button"]')
+        ->attach('input[data-testid="dia-d:photo-input"]', createTestImageFile())
+        ->wait(1)
         ->assertSee('Juan')
         ->assertSee('Pérez')
         ->assertSee('Marcar VOTÓ')
@@ -88,10 +90,12 @@ it('previene voto duplicado en el mismo evento', function () {
         'voted_at' => now(),
     ]);
 
-    $page = visit('/admin/dia-d');
+    $page = visit('/admin/dia-d')->geolocation(4.7110, -74.0721);
 
     $page->fill('input[data-testid="dia-d:document-input"]', '87654321')
         ->click('button[data-testid="dia-d:search-button"]')
+        ->attach('input[data-testid="dia-d:photo-input"]', createTestImageFile())
+        ->wait(1)
         ->click('button[data-testid="dia-d:mark-voted"]')
         ->assertSee('Este votante ya tiene un registro de voto');
 });
@@ -125,10 +129,12 @@ it('permite voto en simulacro diferente para mismo votante', function () {
     ]);
 
     // Debe permitir votar en el nuevo simulacro
-    $page = visit('/admin/dia-d');
+    $page = visit('/admin/dia-d')->geolocation(4.7110, -74.0721);
 
     $page->fill('input[data-testid="dia-d:document-input"]', '11223344')
         ->click('button[data-testid="dia-d:search-button"]')
+        ->attach('input[data-testid="dia-d:photo-input"]', createTestImageFile())
+        ->wait(1)
         ->assertSee('Marcar VOTÓ') // Debe permitir votar nuevamente
         ->click('button[data-testid="dia-d:mark-voted"]')
         ->assertSee('Votante marcado como VOTÓ');
@@ -148,10 +154,12 @@ it('muestra error al intentar votar sin evento activo', function () {
         'status' => VoterStatus::CONFIRMED,
     ]);
 
-    $page = visit('/admin/dia-d');
+    $page = visit('/admin/dia-d')->geolocation(4.7110, -74.0721);
 
     $page->fill('input[data-testid="dia-d:document-input"]', '99887766')
         ->click('button[data-testid="dia-d:search-button"]')
+        ->attach('input[data-testid="dia-d:photo-input"]', createTestImageFile())
+        ->wait(1)
         ->click('button[data-testid="dia-d:mark-voted"]')
         ->assertSee('No hay ningún evento electoral activo en este momento');
 });
@@ -166,7 +174,7 @@ it('permite marcar NO VOTÓ desde la UI', function () {
         'status' => VoterStatus::CONFIRMED,
     ]);
 
-    $page = visit('/admin/dia-d');
+    $page = visit('/admin/dia-d')->geolocation(4.7110, -74.0721);
 
     $page->fill('input[data-testid="dia-d:document-input"]', '55667788')
         ->click('button[data-testid="dia-d:search-button"]')
@@ -226,3 +234,15 @@ it('muestra mensaje cuando el votante no existe en la campaña activa', function
         ->click('button[data-testid="dia-d:search-button"]')
         ->assertSee('Votante no encontrado en la campaña activa');
 });
+
+function createTestImageFile(): string
+{
+    $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.'dia-d-evidence-'.bin2hex(random_bytes(6)).'.png';
+
+    // 1x1 transparent PNG
+    $pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/w8AAgMBgVZb4o0AAAAASUVORK5CYII=';
+
+    file_put_contents($path, base64_decode($pngBase64));
+
+    return $path;
+}

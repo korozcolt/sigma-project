@@ -50,6 +50,21 @@ class CampaignResource extends Resource
         ];
     }
 
+    public static function canCreate(): bool
+    {
+        return Campaign::count() === 0;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return false;
+    }
+
     public static function getPages(): array
     {
         return [

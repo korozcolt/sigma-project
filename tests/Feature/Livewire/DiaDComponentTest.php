@@ -9,6 +9,8 @@ use App\Models\ElectionEvent;
 use App\Models\User;
 use App\Models\Voter;
 use App\Models\VoteRecord;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Livewire;
 use function Pest\Laravel\actingAs;
@@ -34,10 +36,14 @@ it('can search voter and mark voted via Livewire DiaD page', function () {
         'status' => VoterStatus::CONFIRMED,
     ]);
 
+    Storage::fake('public');
+
     Livewire::test(DiaD::class)
         ->set('documentNumber', '44556677')
         ->call('searchVoter')
         ->assertSet('voterId', $voter->id)
+        ->set('photo', UploadedFile::fake()->image('evidence.jpg'))
+        ->call('captureCoordinates', 4.7110, -74.0721)
         ->call('markVoted');
 
     expect($voter->fresh()->status)->toBe(VoterStatus::VOTED);
@@ -79,9 +85,13 @@ it('prevents duplicate vote records when marking voted if record exists', functi
         'campaign_id' => $this->campaign->id,
     ]);
 
+    Storage::fake('public');
+
     Livewire::test(DiaD::class)
         ->set('documentNumber', '22334455')
         ->call('searchVoter')
+        ->set('photo', UploadedFile::fake()->image('evidence.jpg'))
+        ->call('captureCoordinates', 4.7110, -74.0721)
         ->call('markVoted');
 
     $this->assertDatabaseCount('vote_records', 1);
@@ -98,9 +108,13 @@ it('creates validation history when marking voted', function () {
         'status' => VoterStatus::CONFIRMED,
     ]);
 
+    Storage::fake('public');
+
     Livewire::test(DiaD::class)
         ->set('documentNumber', '55667788')
         ->call('searchVoter')
+        ->set('photo', UploadedFile::fake()->image('evidence.jpg'))
+        ->call('captureCoordinates', 4.7110, -74.0721)
         ->call('markVoted');
 
     $this->assertDatabaseHas('validation_histories', [
@@ -159,11 +173,15 @@ it('updates action permissions after marking voted', function() {
         'status' => VoterStatus::CONFIRMED,
     ]);
 
+    Storage::fake('public');
+
     Livewire::test(DiaD::class)
         ->set('documentNumber', '12121212')
         ->call('searchVoter')
         ->assertSet('canMarkVoted', true)
         ->assertSet('canMarkDidNotVote', true)
+        ->set('photo', UploadedFile::fake()->image('evidence.jpg'))
+        ->call('captureCoordinates', 4.7110, -74.0721)
         ->call('markVoted')
         ->assertSet('canMarkVoted', false)
         ->assertSet('canMarkDidNotVote', true);

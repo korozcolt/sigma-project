@@ -13,16 +13,19 @@ new class extends Component {
 
     public ?int $voterId = null;
 
+    public ?int $verificationCallId = null;
+
     public int $currentQuestionIndex = 0;
 
     public array $responses = [];
 
     public bool $completed = false;
 
-    public function mount(int $surveyId, ?int $voterId = null): void
+    public function mount(int $surveyId, ?int $voterId = null, ?int $callId = null): void
     {
         $this->surveyId = $surveyId;
         $this->voterId = $voterId;
+        $this->verificationCallId = $callId;
 
         // Initialize responses array for all questions
         foreach ($this->survey->questions as $index => $question) {
@@ -128,6 +131,7 @@ new class extends Component {
                     'survey_id' => $this->survey->id,
                     'survey_question_id' => $question->id,
                     'voter_id' => $this->voterId,
+                    'verification_call_id' => $this->verificationCallId,
                     'response_value' => is_array($this->responses[$index])
                         ? json_encode($this->responses[$index])
                         : $this->responses[$index],

@@ -15,14 +15,14 @@ Plataforma completa para gestión y análisis de campañas políticas, desde el 
 
 ### Características Principales
 
-- ✅ Sistema multi-campaña (departamental/municipal/regional)
+- ✅ Sistema de campaña (operación 1 campaña por instancia; soporte multi-campaña a nivel de modelo)
 - ✅ Gestión de usuarios con 5 roles (Super Admin, Admin Campaña, Coordinador, Líder, Revisor)
 - ✅ Base de datos electoral completa (33 departamentos, 1,123 municipios)
 - ✅ Registro y validación de votantes contra censo
 - ✅ Sistema de encuestas personalizado
 - ✅ Call center con tracking de llamadas
 - ✅ Mensajería SMS automatizada (Hablame API)
-- ✅ Sistema Día D con evidencia electoral (VoteRecord)
+- ✅ Sistema Día D con evidencia obligatoria (VoteRecord + foto + GPS)
 - ✅ 3 paneles Filament (Admin, Líderes, Coordinadores)
 
 ---
@@ -50,7 +50,7 @@ php artisan key:generate
 # 3. Base de datos
 touch database/database.sqlite
 php artisan migrate
-php artisan import:colombia-data  # Importa 33 deptos + 1,123 municipios
+php artisan colombia:import       # Importa 33 deptos + 1,123 municipios
 php artisan db:seed
 
 # 4. Compilar assets y lanzar
@@ -88,6 +88,7 @@ php artisan serve
 | **[PROGRESO.md](PROGRESO.md)** | 📊 Tracking diario, estadísticas, próximos pasos |
 | **[CLAUDE.md](CLAUDE.md)** | 🤖 Guidelines de desarrollo y mejores prácticas |
 | **[docs/DECISIONES.md](docs/DECISIONES.md)** | 📋 Architecture Decision Records (ADR) |
+| **[docs/REGLAS_NEGOCIO.md](docs/REGLAS_NEGOCIO.md)** | ✅ Reglas de negocio + base para regresión |
 
 ---
 
@@ -122,7 +123,7 @@ php artisan optimize          # Optimizar Laravel
 php artisan config:cache      # Cache configuración
 
 # Datos
-php artisan import:colombia-data      # Importar territorio
+php artisan colombia:import           # Importar territorio
 php artisan db:seed --class=RoleSeeder  # Crear roles
 ```
 

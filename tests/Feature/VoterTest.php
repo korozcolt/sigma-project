@@ -82,7 +82,7 @@ it('casts dates correctly', function () {
     expect($voter->census_validated_at)->toBeInstanceOf(Carbon\Carbon::class);
 });
 
-it('document_number is unique per campaign', function () {
+it('document_number is globally unique', function () {
     $campaign = Campaign::factory()->create();
 
     Voter::factory()->create([
@@ -96,22 +96,19 @@ it('document_number is unique per campaign', function () {
     ]))->toThrow(Exception::class);
 });
 
-it('document_number can be duplicated across different campaigns', function () {
+it('document_number cannot be duplicated across different campaigns', function () {
     $campaign1 = Campaign::factory()->create();
     $campaign2 = Campaign::factory()->create();
 
-    $voter1 = Voter::factory()->create([
+    Voter::factory()->create([
         'campaign_id' => $campaign1->id,
         'document_number' => '1234567890',
     ]);
 
-    $voter2 = Voter::factory()->create([
+    expect(fn () => Voter::factory()->create([
         'campaign_id' => $campaign2->id,
         'document_number' => '1234567890',
-    ]);
-
-    expect($voter1->document_number)->toBe($voter2->document_number);
-    expect($voter1->campaign_id)->not->toBe($voter2->campaign_id);
+    ]))->toThrow(Exception::class);
 });
 
 it('has campaign relationship', function () {
