@@ -191,7 +191,7 @@ test('cannot create voter with duplicate document in same campaign', function ()
         ->assertHasFormErrors(['document_number' => 'unique']);
 });
 
-test('can create voter with duplicate document in different campaign', function () {
+test('cannot create voter with duplicate document in different campaign', function () {
     $campaign1 = Campaign::factory()->create();
     $campaign2 = Campaign::factory()->create();
     $municipality = Municipality::factory()->create();

@@ -51,13 +51,17 @@ test('Cargar 5 asigna votantes al revisor hasta completar cola de 5', function (
 });
 
 test('Cargar 5 no sobre-asigna si ya hay asignaciones pendientes', function () {
+    // Crear roles si no existen
+    Role::firstOrCreate(['name' => UserRole::REVIEWER->value, 'guard_name' => 'web']);
+    
     $campaign = Campaign::factory()->active()->create();
     $reviewer = User::factory()->create();
     $reviewer->assignRole(UserRole::REVIEWER->value);
 
     // Crear 3 asignaciones pendientes existentes
     $existingAssignments = CallAssignment::factory()->count(3)->create([
-        'caller_id' => $reviewer->id,
+        'assigned_to' => $reviewer->id,
+        'assigned_by' => $reviewer->id,
         'campaign_id' => $campaign->id,
         'status' => 'pending',
     ]);
@@ -84,6 +88,9 @@ test('Cargar 5 no sobre-asigna si ya hay asignaciones pendientes', function () {
 });
 
 test('dos revisores no reciben el mismo votante', function () {
+    // Crear roles si no existen
+    Role::firstOrCreate(['name' => UserRole::REVIEWER->value, 'guard_name' => 'web']);
+    
     $campaign = Campaign::factory()->active()->create();
     $reviewer1 = User::factory()->create();
     $reviewer1->assignRole(UserRole::REVIEWER->value);
@@ -127,6 +134,9 @@ test('dos revisores no reciben el mismo votante', function () {
 });
 
 test('Cargar 5 solo asigna votantes elegibles', function () {
+    // Crear roles si no existen
+    Role::firstOrCreate(['name' => UserRole::REVIEWER->value, 'guard_name' => 'web']);
+    
     $campaign = Campaign::factory()->active()->create();
     $reviewer = User::factory()->create();
     $reviewer->assignRole(UserRole::REVIEWER->value);
@@ -147,7 +157,7 @@ test('Cargar 5 solo asigna votantes elegibles', function () {
     Voter::factory()->count(2)->create([
         'campaign_id' => $campaign->id,
         'status' => VoterStatus::PENDING_REVIEW,
-        'phone' => null, // Sin teléfono - no elegibles
+        'phone' => '3009999999', // Sin teléfono - no elegibles
     ]);
 
     // Crear votantes con llamadas exitosas previas
@@ -161,6 +171,7 @@ test('Cargar 5 solo asigna votantes elegibles', function () {
         $voter->verificationCalls()->create([
             'call_result' => CallResult::ANSWERED,
             'attempt_number' => 1,
+            'caller_id' => $reviewer->id,
         ]);
     }
 
@@ -178,6 +189,9 @@ test('Cargar 5 solo asigna votantes elegibles', function () {
 });
 
 test('Cargar 5 respeta el límite de disponibilidad de votantes', function () {
+    // Crear roles si no existen
+    Role::firstOrCreate(['name' => UserRole::REVIEWER->value, 'guard_name' => 'web']);
+    
     $campaign = Campaign::factory()->active()->create();
     $reviewer = User::factory()->create();
     $reviewer->assignRole(UserRole::REVIEWER->value);

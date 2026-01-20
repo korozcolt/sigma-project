@@ -38,6 +38,11 @@ class CallAssignmentService
         $eligibleVoters = Voter::query()
             ->where('campaign_id', $campaign->id)
             ->whereNotNull('phone')
+            ->whereIn('status', [
+                \App\Enums\VoterStatus::PENDING_REVIEW->value,
+                \App\Enums\VoterStatus::VERIFIED_CENSUS->value,
+                \App\Enums\VoterStatus::CORRECTION_REQUIRED->value,
+            ])
             ->whereDoesntHave('callAssignments', function ($query) {
                 $query->whereIn('status', ['pending', 'in_progress']);
             })

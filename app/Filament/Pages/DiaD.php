@@ -165,6 +165,15 @@ class DiaD extends Page
             return;
         }
 
+        // Validación adicional para asegurar que el archivo existe antes de validar
+        if (!$this->photo) {
+            Notification::make()
+                ->title('Debe seleccionar una foto como evidencia antes de continuar')
+                ->danger()
+                ->send();
+            return;
+        }
+
         $this->validate([
             'photo' => ['required', 'image', 'max:5120'],
             'latitude' => ['required'],
@@ -196,14 +205,22 @@ class DiaD extends Page
             'voted_at' => now(),
         ]);
 
-        $photoPath = $this->photo?->storePublicly("vote-records/{$activeEvent->id}", 'public');
-
-        if (! $photoPath) {
+        // Guardar la foto con manejo robusto de errores
+        try {
+            $photoPath = $this->photo->storePublicly("vote-records/{$activeEvent->id}", 'public');
+            
+            if (!$photoPath) {
+                throw new \Exception('No se pudo guardar el archivo en el almacenamiento');
+            }
+        } catch (\Exception $e) {
+            // Revertir el cambio de estado del votante si falla el upload
+            $voter->update(['status' => $previous]);
+            
             Notification::make()
-                ->title('No se pudo guardar la foto')
+                ->title('Error al guardar la foto: ' . $e->getMessage())
                 ->danger()
                 ->send();
-
+            
             return;
         }
 

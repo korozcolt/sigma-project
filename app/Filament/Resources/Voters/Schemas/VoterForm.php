@@ -34,9 +34,9 @@ class VoterForm
                         TextInput::make('document_number')
                             ->label('Número de Documento')
                             ->required()
-                            ->unique(ignoreRecord: true)
                             ->maxLength(255)
-                            ->helperText('Debe ser único en todo el sistema'),
+                            ->helperText('Debe ser único en todo el sistema')
+                            ->rule('unique:voters,document_number,NULL,id,deleted_at,NULL'),
 
                         DatePicker::make('birth_date')
                             ->label('Fecha de Nacimiento')
