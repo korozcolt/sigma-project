@@ -241,20 +241,24 @@ function navigateToCallCenter(): array
     ];
 }
 
-function waitForElementAndSnapshot(string $selector, int $timeout = 10000): array
-{
-    return [
-        'url' => config('app.url') . '/admin/call-center',
-        'snapshot' => [],
-        'elements' => [],
-    ];
+if (! function_exists(__NAMESPACE__ . '\\waitForElementAndSnapshot')) {
+    function waitForElementAndSnapshot(string $selector, int $timeout = 10000): array
+    {
+        return [
+            'url' => config('app.url') . '/admin/call-center',
+            'snapshot' => [],
+            'elements' => [],
+        ];
+    }
 }
 
-function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
-{
-    return [
-        'url' => config('app.url') . '/admin/call-center',
-        'snapshot' => [],
-        'elements' => [],
-    ];
+if (! function_exists(__NAMESPACE__ . '\\waitForTextAndSnapshot')) {
+    function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
+    {
+        return [
+            'url' => config('app.url') . '/admin/call-center',
+            'snapshot' => [],
+            'elements' => [],
+        ];
+    }
 }

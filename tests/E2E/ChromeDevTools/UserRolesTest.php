@@ -197,30 +197,34 @@ function createAndVerifyUser(string $roleKey, string $roleLabel): array
     return waitForTextAndSnapshot('Usuario creado exitosamente');
 }
 
-function fillUserFormInSnapshot(array &$snapshot, array $data): void
-{
-    // This will use Chrome DevTools MCP to fill form fields
-    foreach ($data as $field => $value) {
-        $selector = match($field) {
-            'name' => 'input[name="name"]',
-            'email' => 'input[name="email"]',
-            'document_number' => 'input[name="document_number"]',
-            'password' => 'input[name="password"]',
-            'password_confirmation' => 'input[name="password_confirmation"]',
-            'municipality_id' => 'select[name="municipality_id"]',
-            'role' => 'select[name="roles[]"]',
-            default => 'input[name="' . $field . '"]',
-        };
-        
-        typeInFieldInSnapshot($snapshot, $selector, (string) $value);
+if (! function_exists(__NAMESPACE__ . '\\fillUserFormInSnapshot')) {
+    function fillUserFormInSnapshot(array &$snapshot, array $data): void
+    {
+        // This will use Chrome DevTools MCP to fill form fields
+        foreach ($data as $field => $value) {
+            $selector = match($field) {
+                'name' => 'input[name="name"]',
+                'email' => 'input[name="email"]',
+                'document_number' => 'input[name="document_number"]',
+                'password' => 'input[name="password"]',
+                'password_confirmation' => 'input[name="password_confirmation"]',
+                'municipality_id' => 'select[name="municipality_id"]',
+                'role' => 'select[name="roles[]"]',
+                default => 'input[name="' . $field . '"]',
+            };
+            
+            typeInFieldInSnapshot($snapshot, $selector, (string) $value);
+        }
     }
 }
 
-function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
-{
-    return [
-        'url' => config('app.url') . '/admin/users',
-        'snapshot' => [],
-        'elements' => [],
-    ];
+if (! function_exists(__NAMESPACE__ . '\\waitForTextAndSnapshot')) {
+    function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
+    {
+        return [
+            'url' => config('app.url') . '/admin/users',
+            'snapshot' => [],
+            'elements' => [],
+        ];
+    }
 }

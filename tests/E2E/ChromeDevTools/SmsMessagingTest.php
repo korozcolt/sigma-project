@@ -183,11 +183,13 @@ function navigateToMessageTemplates(): array
     ];
 }
 
-function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
-{
-    return [
-        'url' => config('app.url') . '/admin/messages',
-        'snapshot' => [],
-        'elements' => [],
-    ];
+if (! function_exists(__NAMESPACE__ . '\\waitForTextAndSnapshot')) {
+    function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
+    {
+        return [
+            'url' => config('app.url') . '/admin/messages',
+            'snapshot' => [],
+            'elements' => [],
+        ];
+    }
 }

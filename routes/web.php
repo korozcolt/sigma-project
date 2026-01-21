@@ -3,10 +3,20 @@
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
+use App\Http\Controllers\PublicVoterRegistrationController;
 
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+// Registro público de votantes mediante enlace
+Route::get('registro/{token}', [PublicVoterRegistrationController::class, 'show'])
+    ->name('public.voters.register')
+    ->middleware(['invitation.required']);
+
+Route::post('registro/{token}', [PublicVoterRegistrationController::class, 'store'])
+    ->name('public.voters.register.submit')
+    ->middleware(['invitation.required']);
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified', 'redirect.role'])
@@ -46,11 +56,12 @@ Route::middleware(['auth', 'role:admin_campaign'])->prefix('campaign-admin')->na
 });
 
 // Coordinator routes
-Route::middleware(['auth', 'role:coordinator'])->prefix('coordinator')->name('coordinator.')->group(function () {
+Route::middleware(['auth', 'role:coordinator,admin_campaign,super_admin'])->prefix('coordinator')->name('coordinator.')->group(function () {
     Route::redirect('/', '/coordinator/dashboard');
     Volt::route('dashboard', 'coordinator.dashboard')->name('dashboard');
     Volt::route('leaders', 'coordinator.leaders')->name('leaders');
     Volt::route('leaders/create', 'coordinator.create-leader')->name('leaders.create');
+    Volt::route('leaders/{leader}/edit', 'coordinator.edit-leader')->name('leaders.edit');
     Volt::route('leaders/{leader}/voters', 'coordinator.leader-voters')->name('leaders.voters');
 
     Route::get('leaders/export', [\App\Http\Controllers\Coordinator\LeadersExportController::class, '__invoke'])->name('leaders.export');

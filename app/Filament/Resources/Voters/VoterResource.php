@@ -32,7 +32,7 @@ class VoterResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Votantes';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $recordTitleAttribute = 'full_name';
 

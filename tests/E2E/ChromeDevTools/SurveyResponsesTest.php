@@ -361,36 +361,48 @@ test('prevención de duplicados en misma llamada con Chrome DevTools', function 
  * Helper Functions for Chrome DevTools MCP
  */
 
-function navigateToUrl(string $url): array
-{
-    return \Tests\E2E\ChromeDevTools\ChromeDevToolsService::navigate($url);
+if (! function_exists(__NAMESPACE__ . '\\navigateToUrl')) {
+    function navigateToUrl(string $url): array
+    {
+        return \Tests\E2E\ChromeDevTools\ChromeDevToolsService::navigate($url);
+    }
 }
 
-function assertSeeTextInSnapshot(array $snapshot, string $text): void
-{
-    \Tests\E2E\ChromeDevTools\ChromeDevToolsService::assertSeeText($text);
+if (! function_exists(__NAMESPACE__ . '\\assertSeeTextInSnapshot')) {
+    function assertSeeTextInSnapshot(array $snapshot, string $text): void
+    {
+        \Tests\E2E\ChromeDevTools\ChromeDevToolsService::assertSeeText($text);
+    }
 }
 
-function clickElementInSnapshot(array &$snapshot, string $selector): void
-{
-    \Tests\E2E\ChromeDevTools\ChromeDevToolsService::click($selector);
-    $snapshot = \Tests\E2E\ChromeDevTools\ChromeDevToolsService::takeSnapshot();
+if (! function_exists(__NAMESPACE__ . '\\clickElementInSnapshot')) {
+    function clickElementInSnapshot(array &$snapshot, string $selector): void
+    {
+        \Tests\E2E\ChromeDevTools\ChromeDevToolsService::click($selector);
+        $snapshot = \Tests\E2E\ChromeDevTools\ChromeDevToolsService::takeSnapshot();
+    }
 }
 
-function typeInFieldInSnapshot(array &$snapshot, string $selector, string $value): void
-{
-    \Tests\E2E\ChromeDevTools\ChromeDevToolsService::type($selector, $value);
-    $snapshot = \Tests\E2E\ChromeDevTools\ChromeDevToolsService::takeSnapshot();
+if (! function_exists(__NAMESPACE__ . '\\typeInFieldInSnapshot')) {
+    function typeInFieldInSnapshot(array &$snapshot, string $selector, string $value): void
+    {
+        \Tests\E2E\ChromeDevTools\ChromeDevToolsService::type($selector, $value);
+        $snapshot = \Tests\E2E\ChromeDevTools\ChromeDevToolsService::takeSnapshot();
+    }
 }
 
-function waitForElementAndSnapshot(string $selector, int $timeout = 10000): array
-{
-    \Tests\E2E\ChromeDevTools\ChromeDevToolsService::waitForElement($selector, $timeout);
-    return \Tests\E2E\ChromeDevTools\ChromeDevToolsService::takeSnapshot();
+if (! function_exists(__NAMESPACE__ . '\\waitForElementAndSnapshot')) {
+    function waitForElementAndSnapshot(string $selector, int $timeout = 10000): array
+    {
+        \Tests\E2E\ChromeDevTools\ChromeDevToolsService::waitForElement($selector, $timeout);
+        return \Tests\E2E\ChromeDevTools\ChromeDevToolsService::takeSnapshot();
+    }
 }
 
-function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
-{
-    \Tests\E2E\ChromeDevTools\ChromeDevToolsService::waitForText($text, $timeout);
-    return \Tests\E2E\ChromeDevTools\ChromeDevToolsService::takeSnapshot();
+if (! function_exists(__NAMESPACE__ . '\\waitForTextAndSnapshot')) {
+    function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
+    {
+        \Tests\E2E\ChromeDevTools\ChromeDevToolsService::waitForText($text, $timeout);
+        return \Tests\E2E\ChromeDevTools\ChromeDevToolsService::takeSnapshot();
+    }
 }

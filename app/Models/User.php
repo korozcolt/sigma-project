@@ -36,6 +36,7 @@ class User extends Authenticatable implements FilamentUser
         'birth_date',
         'address',
         'municipality_id',
+        'coordinator_user_id',
         'neighborhood_id',
         'profile_photo_path',
         'is_vote_recorder',
@@ -129,6 +130,16 @@ class User extends Authenticatable implements FilamentUser
             ->using(CampaignUser::class)
             ->withPivot('role_id', 'assigned_at', 'assigned_by')
             ->withTimestamps();
+    }
+
+    public function coordinator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'coordinator_user_id');
+    }
+
+    public function leaders(): HasMany
+    {
+        return $this->hasMany(User::class, 'coordinator_user_id');
     }
 
     /**

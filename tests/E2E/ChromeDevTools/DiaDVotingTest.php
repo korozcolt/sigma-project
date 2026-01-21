@@ -348,31 +348,35 @@ function uploadFileInSnapshot(array &$snapshot, string $selector, string $filePa
 /**
  * Wait for text and return new snapshot
  */
-function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
-{
-    global $chrome_devtools_mcp;
-    
-    // This will use Chrome DevTools MCP to wait for text
-    // Implementation pending MCP integration
-    return [
-        'url' => config('app.url') . '/admin/dia-d',
-        'snapshot' => [],
-        'elements' => [],
-    ];
+if (! function_exists(__NAMESPACE__ . '\\waitForTextAndSnapshot')) {
+    function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
+    {
+        global $chrome_devtools_mcp;
+        
+        // This will use Chrome DevTools MCP to wait for text
+        // Implementation pending MCP integration
+        return [
+            'url' => config('app.url') . '/admin/dia-d',
+            'snapshot' => [],
+            'elements' => [],
+        ];
+    }
 }
 
 /**
  * Wait for element and return new snapshot
  */
-function waitForElementAndSnapshot(string $selector, int $timeout = 10000): array
-{
-    global $chrome_devtools_mcp;
-    
-    // This will use Chrome DevTools MCP to wait for element
-    // Implementation pending MCP integration
-    return [
-        'url' => config('app.url') . '/admin/dia-d',
-        'snapshot' => [],
-        'elements' => [],
-    ];
+if (! function_exists(__NAMESPACE__ . '\\waitForElementAndSnapshot')) {
+    function waitForElementAndSnapshot(string $selector, int $timeout = 10000): array
+    {
+        global $chrome_devtools_mcp;
+        
+        // This will use Chrome DevTools MCP to wait for element
+        // Implementation pending MCP integration
+        return [
+            'url' => config('app.url') . '/admin/dia-d',
+            'snapshot' => [],
+            'elements' => [],
+        ];
+    }
 }

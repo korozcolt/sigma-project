@@ -8,43 +8,43 @@ use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
 use function Livewire\Volt\{layout, state};
 
-layout('components.layouts::app', ['title' => 'Agregar Líder']);
+layout('components.layouts::app', ['title' => 'Editar Líder']);
 
 new class extends Component {
+    public User $leader;
+
     #[Validate('required|string|max:255')]
     public string $name = '';
 
     #[Validate('required|email|unique:users,email')]
     public string $email = '';
 
-    #[Validate('required|string|min:8')]
-    public string $password = '';
+    #[Validate('nullable|string|min:8')]
+    public ?string $password = null;
 
     #[Validate('nullable|exists:neighborhoods,id')]
     public ?int $neighborhood_id = null;
 
     #[Validate('required|exists:users,id')]
-    public ?int $coordinator_user_id = null;
+    public int $coordinator_user_id;
 
-    public function mount(): void
+    public function mount(User $leader): void
     {
-        if (auth()->user()->hasRole(UserRole::COORDINATOR->value)) {
-            $this->coordinator_user_id = auth()->id();
-        }
-    }
-
-    public function getNeighborhoodsProperty()
-    {
-        $coordinator = $this->getCoordinatorUser();
-        $municipalityId = $coordinator?->municipality_id;
-
-        if (! $municipalityId) {
-            return collect();
+        if (! $leader->hasRole(UserRole::LEADER->value)) {
+            abort(404);
         }
 
-        return Neighborhood::where('municipality_id', $municipalityId)
-            ->orderBy('name')
-            ->get();
+        $user = auth()->user();
+
+        if ($user->hasRole(UserRole::COORDINATOR->value) && $leader->coordinator_user_id !== $user->id) {
+            abort(403);
+        }
+
+        $this->leader = $leader;
+        $this->name = $leader->name;
+        $this->email = $leader->email;
+        $this->neighborhood_id = $leader->neighborhood_id;
+        $this->coordinator_user_id = $leader->coordinator_user_id ?? ($user->hasRole(UserRole::COORDINATOR->value) ? $user->id : 0);
     }
 
     public function getCoordinatorsProperty()
@@ -56,16 +56,25 @@ new class extends Component {
         return User::role(UserRole::COORDINATOR->value)->orderBy('name')->get();
     }
 
-    private function getCoordinatorUser(): ?User
+    public function getCoordinatorProperty(): ?User
     {
-        if (! $this->coordinator_user_id) {
-            return null;
-        }
-
         return User::query()
             ->whereKey($this->coordinator_user_id)
             ->whereHas('roles', fn ($q) => $q->where('name', UserRole::COORDINATOR->value))
             ->first();
+    }
+
+    public function getNeighborhoodsProperty()
+    {
+        $municipalityId = $this->coordinator?->municipality_id;
+
+        if (! $municipalityId) {
+            return collect();
+        }
+
+        return Neighborhood::where('municipality_id', $municipalityId)
+            ->orderBy('name')
+            ->get();
     }
 
     public function save(): void
@@ -74,49 +83,41 @@ new class extends Component {
             $this->coordinator_user_id = auth()->id();
         }
 
-        $this->validate();
+        $this->validate([
+            'email' => 'required|email|unique:users,email,' . $this->leader->id,
+        ]);
 
-        $coordinatorUser = $this->getCoordinatorUser();
+        $coordinator = $this->coordinator;
 
-        if (! $coordinatorUser) {
+        if (! $coordinator) {
             $this->addError('coordinator_user_id', 'Debes seleccionar un coordinador válido.');
-
             return;
         }
 
-        $campaignIds = $coordinatorUser->campaigns()->pluck('campaigns.id');
-
-        // Crear el usuario líder
-        $leader = User::create([
+        $this->leader->update([
             'name' => $this->name,
             'email' => $this->email,
-            'password' => Hash::make($this->password),
-            'municipality_id' => $coordinatorUser->municipality_id,
-            'coordinator_user_id' => $coordinatorUser->id,
+            'municipality_id' => $coordinator->municipality_id,
+            'coordinator_user_id' => $coordinator->id,
             'neighborhood_id' => $this->neighborhood_id,
-            'email_verified_at' => now(), // Auto-verificar
+            'password' => filled($this->password) ? Hash::make($this->password) : $this->leader->password,
         ]);
 
-        // Asignar rol de líder
-        $leader->assignRole(UserRole::LEADER->value);
+        $campaignIds = $coordinator->campaigns()->pluck('campaigns.id');
+        $this->leader->campaigns()->sync($campaignIds);
 
-        // Asignar a las mismas campañas del coordinador
-        $leader->campaigns()->attach($campaignIds);
-
-        session()->flash('success', '¡Líder creado exitosamente!');
+        session()->flash('success', 'Líder actualizado exitosamente.');
 
         $this->redirect(route('coordinator.leaders'), navigate: true);
     }
 }; ?>
 
 <div class="mx-auto max-w-2xl space-y-6 p-6">
-    <!-- Header -->
     <div>
-        <flux:heading size="xl">Agregar Nuevo Líder</flux:heading>
-        <flux:subheading>Crea un nuevo líder para tu equipo</flux:subheading>
+        <flux:heading size="xl">Editar Líder</flux:heading>
+        <flux:subheading>Actualiza la información del líder</flux:subheading>
     </div>
 
-    <!-- Success Message -->
     @if (session('success'))
         <div class="rounded-xl bg-green-50 p-4 dark:bg-green-900/20">
             <div class="flex items-center gap-3">
@@ -128,7 +129,6 @@ new class extends Component {
         </div>
     @endif
 
-    <!-- Form -->
     <form wire:submit="save" class="space-y-4">
         @if(!auth()->user()->hasRole(\App\Enums\UserRole::COORDINATOR->value))
             <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
@@ -146,7 +146,6 @@ new class extends Component {
             </div>
         @endif
 
-        <!-- Información Personal -->
         <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
             <flux:heading size="lg" class="mb-4">Información Personal</flux:heading>
 
@@ -155,7 +154,6 @@ new class extends Component {
                     wire:model.blur="name"
                     label="Nombre Completo *"
                     type="text"
-                    placeholder="Juan Carlos Pérez"
                     autocomplete="name"
                 />
 
@@ -163,25 +161,19 @@ new class extends Component {
                     wire:model.blur="email"
                     label="Correo Electrónico *"
                     type="email"
-                    placeholder="juan@ejemplo.com"
                     autocomplete="email"
                 />
 
                 <flux:input
                     wire:model.blur="password"
-                    label="Contraseña *"
+                    label="Contraseña (opcional)"
                     type="password"
-                    placeholder="Mínimo 8 caracteres"
+                    placeholder="Dejar en blanco para no cambiar"
                     autocomplete="new-password"
                 />
-
-                <flux:text size="sm" class="text-zinc-500 dark:text-zinc-400">
-                    El líder recibirá estas credenciales para acceder al sistema
-                </flux:text>
             </div>
         </div>
 
-        <!-- Ubicación -->
         <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
             <flux:heading size="lg" class="mb-4">Ubicación</flux:heading>
 
@@ -189,7 +181,7 @@ new class extends Component {
                 <flux:field>
                     <flux:label>Municipio</flux:label>
                     <flux:input
-                        value="{{ $this->getCoordinatorUser()?->municipality?->name ?? 'Sin municipio' }}"
+                        value="{{ $this->coordinator?->municipality?->name ?? 'Sin municipio' }}"
                         disabled
                         readonly
                     />
@@ -198,7 +190,7 @@ new class extends Component {
 
                 <flux:select
                     wire:model="neighborhood_id"
-                    label="Barrio (Opcional)"
+                    label="Barrio (opcional)"
                     placeholder="Selecciona un barrio"
                 >
                     @foreach($this->neighborhoods as $neighborhood)
@@ -208,30 +200,9 @@ new class extends Component {
             </div>
         </div>
 
-        <!-- Campañas -->
-        <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
-            <flux:heading size="lg" class="mb-2">Campañas</flux:heading>
-            <flux:text class="text-zinc-500 dark:text-zinc-400">
-                El líder será asignado automáticamente a las mismas campañas del coordinador
-            </flux:text>
-            <div class="mt-3 space-y-2">
-                @foreach($this->getCoordinatorUser()?->campaigns ?? [] as $campaign)
-                    <div class="flex items-center gap-2 rounded-lg border border-zinc-200 p-2 dark:border-zinc-700">
-                        <flux:icon.check-circle class="h-5 w-5 text-green-600" />
-                        <flux:text class="font-medium">{{ $campaign->name }}</flux:text>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-
-        <!-- Actions -->
         <div class="flex gap-3">
-            <flux:button
-                type="submit"
-                variant="primary"
-                class="flex-1"
-            >
-                Crear Líder
+            <flux:button type="submit" variant="primary" class="flex-1">
+                Guardar cambios
             </flux:button>
 
             <flux:button
@@ -246,3 +217,4 @@ new class extends Component {
         </div>
     </form>
 </div>
+

@@ -242,29 +242,35 @@ function navigateToElectionEvents(): array
     ];
 }
 
-function navigateToDiaDPage(): array
-{
-    return [
-        'url' => config('app.url') . '/admin/dia-d',
-        'snapshot' => [],
-        'elements' => [],
-    ];
+if (! function_exists(__NAMESPACE__ . '\\navigateToDiaDPage')) {
+    function navigateToDiaDPage(): array
+    {
+        return [
+            'url' => config('app.url') . '/admin/dia-d',
+            'snapshot' => [],
+            'elements' => [],
+        ];
+    }
 }
 
-function waitForElementAndSnapshot(string $selector, int $timeout = 10000): array
-{
-    return [
-        'url' => config('app.url') . '/admin/manage-election-events',
-        'snapshot' => [],
-        'elements' => [],
-    ];
+if (! function_exists(__NAMESPACE__ . '\\waitForElementAndSnapshot')) {
+    function waitForElementAndSnapshot(string $selector, int $timeout = 10000): array
+    {
+        return [
+            'url' => config('app.url') . '/admin/manage-election-events',
+            'snapshot' => [],
+            'elements' => [],
+        ];
+    }
 }
 
-function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
-{
-    return [
-        'url' => config('app.url') . '/admin/manage-election-events',
-        'snapshot' => [],
-        'elements' => [],
-    ];
+if (! function_exists(__NAMESPACE__ . '\\waitForTextAndSnapshot')) {
+    function waitForTextAndSnapshot(string $text, int $timeout = 10000): array
+    {
+        return [
+            'url' => config('app.url') . '/admin/manage-election-events',
+            'snapshot' => [],
+            'elements' => [],
+        ];
+    }
 }

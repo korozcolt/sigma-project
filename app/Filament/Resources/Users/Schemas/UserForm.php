@@ -20,6 +20,26 @@ use Spatie\Permission\Models\Role;
 
 class UserForm
 {
+    private static function hasLeaderRoleSelected(Get $get): bool
+    {
+        $roles = (array) ($get('roles') ?? []);
+
+        if ($roles === []) {
+            return false;
+        }
+
+        $first = $roles[0] ?? null;
+
+        if (is_string($first) && ! ctype_digit($first)) {
+            return in_array(UserRole::LEADER->value, $roles, true);
+        }
+
+        return Role::query()
+            ->whereIn('id', $roles)
+            ->where('name', UserRole::LEADER->value)
+            ->exists();
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -145,6 +165,23 @@ class UserForm
                             ->getOptionLabelFromRecordUsing(fn ($record) => UserRole::tryFrom($record->name)?->getLabel() ?? $record->name)
                             ->helperText('Seleccione los roles del usuario en el sistema')
                             ->columnSpanFull(),
+                    ]),
+
+                Section::make('Asignación de Coordinador')
+                    ->description('Cada líder debe pertenecer a un coordinador (un coordinador puede asignarse a sí mismo).')
+                    ->schema([
+                        Select::make('coordinator_user_id')
+                            ->label('Coordinador del líder')
+                            ->relationship(
+                                name: 'coordinator',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn ($query) => $query->role(UserRole::COORDINATOR->value)->orderBy('name'),
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->required(fn (Get $get): bool => self::hasLeaderRoleSelected($get))
+                            ->visible(fn (Get $get): bool => self::hasLeaderRoleSelected($get))
+                            ->helperText('Obligatorio cuando el usuario tiene rol de líder.'),
                     ]),
 
                 Section::make('Clasificación de Usuario')

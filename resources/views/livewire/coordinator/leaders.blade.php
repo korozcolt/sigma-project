@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\UserRole;
 use App\Models\User;
+use App\Models\Voter;
 use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
@@ -14,20 +16,52 @@ new class extends Component {
     #[Url(as: 'q')]
     public string $search = '';
 
+    #[Url(as: 'coordinator')]
+    public ?int $coordinatorUserId = null;
+
     public function updatingSearch(): void
     {
         $this->resetPage();
     }
 
+    public function getCoordinatorsProperty()
+    {
+        if (auth()->user()->hasRole(UserRole::COORDINATOR->value)) {
+            return collect();
+        }
+
+        return User::role(UserRole::COORDINATOR->value)->orderBy('name')->get();
+    }
+
+    public function becomeMyOwnLeader(): void
+    {
+        $user = auth()->user();
+
+        if (! $user->hasRole(UserRole::COORDINATOR->value)) {
+            abort(403);
+        }
+
+        if (! $user->hasRole(UserRole::LEADER->value)) {
+            $user->assignRole(UserRole::LEADER->value);
+        }
+
+        $user->update(['coordinator_user_id' => $user->id]);
+
+        session()->flash('success', 'Ahora apareces como líder en tu lista.');
+    }
+
     public function with(): array
     {
         $user = auth()->user();
-        $campaignIds = $user->campaigns()->pluck('campaigns.id');
+        $query = User::role(UserRole::LEADER->value)->withCount(['registeredVoters as voters_count']);
 
-        $query = User::role('leader')
-            ->whereHas('campaigns', fn ($q) => $q->whereIn('campaigns.id', $campaignIds))
-            ->where('municipality_id', $user->municipality_id)
-            ->withCount(['registeredVoters as voters_count']);
+        if ($user->hasRole(UserRole::COORDINATOR->value)) {
+            $query->where('coordinator_user_id', $user->id);
+        } else {
+            if ($this->coordinatorUserId) {
+                $query->where('coordinator_user_id', $this->coordinatorUserId);
+            }
+        }
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -38,17 +72,12 @@ new class extends Component {
 
         $leaders = $query->latest()->paginate(15);
 
-        $totalLeaders = User::role('leader')
-            ->whereHas('campaigns', fn ($q) => $q->whereIn('campaigns.id', $campaignIds))
-            ->where('municipality_id', $user->municipality_id)
-            ->count();
+        $totalLeaders = $query->clone()->count();
 
-        $totalVoters = \App\Models\Voter::whereIn('registered_by',
-            User::role('leader')
-                ->whereHas('campaigns', fn ($q) => $q->whereIn('campaigns.id', $campaignIds))
-                ->where('municipality_id', $user->municipality_id)
-                ->pluck('id')
-        )->count();
+        $leaderIds = $query->clone()->pluck('id');
+        $totalVoters = $leaderIds->isEmpty()
+            ? 0
+            : Voter::whereIn('registered_by', $leaderIds)->count();
 
         return [
             'leaders' => $leaders,
@@ -72,8 +101,24 @@ new class extends Component {
             <flux:button variant="primary" :href="route('coordinator.leaders.create')" wire:navigate icon="user-plus">
                 Agregar Líder
             </flux:button>
+            @if(auth()->user()->hasRole(\App\Enums\UserRole::COORDINATOR->value) && !auth()->user()->hasRole(\App\Enums\UserRole::LEADER->value))
+                <flux:button variant="ghost" wire:click="becomeMyOwnLeader" icon="user">
+                    Ser mi propio líder
+                </flux:button>
+            @endif
         </div>
     </div>
+
+    @if (session('success'))
+        <div class="rounded-xl bg-green-50 p-4 dark:bg-green-900/20">
+            <div class="flex items-center gap-3">
+                <div class="rounded-full bg-green-100 p-2 dark:bg-green-900/50">
+                    <flux:icon.check-circle class="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <flux:text class="text-green-900 dark:text-green-100">{{ session('success') }}</flux:text>
+            </div>
+        </div>
+    @endif
 
     <!-- Stats Summary -->
     <div class="grid gap-4 sm:grid-cols-2">
@@ -86,6 +131,17 @@ new class extends Component {
             <flux:heading size="xl" class="mt-1">{{ number_format($totalVoters) }}</flux:heading>
         </div>
     </div>
+
+    @if(!auth()->user()->hasRole(\App\Enums\UserRole::COORDINATOR->value))
+        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
+            <flux:select wire:model.live="coordinatorUserId" label="Filtrar por coordinador" placeholder="Todos los coordinadores">
+                <option value="">Todos los coordinadores</option>
+                @foreach($this->coordinators as $coordinator)
+                    <option value="{{ $coordinator->id }}">{{ $coordinator->name }}</option>
+                @endforeach
+            </flux:select>
+        </div>
+    @endif
 
     <!-- Search -->
     <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
@@ -167,8 +223,14 @@ new class extends Component {
                                 </div>
                             </div>
                             <div class="flex gap-2">
-                                <flux:button size="sm" variant="ghost" icon="eye" title="Ver detalles">
-                                    Ver
+                                <flux:button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon="pencil-square"
+                                    :href="route('coordinator.leaders.edit', $leader)"
+                                    wire:navigate
+                                >
+                                    Editar
                                 </flux:button>
                             </div>
                         </div>
