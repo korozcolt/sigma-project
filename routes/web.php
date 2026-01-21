@@ -4,10 +4,15 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
 use App\Http\Controllers\PublicVoterRegistrationController;
+use App\Http\Controllers\PublicCampaignLogoController;
 
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+Route::get('media/campaign-logo/{filename}', PublicCampaignLogoController::class)
+    ->where('filename', '[A-Za-z0-9._-]+')
+    ->name('public.campaign-logo');
 
 // Registro público de votantes mediante enlace
 Route::get('registro/{token}', [PublicVoterRegistrationController::class, 'show'])

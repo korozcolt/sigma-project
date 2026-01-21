@@ -5,18 +5,32 @@
         <div class="relative mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
             @php
                 $campaign = $invitation->campaign;
-                $logoUrl = $campaign?->logo_url ?: asset('images/logo-sigma_small.webp');
+                $campaignLogoUrl = $campaign?->logo_path
+                    ? route('public.campaign-logo', ['filename' => basename($campaign->logo_path)])
+                    : null;
             @endphp
 
-            <div class="flex flex-col items-center gap-4 text-center">
-                <div class="flex items-center justify-center">
+            @if ($campaignLogoUrl)
+                <div class="mb-8">
                     <img
-                        src="{{ $logoUrl }}"
-                        alt="{{ $campaign?->name ? 'Logo de '.$campaign->name : config('app.name') }}"
-                        class="h-14 w-14 rounded-full bg-white object-contain p-2 shadow-sm ring-1 ring-gray-200 dark:bg-zinc-900 dark:ring-white/10"
+                        src="{{ $campaignLogoUrl }}"
+                        alt="{{ $campaign?->name ? 'Imagen de '.$campaign->name : 'Imagen de campaña' }}"
+                        class="h-24 w-full object-cover sm:h-32 lg:h-40"
+                        loading="eager"
                     />
                 </div>
+            @else
+                <div class="mb-8 flex items-center justify-center">
+                    <img
+                        src="{{ asset('images/logo-sigma_small.webp') }}"
+                        alt="{{ config('app.name') }}"
+                        class="h-12 w-auto"
+                        loading="eager"
+                    />
+                </div>
+            @endif
 
+            <div class="flex flex-col items-center gap-3 text-center">
                 <div class="max-w-2xl">
                     <h1 class="text-balance text-2xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
                         Registro de votantes
