@@ -67,7 +67,7 @@ it('registra un votante desde el enlace y lo asigna al líder cuando existe', fu
 
     $response = $this->post(route('public.voters.register.submit', $invitation->token), $payload);
 
-    $response->assertRedirect(route('public.voters.register', $invitation->token));
+    $response->assertRedirect(route('home'));
     $response->assertSessionHas('success');
 
     assertDatabaseHas('voters', [

@@ -11,7 +11,9 @@ class CreateVoter extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['registered_by'] = auth()->id();
+        if (empty($data['registered_by'])) {
+            $data['registered_by'] = auth()->id();
+        }
 
         return $data;
     }

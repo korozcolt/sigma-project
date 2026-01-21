@@ -100,8 +100,8 @@ class PublicVoterRegistrationController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('public.voters.register', $token)
-                ->with('success', 'Tu registro fue enviado correctamente. Gracias.');
+                ->route('home')
+                ->with('success', 'Tu registro fue enviado correctamente. Si necesitas registrar otro votante, vuelve a abrir el enlace.');
         } catch (\Throwable $e) {
             DB::rollBack();
 

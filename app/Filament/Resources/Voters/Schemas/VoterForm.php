@@ -3,13 +3,17 @@
 namespace App\Filament\Resources\Voters\Schemas;
 
 use App\Enums\VoterStatus;
+use App\Enums\UserRole;
 use App\Models\Campaign;
+use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class VoterForm
 {
@@ -17,6 +21,44 @@ class VoterForm
     {
         return $schema
             ->components([
+                Section::make('Asignación')
+                    ->schema([
+                        Select::make('coordinator_user_id')
+                            ->label('Coordinador')
+                            ->relationship(
+                                name: 'registeredBy.coordinator',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query) => $query->role(UserRole::COORDINATOR->value)->orderBy('name'),
+                            )
+                            ->dehydrated(false)
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(fn ($state, callable $set) => $set('registered_by', null))
+                            ->default(fn ($record) => $record?->registeredBy?->coordinator_user_id),
+
+                        Select::make('registered_by')
+                            ->label('Líder')
+                            ->relationship(
+                                name: 'registeredBy',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query, Get $get) => $query
+                                    ->role(UserRole::LEADER->value)
+                                    ->when(
+                                        $get('coordinator_user_id'),
+                                        fn (Builder $q, $coordinatorId) => $q->where('coordinator_user_id', $coordinatorId),
+                                    )
+                                    ->orderBy('name'),
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->disabled(fn (Get $get): bool => ! $get('coordinator_user_id'))
+                            ->helperText('El votante siempre debe pertenecer a un líder.'),
+                    ])
+                    ->columns(2),
+
                 Section::make('Información Personal')
                     ->schema([
                         TextInput::make('first_name')
