@@ -35,6 +35,7 @@ class CampaignForm
                                 '16:9',
                             ])
                             ->maxSize(2048)
+                            ->disk('public')
                             ->directory('campaign-logos')
                             ->visibility('public')
                             ->columnSpanFull()
