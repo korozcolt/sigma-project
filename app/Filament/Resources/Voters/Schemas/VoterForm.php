@@ -14,6 +14,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rule;
 
 class VoterForm
 {
@@ -77,8 +78,12 @@ class VoterForm
                             ->label('Número de Documento')
                             ->required()
                             ->maxLength(255)
-                            ->helperText('Debe ser único en todo el sistema')
-                            ->rule('unique:voters,document_number,NULL,id,deleted_at,NULL'),
+                            ->helperText('Debe ser único dentro de la campaña')
+                            ->rule(fn (Get $get, $record) => Rule::unique('voters', 'document_number')
+                                ->where(fn ($query) => $query
+                                    ->where('campaign_id', $get('campaign_id'))
+                                    ->whereNull('deleted_at'))
+                                ->ignore($record?->id)),
 
                         DatePicker::make('birth_date')
                             ->label('Fecha de Nacimiento')

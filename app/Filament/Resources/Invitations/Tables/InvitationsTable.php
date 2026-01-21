@@ -47,6 +47,7 @@ class InvitationsTable
                 TextColumn::make('registration_url')
                     ->label('Enlace')
                     ->state(fn ($record) => $record->getRegistrationUrl())
+                    ->copyableState(fn (?string $state) => $state)
                     ->copyable()
                     ->copyMessage('Enlace copiado')
                     ->copyMessageDuration(1500)
