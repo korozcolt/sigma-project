@@ -38,6 +38,9 @@ class CampaignForm
                             ->disk('public')
                             ->directory('campaign-logos')
                             ->visibility('public')
+                            ->getUploadedFileUrlUsing(fn (?string $state): ?string => filled($state)
+                                ? route('public.campaign-logo', ['filename' => basename($state)])
+                                : null)
                             ->columnSpanFull()
                             ->helperText('Sube el logo de la campaña (máx. 2MB). Se mostrará en los reportes y en la aplicación.'),
                         Textarea::make('description')
