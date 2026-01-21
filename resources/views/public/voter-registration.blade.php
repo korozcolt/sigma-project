@@ -30,7 +30,7 @@
                 </flux:callout>
             @endif
 
-            <flux:card>
+            <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
                 <div class="space-y-2">
                     <flux:heading size="sm">Información del enlace</flux:heading>
 
@@ -201,7 +201,7 @@
                         Tus datos se usarán únicamente para fines electorales de la campaña.
                     </flux:text>
                 </form>
-            </flux:card>
+            </div>
         </div>
     </div>
 </x-layouts.auth>
