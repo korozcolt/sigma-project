@@ -28,7 +28,6 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
             ->brandLogo(asset('images/logo-sigma_small.webp'))
             ->brandLogoHeight('2.5rem')
             ->colors([

@@ -13,7 +13,7 @@
                 @endphp
 
                 @if($campaign && $campaign->hasLogo())
-                    <img src="{{ $campaign->logo_url }}" alt="Logo" class="size-8 rounded-md object-cover">
+                    <img src="{{ $campaign->public_logo_url }}" alt="Logo" class="size-8 rounded-md object-cover">
                     <div class="flex flex-col">
                         <span class="text-sm font-semibold text-zinc-900 dark:text-white">
                             {{ $campaign->name }}
@@ -48,16 +48,6 @@
             </flux:navlist>
 
             <flux:spacer />
-
-            <flux:navlist variant="outline">
-                <flux:navlist.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                {{ __('Repository') }}
-                </flux:navlist.item>
-
-                <flux:navlist.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
-                {{ __('Documentation') }}
-                </flux:navlist.item>
-            </flux:navlist>
 
             <!-- Desktop User Menu -->
             <flux:dropdown class="hidden lg:block" position="bottom" align="start">

@@ -29,7 +29,6 @@ class CoordinatorPanelProvider extends PanelProvider
         return $panel
             ->id('coordinator')
             ->path('coordinator')
-            ->login()
             ->brandLogo(asset('images/logo-sigma_small.webp'))
             ->brandLogoHeight('2.5rem')
             ->colors([

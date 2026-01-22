@@ -14,7 +14,7 @@
 
                 <a href="{{ route('leader.dashboard') }}" wire:navigate>
                     @if($campaign && $campaign->hasLogo())
-                        <img src="{{ $campaign->logo_url }}" alt="Logo" class="h-8 w-auto rounded-md object-cover">
+                        <img src="{{ $campaign->public_logo_url }}" alt="Logo" class="h-8 w-auto rounded-md object-cover">
                     @else
                         <div class="flex aspect-square size-8 items-center justify-center rounded-md bg-accent-content text-accent-foreground">
                             <x-app-logo-icon class="size-5 fill-current text-white dark:text-black" />

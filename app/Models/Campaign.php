@@ -208,6 +208,17 @@ class Campaign extends Model
         return $this->logo_path ? \Storage::disk('public')->url($this->logo_path) : null;
     }
 
+    public function getPublicLogoUrlAttribute(): ?string
+    {
+        if (! $this->logo_path) {
+            return null;
+        }
+
+        return route('public.campaign-logo', [
+            'filename' => basename($this->logo_path),
+        ]);
+    }
+
     /**
      * Check if the campaign has a logo
      */

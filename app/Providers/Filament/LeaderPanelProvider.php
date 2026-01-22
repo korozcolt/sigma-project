@@ -29,7 +29,6 @@ class LeaderPanelProvider extends PanelProvider
         return $panel
             ->id('leader')
             ->path('leader')
-            ->login()
             ->brandLogo(asset('images/logo-sigma_small.webp'))
             ->brandLogoHeight('2.5rem')
             ->colors([
