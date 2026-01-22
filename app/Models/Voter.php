@@ -27,6 +27,8 @@ class Voter extends Model
         'email',
         'municipality_id',
         'neighborhood_id',
+        'polling_place_id',
+        'polling_table_number',
         'address',
         'detailed_address',
         'registered_by',
@@ -63,6 +65,11 @@ class Voter extends Model
     public function neighborhood(): BelongsTo
     {
         return $this->belongsTo(Neighborhood::class);
+    }
+
+    public function pollingPlace(): BelongsTo
+    {
+        return $this->belongsTo(PollingPlace::class);
     }
 
     public function registeredBy(): BelongsTo

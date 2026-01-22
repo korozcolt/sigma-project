@@ -2,45 +2,49 @@
 
 use App\Enums\VoterStatus;
 use App\Models\Campaign;
+use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\Neighborhood;
+use App\Models\PollingPlace;
 use App\Models\Voter;
-use Livewire\Attributes\Validate;
+use App\Rules\MaxTablesForPollingPlace;
 use Livewire\Volt\Component;
-use function Livewire\Volt\{state, rules, layout};
+use Illuminate\Validation\Rule;
+use function Livewire\Volt\{layout};
 
 layout('components.layouts::leader', ['title' => 'Registrar Votante']);
 
 new class extends Component {
-    #[Validate('required|digits:10|unique:voters,document_number')]
     public string $document_number = '';
 
-    #[Validate('required|string|max:255')]
     public string $first_name = '';
 
-    #[Validate('required|string|max:255')]
     public string $last_name = '';
 
-    #[Validate('required|digits:10')]
     public string $phone = '';
 
-    #[Validate('nullable|digits:10')]
     public ?string $secondary_phone = null;
 
-    #[Validate('nullable|email')]
     public ?string $email = null;
 
-    #[Validate('required|exists:municipalities,id')]
+    public ?int $department_id = null;
+
     public ?int $municipality_id = null;
 
-    #[Validate('nullable|exists:neighborhoods,id')]
     public ?int $neighborhood_id = null;
 
-    #[Validate('nullable|string|max:500')]
+    public ?int $polling_place_id = null;
+
+    public ?int $polling_table_number = null;
+
     public ?string $address = null;
 
-    #[Validate('nullable|date')]
     public ?string $birth_date = null;
+
+    public ?int $campaign_id = null;
+
+    public bool $departmentLocked = false;
+    public bool $municipalityLocked = false;
 
     public bool $registerAnother = false;
     public bool $showSuccess = false;
@@ -48,15 +52,35 @@ new class extends Component {
 
     public function mount(): void
     {
-        // Pre-cargar el municipio del líder si existe
-        if (auth()->user()->municipality_id) {
+        $campaign = auth()->user()->campaigns()->first();
+        $this->campaign_id = $campaign?->id;
+
+        $this->departmentLocked = (bool) ($campaign?->department_id || $campaign?->municipality_id);
+        $this->municipalityLocked = (bool) $campaign?->municipality_id;
+
+        if ($campaign?->municipality_id) {
+            $this->municipality_id = $campaign->municipality_id;
+            $this->department_id = $campaign->department_id
+                ?? Municipality::query()->whereKey($campaign->municipality_id)->value('department_id');
+        } elseif ($campaign?->department_id) {
+            $this->department_id = $campaign->department_id;
+        } elseif (auth()->user()->municipality_id) {
             $this->municipality_id = auth()->user()->municipality_id;
+            $this->department_id = Municipality::query()->whereKey($this->municipality_id)->value('department_id');
         }
+    }
+
+    public function getDepartmentsProperty()
+    {
+        return Department::orderBy('name')->get();
     }
 
     public function getMunicipalitiesProperty()
     {
-        return Municipality::orderBy('name')->get();
+        return Municipality::query()
+            ->when($this->department_id, fn ($q) => $q->where('department_id', $this->department_id))
+            ->orderBy('name')
+            ->get();
     }
 
     public function getNeighborhoodsProperty()
@@ -73,19 +97,91 @@ new class extends Component {
     public function updatedMunicipalityId(): void
     {
         $this->neighborhood_id = null;
+        $this->polling_place_id = null;
+        $this->polling_table_number = null;
+    }
+
+    public function updatedDepartmentId(): void
+    {
+        $this->municipality_id = null;
+        $this->neighborhood_id = null;
+        $this->polling_place_id = null;
+        $this->polling_table_number = null;
+    }
+
+    public function getPollingPlacesProperty()
+    {
+        if (! $this->municipality_id) {
+            return collect();
+        }
+
+        return PollingPlace::query()
+            ->where('municipality_id', $this->municipality_id)
+            ->orderBy('name')
+            ->get();
     }
 
     public function save(): void
     {
-        $this->validate();
-
-        // Obtener la primera campaña del líder
-        $campaign = auth()->user()->campaigns()->first();
+        $campaign = $this->campaign_id ? Campaign::query()->find($this->campaign_id) : auth()->user()->campaigns()->first();
 
         if (! $campaign) {
             $this->addError('campaign', 'No tienes una campaña asignada. Contacta al administrador.');
 
             return;
+        }
+
+        $this->validate([
+            'document_number' => [
+                'required',
+                'digits:10',
+                Rule::unique('voters', 'document_number')
+                    ->where(fn ($query) => $query
+                        ->where('campaign_id', $campaign->id)
+                        ->whereNull('deleted_at')),
+            ],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'digits:10'],
+            'secondary_phone' => ['nullable', 'digits:10'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'department_id' => ['nullable', 'exists:departments,id'],
+            'municipality_id' => [
+                'required',
+                Rule::exists('municipalities', 'id')->when(
+                    filled($this->department_id),
+                    fn ($rule) => $rule->where('department_id', $this->department_id),
+                ),
+            ],
+            'neighborhood_id' => ['nullable', 'exists:neighborhoods,id'],
+            'polling_place_id' => [
+                'nullable',
+                Rule::exists('polling_places', 'id')->when(
+                    filled($this->municipality_id),
+                    fn ($rule) => $rule->where('municipality_id', $this->municipality_id),
+                ),
+            ],
+            'polling_table_number' => array_values(array_filter([
+                'nullable',
+                'integer',
+                'min:1',
+                $this->polling_place_id ? new MaxTablesForPollingPlace((int) $this->polling_place_id) : null,
+            ])),
+            'address' => ['nullable', 'string', 'max:500'],
+            'birth_date' => ['nullable', 'date'],
+        ]);
+
+        if ($campaign->prefersMunicipality() && filled($campaign->municipality_id) && (int) $this->municipality_id !== (int) $campaign->municipality_id) {
+            $this->addError('municipality_id', 'El municipio debe coincidir con el de la campaña.');
+            return;
+        }
+
+        if ($campaign->prefersDepartment() && filled($campaign->department_id) && filled($this->municipality_id)) {
+            $municipalityDepartmentId = Municipality::query()->whereKey($this->municipality_id)->value('department_id');
+            if ((int) $municipalityDepartmentId !== (int) $campaign->department_id) {
+                $this->addError('municipality_id', 'El municipio debe pertenecer al departamento de la campaña.');
+                return;
+            }
         }
 
         // Crear el votante
@@ -99,6 +195,8 @@ new class extends Component {
             'email' => $this->email,
             'municipality_id' => $this->municipality_id,
             'neighborhood_id' => $this->neighborhood_id,
+            'polling_place_id' => $this->polling_place_id,
+            'polling_table_number' => $this->polling_table_number,
             'address' => $this->address,
             'birth_date' => $this->birth_date,
             'registered_by' => auth()->id(),
@@ -117,6 +215,8 @@ new class extends Component {
                 'phone',
                 'secondary_phone',
                 'email',
+                'polling_place_id',
+                'polling_table_number',
                 'neighborhood_id',
                 'address',
                 'birth_date',
@@ -229,9 +329,21 @@ new class extends Component {
 
                 <div class="flex flex-col gap-4">
                     <flux:select
+                        wire:model.live="department_id"
+                        label="Departamento"
+                        placeholder="Selecciona un departamento"
+                        :disabled="$departmentLocked"
+                    >
+                        @foreach($this->departments as $department)
+                            <option value="{{ $department->id }}">{{ $department->name }}</option>
+                        @endforeach
+                    </flux:select>
+
+                    <flux:select
                         wire:model.live="municipality_id"
                         label="Municipio *"
                         placeholder="Selecciona un municipio"
+                        :disabled="$municipalityLocked"
                     >
                         @foreach($this->municipalities as $municipality)
                             <option value="{{ $municipality->id }}">{{ $municipality->name }}</option>
@@ -248,6 +360,31 @@ new class extends Component {
                             <option value="{{ $neighborhood->id }}">{{ $neighborhood->name }}</option>
                         @endforeach
                     </flux:select>
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <flux:select
+                            wire:model.live="polling_place_id"
+                            label="Puesto de votación"
+                            placeholder="Selecciona un puesto (opcional)"
+                            :disabled="!$municipality_id"
+                        >
+                            <option value="">Sin puesto asignado</option>
+                            @foreach($this->pollingPlaces as $pollingPlace)
+                                <option value="{{ $pollingPlace->id }}">
+                                    {{ $pollingPlace->name }}
+                                </option>
+                            @endforeach
+                        </flux:select>
+
+                        <flux:input
+                            wire:model.blur="polling_table_number"
+                            label="Número de mesa"
+                            type="number"
+                            inputmode="numeric"
+                            min="1"
+                            :disabled="!$polling_place_id"
+                        />
+                    </div>
 
                     <flux:textarea
                         wire:model.blur="address"

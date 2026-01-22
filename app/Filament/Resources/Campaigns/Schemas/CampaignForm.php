@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Campaigns\Schemas;
 
 use App\Enums\CampaignScope;
 use App\Enums\CampaignStatus;
+use App\Models\Department;
+use App\Models\Municipality;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\KeyValue;
@@ -11,7 +13,9 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Schema as DbSchema;
 
 class CampaignForm
 {
@@ -61,7 +65,56 @@ class CampaignForm
                             ->options(CampaignScope::options())
                             ->default(CampaignScope::Municipal->value)
                             ->required()
-                            ->helperText('Define el nivel territorial de la campaña'),
+                            ->helperText('Define el nivel territorial de la campaña')
+                            ->live()
+                            ->afterStateUpdated(function (string $state, callable $set): void {
+                                if ($state === CampaignScope::Departamental->value) {
+                                    $set('municipality_id', null);
+                                }
+
+                                if ($state === CampaignScope::Nacional->value) {
+                                    $set('department_id', null);
+                                    $set('municipality_id', null);
+                                }
+                            }),
+                    ])
+                    ->columns(2),
+
+                Section::make('Ubicación')
+                    ->schema([
+                        Select::make('department_id')
+                            ->label('Departamento')
+                            ->options(fn () => Department::query()->orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->preload()
+                            ->required(fn (Get $get): bool => in_array($get('scope'), [
+                                CampaignScope::Municipal->value,
+                                CampaignScope::Departamental->value,
+                            ], true))
+                            ->visible(fn (Get $get): bool => in_array($get('scope'), [
+                                CampaignScope::Municipal->value,
+                                CampaignScope::Departamental->value,
+                            ], true))
+                            ->hidden(fn (): bool => ! DbSchema::hasColumn('campaigns', 'department_id'))
+                            ->live()
+                            ->afterStateUpdated(fn ($state, callable $set) => $set('municipality_id', null))
+                            ->helperText('Define el departamento objetivo de la campaña.'),
+
+                        Select::make('municipality_id')
+                            ->label('Municipio')
+                            ->options(fn (Get $get) => filled($get('department_id'))
+                                ? Municipality::query()
+                                    ->where('department_id', $get('department_id'))
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id')
+                                : [])
+                            ->searchable()
+                            ->preload()
+                            ->required(fn (Get $get): bool => $get('scope') === CampaignScope::Municipal->value)
+                            ->visible(fn (Get $get): bool => $get('scope') === CampaignScope::Municipal->value)
+                            ->hidden(fn (): bool => ! DbSchema::hasColumn('campaigns', 'municipality_id'))
+                            ->disabled(fn (Get $get): bool => ! filled($get('department_id')))
+                            ->helperText('Define el municipio objetivo (solo para campañas municipales).'),
                     ])
                     ->columns(2),
 

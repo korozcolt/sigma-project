@@ -32,6 +32,8 @@ class Campaign extends Model
         'election_date',
         'status',
         'scope',
+        'department_id',
+        'municipality_id',
         'settings',
         'created_by',
     ];
@@ -82,6 +84,16 @@ class Campaign extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function municipality(): BelongsTo
+    {
+        return $this->belongsTo(Municipality::class);
     }
 
     /**
@@ -225,5 +237,15 @@ class Campaign extends Model
     public function hasLogo(): bool
     {
         return ! empty($this->logo_path);
+    }
+
+    public function prefersMunicipality(): bool
+    {
+        return $this->scope === CampaignScope::Municipal;
+    }
+
+    public function prefersDepartment(): bool
+    {
+        return $this->scope === CampaignScope::Departamental;
     }
 }

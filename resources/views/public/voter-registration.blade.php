@@ -209,15 +209,71 @@
                                         />
                                         <input type="hidden" name="municipality_id" value="{{ $invitation->municipality_id }}">
                                     @else
+                                        <flux:select id="department_id" name="department_id">
+                                            <option value="" selected>Selecciona un departamento</option>
+                                            @foreach ($departments as $department)
+                                                <option value="{{ $department->id }}" @selected(old('department_id') == $department->id)>
+                                                    {{ $department->name }}
+                                                </option>
+                                            @endforeach
+                                        </flux:select>
+
                                         <flux:select id="municipality_id" name="municipality_id" required>
                                             <option value="" selected disabled>Selecciona un municipio</option>
                                             @foreach ($municipalities as $municipality)
-                                                <option value="{{ $municipality->id }}" @selected(old('municipality_id') == $municipality->id)>
+                                                <option value="{{ $municipality->id }}" data-department-id="{{ $municipality->department_id }}" @selected(old('municipality_id') == $municipality->id)>
                                                     {{ $municipality->name }}
                                                 </option>
                                             @endforeach
                                         </flux:select>
                                     @endif
+                                </flux:field>
+                            </div>
+
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <flux:field>
+                                    <flux:label for="polling_place_id">Puesto de votación</flux:label>
+                                    <flux:select
+                                        id="polling_place_id"
+                                        name="polling_place_id"
+                                        @if (! $invitation->municipality_id) disabled @endif
+                                    >
+                                        <option value="" selected>Selecciona un puesto (opcional)</option>
+                                        @if ($invitation->municipality_id)
+                                            @foreach (\App\Models\PollingPlace::query()->where('municipality_id', $invitation->municipality_id)->orderBy('name')->get(['id', 'name', 'max_tables']) as $pollingPlace)
+                                                <option
+                                                    value="{{ $pollingPlace->id }}"
+                                                    data-max-tables="{{ $pollingPlace->max_tables }}"
+                                                    @selected(old('polling_place_id') == $pollingPlace->id)
+                                                >
+                                                    {{ $pollingPlace->name }}
+                                                </option>
+                                            @endforeach
+                                        @endif
+                                    </flux:select>
+                                    <p id="polling_place_help" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        @if ($invitation->municipality_id)
+                                            Selecciona el puesto de votación del votante (opcional).
+                                        @else
+                                            Selecciona un municipio para ver los puestos disponibles.
+                                        @endif
+                                    </p>
+                                </flux:field>
+
+                                <flux:field>
+                                    <flux:label for="polling_table_number">Número de mesa</flux:label>
+                                    <flux:input
+                                        id="polling_table_number"
+                                        name="polling_table_number"
+                                        type="number"
+                                        inputmode="numeric"
+                                        min="1"
+                                        value="{{ old('polling_table_number') }}"
+                                        @if (! old('polling_place_id') && ! $invitation->municipality_id) disabled @endif
+                                    />
+                                    <p id="polling_table_help" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        Debe ser menor o igual al máximo de mesas del puesto seleccionado.
+                                    </p>
                                 </flux:field>
                             </div>
 
@@ -250,4 +306,105 @@
             </div>
         </div>
     </div>
+
+    @if (! $invitation->municipality_id)
+        <script>
+            (function () {
+                const departmentSelect = document.getElementById('department_id');
+                const municipalitySelect = document.getElementById('municipality_id');
+                const pollingPlaceSelect = document.getElementById('polling_place_id');
+                const pollingPlaceHelp = document.getElementById('polling_place_help');
+                const pollingTableInput = document.getElementById('polling_table_number');
+
+                if (!municipalitySelect || !pollingPlaceSelect || !pollingTableInput) return;
+
+                const allMunicipalityOptions = Array.from(municipalitySelect.querySelectorAll('option[data-department-id]'));
+                const municipalityPlaceholder = municipalitySelect.querySelector('option[value=\"\"]');
+
+                function filterMunicipalities() {
+                    const departmentId = departmentSelect?.value;
+                    municipalitySelect.innerHTML = '';
+                    if (municipalityPlaceholder) {
+                        municipalitySelect.appendChild(municipalityPlaceholder);
+                    }
+
+                    for (const option of allMunicipalityOptions) {
+                        if (!departmentId || option.dataset.departmentId === departmentId) {
+                            municipalitySelect.appendChild(option);
+                        }
+                    }
+
+                    municipalitySelect.disabled = !departmentId;
+                    municipalitySelect.value = '';
+                }
+
+                function setLoading(isLoading) {
+                    pollingPlaceSelect.disabled = isLoading || !municipalitySelect.value;
+                    pollingTableInput.disabled = isLoading || !pollingPlaceSelect.value;
+                    pollingPlaceHelp.textContent = isLoading
+                        ? 'Cargando puestos de votación…'
+                        : (municipalitySelect.value ? 'Selecciona un puesto (opcional).' : 'Selecciona un municipio para ver los puestos disponibles.');
+                }
+
+                async function loadPollingPlaces() {
+                    const municipalityId = municipalitySelect.value;
+                    pollingPlaceSelect.innerHTML = '<option value="" selected>Selecciona un puesto (opcional)</option>';
+                    pollingTableInput.value = '';
+                    pollingTableInput.removeAttribute('max');
+
+                    if (!municipalityId) {
+                        setLoading(false);
+                        return;
+                    }
+
+                    setLoading(true);
+
+                    try {
+                        const response = await fetch(`{{ route('public.polling-places.options') }}?municipality_id=${encodeURIComponent(municipalityId)}`, {
+                            headers: { 'Accept': 'application/json' },
+                            credentials: 'same-origin',
+                        });
+
+                        if (!response.ok) throw new Error('Request failed');
+
+                        const places = await response.json();
+
+                        for (const place of places) {
+                            const option = document.createElement('option');
+                            option.value = place.id;
+                            option.textContent = place.name;
+                            option.dataset.maxTables = place.max_tables;
+                            pollingPlaceSelect.appendChild(option);
+                        }
+                    } catch (e) {
+                        pollingPlaceHelp.textContent = 'No fue posible cargar los puestos. Intenta nuevamente.';
+                    } finally {
+                        setLoading(false);
+                    }
+                }
+
+                function syncTableMax() {
+                    const selected = pollingPlaceSelect.options[pollingPlaceSelect.selectedIndex];
+                    const maxTables = selected?.dataset?.maxTables;
+                    pollingTableInput.disabled = !pollingPlaceSelect.value;
+
+                    if (maxTables) {
+                        pollingTableInput.max = maxTables;
+                    } else {
+                        pollingTableInput.removeAttribute('max');
+                    }
+                }
+
+                departmentSelect?.addEventListener('change', function () {
+                    filterMunicipalities();
+                    loadPollingPlaces().then(syncTableMax);
+                });
+                municipalitySelect.addEventListener('change', loadPollingPlaces);
+                pollingPlaceSelect.addEventListener('change', syncTableMax);
+
+                filterMunicipalities();
+                loadPollingPlaces().then(syncTableMax);
+            })();
+        </script>
+    @endif
 </x-layouts.public>
