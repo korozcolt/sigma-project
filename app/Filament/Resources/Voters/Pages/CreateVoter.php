@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Voters\Pages;
 
+use App\Enums\UserRole;
 use App\Filament\Resources\Voters\VoterResource;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -12,7 +13,11 @@ class CreateVoter extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         if (empty($data['registered_by'])) {
-            $data['registered_by'] = auth()->id();
+            $user = auth()->user();
+
+            if ($user?->hasRole(UserRole::LEADER->value)) {
+                $data['registered_by'] = $user->id;
+            }
         }
 
         return $data;

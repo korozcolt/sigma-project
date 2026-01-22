@@ -13,11 +13,11 @@ use App\Models\Municipality;
 use App\Models\Neighborhood;
 use App\Models\User;
 use App\Models\Voter;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
 use function Pest\Laravel\actingAs;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
@@ -125,8 +125,20 @@ test('can create voter with basic data', function () {
     $campaign = Campaign::factory()->create();
     $municipality = Municipality::factory()->create();
 
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
     $voterData = [
         'campaign_id' => $campaign->id,
+        'coordinator_user_id' => $coordinator->id,
+        'registered_by' => $leader->id,
         'first_name' => 'Juan',
         'last_name' => 'Pérez',
         'document_number' => '12345678',
@@ -144,7 +156,7 @@ test('can create voter with basic data', function () {
         'last_name' => 'Pérez',
         'document_number' => '12345678',
         'phone' => '3001234567',
-        'registered_by' => $this->admin->id,
+        'registered_by' => $leader->id,
     ]);
 });
 
@@ -157,6 +169,7 @@ test('cannot create voter without required fields', function () {
             'phone' => '',
             'campaign_id' => null,
             'municipality_id' => null,
+            'registered_by' => null,
         ])
         ->call('create')
         ->assertHasFormErrors([
@@ -166,6 +179,7 @@ test('cannot create voter without required fields', function () {
             'phone' => 'required',
             'campaign_id' => 'required',
             'municipality_id' => 'required',
+            'registered_by' => 'required',
         ]);
 });
 
@@ -173,14 +187,27 @@ test('cannot create voter with duplicate document in same campaign', function ()
     $campaign = Campaign::factory()->create();
     $municipality = Municipality::factory()->create();
 
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
     Voter::factory()->create([
         'campaign_id' => $campaign->id,
         'document_number' => '12345678',
+        'registered_by' => $leader->id,
     ]);
 
     Livewire::test(CreateVoter::class)
         ->fillForm([
             'campaign_id' => $campaign->id,
+            'coordinator_user_id' => $coordinator->id,
+            'registered_by' => $leader->id,
             'first_name' => 'Test',
             'last_name' => 'Voter',
             'document_number' => '12345678',
@@ -196,14 +223,27 @@ test('cannot create voter with duplicate document in different campaign', functi
     $campaign2 = Campaign::factory()->create();
     $municipality = Municipality::factory()->create();
 
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
     Voter::factory()->create([
         'campaign_id' => $campaign1->id,
         'document_number' => '12345678',
+        'registered_by' => $leader->id,
     ]);
 
     Livewire::test(CreateVoter::class)
         ->fillForm([
             'campaign_id' => $campaign2->id,
+            'coordinator_user_id' => $coordinator->id,
+            'registered_by' => $leader->id,
             'first_name' => 'Test',
             'last_name' => 'Voter',
             'document_number' => '12345678',
@@ -219,8 +259,20 @@ test('can create voter with all optional fields', function () {
     $municipality = Municipality::factory()->create();
     $neighborhood = Neighborhood::factory()->for($municipality)->create();
 
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
     $voterData = [
         'campaign_id' => $campaign->id,
+        'coordinator_user_id' => $coordinator->id,
+        'registered_by' => $leader->id,
         'first_name' => 'Juan',
         'last_name' => 'Pérez',
         'document_number' => '12345678',
@@ -252,18 +304,44 @@ test('can create voter with all optional fields', function () {
 // ============ Tests de Edición ============
 
 test('can render edit voter page', function () {
-    $voter = Voter::factory()->create();
+    $municipality = Municipality::factory()->create();
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
+    $voter = Voter::factory()->create([
+        'municipality_id' => $municipality->id,
+        'registered_by' => $leader->id,
+    ]);
 
     Livewire::test(EditVoter::class, ['record' => $voter->id])
         ->assertSuccessful();
 });
 
 test('can edit voter', function () {
+    $municipality = Municipality::factory()->create();
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
     $voter = Voter::factory()->create([
         'first_name' => 'Original',
         'last_name' => 'Name',
-        'municipality_id' => Municipality::factory()->create()->id,
+        'municipality_id' => $municipality->id,
         'neighborhood_id' => null,
+        'registered_by' => $leader->id,
     ]);
 
     Livewire::test(EditVoter::class, ['record' => $voter->id])
@@ -280,9 +358,21 @@ test('can edit voter', function () {
 });
 
 test('can change voter status', function () {
+    $municipality = Municipality::factory()->create();
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
     $voter = Voter::factory()->create([
         'status' => VoterStatus::PENDING_REVIEW,
         'neighborhood_id' => null, // Avoid neighborhood validation issues
+        'registered_by' => $leader->id,
     ]);
 
     Livewire::test(EditVoter::class, ['record' => $voter->id])
@@ -300,14 +390,29 @@ test('can change voter status', function () {
 test('cannot edit voter with duplicate document in same campaign', function () {
     $campaign = Campaign::factory()->create();
 
+    $municipality = Municipality::factory()->create();
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
     Voter::factory()->create([
         'campaign_id' => $campaign->id,
         'document_number' => '12345678',
+        'municipality_id' => $municipality->id,
+        'registered_by' => $leader->id,
     ]);
 
     $voter = Voter::factory()->create([
         'campaign_id' => $campaign->id,
         'document_number' => '87654321',
+        'municipality_id' => $municipality->id,
+        'registered_by' => $leader->id,
     ]);
 
     Livewire::test(EditVoter::class, ['record' => $voter->id])
@@ -321,7 +426,21 @@ test('cannot edit voter with duplicate document in same campaign', function () {
 // ============ Tests de Visualización ============
 
 test('can render view voter page', function () {
-    $voter = Voter::factory()->create();
+    $municipality = Municipality::factory()->create();
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
+    $voter = Voter::factory()->create([
+        'municipality_id' => $municipality->id,
+        'registered_by' => $leader->id,
+    ]);
 
     Livewire::test(ViewVoter::class, ['record' => $voter->id])
         ->assertSuccessful();
@@ -355,7 +474,21 @@ test('view page displays voter information', function () {
 // ============ Tests de Eliminación ============
 
 test('can delete voter from edit page', function () {
-    $voter = Voter::factory()->create();
+    $municipality = Municipality::factory()->create();
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
+    $voter = Voter::factory()->create([
+        'municipality_id' => $municipality->id,
+        'registered_by' => $leader->id,
+    ]);
 
     Livewire::test(EditVoter::class, ['record' => $voter->id])
         ->callAction('delete');
@@ -378,7 +511,21 @@ test('can bulk delete voters', function () {
 
 test('voter can be linked to user', function () {
     $user = User::factory()->create();
-    $voter = Voter::factory()->create();
+    $municipality = Municipality::factory()->create();
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
+    $voter = Voter::factory()->create([
+        'municipality_id' => $municipality->id,
+        'registered_by' => $leader->id,
+    ]);
 
     $voter->update(['user_id' => $user->id]);
 
@@ -388,7 +535,21 @@ test('voter can be linked to user', function () {
 
 test('isSystemUser returns true when voter is linked to user', function () {
     $user = User::factory()->create();
-    $voter = Voter::factory()->create();
+    $municipality = Municipality::factory()->create();
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
+    $voter = Voter::factory()->create([
+        'municipality_id' => $municipality->id,
+        'registered_by' => $leader->id,
+    ]);
 
     expect($voter->isSystemUser())->toBeFalse();
 

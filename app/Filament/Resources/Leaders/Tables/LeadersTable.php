@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\Leaders\Tables;
 
-use Filament\Actions\DeleteAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -33,7 +33,7 @@ class LeadersTable
                     ->sortable()
                     ->placeholder('—'),
 
-                TextColumn::make('registeredVoters_count')
+                TextColumn::make('registered_voters_count')
                     ->counts('registeredVoters')
                     ->label('Votantes')
                     ->sortable(),
@@ -55,4 +55,3 @@ class LeadersTable
             ->defaultSort('created_at', 'desc');
     }
 }
-

@@ -2,16 +2,16 @@
 
 namespace App\Filament\Resources\Voters\Schemas;
 
-use App\Enums\VoterStatus;
-use App\Enums\UserRole;
 use App\Enums\CampaignScope;
+use App\Enums\UserRole;
+use App\Enums\VoterStatus;
 use App\Models\Campaign;
 use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\User;
 use App\Rules\MaxTablesForPollingPlace;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -86,6 +86,7 @@ class VoterForm
                                     $set('campaign_scope_state', null);
                                     $set('campaign_department_id_state', null);
                                     $set('campaign_municipality_id_state', null);
+
                                     return;
                                 }
 
@@ -120,18 +121,23 @@ class VoterForm
                     ->schema([
                         Select::make('coordinator_user_id')
                             ->label('Coordinador')
-                            ->relationship(
-                                name: 'registeredBy.coordinator',
-                                titleAttribute: 'name',
-                                modifyQueryUsing: fn (Builder $query) => $query->role(UserRole::COORDINATOR->value)->orderBy('name'),
-                            )
+                            ->options(fn () => User::query()
+                                ->role(UserRole::COORDINATOR->value)
+                                ->orderBy('name')
+                                ->pluck('name', 'id'))
                             ->dehydrated(false)
                             ->searchable()
                             ->preload()
-                            ->required()
                             ->live()
                             ->afterStateUpdated(fn ($state, callable $set) => $set('registered_by', null))
-                            ->default(fn ($record) => $record?->registeredBy?->coordinator_user_id),
+                            ->default(fn () => auth()->user()?->hasRole(UserRole::COORDINATOR->value) ? auth()->id() : null)
+                            ->afterStateHydrated(function ($state, callable $set, $record): void {
+                                if (! $record || filled($state)) {
+                                    return;
+                                }
+
+                                $set('coordinator_user_id', $record->registeredBy?->coordinator_user_id);
+                            }),
 
                         Select::make('registered_by')
                             ->label('Líder')
@@ -149,7 +155,6 @@ class VoterForm
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->disabled(fn (Get $get): bool => ! $get('coordinator_user_id'))
                             ->helperText('El votante siempre debe pertenecer a un líder.'),
                     ])
                     ->columns(2),
@@ -172,11 +177,9 @@ class VoterForm
                             ->label('Número de Documento')
                             ->required()
                             ->maxLength(255)
-                            ->helperText('Debe ser único dentro de la campaña')
+                            ->helperText('Debe ser único en el sistema')
                             ->rule(fn (Get $get, $record) => Rule::unique('voters', 'document_number')
-                                ->where(fn ($query) => $query
-                                    ->where('campaign_id', $get('campaign_id'))
-                                    ->whereNull('deleted_at'))
+                                ->whereNull('deleted_at')
                                 ->ignore($record?->id)),
 
                         DatePicker::make('birth_date')

@@ -210,6 +210,9 @@ test('cannot create user with duplicate document', function () {
 
 test('can create user with role', function () {
     $role = Role::where('name', UserRole::LEADER->value)->first();
+    $coordinator = User::factory()->create();
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
 
     Livewire::test(CreateUser::class)
         ->fillForm([
@@ -220,6 +223,7 @@ test('can create user with role', function () {
             'password' => 'password123',
             'passwordConfirmation' => 'password123',
             'roles' => [$role->id],
+            'coordinator_user_id' => $coordinator->id,
             'campaignAssignments' => [], // Repeater vacío explícitamente
         ])
         ->call('create')

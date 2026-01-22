@@ -230,51 +230,62 @@
                                 </flux:field>
                             </div>
 
-                            <div class="grid gap-4 sm:grid-cols-2">
-                                <flux:field>
-                                    <flux:label for="polling_place_id">Puesto de votación</flux:label>
-                                    <flux:select
-                                        id="polling_place_id"
-                                        name="polling_place_id"
-                                        @if (! $invitation->municipality_id) disabled @endif
-                                    >
-                                        <option value="" selected>Selecciona un puesto (opcional)</option>
-                                        @if ($invitation->municipality_id)
-                                            @foreach (\App\Models\PollingPlace::query()->where('municipality_id', $invitation->municipality_id)->orderBy('name')->get(['id', 'name', 'max_tables']) as $pollingPlace)
-                                                <option
-                                                    value="{{ $pollingPlace->id }}"
-                                                    data-max-tables="{{ $pollingPlace->max_tables }}"
-                                                    @selected(old('polling_place_id') == $pollingPlace->id)
-                                                >
-                                                    {{ $pollingPlace->name }}
-                                                </option>
-                                            @endforeach
-                                        @endif
-                                    </flux:select>
-                                    <p id="polling_place_help" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                        @if ($invitation->municipality_id)
-                                            Selecciona el puesto de votación del votante (opcional).
-                                        @else
+	                            <div class="grid gap-4 sm:grid-cols-2">
+	                                <flux:field>
+	                                    <flux:label for="polling_place_id">Puesto de votación</flux:label>
+	                                    @if (! $invitation->municipality_id)
+	                                        <flux:select id="polling_place_id" name="polling_place_id" disabled>
+	                                            <option value="" selected>Selecciona un puesto (opcional)</option>
+	                                        </flux:select>
+	                                    @else
+	                                        <flux:select id="polling_place_id" name="polling_place_id">
+	                                            <option value="" selected>Selecciona un puesto (opcional)</option>
+	                                            @foreach (\App\Models\PollingPlace::query()->where('municipality_id', $invitation->municipality_id)->orderBy('name')->get(['id', 'name', 'max_tables']) as $pollingPlace)
+	                                                <option
+	                                                    value="{{ $pollingPlace->id }}"
+	                                                    data-max-tables="{{ $pollingPlace->max_tables }}"
+	                                                    @selected(old('polling_place_id') == $pollingPlace->id)
+	                                                >
+	                                                    {{ $pollingPlace->name }}
+	                                                </option>
+	                                            @endforeach
+	                                        </flux:select>
+	                                    @endif
+	                                    <p id="polling_place_help" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+	                                        @if ($invitation->municipality_id)
+	                                            Selecciona el puesto de votación del votante (opcional).
+	                                        @else
                                             Selecciona un municipio para ver los puestos disponibles.
                                         @endif
                                     </p>
                                 </flux:field>
 
-                                <flux:field>
-                                    <flux:label for="polling_table_number">Número de mesa</flux:label>
-                                    <flux:input
-                                        id="polling_table_number"
-                                        name="polling_table_number"
-                                        type="number"
-                                        inputmode="numeric"
-                                        min="1"
-                                        value="{{ old('polling_table_number') }}"
-                                        @if (! old('polling_place_id') && ! $invitation->municipality_id) disabled @endif
-                                    />
-                                    <p id="polling_table_help" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                        Debe ser menor o igual al máximo de mesas del puesto seleccionado.
-                                    </p>
-                                </flux:field>
+	                                <flux:field>
+	                                    <flux:label for="polling_table_number">Número de mesa</flux:label>
+	                                    @if (! old('polling_place_id') && ! $invitation->municipality_id)
+	                                        <flux:input
+	                                            id="polling_table_number"
+	                                            name="polling_table_number"
+	                                            type="number"
+	                                            inputmode="numeric"
+	                                            min="1"
+	                                            value="{{ old('polling_table_number') }}"
+	                                            disabled
+	                                        />
+	                                    @else
+	                                        <flux:input
+	                                            id="polling_table_number"
+	                                            name="polling_table_number"
+	                                            type="number"
+	                                            inputmode="numeric"
+	                                            min="1"
+	                                            value="{{ old('polling_table_number') }}"
+	                                        />
+	                                    @endif
+	                                    <p id="polling_table_help" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+	                                        Debe ser menor o igual al máximo de mesas del puesto seleccionado.
+	                                    </p>
+	                                </flux:field>
                             </div>
 
                             <flux:field>
