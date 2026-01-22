@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PublicCampaignLogoController extends Controller
 {
-    public function __invoke(string $filename): Response
+    public function __invoke(string $filename): StreamedResponse
     {
         $filename = trim($filename);
 
@@ -28,4 +28,3 @@ class PublicCampaignLogoController extends Controller
         ]);
     }
 }
-
