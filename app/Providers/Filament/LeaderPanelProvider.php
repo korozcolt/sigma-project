@@ -29,10 +29,12 @@ class LeaderPanelProvider extends PanelProvider
         return $panel
             ->id('leader')
             ->path('leader')
+            ->viteTheme('resources/css/filament/theme.css')
             ->brandLogo(asset('images/logo-sigma_small.webp'))
             ->brandLogoHeight('2.5rem')
             ->colors([
-                'primary' => Color::Green,
+                'primary' => Color::Orange,
+                'gray' => Color::Zinc,
             ])
             // Solo Dashboard para este panel; páginas específicas se agregarán luego
             ->pages([

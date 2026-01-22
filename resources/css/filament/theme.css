@@ -1,0 +1,92 @@
+@import '../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../app/Filament/**';
+@source '../../../resources/views/filament/**';
+
+@layer base {
+    :root {
+        --radius-md: 0.625rem;
+        --radius-lg: 0.875rem;
+        --radius-xl: 1.125rem;
+    }
+
+    .fi-body {
+        @apply bg-zinc-50 text-zinc-950;
+        background-image:
+            radial-gradient(800px 400px at 20% 0%, color-mix(in oklab, var(--primary-200) 30%, transparent) 0%, transparent 60%),
+            radial-gradient(700px 500px at 80% 10%, color-mix(in oklab, var(--primary-100) 35%, transparent) 0%, transparent 55%),
+            linear-gradient(to bottom, theme(colors.zinc.50), theme(colors.zinc.100));
+    }
+
+    .dark .fi-body {
+        @apply text-zinc-100;
+        background-color: #050b16;
+        background-image:
+            radial-gradient(900px 420px at 15% 0%, color-mix(in oklab, var(--primary-500) 22%, transparent) 0%, transparent 60%),
+            radial-gradient(780px 520px at 85% 10%, color-mix(in oklab, var(--primary-400) 18%, transparent) 0%, transparent 55%),
+            radial-gradient(900px 600px at 50% 120%, color-mix(in oklab, white 6%, transparent) 0%, transparent 60%);
+    }
+}
+
+@layer components {
+    .fi-topbar {
+        @apply border-b border-zinc-200/70 bg-white/75 backdrop-blur-xl;
+    }
+
+    .dark .fi-topbar {
+        @apply border-white/10 bg-zinc-950/40;
+    }
+
+    .fi-sidebar {
+        @apply border-r border-zinc-200/70 bg-white/70 backdrop-blur-xl;
+    }
+
+    .dark .fi-sidebar {
+        @apply border-white/10 bg-zinc-950/35;
+    }
+
+    .fi-sidebar-header,
+    .fi-topbar > div {
+        @apply rounded-xl;
+    }
+
+    .fi-section,
+    .fi-ta-ctn,
+    .fi-wi {
+        @apply rounded-2xl border border-zinc-200/70 bg-white/80 shadow-sm backdrop-blur;
+    }
+
+    .dark .fi-section,
+    .dark .fi-ta-ctn,
+    .dark .fi-wi {
+        @apply border-white/10 bg-white/5 shadow-none;
+    }
+
+    .fi-btn {
+        @apply rounded-xl;
+    }
+
+    .fi-btn.fi-btn-color-primary {
+        @apply shadow-sm;
+    }
+
+    .fi-input-wrp {
+        @apply rounded-xl border-zinc-200/80 bg-white/80;
+    }
+
+    .dark .fi-input-wrp {
+        @apply border-white/10 bg-white/5;
+    }
+
+    .fi-ta-row {
+        @apply transition-colors;
+    }
+
+    .fi-ta-row:hover {
+        @apply bg-zinc-950/5;
+    }
+
+    .dark .fi-ta-row:hover {
+        @apply bg-white/5;
+    }
+}

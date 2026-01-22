@@ -29,10 +29,12 @@ class CoordinatorPanelProvider extends PanelProvider
         return $panel
             ->id('coordinator')
             ->path('coordinator')
+            ->viteTheme('resources/css/filament/theme.css')
             ->brandLogo(asset('images/logo-sigma_small.webp'))
             ->brandLogoHeight('2.5rem')
             ->colors([
-                'primary' => Color::Blue,
+                'primary' => Color::Orange,
+                'gray' => Color::Zinc,
             ])
             ->pages([
                 Dashboard::class,

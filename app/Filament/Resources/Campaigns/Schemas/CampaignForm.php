@@ -6,6 +6,7 @@ use App\Enums\CampaignScope;
 use App\Enums\CampaignStatus;
 use App\Models\Department;
 use App\Models\Municipality;
+use Filament\Forms\Components\BaseFileUpload;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\KeyValue;
@@ -42,9 +43,23 @@ class CampaignForm
                             ->disk('public')
                             ->directory('campaign-logos')
                             ->visibility('public')
-                            ->getUploadedFileUrlUsing(fn (?string $state): ?string => filled($state)
-                                ? route('public.campaign-logo', ['filename' => basename($state)])
-                                : null)
+                            ->getUploadedFileUsing(static function (BaseFileUpload $component, string $file, string|array|null $storedFileNames): ?array {
+                                /** @var \Illuminate\Filesystem\FilesystemAdapter $storage */
+                                $storage = $component->getDisk();
+
+                                $shouldFetchFileInformation = $component->shouldFetchFileInformation();
+
+                                if ($shouldFetchFileInformation && ! $storage->exists($file)) {
+                                    return null;
+                                }
+
+                                return [
+                                    'name' => ($component->isMultiple() ? ($storedFileNames[$file] ?? null) : $storedFileNames) ?? basename($file),
+                                    'size' => $shouldFetchFileInformation ? $storage->size($file) : 0,
+                                    'type' => $shouldFetchFileInformation ? $storage->mimeType($file) : null,
+                                    'url' => route('public.campaign-logo', ['filename' => basename($file)]),
+                                ];
+                            })
                             ->columnSpanFull()
                             ->helperText('Sube el logo de la campaña (máx. 2MB). Se mostrará en los reportes y en la aplicación.'),
                         Textarea::make('description')
