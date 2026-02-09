@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CampaignScope;
 use App\Enums\CampaignStatus;
+use App\Enums\ElectionType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +25,7 @@ class Campaign extends Model
      */
     protected $fillable = [
         'name',
+        'election_type',
         'logo_path',
         'description',
         'candidate_name',
@@ -50,6 +52,27 @@ class Campaign extends Model
                 $campaign->created_by = auth()->id();
             }
         });
+
+        static::saving(function ($campaign) {
+            if (! $campaign->election_type && $campaign->scope instanceof CampaignScope) {
+                $campaign->election_type = ElectionType::fromScope($campaign->scope);
+            }
+
+            if ($campaign->election_type instanceof ElectionType) {
+                $campaign->scope = $campaign->election_type->scope();
+            } elseif (is_string($campaign->election_type) && $campaign->election_type !== '') {
+                $campaign->scope = ElectionType::from($campaign->election_type)->scope();
+            }
+
+            if ($campaign->scope === CampaignScope::Nacional) {
+                $campaign->department_id = null;
+                $campaign->municipality_id = null;
+            }
+
+            if ($campaign->scope === CampaignScope::Departamental) {
+                $campaign->municipality_id = null;
+            }
+        });
     }
 
     /**
@@ -63,6 +86,7 @@ class Campaign extends Model
             'election_date' => 'date',
             'status' => CampaignStatus::class,
             'scope' => CampaignScope::class,
+            'election_type' => ElectionType::class,
             'settings' => 'array',
         ];
     }

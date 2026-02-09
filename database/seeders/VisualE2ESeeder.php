@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\CampaignStatus;
+use App\Enums\ElectionType;
 use App\Models\Campaign;
 use App\Models\Department;
 use App\Models\ElectionEvent;
@@ -54,8 +55,8 @@ class VisualE2ESeeder extends Seeder
         $campaign = Campaign::query()->firstOrCreate(
             ['name' => 'Campaña Visual E2E'],
             [
+                'election_type' => ElectionType::PRESIDENT->value,
                 'status' => CampaignStatus::ACTIVE,
-                'scope' => 'nacional',
                 'candidate_name' => 'Candidato Visual',
                 'description' => 'Campaña para pruebas visuales E2E.',
                 'start_date' => now()->subDays(7),

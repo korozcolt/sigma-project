@@ -1,20 +1,15 @@
 <?php
 
 use App\Enums\CampaignScope;
+use App\Enums\ElectionType;
 use App\Models\Campaign;
 
-test('campaign can be created with scope', function () {
+test('campaign scope is derived from election type', function () {
     $campaign = Campaign::factory()->create([
-        'scope' => CampaignScope::Municipal,
+        'election_type' => ElectionType::MAYOR,
     ]);
 
     expect($campaign->scope)->toBe(CampaignScope::Municipal);
-});
-
-test('campaign scope defaults to municipal', function () {
-    $campaign = Campaign::factory()->create();
-
-    expect($campaign->scope)->toBeInstanceOf(CampaignScope::class);
 });
 
 test('campaign can filter by scope using scopes', function () {
@@ -38,4 +33,13 @@ test('campaign scope options returns array', function () {
 
     expect($options)->toBeArray()
         ->and($options)->toHaveKeys(['municipal', 'departamental', 'regional']);
+});
+
+test('election type maps to scope correctly', function () {
+    expect(ElectionType::MAYOR->scope())->toBe(CampaignScope::Municipal)
+        ->and(ElectionType::GOVERNOR->scope())->toBe(CampaignScope::Departamental)
+        ->and(ElectionType::HOUSE->scope())->toBe(CampaignScope::Departamental)
+        ->and(ElectionType::SENATE->scope())->toBe(CampaignScope::Nacional)
+        ->and(ElectionType::PRESIDENT->scope())->toBe(CampaignScope::Nacional)
+        ->and(ElectionType::OTHER->scope())->toBe(CampaignScope::Regional);
 });

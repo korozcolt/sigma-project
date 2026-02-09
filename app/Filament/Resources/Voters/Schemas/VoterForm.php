@@ -180,9 +180,33 @@ class VoterForm
                             ->required()
                             ->maxLength(255)
                             ->helperText('Debe ser único en el sistema')
-                            ->rule(fn (Get $get, $record) => Rule::unique('voters', 'document_number')
-                                ->whereNull('deleted_at')
-                                ->ignore($record?->id)),
+                            ->rule(function (Get $get, $record) {
+                                return [
+                                    Rule::unique('voters', 'document_number')
+                                        ->whereNull('deleted_at')
+                                        ->ignore($record?->id),
+                                    function (string $attribute, $value, $fail) use ($record) {
+                                        $existing = \App\Models\Voter::withTrashed()
+                                            ->where('document_number', $value)
+                                            ->when($record?->id, fn ($q) => $q->where('id', '!=', $record->id))
+                                            ->first();
+
+                                        if (! $existing) {
+                                            return;
+                                        }
+
+                                        $currentCampaignId = \App\Services\CampaignContext::currentCampaignId();
+                                        if ($currentCampaignId && $existing->campaign_id === $currentCampaignId) {
+                                            $leader = $existing->user ?? $existing->registeredBy;
+                                            $leaderName = $leader?->name ?? 'otro líder';
+                                            $fail("El votante ya está registrado en esta campaña por {$leaderName}.");
+                                            return;
+                                        }
+
+                                        $fail("El votante ya está registrado en otra campaña.");
+                                    },
+                                ];
+                            }),
 
                         DatePicker::make('birth_date')
                             ->label('Fecha de Nacimiento')

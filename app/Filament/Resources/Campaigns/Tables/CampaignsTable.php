@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Campaigns\Tables;
 
 use App\Enums\CampaignScope;
 use App\Enums\CampaignStatus;
+use App\Enums\ElectionType;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -28,6 +29,10 @@ class CampaignsTable
                 TextColumn::make('candidate_name')
                     ->label('Candidato')
                     ->searchable()
+                    ->sortable(),
+                TextColumn::make('election_type')
+                    ->label('Tipo de Elección')
+                    ->badge()
                     ->sortable(),
                 TextColumn::make('status')
                     ->label('Estado')
@@ -74,6 +79,9 @@ class CampaignsTable
                 SelectFilter::make('status')
                     ->label('Estado')
                     ->options(CampaignStatus::class),
+                SelectFilter::make('election_type')
+                    ->label('Tipo de Elección')
+                    ->options(ElectionType::options()),
                 SelectFilter::make('scope')
                     ->label('Alcance')
                     ->options(CampaignScope::options()),

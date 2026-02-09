@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\CampaignScope;
 use App\Enums\CampaignStatus;
+use App\Enums\ElectionType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -30,10 +31,13 @@ class CampaignFactory extends Factory
             'end_date' => fake()->optional()->dateTimeBetween($startDate, $electionDate),
             'election_date' => $electionDate,
             'status' => CampaignStatus::DRAFT,
-            'scope' => fake()->randomElement([
-                CampaignScope::Municipal,
-                CampaignScope::Departamental,
-                CampaignScope::Regional,
+            'election_type' => fake()->randomElement([
+                ElectionType::MAYOR,
+                ElectionType::GOVERNOR,
+                ElectionType::HOUSE,
+                ElectionType::SENATE,
+                ElectionType::PRESIDENT,
+                ElectionType::OTHER,
             ]),
             'settings' => [
                 'welcome_message' => '¡Bienvenido a nuestra campaña!',
@@ -82,7 +86,7 @@ class CampaignFactory extends Factory
     public function municipal(): static
     {
         return $this->state(fn (array $attributes) => [
-            'scope' => CampaignScope::Municipal,
+            'election_type' => ElectionType::MAYOR,
         ]);
     }
 
@@ -92,7 +96,7 @@ class CampaignFactory extends Factory
     public function departamental(): static
     {
         return $this->state(fn (array $attributes) => [
-            'scope' => CampaignScope::Departamental,
+            'election_type' => ElectionType::GOVERNOR,
         ]);
     }
 
@@ -102,7 +106,7 @@ class CampaignFactory extends Factory
     public function regional(): static
     {
         return $this->state(fn (array $attributes) => [
-            'scope' => CampaignScope::Regional,
+            'election_type' => ElectionType::OTHER,
         ]);
     }
 }

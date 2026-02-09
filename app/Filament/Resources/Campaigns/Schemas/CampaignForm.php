@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Campaigns\Schemas;
 
 use App\Enums\CampaignScope;
 use App\Enums\CampaignStatus;
+use App\Enums\ElectionType;
 use App\Models\Department;
 use App\Models\Municipality;
 use Filament\Forms\Components\BaseFileUpload;
@@ -11,6 +12,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -31,6 +33,22 @@ class CampaignForm
                             ->required()
                             ->maxLength(255)
                             ->columnSpanFull(),
+                        Select::make('election_type')
+                            ->label('Tipo de Elección')
+                            ->options(ElectionType::options())
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function (string $state, callable $set): void {
+                                $scope = ElectionType::from($state)->scope()->value;
+                                if ($scope === CampaignScope::Departamental->value) {
+                                    $set('municipality_id', null);
+                                }
+
+                                if ($scope === CampaignScope::Nacional->value) {
+                                    $set('department_id', null);
+                                    $set('municipality_id', null);
+                                }
+                            }),
                         FileUpload::make('logo_path')
                             ->label('Logo de la Campaña')
                             ->image()
@@ -75,23 +93,17 @@ class CampaignForm
                             ->options(CampaignStatus::class)
                             ->default(CampaignStatus::DRAFT)
                             ->required(),
-                        Select::make('scope')
+                        Placeholder::make('scope_label')
                             ->label('Alcance de la Campaña')
-                            ->options(CampaignScope::options())
-                            ->default(CampaignScope::Municipal->value)
-                            ->required()
-                            ->helperText('Define el nivel territorial de la campaña')
-                            ->live()
-                            ->afterStateUpdated(function (string $state, callable $set): void {
-                                if ($state === CampaignScope::Departamental->value) {
-                                    $set('municipality_id', null);
+                            ->content(function (Get $get): string {
+                                $type = $get('election_type');
+                                if (! $type) {
+                                    return 'Defina el tipo de elección.';
                                 }
 
-                                if ($state === CampaignScope::Nacional->value) {
-                                    $set('department_id', null);
-                                    $set('municipality_id', null);
-                                }
-                            }),
+                                return ElectionType::from($type)->scope()->label();
+                            })
+                            ->helperText('El alcance se define automáticamente según el tipo de elección.'),
                     ])
                     ->columns(2),
 
@@ -102,14 +114,30 @@ class CampaignForm
                             ->options(fn () => Department::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->preload()
-                            ->required(fn (Get $get): bool => in_array($get('scope'), [
-                                CampaignScope::Municipal->value,
-                                CampaignScope::Departamental->value,
-                            ], true))
-                            ->visible(fn (Get $get): bool => in_array($get('scope'), [
-                                CampaignScope::Municipal->value,
-                                CampaignScope::Departamental->value,
-                            ], true))
+                            ->required(function (Get $get): bool {
+                                $type = $get('election_type');
+                                if (! $type) {
+                                    return false;
+                                }
+
+                                $scope = ElectionType::from($type)->scope()->value;
+                                return in_array($scope, [
+                                    CampaignScope::Municipal->value,
+                                    CampaignScope::Departamental->value,
+                                ], true);
+                            })
+                            ->visible(function (Get $get): bool {
+                                $type = $get('election_type');
+                                if (! $type) {
+                                    return false;
+                                }
+
+                                $scope = ElectionType::from($type)->scope()->value;
+                                return in_array($scope, [
+                                    CampaignScope::Municipal->value,
+                                    CampaignScope::Departamental->value,
+                                ], true);
+                            })
                             ->hidden(fn (): bool => ! DbSchema::hasColumn('campaigns', 'department_id'))
                             ->live()
                             ->afterStateUpdated(fn ($state, callable $set) => $set('municipality_id', null))
@@ -125,8 +153,22 @@ class CampaignForm
                                 : [])
                             ->searchable()
                             ->preload()
-                            ->required(fn (Get $get): bool => $get('scope') === CampaignScope::Municipal->value)
-                            ->visible(fn (Get $get): bool => $get('scope') === CampaignScope::Municipal->value)
+                            ->required(function (Get $get): bool {
+                                $type = $get('election_type');
+                                if (! $type) {
+                                    return false;
+                                }
+
+                                return ElectionType::from($type)->scope()->value === CampaignScope::Municipal->value;
+                            })
+                            ->visible(function (Get $get): bool {
+                                $type = $get('election_type');
+                                if (! $type) {
+                                    return false;
+                                }
+
+                                return ElectionType::from($type)->scope()->value === CampaignScope::Municipal->value;
+                            })
                             ->hidden(fn (): bool => ! DbSchema::hasColumn('campaigns', 'municipality_id'))
                             ->disabled(fn (Get $get): bool => ! filled($get('department_id')))
                             ->helperText('Define el municipio objetivo (solo para campañas municipales).'),
