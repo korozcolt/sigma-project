@@ -33,6 +33,13 @@ class CampaignsTable
                 TextColumn::make('election_type')
                     ->label('Tipo de Elección')
                     ->badge()
+                    ->formatStateUsing(function ($state) {
+                        if ($state instanceof ElectionType) {
+                            return $state->label();
+                        }
+
+                        return ElectionType::tryFrom((string) $state)?->label() ?? $state;
+                    })
                     ->sortable(),
                 TextColumn::make('status')
                     ->label('Estado')
@@ -41,6 +48,13 @@ class CampaignsTable
                 TextColumn::make('scope')
                     ->label('Alcance')
                     ->badge()
+                    ->formatStateUsing(function ($state) {
+                        if ($state instanceof CampaignScope) {
+                            return $state->label();
+                        }
+
+                        return CampaignScope::tryFrom((string) $state)?->label() ?? $state;
+                    })
                     ->sortable(),
                 TextColumn::make('start_date')
                     ->label('Fecha Inicio')

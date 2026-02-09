@@ -39,13 +39,33 @@ class ViewMessageBatch extends ViewRecord
                             ->label('Plantilla'),
                         Components\TextEntry::make('type')
                             ->label('Tipo')
-                            ->badge(),
+                            ->badge()
+                            ->formatStateUsing(fn (string $state): string => match ($state) {
+                                'birthday' => 'Cumpleaños',
+                                'reminder' => 'Recordatorio',
+                                'campaign' => 'Campaña',
+                                'custom' => 'Personalizado',
+                                default => $state,
+                            }),
                         Components\TextEntry::make('channel')
                             ->label('Canal')
-                            ->badge(),
+                            ->badge()
+                            ->formatStateUsing(fn (string $state): string => match ($state) {
+                                'whatsapp' => 'WhatsApp',
+                                'sms' => 'SMS',
+                                'email' => 'Email',
+                                default => $state,
+                            }),
                         Components\TextEntry::make('status')
                             ->label('Estado')
-                            ->badge(),
+                            ->badge()
+                            ->formatStateUsing(fn (string $state): string => match ($state) {
+                                'pending' => 'Pendiente',
+                                'processing' => 'Procesando',
+                                'completed' => 'Completado',
+                                'failed' => 'Fallido',
+                                default => $state,
+                            }),
                     ])->columns(3),
 
                 Components\Section::make('Estadísticas')

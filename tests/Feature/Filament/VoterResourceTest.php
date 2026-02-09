@@ -450,9 +450,6 @@ test('can render view voter page', function () {
 });
 
 test('view page displays voter information', function () {
-    // TODO: Configure infolist schema in VoterResource to display fields
-    $this->markTestSkipped('Requires infolist configuration in VoterResource');
-
     $municipality = Municipality::factory()->create();
     $neighborhood = Neighborhood::factory()->for($municipality)->create();
     $campaign = Campaign::factory()->create();

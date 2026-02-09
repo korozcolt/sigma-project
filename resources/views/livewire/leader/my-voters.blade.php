@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Voter;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
@@ -17,6 +18,22 @@ new class extends Component {
     #[Url]
     public string $status = 'all';
 
+    public array $exportColumns = [
+        'cedula',
+        'nombre_completo',
+        'telefono',
+        'telefono_secundario',
+        'email',
+        'municipio',
+        'barrio',
+        'direccion',
+        'puesto_votacion',
+        'mesa',
+        'estado',
+        'fecha_registro',
+        'fecha_nacimiento',
+    ];
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -27,13 +44,12 @@ new class extends Component {
         $this->resetPage();
     }
 
-    public function with(): array
+    protected function buildQuery(bool $applyFilters = true): Builder
     {
         $query = Voter::where('registered_by', auth()->id())
-            ->with(['municipality', 'neighborhood']);
+            ->with(['municipality', 'neighborhood', 'pollingPlace']);
 
-        // Aplicar búsqueda
-        if ($this->search) {
+        if ($applyFilters && $this->search) {
             $query->where(function ($q) {
                 $q->where('first_name', 'like', "%{$this->search}%")
                     ->orWhere('last_name', 'like', "%{$this->search}%")
@@ -42,8 +58,7 @@ new class extends Component {
             });
         }
 
-        // Aplicar filtro de estado
-        if ($this->status !== 'all') {
+        if ($applyFilters && $this->status !== 'all') {
             match ($this->status) {
                 'confirmed' => $query->whereNotNull('confirmed_at'),
                 'pending' => $query->whereNull('confirmed_at'),
@@ -52,7 +67,68 @@ new class extends Component {
             };
         }
 
-        $voters = $query->latest()->paginate(20);
+        return $query;
+    }
+
+    protected function columnLabels(): array
+    {
+        return [
+            'cedula' => 'Cédula',
+            'nombre_completo' => 'Nombre Completo',
+            'telefono' => 'Teléfono',
+            'telefono_secundario' => 'Teléfono Secundario',
+            'email' => 'Email',
+            'municipio' => 'Municipio',
+            'barrio' => 'Barrio',
+            'direccion' => 'Dirección',
+            'puesto_votacion' => 'Puesto de Votación',
+            'mesa' => 'Mesa',
+            'estado' => 'Estado',
+            'fecha_registro' => 'Fecha Registro',
+            'fecha_nacimiento' => 'Fecha Nacimiento',
+        ];
+    }
+
+    protected function getSelectedColumns(): array
+    {
+        $columns = array_values(array_filter($this->exportColumns ?? []));
+
+        if (empty($columns)) {
+            return array_keys($this->columnLabels());
+        }
+
+        return $columns;
+    }
+
+    protected function exportRowFor(Voter $voter, array $columns): array
+    {
+        $values = [];
+
+        foreach ($columns as $column) {
+            $values[] = match ($column) {
+                'cedula' => $voter->document_number,
+                'nombre_completo' => $voter->full_name,
+                'telefono' => $voter->phone,
+                'telefono_secundario' => $voter->secondary_phone,
+                'email' => $voter->email,
+                'municipio' => $voter->municipality?->name ?? 'N/A',
+                'barrio' => $voter->neighborhood?->name ?? 'N/A',
+                'direccion' => $voter->address,
+                'puesto_votacion' => $voter->pollingPlace?->name ?? 'N/A',
+                'mesa' => $voter->polling_table_number,
+                'estado' => $voter->status->getLabel(),
+                'fecha_registro' => $voter->created_at?->format('d/m/Y H:i'),
+                'fecha_nacimiento' => $voter->birth_date?->format('d/m/Y'),
+                default => null,
+            };
+        }
+
+        return $values;
+    }
+
+    public function with(): array
+    {
+        $voters = $this->buildQuery()->latest()->paginate(20);
 
         // Calcular estadísticas
         $total = Voter::where('registered_by', auth()->id())->count();
@@ -63,6 +139,64 @@ new class extends Component {
             'total' => $total,
             'confirmed' => $confirmed,
         ];
+    }
+
+    public function exportVoters()
+    {
+        $query = $this->buildQuery()->latest();
+        $columns = $this->getSelectedColumns();
+        $labels = $this->columnLabels();
+
+        $filename = 'mis-votantes-filtrados-' . now()->format('Ymd-His') . '.csv';
+
+        return response()->streamDownload(function () use ($query, $columns, $labels) {
+            $handle = fopen('php://output', 'w');
+            if (! $handle) {
+                return;
+            }
+
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, array_map(fn ($column) => $labels[$column] ?? $column, $columns));
+
+            $query->chunk(1000, function ($voters) use ($handle, $columns) {
+                foreach ($voters as $voter) {
+                    fputcsv($handle, $this->exportRowFor($voter, $columns));
+                }
+            });
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function exportAllVoters()
+    {
+        $query = $this->buildQuery(false)->latest();
+        $columns = $this->getSelectedColumns();
+        $labels = $this->columnLabels();
+
+        $filename = 'mis-votantes-todos-' . now()->format('Ymd-His') . '.csv';
+
+        return response()->streamDownload(function () use ($query, $columns, $labels) {
+            $handle = fopen('php://output', 'w');
+            if (! $handle) {
+                return;
+            }
+
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, array_map(fn ($column) => $labels[$column] ?? $column, $columns));
+
+            $query->chunk(1000, function ($voters) use ($handle, $columns) {
+                foreach ($voters as $voter) {
+                    fputcsv($handle, $this->exportRowFor($voter, $columns));
+                }
+            });
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 }; ?>
 
@@ -82,6 +216,39 @@ new class extends Component {
 
         <!-- Search and Filter -->
         <div class="flex flex-col gap-3">
+            <div class="flex items-center justify-between gap-2">
+                <div class="text-sm text-zinc-500 dark:text-zinc-400">
+                    Exporta tus votantes según el filtro actual
+                </div>
+                <div class="flex items-center gap-2">
+                    <flux:button wire:click="exportVoters" variant="outline">
+                        Exportar filtrados
+                    </flux:button>
+                    <flux:button wire:click="exportAllVoters" variant="outline">
+                        Exportar todos
+                    </flux:button>
+                </div>
+            </div>
+
+            <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
+                <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Columnas del CSV</p>
+                <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <flux:checkbox wire:model.live="exportColumns" value="cedula" label="Cédula" />
+                    <flux:checkbox wire:model.live="exportColumns" value="nombre_completo" label="Nombre" />
+                    <flux:checkbox wire:model.live="exportColumns" value="telefono" label="Teléfono" />
+                    <flux:checkbox wire:model.live="exportColumns" value="telefono_secundario" label="Teléfono Secundario" />
+                    <flux:checkbox wire:model.live="exportColumns" value="email" label="Email" />
+                    <flux:checkbox wire:model.live="exportColumns" value="municipio" label="Municipio" />
+                    <flux:checkbox wire:model.live="exportColumns" value="barrio" label="Barrio" />
+                    <flux:checkbox wire:model.live="exportColumns" value="direccion" label="Dirección" />
+                    <flux:checkbox wire:model.live="exportColumns" value="puesto_votacion" label="Puesto de Votación" />
+                    <flux:checkbox wire:model.live="exportColumns" value="mesa" label="Mesa" />
+                    <flux:checkbox wire:model.live="exportColumns" value="estado" label="Estado" />
+                    <flux:checkbox wire:model.live="exportColumns" value="fecha_registro" label="Fecha Registro" />
+                    <flux:checkbox wire:model.live="exportColumns" value="fecha_nacimiento" label="Fecha Nacimiento" />
+                </div>
+            </div>
+
             <flux:input
                 wire:model.live.debounce.300ms="search"
                 placeholder="Buscar por nombre, documento o teléfono..."

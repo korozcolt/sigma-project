@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum CampaignScope: string
+use Filament\Support\Contracts\HasLabel;
+
+enum CampaignScope: string implements HasLabel
 {
     case Nacional = 'nacional';
     case Departamental = 'departamental';
@@ -17,6 +19,11 @@ enum CampaignScope: string
             self::Municipal => 'Municipal',
             self::Regional => 'Regional',
         };
+    }
+
+    public function getLabel(): ?string
+    {
+        return $this->label();
     }
 
     public static function options(): array

@@ -11,6 +11,7 @@ use App\Models\Campaign;
 use App\Models\Municipality;
 use App\Models\Neighborhood;
 use App\Models\User;
+use App\Services\CampaignContext;
 use Filament\Forms\Components\Repeater;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
@@ -27,8 +28,13 @@ beforeEach(function () {
     // Usuario administrador para los tests
     $this->admin = User::factory()->create();
     $this->admin->assignRole(UserRole::SUPER_ADMIN->value);
+    $this->admin->forceFill([
+        'municipality_id' => null,
+        'neighborhood_id' => null,
+    ])->save();
 
     actingAs($this->admin);
+    CampaignContext::setCampaignId(null);
 });
 
 // ============ Tests de Listado ============
@@ -105,9 +111,6 @@ test('can filter users by campaign', function () {
 });
 
 test('can filter users by municipality', function () {
-    // TODO: Fix filter to exclude users from beforeEach that may have random municipality_id
-    $this->markTestSkipped('Filter includes admin user from beforeEach with random municipality');
-
     $municipality = Municipality::factory()->create();
 
     $userInMunicipality = User::factory()->create([
@@ -116,6 +119,10 @@ test('can filter users by municipality', function () {
         'document_number' => '1234567890',
     ]);
     $userNotInMunicipality = User::factory()->create();
+    $userNotInMunicipality->forceFill([
+        'municipality_id' => null,
+        'neighborhood_id' => null,
+    ])->save();
 
     Livewire::test(ListUsers::class)
         ->filterTable('municipality_id', $municipality->id)
@@ -234,9 +241,6 @@ test('can create user with role', function () {
 });
 
 test('can create user with campaigns', function () {
-    // TODO: Fix repeater relationship with pivot data handling
-    $this->markTestSkipped('Repeater with relationship and pivot data needs investigation');
-
     $campaign1 = Campaign::factory()->create(['created_by' => $this->admin->id]);
     $campaign2 = Campaign::factory()->create(['created_by' => $this->admin->id]);
     $role = Role::first();
@@ -252,8 +256,8 @@ test('can create user with campaigns', function () {
             'password' => 'password123',
             'passwordConfirmation' => 'password123',
             'campaignAssignments' => [
-                0 => ['id' => $campaign1->id, 'role_id' => $role->id],
-                1 => ['id' => $campaign2->id, 'role_id' => $role->id],
+                0 => ['campaign_id' => $campaign1->id, 'role_id' => $role->id],
+                1 => ['campaign_id' => $campaign2->id, 'role_id' => $role->id],
             ],
         ])
         ->call('create')
@@ -397,9 +401,6 @@ test('can update user roles', function () {
 });
 
 test('can update user campaigns', function () {
-    // TODO: Fix repeater relationship with pivot data handling
-    $this->markTestSkipped('Repeater with relationship and pivot data needs investigation');
-
     $user = User::factory()->create();
     $campaign1 = Campaign::factory()->create(['created_by' => $this->admin->id]);
     $campaign2 = Campaign::factory()->create(['created_by' => $this->admin->id]);
@@ -407,10 +408,12 @@ test('can update user campaigns', function () {
 
     $user->campaigns()->attach($campaign1, ['role_id' => $role->id]);
 
+    $undoRepeaterFake = Repeater::fake();
+
     Livewire::test(EditUser::class, ['record' => $user->id])
         ->fillForm([
             'campaignAssignments' => [
-                ['id' => $campaign2->id, 'role_id' => $role->id],
+                ['campaign_id' => $campaign2->id, 'role_id' => $role->id],
             ],
         ])
         ->call('save')
@@ -419,6 +422,8 @@ test('can update user campaigns', function () {
     $user->refresh();
 
     expect($user->campaigns->pluck('id'))->toContain($campaign2->id);
+
+    $undoRepeaterFake();
 });
 
 test('cannot edit user with duplicate email', function () {
@@ -443,9 +448,6 @@ test('can render view user page', function () {
 });
 
 test('view page displays user information', function () {
-    // TODO: Configure infolist schema in UserResource to display fields
-    $this->markTestSkipped('Requires infolist configuration in UserResource');
-
     $municipality = Municipality::factory()->create();
     $neighborhood = Neighborhood::factory()->for($municipality)->create();
 

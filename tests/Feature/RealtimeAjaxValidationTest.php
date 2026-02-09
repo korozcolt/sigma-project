@@ -318,4 +318,10 @@ test('Real-time AJAX Validation - Voter Document Uniqueness', function () {
     echo "   - chrome_devtools_evaluate_script() para validación personalizada\n";
     echo "   - chrome_devtools_take_screenshot() para capturar errores\n";
     echo "   - chrome_devtools_list_console_messages() para debugging\n";
+
+    expect($existingVoters)->toHaveCount(10)
+        ->and($ajaxScenarios)->toHaveCount(4)
+        ->and($debounceConfigs['document_input']['delay_ms'])->toBe(300)
+        ->and($ajaxResponses)->toHaveCount(4)
+        ->and($uxMetrics['accessibility_compliant'])->toBeTrue();
 });

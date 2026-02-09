@@ -6,12 +6,16 @@ use App\Enums\VoterStatus;
 use App\Exports\VotersExport;
 use App\Filament\Resources\Voters\VoterResource;
 use App\Services\CampaignContext;
+use App\Services\VoterDuplicateReport;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Storage;
 
 class ListVoters extends ListRecords
 {
@@ -119,6 +123,110 @@ class ListVoters extends ListRecords
                     );
 
                     return $export->download('votantes.xlsx');
+                }),
+
+            Action::make('duplicatesReport')
+                ->label('Reporte de Duplicados')
+                ->icon('heroicon-o-document-magnifying-glass')
+                ->color('warning')
+                ->modalHeading('Reporte de duplicados por cédula')
+                ->modalSubmitActionLabel('Generar')
+                ->form([
+                    Select::make('resultado')
+                        ->label('Resultado')
+                        ->options([
+                            'encontrados' => 'Solo encontrados',
+                            'no_encontrados' => 'Solo no encontrados',
+                            'todos' => 'Encontrados + no encontrados',
+                        ])
+                        ->default('encontrados')
+                        ->required(),
+                    FileUpload::make('cedulas_csv')
+                        ->label('CSV de cédulas')
+                        ->disk('local')
+                        ->directory('reports')
+                        ->preserveFilenames()
+                        ->acceptedFileTypes([
+                            'text/csv',
+                            'text/plain',
+                            'application/vnd.ms-excel',
+                        ])
+                        ->helperText('CSV con una sola columna: cedula.')
+                        ->required(),
+                ])
+                ->action(function (array $data) {
+                    $campaignId = CampaignContext::currentCampaignId();
+
+                    if (! $campaignId) {
+                        Notification::make()
+                            ->title('Seleccione una campaña activa')
+                            ->danger()
+                            ->send();
+
+                        return null;
+                    }
+
+                    $path = $data['cedulas_csv'] ?? null;
+                    if (! $path) {
+                        Notification::make()
+                            ->title('No se encontró el archivo cargado')
+                            ->danger()
+                            ->send();
+
+                        return null;
+                    }
+
+                    if (! Storage::disk('local')->exists($path)) {
+                        Notification::make()
+                            ->title('El archivo cargado ya no está disponible')
+                            ->danger()
+                            ->send();
+
+                        return null;
+                    }
+
+                    $report = new VoterDuplicateReport();
+                    $documentNumbers = $report->parseDocumentNumbers($path, 'local');
+
+                    if (empty($documentNumbers)) {
+                        Notification::make()
+                            ->title('El archivo no tiene cédulas válidas')
+                            ->warning()
+                            ->send();
+
+                        return null;
+                    }
+
+                    $resultMode = $data['resultado'] ?? 'encontrados';
+                    $includeFound = $resultMode === 'encontrados' || $resultMode === 'todos';
+                    $includeMissing = $resultMode === 'no_encontrados' || $resultMode === 'todos';
+
+                    $rows = $report->buildRows(
+                        $documentNumbers,
+                        $campaignId,
+                        includeFound: $includeFound,
+                        includeMissing: $includeMissing
+                    );
+
+                    $filename = 'reporte-duplicados-' . now()->format('Ymd-His') . '.csv';
+
+                    return response()->streamDownload(function () use ($rows) {
+                        $handle = fopen('php://output', 'w');
+                        if (! $handle) {
+                            return;
+                        }
+
+                        fwrite($handle, "\xEF\xBB\xBF");
+                        fputcsv($handle, ['cedula', 'lider', 'campana']);
+
+                        foreach ($rows as $row) {
+                            fputcsv($handle, $row);
+                        }
+
+                        fclose($handle);
+                    }, $filename, [
+                        'Content-Type' => 'text/csv; charset=UTF-8',
+                    ]);
                 }),
         ];
     }

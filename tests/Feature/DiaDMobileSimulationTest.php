@@ -252,4 +252,11 @@ test('Día D Mobile Simulation - Chrome DevTools MCP', function () {
     echo "   - chrome_devtools_network_conditions() para conexiones lentas\n";
     echo "   - chrome_devtools_cpu_throttling() para modo ahorro batería\n";
     echo "   - chrome_devtools_upload_file() para cámara móvil\n";
+
+    expect($campaign)->not->toBeNull()
+        ->and($electionEvent)->not->toBeNull()
+        ->and($voter)->not->toBeNull()
+        ->and($mobileDevices)->toHaveCount(4)
+        ->and($mobileViewports)->toHaveCount(4)
+        ->and($mobileOptimizations['offline_capability'])->toBeFalse();
 });

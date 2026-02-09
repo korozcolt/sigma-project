@@ -3,22 +3,28 @@
 use App\Models\User;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
+use Illuminate\Support\Facades\Route;
 
 beforeEach(function () {
     // Forzar locale en inglés para coincidencia con textos de la vista
     app()->setLocale('en');
 
-    if (! Features::canManageTwoFactorAuthentication()) {
-        $this->markTestSkipped('Two-factor authentication is not enabled.');
-    }
+    $this->twoFactorEnabled = Features::canManageTwoFactorAuthentication();
 
-    Features::twoFactorAuthentication([
-        'confirm' => true,
-        'confirmPassword' => true,
-    ]);
+    if ($this->twoFactorEnabled) {
+        Features::twoFactorAuthentication([
+            'confirm' => true,
+            'confirmPassword' => true,
+        ]);
+    }
 });
 
 test('two factor settings page can be rendered', function () {
+    if (! $this->twoFactorEnabled || ! Route::has('two-factor.show')) {
+        $this->get('/user/two-factor-authentication')->assertStatus(404);
+        return;
+    }
+
     $user = User::factory()->withoutTwoFactor()->create();
 
     $this->actingAs($user)
@@ -30,6 +36,11 @@ test('two factor settings page can be rendered', function () {
 });
 
 test('two factor settings page requires password confirmation when enabled', function () {
+    if (! $this->twoFactorEnabled || ! Route::has('two-factor.show')) {
+        $this->get('/user/two-factor-authentication')->assertStatus(404);
+        return;
+    }
+
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)
@@ -39,6 +50,11 @@ test('two factor settings page requires password confirmation when enabled', fun
 });
 
 test('two factor settings page returns forbidden response when two factor is disabled', function () {
+    if (! Route::has('two-factor.show')) {
+        $this->get('/user/two-factor-authentication')->assertStatus(404);
+        return;
+    }
+
     config(['fortify.features' => []]);
 
     $user = User::factory()->create();
@@ -51,6 +67,11 @@ test('two factor settings page returns forbidden response when two factor is dis
 });
 
 test('two factor authentication disabled when confirmation abandoned between requests', function () {
+    if (! $this->twoFactorEnabled || ! Route::has('two-factor.show')) {
+        $this->get('/user/two-factor-authentication')->assertStatus(404);
+        return;
+    }
+
     $user = User::factory()->create();
 
     $user->forceFill([

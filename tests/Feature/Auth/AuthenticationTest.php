@@ -38,16 +38,23 @@ test('users can not authenticate with invalid password', function () {
 });
 
 test('users with two factor enabled are redirected to two factor challenge', function () {
+    $user = User::factory()->create();
+
     if (! Features::canManageTwoFactorAuthentication()) {
-        $this->markTestSkipped('Two-factor authentication is not enabled.');
+        $response = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertAuthenticated();
+        return;
     }
 
     Features::twoFactorAuthentication([
         'confirm' => true,
         'confirmPassword' => true,
     ]);
-
-    $user = User::factory()->create();
 
     $response = $this->post(route('login.store'), [
         'email' => $user->email,

@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
+use App\Enums\UserRole;
 use function Pest\Laravel\actingAs;
 
 uses(RefreshDatabase::class);
@@ -30,18 +32,15 @@ test('Call Center Concurrent Testing - Chrome DevTools MCP', function () {
     ]);
     
     // Crear revisores concurrentes
+    Role::firstOrCreate(['name' => UserRole::REVIEWER->value, 'guard_name' => 'web']);
     $reviewers = [];
     for ($i = 1; $i <= 3; $i++) {
         $reviewer = \App\Models\User::factory()->create([
             'name' => "Revisor {$i}",
             'email' => "reviewer{$i}@test.com",
         ]);
-        
-        try {
-            $reviewer->assignRole(\App\Enums\UserRole::REVIEWER->value);
-        } catch (\Exception $e) {
-            echo "⚠️ Error asignando rol reviewer: " . $e->getMessage() . "\n";
-        }
+
+        $reviewer->assignRole(UserRole::REVIEWER->value);
         
         $reviewers[] = $reviewer;
     }
@@ -143,6 +142,13 @@ test('Call Center Concurrent Testing - Chrome DevTools MCP', function () {
         'active_reviewers' => count($reviewers),
         'lock_efficiency' => round((count($assignedVoters) / count($voters)) * 100, 2)
     ];
+
+    $expectedAssigned = min(5 * count($reviewers), count($voters));
+
+    expect($reviewers)->toHaveCount(3)
+        ->and($assignedVoters)->toHaveCount($expectedAssigned)
+        ->and(count(array_unique($assignedVoters)))->toBe(count($assignedVoters))
+        ->and($lockingMetrics['assigned_voters'])->toBe($expectedAssigned);
     
     foreach ($lockingMetrics as $metric => $value) {
         echo "   {$metric}: {$value}\n";

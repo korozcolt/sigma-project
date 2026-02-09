@@ -15,6 +15,7 @@ use App\Models\User;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Repeater;
 use Filament\Actions\Testing\TestAction;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -265,6 +266,7 @@ test('can add yes/no question to survey', function () {
         'pageClass' => EditSurvey::class,
     ])
         ->callAction(TestAction::make(CreateAction::class)->table(), $questionData)
+        ->assertHasNoFormErrors()
         ->assertNotified();
 
     assertDatabaseHas(SurveyQuestion::class, [
@@ -300,10 +302,9 @@ test('can add scale question', function () {
 });
 
 test('can add multiple choice question', function () {
-    // TODO: Investigate Wizard step processing for options repeater
-    $this->markTestSkipped('Requires investigation of Wizard form data processing');
-
     $survey = Survey::factory()->create();
+
+    $undoRepeaterFake = Repeater::fake();
 
     $questionData = [
         'question_text' => '¿Qué servicios le interesan?',
@@ -324,7 +325,10 @@ test('can add multiple choice question', function () {
         'pageClass' => EditSurvey::class,
     ])
         ->callAction(TestAction::make(CreateAction::class)->table(), $questionData)
+        ->assertHasNoFormErrors()
         ->assertNotified();
+
+    $undoRepeaterFake();
 
     assertDatabaseHas(SurveyQuestion::class, [
         'survey_id' => $survey->id,
