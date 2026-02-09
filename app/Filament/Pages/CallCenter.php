@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
-use App\Models\Campaign;
 use App\Services\CallAssignmentService;
+use App\Services\CampaignContext;
 use Filament\Actions\Action;
 use App\Filament\Widgets\CallCenterStatsOverview;
 use App\Filament\Widgets\CallHistoryTable;
@@ -65,11 +65,11 @@ class CallCenter extends Page
                         return;
                     }
 
-                    $campaign = Campaign::query()->where('status', 'active')->first() ?? Campaign::query()->first();
+                    $campaign = CampaignContext::currentCampaign();
 
                     if (! $campaign) {
                         Notification::make()
-                            ->title('No hay campaña configurada')
+                            ->title('Seleccione una campaña para continuar')
                             ->warning()
                             ->send();
 

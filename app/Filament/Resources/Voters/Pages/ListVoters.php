@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Voters\Pages;
 use App\Enums\VoterStatus;
 use App\Exports\VotersExport;
 use App\Filament\Resources\Voters\VoterResource;
+use App\Services\CampaignContext;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -57,7 +58,9 @@ class ListVoters extends ListRecords
                         ->options(fn () => \App\Models\Campaign::query()->orderBy('name')->pluck('name', 'id'))
                         ->searchable()
                         ->preload()
-                        ->multiple(),
+                        ->multiple()
+                        ->default(fn () => CampaignContext::currentCampaignId() ? [CampaignContext::currentCampaignId()] : [])
+                        ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                     Select::make('municipality_id')
                         ->label('Municipio')

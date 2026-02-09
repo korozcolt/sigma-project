@@ -8,27 +8,22 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 ## [Unreleased]
 
 ### Added
-- Implementación completa de Pest Browser Testing (v4.1.1) para tests visuales
-- Tests browser para flujo completo de votación en Día D (5 tests)
-- Tests browser para gestión de eventos electorales (11 tests)
-- Instalación y configuración de Playwright para testing en múltiples navegadores
-- Sistema de ElectionEvent para gestionar simulacros y eventos reales
-- Modelo VoteRecord para evidencia electoral detallada
-- Middleware IsElectionDay para validar acceso durante eventos activos
-- Página ManageElectionEvents para gestión centralizada de eventos
-- Soporte para múltiples simulacros con datos separados
-- Integración completa User-Voter en sistema de roles
+- Campaign Context con selector en topbar para `super_admin`.
+- Scopes globales de campaña en modelos multi-campaña.
+- Enforcements en creación/updates para fijar `campaign_id` desde el contexto.
+- Gate global para bloquear accesos cruzados por campaña.
+- Tests de aislamiento multi-campaña.
+- Suite Visual E2E en navegador real con Playwright (baselines por rol y flujo).
+- Seeder `VisualE2ESeeder` para crear usuarios y datos mínimos de pruebas visuales.
 
 ### Changed
-- Actualizado tests/Pest.php para incluir directorio Browser
-- Mejorados selectores CSS en tests browser para componentes de Filament
-- Optimizados tiempos de ejecución de tests visuales
+- Recursos, filtros y formularios de Filament alineados al contexto de campaña.
+- Widgets y páginas de estadísticas ahora usan campaña seleccionada.
+- Eliminado el enforcement de “una sola campaña activa”.
 
 ### Fixed
-- Corregido problema de mixed content en producción (HTTPS)
-- Resueltos 4 tests fallando relacionados con registration skip y formato SMS
-- Corregido manejo de selectores en modales de Filament Actions
-- Resuelto problema de memoria en ejecución de tests
+- Aislamiento por campaña consistente en listados y exports críticos.
+- Error 500 en `/admin` por recursión en scope de membresía de campaña.
 
 ## [0.8.2] - 2025-11-27
 

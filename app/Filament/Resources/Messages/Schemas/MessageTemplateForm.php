@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Messages\Schemas;
 
+use App\Services\CampaignContext;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -32,7 +33,9 @@ class MessageTemplateForm
                         ->relationship('campaign', 'name')
                         ->required()
                         ->searchable()
-                        ->preload(),
+                        ->preload()
+                        ->default(fn () => CampaignContext::currentCampaignId())
+                        ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                     Select::make('type')
                         ->label('Tipo')

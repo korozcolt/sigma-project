@@ -31,10 +31,6 @@ class HablameSmsService
      */
     public function send(Message $message): array
     {
-        if (! $this->apiKey) {
-            throw new \Exception('Hablame API Key no configurada. Verificar HABLAME_API_KEY en .env');
-        }
-
         // Validar número de teléfono
         $phone = $this->formatPhoneNumber($message->voter->phone);
 
@@ -45,6 +41,10 @@ class HablameSmsService
         // Modo sandbox: simular respuesta exitosa sin consumir saldo
         if ($this->sandboxMode) {
             return $this->sandboxResponse($phone, $message->content);
+        }
+
+        if (! $this->apiKey) {
+            throw new \Exception('Hablame API Key no configurada. Verificar HABLAME_API_KEY en .env');
         }
 
         try {
@@ -160,10 +160,6 @@ class HablameSmsService
      */
     public function getAccountInfo(): array
     {
-        if (! $this->apiKey) {
-            throw new \Exception('Hablame API Key no configurada');
-        }
-
         if ($this->sandboxMode) {
             return [
                 'success' => true,
@@ -172,6 +168,10 @@ class HablameSmsService
                 'balance' => 999.99,
                 'billing_type' => 'prepaid',
             ];
+        }
+
+        if (! $this->apiKey) {
+            throw new \Exception('Hablame API Key no configurada');
         }
 
         try {

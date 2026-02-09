@@ -2,8 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Campaign;
 use App\Models\User;
+use App\Services\CampaignContext;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
@@ -21,7 +21,7 @@ class TopLeadersTable extends TableWidget
 
     public function table(Table $table): Table
     {
-        $activeCampaign = Campaign::where('status', 'active')->first();
+        $activeCampaign = CampaignContext::currentCampaign();
 
         return $table
             ->query(

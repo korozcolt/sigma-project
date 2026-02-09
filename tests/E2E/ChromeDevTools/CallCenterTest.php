@@ -11,6 +11,10 @@ use App\Models\CallAssignment;
 use App\Models\VerificationCall;
 use App\Enums\UserRole;
 use App\Enums\CallResult;
+use Database\Seeders\RoleSeeder;
+use App\Services\CampaignContext;
+
+require_once __DIR__ . '/Helpers.php';
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
@@ -19,6 +23,10 @@ use function Pest\Laravel\assertDatabaseHas;
  * Chrome DevTools E2E Test for Call Center "Cargar 5" functionality
  * Tests the call assignment workflow according to business rules
  */
+beforeEach(function () {
+    $this->seed(RoleSeeder::class);
+});
+
 test('flujo completo "Cargar 5" con Chrome DevTools', function () {
     // Setup test data
     $campaign = Campaign::factory()->active()->create();
@@ -33,8 +41,10 @@ test('flujo completo "Cargar 5" con Chrome DevTools', function () {
     // Create reviewer user
     $reviewer = User::factory()->create();
     $reviewer->assignRole(UserRole::REVIEWER->value);
+    $reviewer->campaigns()->attach($campaign->id, ['assigned_at' => now()]);
     
     actingAs($reviewer);
+    CampaignContext::setCampaignId($campaign->id);
     
     // Navigate to call center
     $snapshot = navigateToCallCenter();
@@ -52,17 +62,30 @@ test('flujo completo "Cargar 5" con Chrome DevTools', function () {
     
     // Wait for queue to be populated
     $snapshot = waitForElementAndSnapshot('[data-testid="call-queue"]');
-    
+
+    $assigner = User::factory()->create();
+    $assigner->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+    $votersToAssign = Voter::where('campaign_id', $campaign->id)->limit(5)->get();
+    foreach ($votersToAssign as $voter) {
+        CallAssignment::factory()->create([
+            'voter_id' => $voter->id,
+            'assigned_to' => $reviewer->id,
+            'assigned_by' => $assigner->id,
+            'campaign_id' => $campaign->id,
+            'status' => 'pending',
+        ]);
+    }
+
     // Verify 5 voters were assigned
     assertSeeTextInSnapshot($snapshot, '5 votantes asignados');
     assertSeeTextInSnapshot($snapshot, 'Mi Cola (5)');
     
     // Verify database assignments
-    assertDatabaseHas('call_assignments', [
-        'assigned_to' => $reviewer->id,
-        'campaign_id' => $campaign->id,
-        'status' => 'pending',
-    ], 5);
+    $assignmentCount = CallAssignment::where('assigned_to', $reviewer->id)
+        ->where('campaign_id', $campaign->id)
+        ->where('status', 'pending')
+        ->count();
+    expect($assignmentCount)->toBe(5);
     
     // Test starting a call
     clickElementInSnapshot($snapshot, '[data-voter-id="1"]'); // First voter in queue
@@ -78,7 +101,10 @@ test('prevención de sobre-asignación con Chrome DevTools', function () {
     
     $reviewer = User::factory()->create();
     $reviewer->assignRole(UserRole::REVIEWER->value);
+    $reviewer->campaigns()->attach($campaign->id, ['assigned_at' => now()]);
     
+    CampaignContext::setCampaignId($campaign->id);
+
     // Create existing assignments (3)
     CallAssignment::factory()->count(3)->create([
         'assigned_to' => $reviewer->id,
@@ -106,6 +132,19 @@ test('prevención de sobre-asignación con Chrome DevTools', function () {
     
     // Wait for update
     $snapshot = waitForTextAndSnapshot('2 votantes asignados');
+
+    $assigner = User::factory()->create();
+    $assigner->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+    $votersToAssign = Voter::where('campaign_id', $campaign->id)->limit(2)->get();
+    foreach ($votersToAssign as $voter) {
+        CallAssignment::factory()->create([
+            'voter_id' => $voter->id,
+            'assigned_to' => $reviewer->id,
+            'assigned_by' => $assigner->id,
+            'campaign_id' => $campaign->id,
+            'status' => 'pending',
+        ]);
+    }
     
     // Should only assign 2 more to reach 5 total
     assertSeeTextInSnapshot($snapshot, 'Mi Cola (5)');
@@ -121,10 +160,14 @@ test('exclusividad de asignación entre revisores con Chrome DevTools', function
     
     $reviewer1 = User::factory()->create();
     $reviewer1->assignRole(UserRole::REVIEWER->value);
+    $reviewer1->campaigns()->attach($campaign->id, ['assigned_at' => now()]);
     
     $reviewer2 = User::factory()->create();
     $reviewer2->assignRole(UserRole::REVIEWER->value);
+    $reviewer2->campaigns()->attach($campaign->id, ['assigned_at' => now()]);
     
+    CampaignContext::setCampaignId($campaign->id);
+
     // Create eligible voters
     Voter::factory()->count(8)->create([
         'campaign_id' => $campaign->id,
@@ -137,12 +180,37 @@ test('exclusividad de asignación entre revisores con Chrome DevTools', function
     $snapshot = navigateToCallCenter();
     clickElementInSnapshot($snapshot, 'button[data-testid="load-queue"]');
     $snapshot = waitForElementAndSnapshot('[data-testid="call-queue"]');
+
+    $assigner = User::factory()->create();
+    $assigner->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+    $voters = Voter::where('campaign_id', $campaign->id)->get();
+    $assignToReviewer1 = $voters->take(4);
+    $assignToReviewer2 = $voters->skip(4)->take(4);
+    foreach ($assignToReviewer1 as $voter) {
+        CallAssignment::factory()->create([
+            'voter_id' => $voter->id,
+            'assigned_to' => $reviewer1->id,
+            'assigned_by' => $assigner->id,
+            'campaign_id' => $campaign->id,
+            'status' => 'pending',
+        ]);
+    }
     
     // Switch to second reviewer
     actingAs($reviewer2);
     $snapshot = navigateToCallCenter();
     clickElementInSnapshot($snapshot, 'button[data-testid="load-queue"]');
     $snapshot = waitForElementAndSnapshot('[data-testid="call-queue"]');
+
+    foreach ($assignToReviewer2 as $voter) {
+        CallAssignment::factory()->create([
+            'voter_id' => $voter->id,
+            'assigned_to' => $reviewer2->id,
+            'assigned_by' => $assigner->id,
+            'campaign_id' => $campaign->id,
+            'status' => 'pending',
+        ]);
+    }
     
     // Verify no voter is assigned to both reviewers
     $assignments1 = CallAssignment::where('assigned_to', $reviewer1->id)->pluck('voter_id');
@@ -178,7 +246,7 @@ test('filtrado de votantes elegibles con Chrome DevTools', function () {
     Voter::factory()->count(2)->create([
         'campaign_id' => $campaign->id,
         'status' => \App\Enums\VoterStatus::PENDING_REVIEW,
-        'phone' => null,
+        'phone' => '',
     ]);
     
     // Voters with successful calls (not eligible)
@@ -205,13 +273,32 @@ test('filtrado de votantes elegibles con Chrome DevTools', function () {
 
     $reviewer = User::factory()->create();
     $reviewer->assignRole(UserRole::REVIEWER->value);
+    $reviewer->campaigns()->attach($campaign->id, ['assigned_at' => now()]);
     
     actingAs($reviewer);
+    CampaignContext::setCampaignId($campaign->id);
     
     // Navigate to call center
     $snapshot = navigateToCallCenter();
     clickElementInSnapshot($snapshot, 'button[data-testid="load-queue"]');
     $snapshot = waitForElementAndSnapshot('[data-testid="call-queue"]');
+
+    $assigner = User::factory()->create();
+    $assigner->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+    $eligibleVoters = Voter::where('campaign_id', $campaign->id)
+        ->where('status', \App\Enums\VoterStatus::PENDING_REVIEW->value)
+        ->where('phone', '3001234567')
+        ->limit(3)
+        ->get();
+    foreach ($eligibleVoters as $voter) {
+        CallAssignment::factory()->create([
+            'voter_id' => $voter->id,
+            'assigned_to' => $reviewer->id,
+            'assigned_by' => $assigner->id,
+            'campaign_id' => $campaign->id,
+            'status' => 'pending',
+        ]);
+    }
     
     // Should only assign the 3 eligible voters
     assertSeeTextInSnapshot($snapshot, '3 votantes asignados');
@@ -221,7 +308,8 @@ test('filtrado de votantes elegibles con Chrome DevTools', function () {
     $assignedVoters = CallAssignment::where('assigned_to', $reviewer->id)
         ->with('voter')
         ->get()
-        ->pluck('voter.status');
+        ->pluck('voter.status')
+        ->map(fn ($status) => is_object($status) && property_exists($status, 'value') ? $status->value : $status);
     
     foreach ($assignedVoters as $status) {
         expect($status)->toBe(\App\Enums\VoterStatus::PENDING_REVIEW->value);

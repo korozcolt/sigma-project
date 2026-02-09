@@ -6,11 +6,11 @@ namespace App\Filament\Pages;
 
 use App\Enums\VoterStatus;
 use App\Filament\Widgets\DiaDStatsOverview;
-use App\Models\Campaign;
 use App\Models\ElectionEvent;
 use App\Models\ValidationHistory;
 use App\Models\Voter;
 use App\Models\VoteRecord;
+use App\Services\CampaignContext;
 use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -70,7 +70,7 @@ class DiaD extends Page
 
     public function refreshStats(): void
     {
-        $campaign = Campaign::where('status', 'active')->first();
+        $campaign = CampaignContext::currentCampaign();
 
         if (! $campaign) {
             $this->stats = [
@@ -91,7 +91,7 @@ class DiaD extends Page
 
     public function searchVoter(): void
     {
-        $campaign = Campaign::where('status', 'active')->first();
+        $campaign = CampaignContext::currentCampaign();
 
         $this->voter = null;
         $this->voterId = null;
@@ -104,7 +104,7 @@ class DiaD extends Page
 
         if (! $campaign) {
             Notification::make()
-                ->title('No hay campaña activa')
+                ->title('Seleccione una campaña para continuar')
                 ->danger()
                 ->send();
 
@@ -153,8 +153,17 @@ class DiaD extends Page
             return;
         }
 
-        $campaign = Campaign::where('status', 'active')->first();
+        $campaign = CampaignContext::currentCampaign();
         $activeEvent = ElectionEvent::where('is_active', true)->first();
+
+        if (! $campaign) {
+            Notification::make()
+                ->title('Seleccione una campaña para continuar')
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         if (! $activeEvent) {
             Notification::make()

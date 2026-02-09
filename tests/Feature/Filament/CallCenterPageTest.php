@@ -5,11 +5,14 @@ declare(strict_types=1);
 use App\Enums\CallResult;
 use App\Enums\UserRole;
 use App\Filament\Pages\CallCenter;
+use App\Models\Campaign;
 use App\Models\User;
 use App\Models\VerificationCall;
 use App\Models\Voter;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 
 use function Pest\Laravel\actingAs;
 
@@ -20,6 +23,25 @@ beforeEach(function () {
     });
 });
 
+function setCampaignContextForUser(User $user): Campaign
+{
+    $campaign = Campaign::factory()->create();
+    DB::table('campaign_user')->insert([
+        'campaign_id' => $campaign->id,
+        'user_id' => $user->id,
+        'role_id' => null,
+        'assigned_at' => now(),
+        'assigned_by' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    Session::put('campaign_context.campaign_id', $campaign->id);
+    Session::put('campaign_context.mode', 'single');
+
+    return $campaign;
+}
+
 // ============ Tests de Acceso ============
 
 test('super admin can access call center', function () {
@@ -27,6 +49,7 @@ test('super admin can access call center', function () {
     $admin->assignRole(UserRole::SUPER_ADMIN->value);
 
     actingAs($admin);
+    setCampaignContextForUser($admin);
 
     Livewire::test(CallCenter::class)
         ->assertSuccessful();
@@ -37,6 +60,7 @@ test('reviewer can access call center', function () {
     $reviewer->assignRole(UserRole::REVIEWER->value);
 
     actingAs($reviewer);
+    setCampaignContextForUser($reviewer);
 
     Livewire::test(CallCenter::class)
         ->assertSuccessful();
@@ -47,6 +71,7 @@ test('admin campaign can access call center', function () {
     $adminCampaign->assignRole(UserRole::ADMIN_CAMPAIGN->value);
 
     actingAs($adminCampaign);
+    setCampaignContextForUser($adminCampaign);
 
     Livewire::test(CallCenter::class)
         ->assertSuccessful();
@@ -72,6 +97,7 @@ test('call center page displays stats widget', function () {
     $reviewer->assignRole(UserRole::REVIEWER->value);
 
     actingAs($reviewer);
+    setCampaignContextForUser($reviewer);
 
     Livewire::test(CallCenter::class)
         ->assertSuccessful();
@@ -82,15 +108,19 @@ test('stats widget shows today calls count', function () {
     $reviewer->assignRole(UserRole::REVIEWER->value);
 
     actingAs($reviewer);
+    $campaign = setCampaignContextForUser($reviewer);
 
     // Crear llamadas para hoy
+    $voter = Voter::factory()->create(['campaign_id' => $campaign->id]);
     VerificationCall::factory()->count(5)->create([
+        'voter_id' => $voter->id,
         'caller_id' => $reviewer->id,
         'call_date' => now(),
     ]);
 
     // Crear llamadas de días anteriores
     VerificationCall::factory()->count(3)->create([
+        'voter_id' => $voter->id,
         'caller_id' => $reviewer->id,
         'call_date' => now()->subDays(2),
     ]);
@@ -104,9 +134,10 @@ test('call queue shows pending voters', function () {
     $reviewer->assignRole(UserRole::REVIEWER->value);
 
     actingAs($reviewer);
+    $campaign = setCampaignContextForUser($reviewer);
 
     // Crear votantes sin llamadas
-    $votersWithoutCalls = Voter::factory()->count(3)->create();
+    $votersWithoutCalls = Voter::factory()->count(3)->create(['campaign_id' => $campaign->id]);
 
     Livewire::test(CallCenter::class)
         ->assertSuccessful();
@@ -117,9 +148,10 @@ test('call queue does not show confirmed voters', function () {
     $reviewer->assignRole(UserRole::REVIEWER->value);
 
     actingAs($reviewer);
+    $campaign = setCampaignContextForUser($reviewer);
 
     // Crear votante con llamada confirmada
-    $confirmedVoter = Voter::factory()->create();
+    $confirmedVoter = Voter::factory()->create(['campaign_id' => $campaign->id]);
     VerificationCall::factory()->create([
         'voter_id' => $confirmedVoter->id,
         'caller_id' => $reviewer->id,
@@ -135,9 +167,10 @@ test('call queue shows voters with failed attempts', function () {
     $reviewer->assignRole(UserRole::REVIEWER->value);
 
     actingAs($reviewer);
+    $campaign = setCampaignContextForUser($reviewer);
 
     // Crear votante con llamada sin respuesta
-    $voterNoAnswer = Voter::factory()->create();
+    $voterNoAnswer = Voter::factory()->create(['campaign_id' => $campaign->id]);
     VerificationCall::factory()->create([
         'voter_id' => $voterNoAnswer->id,
         'caller_id' => $reviewer->id,
@@ -157,14 +190,29 @@ test('call history shows only reviewer calls', function () {
     $otherReviewer->assignRole(UserRole::REVIEWER->value);
 
     actingAs($reviewer);
+    $campaign = setCampaignContextForUser($reviewer);
+    $otherCampaign = Campaign::factory()->create();
+    DB::table('campaign_user')->insert([
+        'campaign_id' => $otherCampaign->id,
+        'user_id' => $otherReviewer->id,
+        'role_id' => null,
+        'assigned_at' => now(),
+        'assigned_by' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
 
     // Crear llamadas del reviewer actual
+    $voter = Voter::factory()->create(['campaign_id' => $campaign->id]);
     VerificationCall::factory()->count(3)->create([
+        'voter_id' => $voter->id,
         'caller_id' => $reviewer->id,
     ]);
 
     // Crear llamadas de otro reviewer
+    $otherVoter = Voter::factory()->create(['campaign_id' => $otherCampaign->id]);
     VerificationCall::factory()->count(2)->create([
+        'voter_id' => $otherVoter->id,
         'caller_id' => $otherReviewer->id,
     ]);
 
@@ -185,6 +233,7 @@ test('call center has correct title', function () {
     $reviewer->assignRole(UserRole::REVIEWER->value);
 
     actingAs($reviewer);
+    setCampaignContextForUser($reviewer);
 
     Livewire::test(CallCenter::class)
         ->assertSee('Centro de Llamadas');
@@ -206,10 +255,11 @@ test('reviewer can see complete call center workflow', function () {
     $reviewer->assignRole(UserRole::REVIEWER->value);
 
     actingAs($reviewer);
+    $campaign = setCampaignContextForUser($reviewer);
 
     // Crear datos de prueba
-    $pendingVoter = Voter::factory()->create();
-    $completedVoter = Voter::factory()->create();
+    $pendingVoter = Voter::factory()->create(['campaign_id' => $campaign->id]);
+    $completedVoter = Voter::factory()->create(['campaign_id' => $campaign->id]);
 
     VerificationCall::factory()->create([
         'voter_id' => $completedVoter->id,
@@ -235,6 +285,7 @@ test('call center displays stats for reviewer with no calls', function () {
     $reviewer->assignRole(UserRole::REVIEWER->value);
 
     actingAs($reviewer);
+    setCampaignContextForUser($reviewer);
 
     Livewire::test(CallCenter::class)
         ->assertSuccessful();
@@ -245,8 +296,9 @@ test('call center handles voter with multiple call attempts', function () {
     $reviewer->assignRole(UserRole::REVIEWER->value);
 
     actingAs($reviewer);
+    $campaign = setCampaignContextForUser($reviewer);
 
-    $voter = Voter::factory()->create();
+    $voter = Voter::factory()->create(['campaign_id' => $campaign->id]);
 
     // Crear múltiples intentos
     VerificationCall::factory()->create([

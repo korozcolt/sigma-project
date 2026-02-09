@@ -2,17 +2,17 @@
 
 Este documento describe las reglas de negocio vigentes y los cambios recientes para facilitar trazabilidad y pruebas de regresión.
 
-### 1) Campaña (operación por instancia)
+### 1) Campaña (multi-campaña con aislamiento estricto)
 
-- La operación esperada es **1 campaña por instancia**.
-- En el sistema se mantiene el modelo `Campaign` por compatibilidad, pero se restringe el uso:
-  - **Solo puede existir una campaña activa** al mismo tiempo. Si una campaña se guarda como `active`, el sistema pausa automáticamente cualquier otra campaña activa.
-  - En Filament, la creación de campañas queda permitida **solo si no existe ninguna campaña** (se busca evitar múltiples campañas por instancia). El borrado de campañas está deshabilitado.
-- El `campaign_id` se mantiene en tablas y pantallas por economía de cambios y compatibilidad.
+- La operación esperada es **N campañas por instancia**.
+- El aislamiento entre campañas es obligatorio y se aplica mediante **Campaign Context + Scopes + Policies**:
+  - Cada usuario opera sobre su campaña activa.
+  - `super_admin` puede ver todas o cambiar de campaña desde la UI.
+- El `campaign_id` es obligatorio en modelos multi-campaña y se fija desde el contexto.
 
 **Implicaciones para pruebas:**
-- Casos de regresión deben asumir 0 o 1 campaña activa.
-- Si una prueba intenta crear 2 campañas activas, la segunda debe causar que la primera pase a `paused`.
+- Casos de regresión deben cubrir aislamiento entre campañas.
+- Un usuario no-super no puede ver ni operar datos de otra campaña.
 
 ### 2) Unicidad global del documento del votante
 

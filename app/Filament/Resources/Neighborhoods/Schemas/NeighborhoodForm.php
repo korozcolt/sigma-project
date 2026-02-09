@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Neighborhoods\Schemas;
 
+use App\Services\CampaignContext;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -32,7 +33,8 @@ class NeighborhoodForm
                     ->helperText('Solo necesario si el barrio es específico de una campaña')
                     ->relationship('campaign', 'name')
                     ->searchable()
-                    ->visible(fn (callable $get) => ! $get('is_global')),
+                    ->default(fn () => CampaignContext::currentCampaignId())
+                    ->visible(fn (callable $get) => ! $get('is_global') && CampaignContext::isSuperAdmin()),
             ]);
     }
 }

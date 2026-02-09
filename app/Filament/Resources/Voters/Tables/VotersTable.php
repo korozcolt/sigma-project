@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Voters\Tables;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Models\Voter;
+use App\Services\CampaignContext;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -148,7 +149,8 @@ class VotersTable
                     ->relationship('campaign', 'name')
                     ->searchable()
                     ->preload()
-                    ->multiple(),
+                    ->multiple()
+                    ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                 SelectFilter::make('status')
                     ->label('Estado')

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
+use App\Http\Controllers\CampaignContextController;
 use App\Http\Controllers\PublicVoterRegistrationController;
 use App\Http\Controllers\PublicCampaignLogoController;
 use App\Http\Controllers\PublicPollingPlaceOptionsController;
@@ -52,6 +53,9 @@ Route::middleware(['auth'])->group(function () {
             ),
         )
         ->name('two-factor.show');
+
+    Route::post('campaign-context', [CampaignContextController::class, 'update'])
+        ->name('campaign-context.update');
 });
 
 // Campaign Admin routes

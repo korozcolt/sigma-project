@@ -15,7 +15,7 @@ Plataforma completa para gestión y análisis de campañas políticas, desde el 
 
 ### Características Principales
 
-- ✅ Sistema de campaña (operación 1 campaña por instancia; soporte multi-campaña a nivel de modelo)
+- ✅ Sistema multi-campaña con aislamiento estricto por campaña
 - ✅ Gestión de usuarios con 5 roles (Super Admin, Admin Campaña, Coordinador, Líder, Revisor)
 - ✅ Base de datos electoral completa (33 departamentos, 1,123 municipios)
 - ✅ Registro y validación de votantes contra censo

@@ -2,8 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Campaign;
 use App\Models\Voter;
+use App\Services\CampaignContext;
 use Filament\Widgets\ChartWidget;
 
 class ValidationProgressChart extends ChartWidget
@@ -16,7 +16,7 @@ class ValidationProgressChart extends ChartWidget
 
     protected function getData(): array
     {
-        $activeCampaign = Campaign::where('status', 'active')->first();
+        $activeCampaign = CampaignContext::currentCampaign();
 
         if (! $activeCampaign) {
             return [

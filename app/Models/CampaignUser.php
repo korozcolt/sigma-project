@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCampaignContext;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Spatie\Permission\Models\Role;
 
 class CampaignUser extends Pivot
 {
+    use HasCampaignContext;
     protected $table = 'campaign_user';
 
     protected $fillable = [

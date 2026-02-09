@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\ElectionEvents\Tables;
 
+use App\Services\CampaignContext;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -113,7 +114,8 @@ class ElectionEventsTable
                     ->label('Campaña')
                     ->relationship('campaign', 'name')
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
             ])
             ->recordActions([
                 EditAction::make(),

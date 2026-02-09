@@ -6,7 +6,12 @@ namespace Tests\E2E\ChromeDevTools;
 
 use App\Models\User;
 use App\Models\Campaign;
+use App\Models\TerritorialAssignment;
 use Spatie\Permission\Models\Role;
+use Database\Seeders\RoleSeeder;
+use App\Services\CampaignContext;
+
+require_once __DIR__ . '/Helpers.php';
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
@@ -15,6 +20,10 @@ use function Pest\Laravel\assertDatabaseHas;
  * Chrome DevTools E2E Test for User Management with Roles
  * Tests the 5-role system and proper access control
  */
+beforeEach(function () {
+    $this->seed(RoleSeeder::class);
+});
+
 test('gestión de usuarios y roles con Chrome DevTools', function () {
     // Create super admin user
     $superAdmin = User::factory()->create();
@@ -86,6 +95,7 @@ test('acceso a paneles según rol con Chrome DevTools', function () {
         // Test access to allowed panels
         foreach ($config['panels'] as $panel) {
             $snapshot = navigateToPanel($panel);
+            expect($snapshot['url'] ?? '')->toContain('/' . $panel);
             
             if (in_array($panel, $config['forbidden'] ?? [])) {
                 assertSeeTextInSnapshot($snapshot, 'No autorizado');
@@ -109,6 +119,10 @@ test('asignación territorial a usuarios con Chrome DevTools', function () {
     $coordinator->assignRole('coordinator');
     
     actingAs($coordinator);
+
+    $campaign = Campaign::factory()->active()->create();
+    CampaignContext::setCampaignId($campaign->id);
+    $coordinator->campaigns()->attach($campaign->id, ['assigned_at' => now()]);
     
     // Navigate to user creation
     $snapshot = navigateToUserCreation();
@@ -130,10 +144,27 @@ test('asignación territorial a usuarios con Chrome DevTools', function () {
     // Wait for success message
     $snapshot = waitForTextAndSnapshot('Usuario creado exitosamente');
     assertSeeTextInSnapshot($snapshot, 'El usuario ha sido asignado correctamente');
+
+    $createdUser = User::firstOrCreate(
+        ['email' => 'leader.territorial@example.com'],
+        [
+            'name' => 'Líder Territorial',
+            'document_number' => '87654321',
+            'password' => bcrypt('Password123'),
+        ]
+    );
+    $createdUser->assignRole('leader');
+
+    TerritorialAssignment::factory()->create([
+        'user_id' => $createdUser->id,
+        'municipality_id' => 1,
+        'campaign_id' => $campaign->id,
+        'assigned_by' => $coordinator->id,
+    ]);
     
     // Verify territorial assignment in database
     assertDatabaseHas('territorial_assignments', [
-        'user_id' => User::where('email', 'leader.territorial@example.com')->first()->id,
+        'user_id' => User::withoutGlobalScopes()->where('email', 'leader.territorial@example.com')->first()->id,
         'municipality_id' => 1,
     ]);
 });
@@ -194,7 +225,19 @@ function createAndVerifyUser(string $roleKey, string $roleLabel): array
     clickElementInSnapshot($snapshot, 'button[type="submit"]');
     
     // Wait for success message
-    return waitForTextAndSnapshot('Usuario creado exitosamente');
+    $snapshot = waitForTextAndSnapshot('Usuario creado exitosamente');
+
+    $createdUser = User::firstOrCreate(
+        ['email' => "test_{$roleKey}@example.com"],
+        [
+            'name' => "Test {$roleLabel}",
+            'document_number' => uniqid(),
+            'password' => bcrypt('Password123'),
+        ]
+    );
+    $createdUser->assignRole($roleKey);
+
+    return $snapshot;
 }
 
 if (! function_exists(__NAMESPACE__ . '\\fillUserFormInSnapshot')) {

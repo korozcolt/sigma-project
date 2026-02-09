@@ -153,7 +153,7 @@ test('3. Chrome DevTools MCP REAL - Form filling', function () {
                     'uid' => $field['selector'],
                     'value' => $testEmail
                 ]);
-                sleep(0.5);
+                usleep(500000);
             }
             
             if ($field['type'] === 'password' || $field['name'] === 'password') {
@@ -162,7 +162,7 @@ test('3. Chrome DevTools MCP REAL - Form filling', function () {
                     'uid' => $field['selector'],
                     'value' => $testPassword
                 ]);
-                sleep(0.5);
+                usleep(500000);
             }
         }
         

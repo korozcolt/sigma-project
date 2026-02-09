@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Invitations\Schemas;
 
+use App\Services\CampaignContext;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -60,7 +61,9 @@ class InvitationForm
                             ->relationship('campaign', 'name')
                             ->searchable()
                             ->preload()
-                            ->required(),
+                            ->required()
+                            ->default(fn () => CampaignContext::currentCampaignId())
+                            ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
                         
                         Select::make('municipality_id')
                             ->label('Municipio')

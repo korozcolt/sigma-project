@@ -38,6 +38,7 @@ class CallAssignmentService
         $eligibleVoters = Voter::query()
             ->where('campaign_id', $campaign->id)
             ->whereNotNull('phone')
+            ->where('phone', '!=', '')
             ->whereIn('status', [
                 \App\Enums\VoterStatus::PENDING_REVIEW->value,
                 \App\Enums\VoterStatus::VERIFIED_CENSUS->value,

@@ -1,109 +1,107 @@
-# 📋 Plan de Pruebas de Regresión - SIGMA
+# 📋 Plan de Pruebas de Regresión - SIGMA (Protocolo Vivo)
 
-## ✅ Resumen Ejecutado
+Este documento es el **checklist oficial de regresión**. Se ejecuta:
+- Después de cada feature relevante.
+- Antes de cada release.
 
-He completado un análisis exhaustivo y plan de pruebas de regresión para el sistema SIGMA basado en las reglas de negocio documentadas. A continuación el resumen de validaciones:
+**Regla de proyecto (Stop-the-line):** si un flujo core está roto, no se construye encima.
 
-## 🎯 Reglas de Negocio Validadas
+---
 
-### ✅ 1. Campaña Única Activa (Operación por Instancia)
-**Estado:** COMPLETADO  
-**Tests:** `tests/Feature/CampaignSingleActiveTest.php`  
-**Cobertura:** 
-- ✓ Solo puede existir una campaña activa simultáneamente
-- ✓ Al activar nueva campaña, se pausan automáticamente las demás
-- ✓ Actualización manual a estado no activo no afecta otras campañas
+## ✅ Checklist Global (multi-campaña)
 
-### ✅ 2. Unicidad Global del Documento del Votante
-**Estado:** COMPLETADO  
-**Tests:** `tests/Feature/VoterTest.php`, `tests/Feature/Filament/VoterResourceTest.php`  
-**Cobertura:**
-- ✓ Validación a nivel de base de datos (global)
-- ✓ Validación en formulario Filament
-- ✓ Prevención de duplicados entre diferentes campañas
+- [ ] Contexto de campaña activo (selector para `super_admin`).
+- [ ] Usuario no-super solo ve su campaña.
+- [ ] Scopes globales aplican en listados y relaciones.
+- [ ] Creación/edición fija `campaign_id` desde contexto.
+- [ ] Gates bloquean acceso cruzado por campaña.
 
-### ✅ 3. Call Center - Cola por Revisor con "Cargar 5"
-**Estado:** COMPLETADO  
-**Tests:** `tests/Feature/CallAssignmentTest.php` (existente + validaciones específicas)  
-**Cobertura:**
-- ✓ Asignación hasta completar cola de 5 votantes
-- ✓ Prevención de sobre-asignación
-- ✓ Bloqueo de votantes entre diferentes revisores
-- ✓ Filtrado de votantes elegibles por criterios de call center
+---
 
-### ✅ 4. Encuestas - Histórico por Llamada
-**Estado:** COMPLETADO  
-**Tests:** `tests/Feature/SurveyResponsesByCallTest.php`  
-**Cobertura:**
-- ✓ Respuestas asociadas a verification_call_id
-- ✓ Unicidad por (llamada + pregunta)
-- ✓ Múltiples respuestas históricas por votante (diferentes llamadas)
-- ✓ Actualización vs duplicación en misma llamada
+## ✅ Checklist por Módulo
 
-### ✅ 5. Día D - Evidencia Obligatoria para marcar VOTÓ
-**Estado:** COMPLETADO  
-**Tests:** `tests/Feature/DiaDEvidenceTest.php`  
-**Cobertura:**
-- ✓ Validación de requeridos: foto + coordenadas GPS
-- ✓ Creación de VoteRecord con evidencia completa
-- ✓ MARCAR NO VOTÓ no requiere evidencia
-- ✓ Estructura de datos para evidencia (photo_path, latitude, longitude)
+### 1) Campañas
+- [ ] Crear campaña con estado y configuración válida.
+- [ ] `super_admin` puede alternar contexto sin pérdida de acceso.
+- [ ] No hay auto-pausa de otras campañas.
 
-### ✅ 6. Cierre de Evento Electoral (Día D)
-**Estado:** COMPLETADO  
-**Tests:** `tests/Feature/ElectionEventClosureTest.php`  
-**Cobertura:**
-- ✓ Marcar como did_not_vote votantes sin registro
-- ✓ Crear ValidationHistory con tipo 'election'
-- ✓ Aplicar solo a estados relevantes (verified_call, confirmed)
-- ✓ Preservar votantes con VoteRecord existente
+### 2) Usuarios / Roles
+- [ ] Líder/Coordinador solo ve miembros de su campaña.
+- [ ] Asignación a campañas se restringe al contexto actual.
 
-### ✅ 7. Browser Tests E2E - Flujo Día D
-**Estado:** PARCIALMENTE COMPLETADO (con errores conocidos)  
-**Tests:** `tests/Browser/DiaDVotingFlowTest.php`  
-**Problemas identificados:**
-- ⚠️ Error en upload de archivos: `Undefined array key 0`
-- ⚠️ Los tests de flujo completo fallan por el error de upload
-- ✓ Tests básicos (sin upload) funcionan correctamente
+### 3) Votantes
+- [ ] CRUD completo bajo contexto.
+- [ ] Import/export respeta campaña activa.
+- [ ] Estados y validaciones conservan campaña.
 
-### 🔄 8. Auditoría de Acciones Críticas
-**Estado:** COMPLETADO  
-**Validaciones verificadas:**
-- ✓ Creación/edición/borrado de votantes → ValidationHistory
-- ✓ Llamadas y resultados → VerificationCall records
-- ✓ Respuestas de encuestas → SurveyResponse con verification_call_id
-- ✓ Envío de mensajes → Message records
-- ✓ Votos Día D → VoteRecord + ValidationHistory
+### 4) Encuestas
+- [ ] Crear encuesta en campaña activa.
+- [ ] Respuestas y métricas no mezclan campañas.
 
-## 📊 Estado General de Tests
+### 5) Call Center
+- [ ] Cargar 5 en la campaña activa.
+- [ ] Asignaciones no cruzan campañas.
 
+### 6) Mensajería / SMS
+- [ ] Plantillas y envíos quedan en campaña activa.
+- [ ] Driver configurable (null/log/real) no rompe tests.
+
+### 7) Día D / Eventos
+- [ ] Eventos activos por campaña.
+- [ ] VoteRecord y ValidationHistory en campaña correcta.
+
+---
+
+## 🧪 E2E (Chrome DevTools)
+
+- [ ] Día D (votar / no votar / evidencia obligatoria).
+- [ ] Roles y accesos (5 roles).
+- [ ] Call Center (Cargar 5).
+- [ ] Mensajería SMS.
+- [ ] Cierre de evento electoral.
+
+**Nota:** Si E2E es simulado, debe decirlo explícitamente y no prometer MCP real.
+
+---
+
+## 🧪 Visual E2E (Navegador real)
+
+**Objetivo:** Ejecutar pruebas visuales reales desde navegador para TODOS los roles y flujos críticos.
+
+### Roles cubiertos
+- `super_admin`
+- `admin_campaign`
+- `coordinator`
+- `leader`
+- `reviewer`
+
+### Flujos cubiertos (mínimo)
+- Login / Dashboard
+- Campañas
+- Usuarios
+- Votantes
+- Encuestas
+- Mensajes / Plantillas / Envíos
+- Call Center / Llamadas de verificación
+- Gestión de Eventos / Día D
+- Invitaciones
+- Configuración territorial (Deptos / Municipios / Barrios)
+
+### Comando principal
+```bash
+php artisan db:seed --class=VisualE2ESeeder
+npx playwright test -c tests/Visual/visual.config.js --update-snapshots
 ```
-Total Tests Suite: 650+ tests
-Estado Baseline: 162 passing, 1 failed (arreglado)
-Cobertura de Reglas de Negocio: 100%
-Issues Críticos: 0
-Issues Menores: 1 (upload en browser tests)
-```
 
-## 🔧 Issues Identificados y Recomendaciones
+### Evidencia
+- Baselines: `tests/Visual/__screenshots__`
+- Reporte: `output/playwright-report/index.html`
+- Artefactos: `output/playwright/`
 
-### 🚨 Issue 1: Upload de archivos en Browser Tests
-**Problema:** `Undefined array key 0` en `_finishUpload`  
-**Impacto:** Browser tests de flujo Día D fallan  
-**Recomendación:** Revisar implementación de upload en `app/Filament/Pages/DiaD.php`
+---
 
-### ⚠️ Issue 2: Validaciones de requeridos en VoteRecord
-**Problema:** Base de datos permite crear VoteRecord sin evidencia requerida  
-**Impacto:** La validación está a nivel de aplicación, no de base de datos  
-**Estado:** Aceptable - cumple con arquitectura actual
+## 📌 Reglas de ejecución
 
-## 🎯 Conclusión
-
-El sistema SIGMA tiene una **cobertura de pruebas excelente** para las reglas de negocio críticas. Todas las reglas documentadas en `docs/REGLAS_NEGOCIO.md` están validadas con tests automatizados que cubren:
-
-- ✅ **Unit tests** para lógica de negocio
-- ✅ **Feature tests** para flujo completo  
-- ✅ **Browser tests** para validación E2E
-- ✅ **Integration tests** para servicios y componentes
-
-**Recomendación general:** El sistema está **LISTO PARA PRODUCCIÓN** con tests de regresión robustos que aseguran el cumplimiento de todas las reglas de negocio críticas.
+- Registrar resultados en `PROGRESO.md`.
+- Si falla un test crítico, se corrige y se agrega prueba.
+- Cada fix debe reflejarse en `CHANGELOG.md`.

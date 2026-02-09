@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCampaignContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CensusRecord extends Model
 {
     /** @use HasFactory<\Database\Factories\CensusRecordFactory> */
-    use HasFactory;
+    use HasCampaignContext, HasFactory;
 
     /**
      * The attributes that are mass assignable.

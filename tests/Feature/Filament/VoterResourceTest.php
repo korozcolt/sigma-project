@@ -14,6 +14,7 @@ use App\Models\Neighborhood;
 use App\Models\User;
 use App\Models\Voter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Session;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
@@ -32,6 +33,8 @@ beforeEach(function () {
     $this->admin->assignRole(UserRole::SUPER_ADMIN->value);
 
     actingAs($this->admin);
+    Session::put('campaign_context.mode', 'all');
+    Session::forget('campaign_context.campaign_id');
 });
 
 // ============ Tests de Listado ============

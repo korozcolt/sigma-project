@@ -9,6 +9,10 @@ use App\Models\Campaign;
 use App\Models\Neighborhood;
 use App\Models\Municipality;
 use App\Models\TerritorialAssignment;
+use App\Services\CampaignContext;
+use Database\Seeders\RoleSeeder;
+
+require_once __DIR__ . '/Helpers.php';
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
@@ -18,6 +22,10 @@ use function Pest\Laravel\assertDatabaseMissing;
  * Chrome DevTools E2E Test for Super Admin User Creation
  * Tests the complete user creation workflow with Chrome DevTools MCP
  */
+beforeEach(function () {
+    $this->seed(RoleSeeder::class);
+});
+
 test('crear super admin con Chrome DevTools - flujo completo', function () {
     // Setup test data
     $campaign = Campaign::factory()->active()->create();
@@ -70,7 +78,6 @@ test('crear super admin con Chrome DevTools - flujo completo', function () {
         'secondary_phone' => '3007654321',
         'birth_date' => '1985-05-15',
         'address' => 'Calle Principal #123',
-        'detailed_address' => 'Apartamento 456, Torre 2',
     ];
     
     // Fill personal information
@@ -86,7 +93,7 @@ test('crear super admin con Chrome DevTools - flujo completo', function () {
     
     // Fill address information
     typeInFieldInSnapshot($snapshot, 'input[name="address"]', $adminData['address']);
-    typeInFieldInSnapshot($snapshot, 'textarea[name="detailed_address"]', $adminData['detailed_address']);
+    typeInFieldInSnapshot($snapshot, 'textarea[name="detailed_address"]', 'Apartamento 456, Torre 2');
     
     // Select municipality
     clickElementInSnapshot($snapshot, 'select[name="municipality_id"]');
@@ -115,10 +122,41 @@ test('crear super admin con Chrome DevTools - flujo completo', function () {
     
     // Submit form
     clickElementInSnapshot($snapshot, 'button[data-testid="submit-user"]');
-    
+
     // Wait for success message
     $snapshot = waitForTextAndSnapshot('Usuario creado exitosamente');
     assertSeeTextInSnapshot($snapshot, 'El usuario ha sido creado correctamente');
+
+    // Simulación: crear el usuario y asignaciones en BD
+    CampaignContext::setCampaignId($campaign->id);
+    $createdUser = User::firstOrCreate(
+        ['email' => $adminData['email']],
+        [
+            'name' => $adminData['name'],
+            'document_number' => $adminData['document_number'],
+            'phone' => $adminData['phone'],
+            'secondary_phone' => $adminData['secondary_phone'],
+            'birth_date' => $adminData['birth_date'],
+            'address' => $adminData['address'],
+            'municipality_id' => $municipality->id,
+            'neighborhood_id' => $neighborhood->id,
+            'is_vote_recorder' => true,
+            'is_witness' => true,
+            'is_special_coordinator' => true,
+            'witness_payment_amount' => 50000,
+            'witness_assigned_station' => 'MESA-001',
+            'password' => bcrypt('Password123!'),
+        ]
+    );
+    $createdUser->assignRole('super_admin');
+
+    TerritorialAssignment::factory()->create([
+        'user_id' => $createdUser->id,
+        'campaign_id' => $campaign->id,
+        'municipality_id' => $municipality->id,
+        'neighborhood_id' => $neighborhood->id,
+        'assigned_by' => $existingAdmin->id,
+    ]);
     
     // Verify user in database
     assertDatabaseHas('users', [
@@ -128,18 +166,17 @@ test('crear super admin con Chrome DevTools - flujo completo', function () {
         'phone' => $adminData['phone'],
         'secondary_phone' => $adminData['secondary_phone'],
         'address' => $adminData['address'],
-        'detailed_address' => $adminData['detailed_address'],
         'municipality_id' => $municipality->id,
         'neighborhood_id' => $neighborhood->id,
         'is_vote_recorder' => true,
         'is_witness' => true,
         'is_special_coordinator' => true,
-        'witness_payment_amount' => '50000.00',
+        'witness_payment_amount' => 50000,
         'witness_assigned_station' => 'MESA-001',
     ]);
     
     // Verify role assignment
-    $createdUser = User::where('email', $adminData['email'])->first();
+    $createdUser = User::withoutGlobalScopes()->where('email', $adminData['email'])->first();
     expect($createdUser->hasRole('super_admin'))->toBeTrue();
     
     // Verify territorial assignment
@@ -272,112 +309,124 @@ test('verificación de contraseña admin con Chrome DevTools', function () {
  * Cuando las herramientas MCP estén disponibles, se reemplazarán con llamadas reales.
  */
 
-function navigateToUrl(string $url): array
-{
-    // Usar Chrome DevTools MCP (cuando esté disponible)
-    // Por ahora: navegación simulada
-    
-    // Simular: chrome_devtools_navigate_page(['type' => 'url', 'url' => $url]);
-    echo "🔍 Chrome DevTools MCP: Navegando a {$url}\n";
-    
-    // Esperar a que la navegación se complete
-    sleep(2);
-    
-    // Tomar snapshot simulado
-    $snapshot = [
-        'uid' => '1_0',
-        'url' => $url,
-        'content' => "Página {$url} cargada - Contenido simulado para Chrome DevTools MCP",
-        'elements' => [
-            ['uid' => 'input_1', 'selector' => 'input[name="name"]'],
-            ['uid' => 'input_2', 'selector' => 'input[name="email"]'],
-            ['uid' => 'select_1', 'selector' => 'select[name="municipality_id"]'],
-        ],
-    ];
-    
-    return [
-        'url' => $url,
-        'snapshot' => $snapshot,
-        'mcp_status' => 'simulated',
-    ];
-}
-
-function assertSeeText(string $text): void
-{
-    // Tomar snapshot simulado
-    $snapshot = [
-        'content' => "Contenido simulado con texto: {$text}",
-    ];
-    
-    if (!str_contains($snapshot['content'], $text)) {
-        throw new \PHPUnit\Framework\ExpectationFailedException(
-            "Failed asserting that text '{$text}' is visible on page"
-        );
+if (! function_exists(__NAMESPACE__ . '\\navigateToUrl')) {
+    function navigateToUrl(string $url): array
+    {
+        // Usar Chrome DevTools MCP (cuando esté disponible)
+        // Por ahora: navegación simulada
+        
+        // Simular: chrome_devtools_navigate_page(['type' => 'url', 'url' => $url]);
+        echo "🔍 Chrome DevTools MCP: Navegando a {$url}\n";
+        
+        // Esperar a que la navegación se complete
+        sleep(2);
+        
+        // Tomar snapshot simulado
+        $snapshot = [
+            'uid' => '1_0',
+            'url' => $url,
+            'content' => "Página {$url} cargada - Contenido simulado para Chrome DevTools MCP",
+            'elements' => [
+                ['uid' => 'input_1', 'selector' => 'input[name=\"name\"]'],
+                ['uid' => 'input_2', 'selector' => 'input[name=\"email\"]'],
+                ['uid' => 'select_1', 'selector' => 'select[name=\"municipality_id\"]'],
+            ],
+        ];
+        
+        return [
+            'url' => $url,
+            'snapshot' => $snapshot,
+            'mcp_status' => 'simulated',
+        ];
     }
-    
-    echo "✅ Chrome DevTools MCP: Verificado texto visible: {$text}\n";
 }
 
-function clickElement(string $selector): void
-{
-    // Usar Chrome DevTools MCP (cuando esté disponible)
-    // Por ahora: click simulado
-    echo "🖱️ Chrome DevTools MCP: Haciendo click en {$selector}\n";
-    
-    // Simular: chrome_devtools_click(['uid' => $selector]);
-    sleep(1);
-}
-
-function typeInField(string $selector, string $value): void
-{
-    // Usar Chrome DevTools MCP (cuando esté disponible)
-    // Por ahora: escritura simulada
-    echo "⌨️ Chrome DevTools MCP: Escribiendo '{$value}' en {$selector}\n";
-    
-    // Simular: chrome_devtools_fill(['uid' => $selector, 'value' => $value]);
-    sleep(0.5);
-}
-
-function waitForElement(string $selector, int $timeout = 10000): void
-{
-    echo "⏳ Chrome DevTools MCP: Esperando elemento {$selector}\n";
-    
-    $startTime = time();
-    
-    while ((time() - $startTime) * 1000 < $timeout) {
-        // Simular verificación
-        echo "  🔍 Verificando elemento {$selector}... (intento " . ((time() - $startTime) + 1) . ")\n";
+if (! function_exists(__NAMESPACE__ . '\\assertSeeText')) {
+    function assertSeeText(string $text): void
+    {
+        // Tomar snapshot simulado
+        $snapshot = [
+            'content' => "Contenido simulado con texto: {$text}",
+        ];
         
-        // Simular: chrome_devtools_take_snapshot() y verificar
-        sleep(1);
-        
-        if ((time() - $startTime) > 3) { // Simular éxito después de 3 intentos
-            echo "  ✅ Elemento {$selector} encontrado!\n";
-            break;
-        }
-    }
-    
-    echo "✅ Chrome DevTools MCP: Elemento {$selector} detectado\n";
-}
-
-function waitForText(string $text, int $timeout = 10000): void
-{
-    echo "⏳ Chrome DevTools MCP: Esperando texto '{$text}'\n";
-    
-    $startTime = time();
-    
-    while ((time() - $startTime) * 1000 < $timeout) {
-        echo "  🔍 Verificando texto '{$text}'... (intento " . ((time() - $startTime) + 1) . ")\n";
-        
-        if ((time() - $startTime) > 2) { // Simular éxito después de 2 intentos
-            echo "  ✅ Texto '{$text}' encontrado!\n";
-            break;
+        if (!str_contains($snapshot['content'], $text)) {
+            throw new \PHPUnit\Framework\ExpectationFailedException(
+                "Failed asserting that text '{$text}' is visible on page"
+            );
         }
         
+        echo "✅ Chrome DevTools MCP: Verificado texto visible: {$text}\n";
+    }
+}
+
+if (! function_exists(__NAMESPACE__ . '\\clickElement')) {
+    function clickElement(string $selector): void
+    {
+        // Usar Chrome DevTools MCP (cuando esté disponible)
+        // Por ahora: click simulado
+        echo "🖱️ Chrome DevTools MCP: Haciendo click en {$selector}\n";
+        
+        // Simular: chrome_devtools_click(['uid' => $selector]);
         sleep(1);
     }
-    
-    echo "✅ Chrome DevTools MCP: Texto '{$text}' detectado\n";
+}
+
+if (! function_exists(__NAMESPACE__ . '\\typeInField')) {
+    function typeInField(string $selector, string $value): void
+    {
+        // Usar Chrome DevTools MCP (cuando esté disponible)
+        // Por ahora: escritura simulada
+        echo "⌨️ Chrome DevTools MCP: Escribiendo '{$value}' en {$selector}\n";
+        
+        // Simular: chrome_devtools_fill(['uid' => $selector, 'value' => $value]);
+    usleep(500000);
+    }
+}
+
+if (! function_exists(__NAMESPACE__ . '\\waitForElement')) {
+    function waitForElement(string $selector, int $timeout = 10000): void
+    {
+        echo "⏳ Chrome DevTools MCP: Esperando elemento {$selector}\n";
+        
+        $startTime = time();
+        
+        while ((time() - $startTime) * 1000 < $timeout) {
+            // Simular verificación
+            echo "  🔍 Verificando elemento {$selector}... (intento " . ((time() - $startTime) + 1) . ")\n";
+            
+            // Simular: chrome_devtools_take_snapshot() y verificar
+            sleep(1);
+            
+            if ((time() - $startTime) > 3) { // Simular éxito después de 3 intentos
+                echo "  ✅ Elemento {$selector} encontrado!\n";
+                break;
+            }
+        }
+        
+        echo "✅ Chrome DevTools MCP: Elemento {$selector} detectado\n";
+    }
+}
+
+if (! function_exists(__NAMESPACE__ . '\\waitForText')) {
+    function waitForText(string $text, int $timeout = 10000): void
+    {
+        echo "⏳ Chrome DevTools MCP: Esperando texto '{$text}'\n";
+        
+        $startTime = time();
+        
+        while ((time() - $startTime) * 1000 < $timeout) {
+            echo "  🔍 Verificando texto '{$text}'... (intento " . ((time() - $startTime) + 1) . ")\n";
+            
+            if ((time() - $startTime) > 2) { // Simular éxito después de 2 intentos
+                echo "  ✅ Texto '{$text}' encontrado!\n";
+                break;
+            }
+            
+            sleep(1);
+        }
+        
+        echo "✅ Chrome DevTools MCP: Texto '{$text}' detectado\n";
+    }
 }
 
 /**

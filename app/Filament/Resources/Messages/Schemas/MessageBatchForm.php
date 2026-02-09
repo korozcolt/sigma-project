@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Messages\Schemas;
 
 use App\Models\MessageTemplate;
+use App\Services\CampaignContext;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
@@ -29,7 +30,9 @@ class MessageBatchForm
                         ->relationship('campaign', 'name')
                         ->required()
                         ->searchable()
-                        ->preload(),
+                        ->preload()
+                        ->default(fn () => CampaignContext::currentCampaignId())
+                        ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                     Select::make('template_id')
                         ->label('Plantilla')

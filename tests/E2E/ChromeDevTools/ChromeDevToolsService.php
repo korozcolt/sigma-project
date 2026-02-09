@@ -90,7 +90,7 @@ class ChromeDevToolsService
         self::simulateType($selector, $value);
         
         // Wait for typing to complete
-        sleep(0.5);
+        usleep(500000);
     }
 
     /**

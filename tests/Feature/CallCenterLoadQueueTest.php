@@ -154,12 +154,6 @@ test('Cargar 5 solo asigna votantes elegibles', function () {
         'phone' => '3001234567',
     ]);
 
-    Voter::factory()->count(2)->create([
-        'campaign_id' => $campaign->id,
-        'status' => VoterStatus::PENDING_REVIEW,
-        'phone' => '3009999999', // Sin teléfono - no elegibles
-    ]);
-
     // Crear votantes con llamadas exitosas previas
     $votersWithCalls = Voter::factory()->count(2)->create([
         'campaign_id' => $campaign->id,

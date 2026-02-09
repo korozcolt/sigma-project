@@ -3,9 +3,9 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\VoterStatus;
-use App\Models\Campaign;
 use App\Models\User;
 use App\Models\Voter;
+use App\Services\CampaignContext;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
@@ -28,11 +28,11 @@ class CampaignStatsOverview extends StatsOverviewWidget
 
     protected function getTotalVotersStat(): Stat
     {
-        $activeCampaign = Campaign::where('status', 'active')->first();
+        $activeCampaign = CampaignContext::currentCampaign();
 
         if (! $activeCampaign) {
             return Stat::make('Total de Votantes', 0)
-                ->description('No hay campaña activa')
+                ->description('No hay campaña seleccionada')
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color('warning');
         }
@@ -51,7 +51,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
 
     protected function getConfirmedVotersStat(): Stat
     {
-        $activeCampaign = Campaign::where('status', 'active')->first();
+        $activeCampaign = CampaignContext::currentCampaign();
 
         if (! $activeCampaign) {
             return Stat::make('Votantes Confirmados', 0);
@@ -78,7 +78,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
 
     protected function getActiveLeadersStat(): Stat
     {
-        $activeCampaign = Campaign::where('status', 'active')->first();
+        $activeCampaign = CampaignContext::currentCampaign();
 
         if (! $activeCampaign) {
             return Stat::make('Líderes Activos', 0);
@@ -117,7 +117,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
 
     protected function getValidationProgressStat(): Stat
     {
-        $activeCampaign = Campaign::where('status', 'active')->first();
+        $activeCampaign = CampaignContext::currentCampaign();
 
         if (! $activeCampaign) {
             return Stat::make('Progreso de Validación', '0%');

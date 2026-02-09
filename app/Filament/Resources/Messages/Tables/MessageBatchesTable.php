@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Messages\Tables;
 
+use App\Services\CampaignContext;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -141,7 +142,8 @@ class MessageBatchesTable
                     ->label('Campaña')
                     ->relationship('campaign', 'name')
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
             ])
             ->actions([
                 ViewAction::make(),

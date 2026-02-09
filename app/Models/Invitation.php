@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCampaignContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Support\Str;
 class Invitation extends Model
 {
     /** @use HasFactory<\Database\Factories\InvitationFactory> */
-    use HasFactory;
+    use HasCampaignContext, HasFactory;
 
     protected $fillable = [
         'token',

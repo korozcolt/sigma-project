@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Users\Schemas;
 
 use App\Enums\UserRole;
 use App\Models\Campaign;
+use App\Services\CampaignContext;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
@@ -240,7 +241,9 @@ class UserForm
 
                         Select::make('voter_campaign_id')
                             ->label('Campaña del Votante')
-                            ->options(Campaign::query()->pluck('name', 'id'))
+                            ->options(Campaign::query()
+                                ->when(! CampaignContext::isSuperAdmin(), fn ($query) => $query->whereKey(CampaignContext::currentCampaignId()))
+                                ->pluck('name', 'id'))
                             ->required(fn (Get $get) => $get('register_as_voter'))
                             ->live()
                             ->searchable()
@@ -268,7 +271,10 @@ class UserForm
                             ->schema([
                                 Select::make('campaign_id')
                                     ->label('Campaña')
-                                    ->relationship('campaign', 'name')
+                                    ->relationship('campaign', 'name', fn ($query) => $query->when(
+                                        ! CampaignContext::isSuperAdmin(),
+                                        fn ($scopedQuery) => $scopedQuery->whereKey(CampaignContext::currentCampaignId())
+                                    ))
                                     ->required()
                                     ->distinct()
                                     ->disableOptionsWhenSelectedInSiblingRepeaterItems()

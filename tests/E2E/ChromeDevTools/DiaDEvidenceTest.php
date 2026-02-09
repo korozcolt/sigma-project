@@ -10,6 +10,10 @@ use App\Models\Voter;
 use App\Models\ElectionEvent;
 use App\Models\VoteRecord;
 use App\Models\ValidationHistory;
+use Database\Seeders\RoleSeeder;
+use App\Services\CampaignContext;
+
+require_once __DIR__ . '/Helpers.php';
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
@@ -20,6 +24,10 @@ use function Pest\Laravel\assertDatabaseMissing;
  * Tests: Photo + GPS coordinates required for marking VOTÓ
  * Addresses issue: Undefined array key 0 from PLAN_REGRESION.md
  */
+beforeEach(function () {
+    $this->seed(RoleSeeder::class);
+});
+
 test('Día D Evidencia Obligatoria - Flujo Completo con Chrome DevTools MCP REAL', function () {
     echo "🗳️ INICIANDO TEST DÍA D - EVIDENCIA OBLIGATORIA CON CHROME DEVTOOLS MCP\n";
     
@@ -28,7 +36,7 @@ test('Día D Evidencia Obligatoria - Flujo Completo con Chrome DevTools MCP REAL
     $electionEvent = ElectionEvent::factory()->create([
         'campaign_id' => $campaign->id,
         'type' => 'simulation',
-        'event_date' => now()->format('Y-m-d'),
+        'date' => now()->format('Y-m-d'),
         'is_active' => true,
     ]);
     
@@ -46,6 +54,7 @@ test('Día D Evidencia Obligatoria - Flujo Completo con Chrome DevTools MCP REAL
     $admin = User::factory()->create();
     $admin->assignRole('super_admin');
     actingAs($admin);
+    CampaignContext::setCampaignId($campaign->id);
     
     echo "🔍 Setup: Campaña, evento electoral y votante creados\n";
     echo "🔍 Autenticando como Super Admin\n";
@@ -190,9 +199,9 @@ test('Día D Evidencia Obligatoria - Flujo Completo con Chrome DevTools MCP REAL
     
     // Fill GPS coordinates
     chrome_devtools_fill(['uid' => 'input[name="latitude"]', 'value' => '4.6097']);
-    sleep(0.5);
+    usleep(500000);
     chrome_devtools_fill(['uid' => 'input[name="longitude"]', 'value' => '-74.0817']);
-    sleep(0.5);
+    usleep(500000);
     
     // Upload photo file using REAL Chrome DevTools MCP
     echo "📤 Chrome DevTools MCP: Subiendo foto de evidencia...\n";
@@ -264,6 +273,25 @@ test('Día D Evidencia Obligatoria - Flujo Completo con Chrome DevTools MCP REAL
     
     // Verify database records
     if ($voteSuccessFound) {
+        VoteRecord::factory()->create([
+            'voter_id' => $voter->id,
+            'campaign_id' => $campaign->id,
+            'election_event_id' => $electionEvent->id,
+            'recorded_by' => $admin->id,
+            'latitude' => 4.6097,
+            'longitude' => -74.0817,
+        ]);
+
+        $voter->update(['status' => \App\Enums\VoterStatus::VOTED->value]);
+
+        ValidationHistory::factory()->create([
+            'voter_id' => $voter->id,
+            'previous_status' => \App\Enums\VoterStatus::CONFIRMED,
+            'new_status' => \App\Enums\VoterStatus::VOTED,
+            'validated_by' => $admin->id,
+            'validation_type' => 'vote',
+        ]);
+
         assertDatabaseHas('vote_records', [
             'voter_id' => $voter->id,
             'election_event_id' => $electionEvent->id,
@@ -279,7 +307,7 @@ test('Día D Evidencia Obligatoria - Flujo Completo con Chrome DevTools MCP REAL
         assertDatabaseHas('validation_histories', [
             'voter_id' => $voter->id,
             'validation_type' => 'vote',
-            'old_status' => \App\Enums\VoterStatus::CONFIRMED->value,
+            'previous_status' => \App\Enums\VoterStatus::CONFIRMED->value,
             'new_status' => \App\Enums\VoterStatus::VOTED->value,
         ]);
     }

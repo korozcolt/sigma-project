@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCampaignContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Neighborhood extends Model
 {
     /** @use HasFactory<\Database\Factories\NeighborhoodFactory> */
-    use HasFactory;
+    use HasCampaignContext, HasFactory;
 
     /**
      * The attributes that are mass assignable.
@@ -75,5 +76,10 @@ class Neighborhood extends Model
             $q->where('is_global', true)
                 ->orWhere('campaign_id', $campaignId);
         });
+    }
+
+    public function shouldIncludeGlobalRecords(): bool
+    {
+        return true;
     }
 }

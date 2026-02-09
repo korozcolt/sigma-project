@@ -62,5 +62,5 @@ test('leader cannot access Filament admin panel', function () {
 test('guest is redirected to Filament login page', function () {
     $response = $this->get('/admin');
 
-    $response->assertRedirect('/admin/login');
+    $response->assertRedirect('/login');
 });

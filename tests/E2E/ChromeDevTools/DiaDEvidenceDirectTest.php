@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\E2E\ChromeDevTools;
 
+require_once __DIR__ . '/Helpers.php';
+
 /**
  * Chrome DevTools E2E Test for Día D - Evidencia Obligatoria
  * Tests: Photo + GPS coordinates required for marking VOTÓ

@@ -58,7 +58,7 @@ test('la unicidad se hace por llamada + pregunta', function () {
         'voter_id' => $voter->id,
         'answered_by' => $caller->id,
         'verification_call_id' => $call1->id,
-        'response_text' => 'Primera respuesta',
+        'response_value' => 'Primera respuesta',
     ]);
 
     // Crear segunda llamada (siguiente intento)
@@ -75,7 +75,7 @@ test('la unicidad se hace por llamada + pregunta', function () {
         'voter_id' => $voter->id,
         'answered_by' => $caller->id,
         'verification_call_id' => $call2->id,
-        'response_text' => 'Segunda respuesta',
+        'response_value' => 'Segunda respuesta',
     ]);
 
     expect($response1->verification_call_id)->toBe($call1->id);
@@ -106,20 +106,20 @@ test('dentro de la misma llamada, re-guardar actualiza (no duplica)', function (
         'voter_id' => $voter->id,
         'answered_by' => $caller->id,
         'verification_call_id' => $call->id,
-        'response_text' => 'Respuesta inicial',
+        'response_value' => 'Respuesta inicial',
     ]);
 
     $responseId = $response->id;
 
     // Actualizar la misma respuesta
-    $response->update(['response_text' => 'Respuesta actualizada']);
+    $response->update(['response_value' => 'Respuesta actualizada']);
 
     // Verificar que no se duplicó
     expect(SurveyResponse::where('survey_question_id', $question->id)
         ->where('verification_call_id', $call->id)
         ->count())->toBe(1);
 
-    expect($response->fresh()->response_text)->toBe('Respuesta actualizada');
+    expect($response->fresh()->response_value)->toBe('Respuesta actualizada');
     expect($response->fresh()->id)->toBe($responseId);
 });
 
@@ -146,7 +146,7 @@ test('múltiples preguntas pueden tener respuestas en la misma llamada', functio
         'voter_id' => $voter->id,
         'answered_by' => $caller->id,
         'verification_call_id' => $call->id,
-        'response_text' => 'Respuesta pregunta 1',
+        'response_value' => 'Respuesta pregunta 1',
     ]);
 
     $response2 = SurveyResponse::factory()->create([
@@ -155,7 +155,7 @@ test('múltiples preguntas pueden tener respuestas en la misma llamada', functio
         'voter_id' => $voter->id,
         'answered_by' => $caller->id,
         'verification_call_id' => $call->id,
-        'response_text' => 'Respuesta pregunta 2',
+        'response_value' => 'Respuesta pregunta 2',
     ]);
 
     expect($response1->verification_call_id)->toBe($call->id);
@@ -197,7 +197,7 @@ test('el histórico de respuestas se mantiene por llamada', function () {
         'voter_id' => $voter->id,
         'answered_by' => $caller->id,
         'verification_call_id' => $call2->id,
-        'response_text' => 'Respuesta en segundo intento',
+        'response_value' => 'Respuesta en segundo intento',
     ]);
 
     // Verificar que solo hay una respuesta asociada a la llamada exitosa

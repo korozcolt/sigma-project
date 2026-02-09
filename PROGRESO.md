@@ -1,6 +1,91 @@
 # 📊 Progreso de Desarrollo SIGMA
 
-**Última Actualización:** 2025-11-27 02:50 - 🚀 LISTO PARA PRODUCCIÓN
+**Última Actualización:** 2026-02-08 22:30 - 🔧 EN PROGRESO (multi-campaña)
+
+---
+
+## 🧭 Plan de Desarrollo Multi-Campaña (Aislamiento Estricto)
+
+**Objetivo:** Una instancia maneja N campañas simultáneas, con aislamiento obligatorio por campaña. `super_admin` puede ver todo y cambiar contexto desde la barra superior.
+
+### Checklist por fases (alineado)
+
+| ID | Fase | Tarea | Estado | Check | Detalle |
+|----|------|-------|--------|-------|---------|
+| A1 | A | Definir enums `ElectionType` y `ScopeLevel` | PENDIENTE | [ ] | Crear enums para `MAYOR, GOVERNOR, PRESIDENT, HOUSE, SENATE, OTHER` y `MUNICIPAL, DEPARTMENTAL, NATIONAL`. |
+| A2 | A | Actualizar `campaigns` con campos electorales | PENDIENTE | [ ] | Agregar `election_type`, `scope_level`, `department_code`, `municipality_code`, `starts_at`, `ends_at`, `status` con reglas de validez por nivel territorial. |
+| A3 | A | Migración de datos existente | PENDIENTE | [ ] | Definir defaults seguros para campañas actuales y backfill de `scope_level`/territorio. |
+| A4 | A | Validaciones de dominio en modelo/form | PENDIENTE | [ ] | Validar que `NATIONAL` no tenga depto/muni, `DEPARTMENTAL` requiera depto, `MUNICIPAL` requiera depto+muni. |
+| B1 | B | Campaign Context (resolver campaña activa) | COMPLETADO | [x] | Resolver por `user->campaign_id` y permitir override en sesión para `super_admin` (selector en UI). |
+| B2 | B | Global scopes por modelo multi-campaña | COMPLETADO | [x] | Aplicar scope a Voters, Surveys, Messages, CallAssignments, ElectionEvents, etc., con excepción de `super_admin`. |
+| B3 | B | Policies/Gates por campaña | COMPLETADO | [x] | Validar `record.campaign_id === currentCampaignId` en acciones CRUD. |
+| B4 | B | Write enforcement en creación/updates | COMPLETADO | [x] | Setear `campaign_id` desde contexto (ignorar request) y bloquear cambios cruzados. |
+| B5 | B | Tests de aislamiento | COMPLETADO | [x] | Tests unit/feature para scopes, policies y creación con contexto. |
+| C1 | C | Selector en barra superior para `super_admin` | COMPLETADO | [x] | Dropdown con campañas activas; persiste en sesión; opción “Todas” si aplica. |
+| C2 | C | Bloqueo para roles no super_admin | COMPLETADO | [x] | Ocultar selector y forzar contexto a la campaña del usuario. |
+| C3 | C | Ajustes de Resources/Widgets/Exports | COMPLETADO | [x] | Revisar queries, filtros, relation managers y widgets para respetar contexto. |
+| D1 | D | Votantes (CRUD, import/export, estados) | PENDIENTE | [ ] | Verificar aislamiento en listados, creación, importaciones, exportaciones y dashboards. |
+| D2 | D | Encuestas (creación, respuestas, métricas) | PENDIENTE | [ ] | Validar que respuestas y métricas no mezclen campañas. |
+| D3 | D | Mensajería/SMS | PENDIENTE | [ ] | Implementar `SmsDriverInterface` con `HablameDriver`, `NullDriver` y opcional `LogDriver`. |
+| D4 | D | Call Center | PENDIENTE | [ ] | Aislar colas, asignaciones y métricas por campaña. |
+| D5 | D | Día D / Eventos electorales | PENDIENTE | [ ] | Evitar cruces de campañas en eventos, registros y cierres. |
+| D6 | D | Tests E2E (Chrome DevTools) | COMPLETADO | [x] | Confirmado E2E simulado; documentación alineada y actualizada. |
+| D7 | D | Visual E2E (Navegador real) | COMPLETADO | [x] | Suite visual Playwright por rol y flujo; baselines + reporte. |
+| E1 | E | `docs/DECISIONES.md` alineado con multi-campaña real | COMPLETADO | [x] | Decisiones PD-001/PD-002/PD-004 aplicadas y documentadas. |
+| E2 | E | `CHANGELOG.md` refleja el estado real | COMPLETADO | [x] | Sin mención de Pest Browser; E2E descrito como simulado. |
+| E3 | E | `PLAN_REGRESION.md` como protocolo vivo | COMPLETADO | [x] | Checklist E2E ejecutable después de cambios y antes de release. |
+
+### Fase A — Diseño de dominio (mínimo pero correcto)
+- [ ] A1. Definir enums `ElectionType` y `ScopeLevel`. (Estado: ⏳ Pendiente)
+Detalle: Crear enums para `MAYOR, GOVERNOR, PRESIDENT, HOUSE, SENATE, OTHER` y `MUNICIPAL, DEPARTMENTAL, NATIONAL`.
+- [ ] A2. Actualizar `campaigns` con campos electorales. (Estado: ⏳ Pendiente)
+Detalle: Agregar `election_type`, `scope_level`, `department_code`, `municipality_code`, `starts_at`, `ends_at`, `status` con reglas de validez por nivel territorial.
+- [ ] A3. Migración de datos existente. (Estado: ⏳ Pendiente)
+Detalle: Definir defaults seguros para campañas actuales y backfill de `scope_level`/territorio.
+- [ ] A4. Validaciones de dominio en modelo/form. (Estado: ⏳ Pendiente)
+Detalle: Validar que `NATIONAL` no tenga depto/muni, `DEPARTMENTAL` requiera depto, `MUNICIPAL` requiera depto+muni.
+
+### Fase B — Aislamiento obligatorio por campaña (enforcement real)
+- [x] B1. Campaign Context (resolver campaña activa). (Estado: ✅ Completado)
+Detalle: Resolver por `user->campaign_id` y permitir override en sesión para `super_admin` (selector en UI).
+- [x] B2. Global scopes por modelo multi-campaña. (Estado: ✅ Completado)
+Detalle: Aplicar scope a Voters, Surveys, Messages, CallAssignments, ElectionEvents, etc., con excepción de `super_admin`.
+- [x] B3. Policies/Gates por campaña. (Estado: ✅ Completado)
+Detalle: Validar `record.campaign_id === currentCampaignId` en acciones CRUD.
+- [x] B4. Write enforcement en creación/updates. (Estado: ✅ Completado)
+Detalle: Setear `campaign_id` desde contexto (ignorar request) y bloquear cambios cruzados.
+- [x] B5. Tests de aislamiento. (Estado: ✅ Completado)
+Detalle: Tests unit/feature para scopes, policies y creación con contexto.
+
+### Fase C — UI (Filament) con selector de campaña
+- [x] C1. Selector en barra superior para `super_admin`. (Estado: ✅ Completado)
+Detalle: Dropdown con campañas activas; persiste en sesión; opción “Todas” si aplica.
+- [x] C2. Bloqueo para roles no super_admin. (Estado: ✅ Completado)
+Detalle: Ocultar selector y forzar contexto a la campaña del usuario.
+- [x] C3. Ajustes de Resources/Widgets/Exports. (Estado: ✅ Completado)
+Detalle: Revisar queries, filtros, relation managers y widgets para respetar contexto.
+
+### Fase D — Auditoría de flujos críticos (corregir lo roto primero)
+- [ ] D1. Votantes (CRUD, import/export, estados). (Estado: ⏳ Pendiente)
+Detalle: Verificar aislamiento en listados, creación, importaciones, exportaciones y dashboards.
+- [ ] D2. Encuestas (creación, respuestas, métricas). (Estado: ⏳ Pendiente)
+Detalle: Validar que respuestas y métricas no mezclen campañas.
+- [ ] D3. Mensajería/SMS. (Estado: ⏳ Pendiente)
+Detalle: Implementar `SmsDriverInterface` con `HablameDriver`, `NullDriver` y opcional `LogDriver`.
+- [ ] D4. Call Center. (Estado: ⏳ Pendiente)
+Detalle: Aislar colas, asignaciones y métricas por campaña.
+- [ ] D5. Día D / Eventos electorales. (Estado: ⏳ Pendiente)
+Detalle: Evitar cruces de campañas en eventos, registros y cierres.
+- [x] D6. Tests E2E (Chrome DevTools). (Estado: ✅ Completado)
+Detalle: Confirmado E2E simulado; documentación alineada y actualizada.
+
+### Fase E — Documentación viva (sin desalineaciones)
+- [x] E1. `docs/DECISIONES.md` alineado con multi-campaña real. (Estado: ✅ Completado)
+Detalle: Decisiones PD-001/PD-002/PD-004 aplicadas y documentadas.
+- [x] E2. `CHANGELOG.md` refleja el estado real. (Estado: ✅ Completado)
+Detalle: Sin mención de Pest Browser; E2E descrito como simulado.
+- [x] E3. `PLAN_REGRESION.md` como protocolo vivo. (Estado: ✅ Completado)
+Detalle: Checklist E2E ejecutable después de cambios y antes de release.
 
 ---
 

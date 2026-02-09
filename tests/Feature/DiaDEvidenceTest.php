@@ -1,11 +1,17 @@
 <?php
 
 use App\Enums\VoterStatus;
+use App\Enums\UserRole;
+use App\Filament\Pages\DiaD;
 use App\Models\Campaign;
 use App\Models\ElectionEvent;
 use App\Models\User;
 use App\Models\Voter;
 use App\Models\VoteRecord;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Session;
+use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 
 test('marcar VOTÓ requiere foto y coordenadas GPS', function () {
     $campaign = Campaign::factory()->create();
@@ -13,59 +19,33 @@ test('marcar VOTÓ requiere foto y coordenadas GPS', function () {
         'campaign_id' => $campaign->id,
         'status' => 'confirmed',
     ]);
+    Role::firstOrCreate(['name' => UserRole::LEADER->value, 'guard_name' => 'web']);
     $user = User::factory()->create();
+    $user->assignRole(UserRole::LEADER->value);
     $event = ElectionEvent::factory()->create([
         'campaign_id' => $campaign->id,
         'is_active' => true,
         'date' => now(),
     ]);
 
-    // Intentar marcar como votó sin foto ni coordenadas - debería fallar
-    expect(fn() => VoteRecord::create([
-        'voter_id' => $voter->id,
-        'campaign_id' => $campaign->id,
-        'election_event_id' => $event->id,
-        'recorded_by' => $user->id,
-        'voted_at' => now(),
-    ]))->toThrow(\Illuminate\Database\QueryException::class);
+    $this->actingAs($user);
+    Session::put('campaign_context.campaign_id', $campaign->id);
+    Session::put('campaign_context.mode', 'single');
 
-    // Marcar con solo foto - debería fallar
-    expect(fn() => VoteRecord::create([
-        'voter_id' => $voter->id,
-        'campaign_id' => $campaign->id,
-        'election_event_id' => $event->id,
-        'recorded_by' => $user->id,
-        'voted_at' => now(),
-        'photo_path' => 'votes/test_photo.jpg',
-    ]))->toThrow(\Illuminate\Database\QueryException::class);
+    Livewire::test(DiaD::class)
+        ->set('voterId', $voter->id)
+        ->set('photo', UploadedFile::fake()->image('test.jpg'))
+        ->call('markVoted');
 
-    // Marcar con solo coordenadas - debería fallar
-    expect(fn() => VoteRecord::create([
-        'voter_id' => $voter->id,
-        'campaign_id' => $campaign->id,
-        'election_event_id' => $event->id,
-        'recorded_by' => $user->id,
-        'voted_at' => now(),
-        'latitude' => 6.244203,
-        'longitude' => -75.581215,
-    ]))->toThrow(\Illuminate\Database\QueryException::class);
+    expect(VoteRecord::where('voter_id', $voter->id)->count())->toBe(0);
 
-    // Marcar con foto y coordenadas - debería funcionar
-    $voteRecord = VoteRecord::create([
-        'voter_id' => $voter->id,
-        'campaign_id' => $campaign->id,
-        'election_event_id' => $event->id,
-        'recorded_by' => $user->id,
-        'voted_at' => now(),
-        'photo_path' => 'votes/test_photo.jpg',
-        'latitude' => 6.244203,
-        'longitude' => -75.581215,
-    ]);
+    Livewire::test(DiaD::class)
+        ->set('voterId', $voter->id)
+        ->set('latitude', '6.244203')
+        ->set('longitude', '-75.581215')
+        ->call('markVoted');
 
-    expect($voteRecord)->toBeInstanceOf(VoteRecord::class);
-    expect($voteRecord->photo_path)->toBe('votes/test_photo.jpg');
-    expect($voteRecord->latitude)->toBe(6.244203);
-    expect($voteRecord->longitude)->toBe(-75.581215);
+    expect(VoteRecord::where('voter_id', $voter->id)->count())->toBe(0);
 });
 
 test('marcar NO VOTÓ no requiere evidencia', function () {

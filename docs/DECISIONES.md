@@ -42,94 +42,44 @@ Implicaciones positivas y negativas de la decisión.
 ### PD-001: Estructura de Coordinadores y Líderes
 
 **Fecha:** 2025-11-02
-**Estado:** ⏳ Pendiente de Decisión
+**Estado:** ✅ Aceptada
 **Afecta a:** FASE 3
 
 #### Contexto
 Necesitamos definir cómo modelar Coordinadores y Líderes en la base de datos.
 
-#### Opciones
+#### Decisión
+Usar **roles en `users`** y **relación `campaign_user`** para asignación por campaña. Coordinadores y líderes son usuarios con rol + asignación en pivot.
 
-**Opción A: Usar solo roles en tabla users**
-```php
-// Users tienen roles: 'coordinator', 'leader'
-// Relaciones directas desde User
-```
+#### Consecuencias
+- Simplicidad en modelo de usuarios.
+- Multi-campaña gestionada con `campaign_user`.
+- Para campos específicos, se usa perfil o flags en `users` según necesidad.
 
-**Pros:**
-- Más simple
-- Menos tablas
-- Reutiliza User model
-
-**Contras:**
-- Mezcla concerns
-- Menos flexible para campos específicos
-- Dificulta queries especializadas
-
-**Opción B: Tablas separadas con relación a User**
-```php
-// Tabla coordinators (user_id, campaign_id, territory_id, etc)
-// Tabla leaders (user_id, campaign_id, coordinator_id, etc)
-```
-
-**Pros:**
-- Separación de concerns clara
-- Campos específicos por tipo
-- Queries más eficientes
-- Mejor para reportes
-
-**Contras:**
-- Más tablas
-- Más modelos
-- Más complejidad
-
-**Recomendación:** Opción B (tablas separadas)
-
-**Razón:** Mayor flexibilidad y escalabilidad para campos específicos del dominio electoral.
+#### Alternativas Consideradas
+- Tablas separadas para coordinators/leaders (mayor complejidad).
 
 ---
 
 ### PD-002: API de Mensajería (WhatsApp/SMS)
 
 **Fecha:** 2025-11-02
-**Estado:** ⏳ Pendiente de Decisión
+**Estado:** ✅ Aceptada
 **Afecta a:** FASE 6.2
 
 #### Contexto
 Necesitamos enviar mensajes de cumpleaños y recordatorios vía WhatsApp y SMS.
 
-#### Opciones para WhatsApp
+#### Decisión
+Definir un **driver de SMS** con interfaz única y drivers conmutables por configuración:
+- `SmsDriverInterface`
+- `HablameDriver` (real, con credenciales)
+- `NullDriver` (no-op)
+- `LogDriver` (QA, registra en logs)
 
-**Opción A: WhatsApp Business API (Oficial)**
-- Requiere aprobación de Meta
-- Más confiable
-- Más costoso
-- Oficial
-
-**Opción B: Twilio API para WhatsApp**
-- Fácil integración
-- Costo moderado
-- Bien documentado
-
-**Opción C: Biblioteca no oficial**
-- Riesgo de bloqueo
-- No recomendado para producción
-
-#### Opciones para SMS
-
-**Opción A: Twilio SMS**
-- Confiable
-- Bien documentado
-- Costo razonable
-
-**Opción B: AWS SNS**
-- Si ya usan AWS
-- Buena integración
-
-**Opción C: Proveedor local**
-- Depende del país
-
-**Recomendación:** Pendiente de presupuesto y país de operación
+#### Consecuencias
+- Tests funcionan sin credenciales.
+- Cambiar proveedor no implica cambios en lógica de negocio.
 
 ---
 
@@ -168,36 +118,22 @@ Actualmente usando SQLite en desarrollo. Para producción debemos decidir motor.
 ### PD-004: Multi-tenancy Strategy
 
 **Fecha:** 2025-11-02
-**Estado:** ⏳ Pendiente de Decisión
+**Estado:** ✅ Aceptada
 **Afecta a:** FASE 2
 
 #### Contexto
 SIGMA es multi-campaña. ¿Cómo aislar datos?
 
-#### Opciones
+#### Decisión
+**Soft Multi-tenancy con `campaign_id` + Campaign Context + Global Scopes + Policies.**
+- Contexto de campaña activo por usuario.
+- Scopes globales en modelos multi-campaña.
+- Enforcements en writes (campaign_id desde contexto).
+- `super_admin` puede cambiar contexto o ver todo.
 
-**Opción A: Soft Multi-tenancy (campo campaign_id)**
-```php
-// Todos los datos en misma BD
-// Cada registro tiene campaign_id
-// Scopes globales para filtrar
-```
-
-**Pros:**
-- Simple implementación
-- Una sola base de datos
-- Fácil backup
-
-**Contras:**
-- Riesgo de data leak
-- Queries más complejas
-- Menos seguro
-
-**Opción B: Database per Campaign**
-```php
-// Cada campaña tiene su propia base de datos
-// Usando paquete como stancl/tenancy
-```
+#### Consecuencias
+- Aislamiento estricto sin múltiples bases de datos.
+- Requiere disciplina de scopes y context.
 
 **Pros:**
 - Aislamiento total

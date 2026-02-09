@@ -6,6 +6,7 @@ namespace App\Filament\Pages;
 
 use App\Models\Campaign;
 use App\Models\ElectionEvent;
+use App\Services\CampaignContext;
 use BackedEnum;
 use App\Jobs\FinalizeElectionEvent;
 use Filament\Actions\Action;
@@ -73,9 +74,13 @@ class ManageElectionEvents extends Page
                 ->form([
                     Select::make('campaign_id')
                         ->label('Campaña')
-                        ->options(Campaign::pluck('name', 'id'))
+                        ->options(Campaign::query()
+                            ->when(! CampaignContext::isSuperAdmin(), fn ($query) => $query->whereKey(CampaignContext::currentCampaignId()))
+                            ->pluck('name', 'id'))
                         ->searchable()
-                        ->required(),
+                        ->required()
+                        ->default(fn () => CampaignContext::currentCampaignId())
+                        ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                     TextInput::make('name')
                         ->label('Nombre del Simulacro')
@@ -109,8 +114,21 @@ class ManageElectionEvents extends Page
                         ->rows(2),
                 ])
                 ->action(function (array $data) {
+                    $campaignId = CampaignContext::isSuperAdmin()
+                        ? ($data['campaign_id'] ?? null)
+                        : CampaignContext::currentCampaignId();
+
+                    if (! $campaignId) {
+                        Notification::make()
+                            ->title('Seleccione una campaña para continuar')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
                     ElectionEvent::create([
-                        'campaign_id' => $data['campaign_id'],
+                        'campaign_id' => $campaignId,
                         'name' => $data['name'],
                         'type' => 'simulation',
                         'date' => $data['date'],
@@ -136,9 +154,13 @@ class ManageElectionEvents extends Page
                 ->form([
                     Select::make('campaign_id')
                         ->label('Campaña')
-                        ->options(Campaign::pluck('name', 'id'))
+                        ->options(Campaign::query()
+                            ->when(! CampaignContext::isSuperAdmin(), fn ($query) => $query->whereKey(CampaignContext::currentCampaignId()))
+                            ->pluck('name', 'id'))
                         ->searchable()
-                        ->required(),
+                        ->required()
+                        ->default(fn () => CampaignContext::currentCampaignId())
+                        ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                     TextInput::make('name')
                         ->label('Nombre del Evento')
@@ -168,8 +190,21 @@ class ManageElectionEvents extends Page
                         ->rows(2),
                 ])
                 ->action(function (array $data) {
+                    $campaignId = CampaignContext::isSuperAdmin()
+                        ? ($data['campaign_id'] ?? null)
+                        : CampaignContext::currentCampaignId();
+
+                    if (! $campaignId) {
+                        Notification::make()
+                            ->title('Seleccione una campaña para continuar')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
                     ElectionEvent::create([
-                        'campaign_id' => $data['campaign_id'],
+                        'campaign_id' => $campaignId,
                         'name' => $data['name'],
                         'type' => 'real',
                         'date' => $data['date'],

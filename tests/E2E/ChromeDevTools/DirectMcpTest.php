@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\E2E\ChromeDevTools;
 
+require_once __DIR__ . '/Helpers.php';
+
 /**
  * Chrome DevTools E2E Test - Direct MCP Function Calls
  * Tests Chrome DevTools MCP using direct function calls

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Messages\Tables;
 
+use App\Services\CampaignContext;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -175,7 +176,8 @@ class MessagesTable
                     ->label('Campaña')
                     ->relationship('campaign', 'name')
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                 Filter::make('created_at')
                     ->form([

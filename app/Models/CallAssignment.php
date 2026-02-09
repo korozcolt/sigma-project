@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCampaignContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CallAssignment extends Model
 {
     /** @use HasFactory<\Database\Factories\CallAssignmentFactory> */
-    use HasFactory;
+    use HasCampaignContext, HasFactory;
 
     protected $fillable = [
         'voter_id',

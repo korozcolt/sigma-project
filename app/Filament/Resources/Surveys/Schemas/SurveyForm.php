@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Surveys\Schemas;
 
+use App\Services\CampaignContext;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -25,7 +26,9 @@ class SurveyForm
                                     ->relationship('campaign', 'name')
                                     ->searchable()
                                     ->preload()
-                                    ->required(),
+                                    ->required()
+                                    ->default(fn () => CampaignContext::currentCampaignId())
+                                    ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                                 Toggle::make('is_active')
                                     ->label('Activa')

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\ElectionEvents\Schemas;
 
+use App\Services\CampaignContext;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -27,7 +28,9 @@ class ElectionEventForm
                             ->relationship('campaign', 'name')
                             ->searchable()
                             ->preload()
-                            ->required(),
+                            ->required()
+                            ->default(fn () => CampaignContext::currentCampaignId())
+                            ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                         TextInput::make('name')
                             ->label('Nombre del Evento')

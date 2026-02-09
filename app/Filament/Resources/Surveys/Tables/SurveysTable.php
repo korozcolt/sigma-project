@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Surveys\Tables;
 
+use App\Services\CampaignContext;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -66,7 +67,8 @@ class SurveysTable
                     ->label('Campaña')
                     ->relationship('campaign', 'name')
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                 SelectFilter::make('is_active')
                     ->label('Estado')

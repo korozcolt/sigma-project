@@ -21,3 +21,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+tests/Visual/.auth
+output/playwright
+output/playwright-report

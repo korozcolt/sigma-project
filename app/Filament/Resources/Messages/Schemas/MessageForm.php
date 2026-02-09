@@ -6,6 +6,7 @@ namespace App\Filament\Resources\Messages\Schemas;
 
 use App\Models\MessageTemplate;
 use App\Models\Voter;
+use App\Services\CampaignContext;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
@@ -26,7 +27,9 @@ class MessageForm
                         ->relationship('campaign', 'name')
                         ->required()
                         ->searchable()
-                        ->preload(),
+                        ->preload()
+                        ->default(fn () => CampaignContext::currentCampaignId())
+                        ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                     Select::make('voter_id')
                         ->label('Votante')

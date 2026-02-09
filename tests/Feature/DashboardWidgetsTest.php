@@ -12,11 +12,17 @@ use App\Models\Neighborhood;
 use App\Models\User;
 use App\Models\Voter;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
+use App\Enums\UserRole;
+use Illuminate\Support\Facades\Session;
 
 uses()->group('dashboard-widgets');
 
 beforeEach(function () {
-    $this->actingAs(User::factory()->create());
+    Role::firstOrCreate(['name' => UserRole::SUPER_ADMIN->value, 'guard_name' => 'web']);
+    $user = User::factory()->create();
+    $user->assignRole(UserRole::SUPER_ADMIN->value);
+    $this->actingAs($user);
 
     // Crear estructura territorial
     $department = Department::factory()->create();
@@ -25,6 +31,8 @@ beforeEach(function () {
 
     // Crear campaña activa
     $this->campaign = Campaign::factory()->create(['status' => 'active']);
+    Session::put('campaign_context.campaign_id', $this->campaign->id);
+    Session::put('campaign_context.mode', 'single');
 });
 
 test('campaign stats overview widget displays correctly', function () {
@@ -92,12 +100,12 @@ test('campaign stats overview shows active leaders count', function () {
 });
 
 test('campaign stats overview handles no active campaign', function () {
-    // Cambiar estado de la campaña
-    $this->campaign->update(['status' => 'draft']);
+    Session::put('campaign_context.mode', 'all');
+    Session::forget('campaign_context.campaign_id');
 
     Livewire::test(CampaignStatsOverview::class)
         ->assertOk()
-        ->assertSee('No hay campaña activa');
+        ->assertSee('No hay campaña seleccionada');
 });
 
 test('territorial distribution chart widget displays correctly', function () {
@@ -132,7 +140,8 @@ test('territorial distribution chart shows data for municipalities', function ()
 });
 
 test('territorial distribution chart handles no active campaign', function () {
-    $this->campaign->update(['status' => 'draft']);
+    Session::put('campaign_context.mode', 'all');
+    Session::forget('campaign_context.campaign_id');
 
     Livewire::test(TerritorialDistributionChart::class)
         ->assertOk();
@@ -236,7 +245,8 @@ test('validation progress chart shows data for last 30 days', function () {
 });
 
 test('validation progress chart handles no active campaign', function () {
-    $this->campaign->update(['status' => 'draft']);
+    Session::put('campaign_context.mode', 'all');
+    Session::forget('campaign_context.campaign_id');
 
     Livewire::test(ValidationProgressChart::class)
         ->assertOk();

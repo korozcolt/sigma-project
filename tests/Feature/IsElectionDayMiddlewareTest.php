@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Http\Middleware\IsElectionDay;
 use App\Models\ElectionEvent;
+use App\Models\Campaign;
 use App\Models\User;
+use App\Services\CampaignContext;
 use Illuminate\Http\Request;
 
 use function Pest\Laravel\actingAs;
@@ -12,6 +14,9 @@ use function Pest\Laravel\actingAs;
 beforeEach(function () {
     $this->middleware = new IsElectionDay;
     $this->user = User::factory()->create();
+    $this->campaign = Campaign::factory()->create();
+    $this->user->campaigns()->attach($this->campaign->id, ['assigned_at' => now()]);
+    CampaignContext::setCampaignId($this->campaign->id);
 });
 
 it('allows access when there is an active event today', function () {

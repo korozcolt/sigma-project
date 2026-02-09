@@ -1,8 +1,8 @@
-# Chrome DevTools E2E Tests for SIGMA
+# Chrome DevTools E2E Tests for SIGMA (Simulados)
 
 ## 📋 Overview
 
-Se ha reestructurado completamente el sistema de tests E2E para usar **Chrome DevTools MCP** en lugar del Pest Browser Plugin. Esto proporciona mayor control y seguimiento de las pruebas de regresión del sistema SIGMA.
+Se ha reestructurado completamente el sistema de tests E2E para usar **Chrome DevTools** con una **capa simulada** en lugar del Pest Browser Plugin. Esto mantiene el contrato de pruebas mientras se implementa MCP real.
 
 ## 🏗️ Nueva Arquitectura
 
@@ -21,8 +21,8 @@ tests/E2E/ChromeDevTools/
 
 ### Flujo de Trabajo
 1. **Setup**: Los tests usan `ChromeDevToolsService::initialize()` para preparar sesión
-2. **Navegación**: `navigateToUrl()` utiliza Chrome DevTools MCP
-3. **Interacción**: Clicks, form filling, uploads vía MCP
+2. **Navegación**: `navigateToUrl()` usa la capa simulada
+3. **Interacción**: Clicks, form filling, uploads simulados
 4. **Verificación**: Snapshots y asserts para validar estado
 5. **Limpieza**: Sesión Chrome DevTools cerrada automáticamente
 
@@ -58,9 +58,9 @@ tests/E2E/ChromeDevTools/
 - ✅ Creación de historial de validación
 - ✅ Múltiples eventos y activación
 
-## 🔧 Chrome DevTools MCP Integration
+## 🔧 Chrome DevTools (Capa Simulada)
 
-### Servicios Implementados
+### Servicios Implementados (Simulados)
 ```php
 ChromeDevToolsService::navigate($url)           // Navegar a URL
 ChromeDevToolsService::click($selector)          // Click elemento
@@ -110,13 +110,13 @@ test('flujo completo Día D con Chrome DevTools', function () {
 ## 📊 Ventajas sobre Pest Browser
 
 ### Control Preciso
-- ✅ **MCP Integration**: Control directo sobre Chrome DevTools
+- ✅ **Integración simulada**: Contrato estable mientras se integra MCP real
 - ✅ **Snapshot Management**: Captura exacta del estado DOM
 - ✅ **Element Tracking**: Seguimiento de elementos interactivos
 - ✅ **Error Handling**: Captura detallada de errores MCP
 
 ### Resolución de Issues
-- ✅ **Upload Files**: Implementación nativa MCP resuelve `Undefined array key 0`
+- ✅ **Upload Files**: La capa simulada evita errores del flujo visual
 - ✅ **GPS Coordinates**: Manejo preciso de coordenadas Día D
 - ✅ **Form Validation**: Detección exacta de errores de formulario
 
@@ -130,8 +130,8 @@ test('flujo completo Día D con Chrome DevTools', function () {
 
 ### Comandos
 ```bash
-# Ejecutar todos los tests E2E con Chrome DevTools
-php artisan test --testsuite=E2E
+# Ejecutar todos los tests E2E con Chrome DevTools (opt-in)
+php artisan test tests/E2E
 
 # Test específico
 php artisan test tests/E2E/ChromeDevTools/DiaDVotingTest.php
@@ -142,7 +142,7 @@ php artisan test --filter="Call Center"
 php artisan test --filter="User Roles"
 ```
 
-### Requisitos MCP
+### Requisitos MCP (cuando se implemente real)
 1. **Chrome DevTools MCP Server** corriendo
 2. **Configuración `.mcp.json`** actualizada
 3. **Puertos locales** disponibles para binding
@@ -169,4 +169,4 @@ php artisan test --filter="User Roles"
 
 ---
 
-**Resultado**: Sistema de tests E2E completamente reestructurado para usar Chrome DevTools MCP, proporcionando mayor control, mejor debugging y resolución de issues existentes.
+**Resultado**: Sistema de tests E2E reestructurado con una capa simulada de Chrome DevTools, listo para migrar a MCP real.

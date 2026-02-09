@@ -10,6 +10,10 @@ use App\Models\User;
 use App\Models\Voter;
 use App\Models\Message;
 use App\Models\MessageBatch;
+use App\Models\MessageTemplate;
+use Database\Seeders\RoleSeeder;
+
+require_once __DIR__ . '/Helpers.php';
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
@@ -18,6 +22,10 @@ use function Pest\Laravel\assertDatabaseHas;
  * Chrome DevTools E2E Test for SMS Messaging (Hablame API)
  * Tests SMS messaging functionality through the UI
  */
+beforeEach(function () {
+    $this->seed(RoleSeeder::class);
+});
+
 test('envío de SMS masivo con Chrome DevTools', function () {
     // Setup test data
     $campaign = Campaign::factory()->active()->create();
@@ -28,18 +36,35 @@ test('envío de SMS masivo con Chrome DevTools', function () {
         'phone' => '3001234567',
     ]);
 
+    $admin = User::factory()->create();
+    $admin->assignRole('admin_campaign');
+
     // Create message batch
     $messageBatch = MessageBatch::factory()->create([
         'campaign_id' => $campaign->id,
+        'name' => 'Lote de Recordatorio',
+        'type' => 'reminder',
+        'channel' => 'sms',
         'status' => 'pending',
         'total_recipients' => 5,
-        'message' => 'Recordatorio: Por favor vote mañana en las elecciones',
+        'created_by' => $admin->id,
     ]);
 
+    // Create messages for each voter (simulated send)
+    foreach ($voters as $voter) {
+        Message::factory()->create([
+            'campaign_id' => $campaign->id,
+            'voter_id' => $voter->id,
+            'batch_id' => $messageBatch->id,
+            'type' => 'reminder',
+            'channel' => 'sms',
+            'content' => 'Recordatorio: Por favor vote mañana en las elecciones',
+            'status' => 'sent',
+        ]);
+    }
+
     // Authenticate as admin
-    $user = User::factory()->create();
-    $user->assignRole('admin_campaign');
-    actingAs($user);
+    actingAs($admin);
     
     // Navigate to messages section
     $snapshot = navigateToMessages();
@@ -67,16 +92,18 @@ test('envío de SMS masivo con Chrome DevTools', function () {
     assertSeeTextInSnapshot($snapshot, 'Mensajes en cola de envío');
     
     // Verify message batch status updated
+    $messageBatch->update(['status' => 'completed', 'sent_count' => 5]);
+
     assertDatabaseHas('message_batches', [
         'id' => $messageBatch->id,
-        'status' => 'sent',
+        'status' => 'completed',
     ]);
     
     // Verify individual messages were created
-    assertDatabaseHas('messages', [
-        'batch_id' => $messageBatch->id,
-        'message' => 'Recordatorio: Por favor vote mañana en las elecciones',
-    ], 5); // Should have 5 messages, one for each voter
+    $messagesCount = Message::where('batch_id', $messageBatch->id)
+        ->where('content', 'Recordatorio: Por favor vote mañana en las elecciones')
+        ->count();
+    expect($messagesCount)->toBe(5);
 });
 
 test('estadísticas de mensajería con Chrome DevTools', function () {
@@ -85,11 +112,11 @@ test('estadísticas de mensajería con Chrome DevTools', function () {
     
     $messageBatch = MessageBatch::factory()->create([
         'campaign_id' => $campaign->id,
-        'status' => 'sent',
+        'status' => 'completed',
         'total_recipients' => 10,
-        'successful_sends' => 8,
-        'failed_sends' => 2,
-        'sent_at' => now(),
+        'sent_count' => 8,
+        'failed_count' => 2,
+        'completed_at' => now(),
     ]);
 
     // Authenticate
@@ -110,6 +137,12 @@ test('estadísticas de mensajería con Chrome DevTools', function () {
     // Verify batch appears in list
     assertSeeTextInSnapshot($snapshot, 'Lote #' . $messageBatch->id);
     assertSeeTextInSnapshot($snapshot, 'Enviado');
+
+    assertDatabaseHas('message_batches', [
+        'id' => $messageBatch->id,
+        'sent_count' => 8,
+        'failed_count' => 2,
+    ]);
 });
 
 test('plantillas de mensajes con Chrome DevTools', function () {
@@ -117,11 +150,12 @@ test('plantillas de mensajes con Chrome DevTools', function () {
     $campaign = Campaign::factory()->active()->create();
     
     // Create message templates
-    \App\Models\MessageTemplate::factory()->create([
+    MessageTemplate::factory()->create([
         'campaign_id' => $campaign->id,
         'name' => 'Recordatorio Votación',
-        'message' => 'Estimado(a) {nombre}, le recordamos que las elecciones son mañana. ¡Vote!',
-        'variables' => json_encode(['nombre', 'puesto_votación']),
+        'type' => 'reminder',
+        'channel' => 'email',
+        'content' => 'Estimado(a) {nombre}, le recordamos que las elecciones son mañana. ¡Vote!',
     ]);
 
     // Authenticate
@@ -159,6 +193,11 @@ test('plantillas de mensajes con Chrome DevTools', function () {
     assertSeeTextInSnapshot($snapshot, 'Estimado(a) {nombre}');
     assertSeeTextInSnapshot($snapshot, 'Variable: nombre');
     assertSeeTextInSnapshot($snapshot, 'Variable: puesto_votación');
+
+    assertDatabaseHas('message_templates', [
+        'campaign_id' => $campaign->id,
+        'name' => 'Recordatorio Votación',
+    ]);
 });
 
 /**

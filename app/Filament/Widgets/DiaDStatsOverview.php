@@ -3,8 +3,8 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\VoterStatus;
-use App\Models\Campaign;
 use App\Models\Voter;
+use App\Services\CampaignContext;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -14,11 +14,11 @@ class DiaDStatsOverview extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        $campaign = Campaign::where('status', 'active')->first();
+        $campaign = CampaignContext::currentCampaign();
 
         if (! $campaign) {
             return [
-                Stat::make('Total Votantes', 0)->description('No hay campaña activa')->color('warning'),
+                Stat::make('Total Votantes', 0)->description('No hay campaña seleccionada')->color('warning'),
             ];
         }
 

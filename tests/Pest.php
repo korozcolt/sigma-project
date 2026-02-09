@@ -19,6 +19,14 @@ pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Browser');
 
+pest()->extend(Tests\TestCase::class)
+    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->in('E2E');
+
+beforeEach(function () {
+    $this->seed(\Database\Seeders\RoleSeeder::class);
+})->in('E2E');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

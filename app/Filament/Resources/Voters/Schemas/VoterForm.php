@@ -10,6 +10,7 @@ use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\User;
 use App\Rules\MaxTablesForPollingPlace;
+use App\Services\CampaignContext;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -55,7 +56,8 @@ class VoterForm
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->default(fn () => Campaign::query()->where('status', 'active')->first()?->id ?? Campaign::query()->first()?->id)
+                            ->default(fn () => CampaignContext::currentCampaignId())
+                            ->visible(fn (): bool => CampaignContext::isSuperAdmin())
                             ->disabled(fn (): bool => Campaign::count() <= 1)
                             ->dehydrated()
                             ->live()

@@ -18,6 +18,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\Testing\TestAction;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Session;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
@@ -33,6 +34,8 @@ beforeEach(function () {
     $this->admin->assignRole(UserRole::SUPER_ADMIN->value);
 
     actingAs($this->admin);
+    Session::put('campaign_context.mode', 'all');
+    Session::forget('campaign_context.campaign_id');
 });
 
 // ============ Tests de Listado ============
