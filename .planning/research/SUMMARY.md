@@ -15,13 +15,15 @@ For SIGMA, the research supports a brownfield hardening strategy, not a platform
 
 ### Recommended Stack
 
-SIGMA's current stack is already aligned with this product category. The strongest near-term move is to harden in place and add production support pieces where needed: PostgreSQL for real production concurrency, Redis for queues/locks/cache, queue visibility for imports and callbacks, and observability for trust-critical workflows. Mixing a major framework upgrade into this milestone would create unnecessary execution risk.
+SIGMA's current stack is already aligned with this product category. The strongest near-term move is to harden in place and add production support pieces where needed: PostgreSQL 17 with PostGIS, Redis plus Horizon for queues/cache/session, S3-compatible object storage for evidence and artifacts, and observability and rollout controls through Pulse, Telescope, Pennant, and static analysis. Search and analytics expansions should stay conditional on real operator pain, not assumed by default. Mixing a major framework upgrade into this milestone would create unnecessary execution risk.
 
 **Core technologies:**
 - Laravel 12 - workflow orchestration, auth, policies, jobs, and operational backend
 - Filament 4 + Livewire/Volt - role-aware operational UI and workflow screens
-- PostgreSQL 17+ - safer production persistence and reporting than SQLite
-- Redis 8.x - queues, locks, cache, and background workflow coordination
+- PostgreSQL 17 + PostGIS - safer production persistence, territorial logic, and reporting than SQLite
+- Redis + Horizon - queues, locks, cache, and background workflow coordination
+- S3-compatible object storage - durable evidence and import/export artifact storage
+- Pulse / Telescope / Pennant / Larastan - observability, rollout control, and earlier bug detection
 
 ### Expected Features
 
@@ -122,6 +124,7 @@ Phases with standard patterns (skip research-phase if needed):
 
 - Messaging provider details need confirmation from the actual chosen vendor integration and deployment environment
 - Production database choice should be finalized explicitly during planning if current environments still depend on SQLite anywhere
+- Search and realtime needs should be validated against actual operator pain before adding Meilisearch or Reverb
 
 ## Sources
 
