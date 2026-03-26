@@ -15,6 +15,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -32,8 +33,21 @@ class LeaderPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/theme.css')
             ->brandLogo(asset('images/logo-sigma_small.webp'))
             ->brandLogoHeight('2.5rem')
+            ->font('Manrope')
             ->colors([
-                'primary' => Color::Orange,
+                'primary' => [
+                    50  => '#fff7ed',
+                    100 => '#ffedd5',
+                    200 => '#fed7aa',
+                    300 => '#fdba74',
+                    400 => '#fb923c',
+                    500 => '#f97316',
+                    600 => '#ea6c0a',
+                    700 => '#c2570e',
+                    800 => '#9a3412',
+                    900 => '#7c2d12',
+                    950 => '#431407',
+                ],
                 'gray' => Color::Zinc,
             ])
             // Solo Dashboard para este panel; páginas específicas se agregarán luego
@@ -47,6 +61,7 @@ class LeaderPanelProvider extends PanelProvider
                 ValidationProgressChart::class,
                 TerritorialDistributionChart::class,
             ])
+            ->renderHook(PanelsRenderHook::BODY_END, fn () => view('filament.components.motion-init'))
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

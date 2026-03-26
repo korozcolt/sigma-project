@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class CallCenterStatsWidget extends StatsOverviewWidget
 {
+
+
     protected static ?int $sort = 1;
 
     protected ?string $pollingInterval = '30s';
@@ -33,8 +35,8 @@ class CallCenterStatsWidget extends StatsOverviewWidget
         $trendIcon = $trend >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down';
         $trendColor = $trend >= 0 ? 'success' : 'danger';
 
-        return Stat::make('Llamadas Hoy', $today)
-            ->description(abs(round($trend, 1)).'% vs ayer')
+        return Stat::make('Llamadas Totales Hoy', $today)
+            ->description(abs(round($trend, 1)).'% respecto a ayer')
             ->descriptionIcon($trendIcon)
             ->color($trendColor)
             ->chart($this->getLastWeekCallsChart());
@@ -73,8 +75,8 @@ class CallCenterStatsWidget extends StatsOverviewWidget
         $minutes = floor($avgDuration / 60);
         $seconds = $avgDuration % 60;
 
-        return Stat::make('Duración Promedio', sprintf('%d:%02d min', $minutes, $seconds))
-            ->description('Llamadas contestadas hoy')
+        return Stat::make('Duración Media Global', sprintf('%d:%02d min', $minutes, $seconds))
+            ->description('Llamadas contestadas hoy en la campaña')
             ->descriptionIcon('heroicon-m-clock')
             ->color('info');
     }

@@ -10,6 +10,12 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class DiaDStatsOverview extends StatsOverviewWidget
 {
+
+
+    protected ?string $heading = 'Estado del Día D';
+
+    protected ?string $description = 'Participación en tiempo real — actualiza cada 10 segundos';
+
     protected ?string $pollingInterval = '10s';
 
     protected function getStats(): array

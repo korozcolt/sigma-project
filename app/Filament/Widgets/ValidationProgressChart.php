@@ -10,7 +10,9 @@ class ValidationProgressChart extends ChartWidget
 {
     protected static ?int $sort = 1;
 
-    protected ?string $heading = 'Progreso de Validación (Últimos 30 días)';
+    protected ?string $heading = 'Progreso de Validación — 30 días';
+
+    protected ?string $description = 'Total de votantes registrados vs validados por llamada';
 
     protected ?string $pollingInterval = '120s';
 

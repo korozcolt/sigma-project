@@ -13,7 +13,9 @@ class TopLeadersTable extends TableWidget
 {
     protected static ?int $sort = 3;
 
-    protected static ?string $heading = 'Top Líderes por Votantes Registrados';
+    protected static ?string $heading = 'Ranking de Líderes';
+
+    protected static ?string $description = 'Top 10 líderes por votantes registrados en la campaña';
 
     protected ?string $pollingInterval = '120s';
 
@@ -63,7 +65,7 @@ class TopLeadersTable extends TableWidget
                     ->searchable()
                     ->copyable()
                     ->icon('heroicon-m-envelope')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('phone')
                     ->label('Teléfono')

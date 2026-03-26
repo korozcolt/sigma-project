@@ -25,8 +25,8 @@ class BirthdayWidget extends BaseWidget
                     ->whereYear('birth_date', '<=', now()->year)
                     ->orderByRaw('DAY(birth_date) ASC')
             )
-            ->heading('🎂 Cumpleaños del Mes')
-            ->description('Votantes que cumplen años este mes')
+            ->heading('Cumpleaños del Mes')
+            ->description('Votantes que cumplen años en '.now()->translatedFormat('F').' — oportunidad de contacto')
             ->columns([
                 Tables\Columns\TextColumn::make('full_name')
                     ->label('Nombre')

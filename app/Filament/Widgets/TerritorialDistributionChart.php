@@ -11,7 +11,9 @@ class TerritorialDistributionChart extends ChartWidget
 {
     protected static ?int $sort = 2;
 
-    protected ?string $heading = 'Distribución Territorial de Votantes';
+    protected ?string $heading = 'Top 10 Municipios con más Votantes';
+
+    protected ?string $description = 'Distribución territorial de la campaña activa';
 
     protected ?string $pollingInterval = '120s';
 

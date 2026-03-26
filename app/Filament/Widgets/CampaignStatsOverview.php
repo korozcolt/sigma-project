@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class CampaignStatsOverview extends StatsOverviewWidget
 {
+
+
     protected static ?int $sort = 0;
 
     protected ?string $pollingInterval = '60s';

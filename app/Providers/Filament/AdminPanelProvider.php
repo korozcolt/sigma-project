@@ -13,6 +13,12 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
+use App\Filament\Widgets\CampaignStatsOverview;
+use App\Filament\Widgets\ValidationProgressChart;
+use App\Filament\Widgets\TerritorialDistributionChart;
+use App\Filament\Widgets\TopLeadersTable;
+use App\Filament\Widgets\SurveyStatsOverview;
+use App\Filament\Widgets\BirthdayWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -31,8 +37,22 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/theme.css')
             ->brandLogo(asset('images/logo-sigma_small.webp'))
             ->brandLogoHeight('2.5rem')
+            ->sidebarCollapsibleOnDesktop()
+            ->font('Manrope')
             ->colors([
-                'primary' => Color::Orange,
+                'primary' => [
+                    50  => '#fff7ed',
+                    100 => '#ffedd5',
+                    200 => '#fed7aa',
+                    300 => '#fdba74',
+                    400 => '#fb923c',
+                    500 => '#f97316',
+                    600 => '#ea6c0a',
+                    700 => '#c2570e',
+                    800 => '#9a3412',
+                    900 => '#7c2d12',
+                    950 => '#431407',
+                ],
                 'gray' => Color::Zinc,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
@@ -40,11 +60,17 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
+                CampaignStatsOverview::class,    // KPIs principales — fila 1
+                ValidationProgressChart::class,  // Tendencia 30d — fila 2 izq
+                TerritorialDistributionChart::class, // Mapa — fila 2 der
+                TopLeadersTable::class,          // Ranking — fila 3 completa
+                SurveyStatsOverview::class,      // Encuestas — fila 4 izq
+                BirthdayWidget::class,           // Cumpleaños — fila 5 completa
             ])
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.components.campaign-context-switcher'))
+            ->renderHook(PanelsRenderHook::BODY_END, fn () => view('filament.components.motion-init'))
             ->navigationGroups([
                 NavigationGroup::make()
                     ->label('Gestión')

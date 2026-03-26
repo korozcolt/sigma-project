@@ -1,92 +1,795 @@
 @import '../../../vendor/filament/filament/resources/css/theme.css';
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+
 
 @source '../../../app/Filament/**';
 @source '../../../resources/views/filament/**';
 
+/* ============================================================
+   SIGMA  –  Premium Motion Design System
+   All 3 panels share this theme file.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1.  MOTION TOKENS
+   ---------------------------------------------------------- */
 @layer base {
     :root {
-        --radius-md: 0.625rem;
-        --radius-lg: 0.875rem;
-        --radius-xl: 1.125rem;
-    }
+        /* Radius */
+        --radius-sm:  0.375rem;
+        --radius-md:  0.625rem;
+        --radius-lg:  0.875rem;
+        --radius-xl:  1.125rem;
+        --radius-2xl: 1.5rem;
 
+        /* Duration */
+        --dur-fast:   100ms;
+        --dur-base:   200ms;
+        --dur-slow:   350ms;
+        --dur-slower: 500ms;
+        --dur-drama:  700ms;
+
+        /* Easings */
+        --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+        --ease-decel:      cubic-bezier(0.0, 0.0, 0.2, 1);
+        --ease-accel:      cubic-bezier(0.4, 0.0, 1, 1);
+        --ease-standard:   cubic-bezier(0.4, 0.0, 0.2, 1);
+
+        /* Elevation (light) */
+        --shadow-card:    0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
+        --shadow-raised:  0 4px 16px -2px rgb(0 0 0 / 0.10), 0 2px 6px -2px rgb(0 0 0 / 0.07);
+        --shadow-modal:   0 24px 64px -12px rgb(0 0 0 / 0.22), 0 8px 24px -6px rgb(0 0 0 / 0.14);
+        --shadow-glow:    0 0 0 3px color-mix(in oklab, var(--primary-500) 25%, transparent);
+    }
+}
+
+/* ----------------------------------------------------------
+   2.  PAGE-LEVEL ENTRANCE ANIMATION
+   ---------------------------------------------------------- */
+@keyframes sigma-page-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sigma-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes sigma-slide-in-up {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sigma-slide-in-right {
+    from { opacity: 0; transform: translateX(24px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes sigma-scale-in {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes sigma-shimmer {
+    from { transform: translateX(-100%) skewX(-12deg); }
+    to   { transform: translateX(200%) skewX(-12deg); }
+}
+
+@keyframes sigma-count-pulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+}
+
+@keyframes sigma-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes sigma-notify-in {
+    from { opacity: 0; transform: translateX(32px) scale(0.95); }
+    to   { opacity: 1; transform: translateX(0)  scale(1); }
+}
+
+/* ----------------------------------------------------------
+   3.  GLOBAL BASE
+   ---------------------------------------------------------- */
+@layer base {
     .fi-body {
         @apply bg-zinc-50 text-zinc-950;
         background-image:
-            radial-gradient(800px 400px at 20% 0%, color-mix(in oklab, var(--primary-200) 30%, transparent) 0%, transparent 60%),
-            radial-gradient(700px 500px at 80% 10%, color-mix(in oklab, var(--primary-100) 35%, transparent) 0%, transparent 55%),
+            radial-gradient(900px 450px at 15% 0%,  color-mix(in oklab, var(--primary-300) 22%, transparent) 0%, transparent 60%),
+            radial-gradient(750px 550px at 85% 8%,  color-mix(in oklab, var(--primary-200) 28%, transparent) 0%, transparent 55%),
+            radial-gradient(600px 400px at 50% 80%, color-mix(in oklab, var(--primary-100) 15%, transparent) 0%, transparent 60%),
             linear-gradient(to bottom, theme(colors.zinc.50), theme(colors.zinc.100));
+        animation: sigma-page-in var(--dur-slow) var(--ease-decel) both;
     }
 
     .dark .fi-body {
         @apply text-zinc-100;
-        background-color: #050b16;
+        background-color: #04091a;
         background-image:
-            radial-gradient(900px 420px at 15% 0%, color-mix(in oklab, var(--primary-500) 22%, transparent) 0%, transparent 60%),
-            radial-gradient(780px 520px at 85% 10%, color-mix(in oklab, var(--primary-400) 18%, transparent) 0%, transparent 55%),
-            radial-gradient(900px 600px at 50% 120%, color-mix(in oklab, white 6%, transparent) 0%, transparent 60%);
+            radial-gradient(1000px 480px at 10% 0%,  color-mix(in oklab, var(--primary-600) 20%, transparent) 0%, transparent 60%),
+            radial-gradient(800px 560px at 90% 8%,   color-mix(in oklab, var(--primary-500) 14%, transparent) 0%, transparent 55%),
+            radial-gradient(900px 700px at 50% 130%, color-mix(in oklab, var(--primary-400)  8%, transparent) 0%, transparent 60%),
+            radial-gradient(400px 300px at 50% 50%,  color-mix(in oklab, white 3%, transparent) 0%, transparent 80%);
+    }
+
+    /* Smooth scrolling */
+    html { scroll-behavior: smooth; }
+
+    /* Selection color */
+    ::selection {
+        background-color: color-mix(in oklab, var(--primary-500) 30%, transparent);
     }
 }
 
+/* ----------------------------------------------------------
+   4.  TOPBAR  —  premium glass + scroll shadow
+   ---------------------------------------------------------- */
 @layer components {
     .fi-topbar {
-        @apply border-b border-zinc-200/70 bg-white/75 backdrop-blur-xl;
+        @apply border-b border-zinc-200/60 bg-white/70 backdrop-blur-2xl;
+        box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.04);
+        transition: box-shadow var(--dur-base) var(--ease-standard),
+                    background-color var(--dur-base) var(--ease-standard);
     }
 
     .dark .fi-topbar {
-        @apply border-white/10 bg-zinc-950/40;
+        @apply border-white/8 bg-zinc-950/50;
+        box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.04);
     }
 
-    .fi-sidebar {
-        @apply border-r border-zinc-200/70 bg-white/70 backdrop-blur-xl;
+    /* Scrolled state — added via JS in panel providers */
+    .fi-topbar.scrolled {
+        box-shadow: var(--shadow-raised);
     }
 
-    .dark .fi-sidebar {
-        @apply border-white/10 bg-zinc-950/35;
+    .dark .fi-topbar.scrolled {
+        box-shadow: 0 4px 24px -4px rgb(0 0 0 / 0.5);
     }
 
-    .fi-sidebar-header,
     .fi-topbar > div {
         @apply rounded-xl;
     }
+}
 
+/* ----------------------------------------------------------
+   5.  SIDEBAR  —  glass + animated navigation
+   ---------------------------------------------------------- */
+@layer components {
+    .fi-sidebar {
+        @apply border-r border-zinc-200/60 bg-white/65 backdrop-blur-2xl;
+        transition: transform var(--dur-slow) var(--ease-decel),
+                    width var(--dur-slow) var(--ease-decel);
+    }
+
+    .dark .fi-sidebar {
+        @apply border-white/8 bg-zinc-950/40;
+    }
+
+    .fi-sidebar-header {
+        @apply rounded-xl;
+        padding-top: 0.25rem;
+    }
+
+    /* Sidebar nav items */
+    .fi-sidebar-item-button {
+        @apply relative overflow-hidden;
+        transition: background-color var(--dur-base) var(--ease-standard),
+                    color var(--dur-base) var(--ease-standard),
+                    transform var(--dur-fast) var(--ease-standard);
+        will-change: transform;
+    }
+
+    .fi-sidebar-item-button:hover {
+        transform: translateX(2px);
+    }
+
+    .fi-sidebar-item-button:active {
+        transform: translateX(1px) scale(0.99);
+    }
+
+    /* Active indicator — animated border-left grows in */
+    .fi-sidebar-item-button::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 25%;
+        bottom: 25%;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background-color: var(--primary-500);
+        transform: scaleY(0);
+        transform-origin: center;
+        transition: transform var(--dur-base) var(--ease-spring);
+    }
+
+    .fi-sidebar-item-button[aria-current="page"]::before,
+    .fi-sidebar-item-button.fi-active::before {
+        transform: scaleY(1);
+    }
+
+    /* Nav group labels */
+    .fi-sidebar-group-label {
+        @apply font-semibold tracking-widest text-zinc-400;
+        font-size: 0.65rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        transition: color var(--dur-base) var(--ease-standard);
+    }
+
+    .dark .fi-sidebar-group-label {
+        @apply text-zinc-500;
+    }
+
+    /* Logo brand area */
+    .fi-sidebar-header img {
+        transition: opacity var(--dur-base) var(--ease-standard),
+                    transform var(--dur-slow) var(--ease-spring);
+    }
+
+    .fi-sidebar-header img:hover {
+        transform: scale(1.04);
+    }
+}
+
+/* ----------------------------------------------------------
+   6.  SECTIONS, CARDS, WIDGETS
+   ---------------------------------------------------------- */
+@layer components {
     .fi-section,
-    .fi-ta-ctn,
-    .fi-wi {
-        @apply rounded-2xl border border-zinc-200/70 bg-white/80 shadow-sm backdrop-blur;
+    .fi-ta-ctn {
+        @apply rounded-2xl border border-zinc-200/60 bg-white/85 backdrop-blur-sm;
+        box-shadow: var(--shadow-card);
+        animation: sigma-slide-in-up var(--dur-slow) var(--ease-decel) both;
+        transition: box-shadow var(--dur-base) var(--ease-standard),
+                    border-color var(--dur-base) var(--ease-standard);
+    }
+
+    .fi-section:hover,
+    .fi-ta-ctn:hover {
+        box-shadow: var(--shadow-raised);
+        border-color: color-mix(in oklab, var(--primary-300) 40%, var(--color-zinc-200));
     }
 
     .dark .fi-section,
-    .dark .fi-ta-ctn,
-    .dark .fi-wi {
-        @apply border-white/10 bg-white/5 shadow-none;
+    .dark .fi-ta-ctn {
+        @apply border-white/8 bg-white/5;
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 0 0 1px rgb(255 255 255 / 0.04);
     }
 
-    .fi-btn {
-        @apply rounded-xl;
+    .dark .fi-section:hover,
+    .dark .fi-ta-ctn:hover,
+    .dark .fi-wi:hover {
+        @apply border-white/14;
+        box-shadow: 0 8px 32px -4px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.08);
     }
 
-    .fi-btn.fi-btn-color-primary {
-        @apply shadow-sm;
+    /* Stagger widget animations */
+    .fi-wi:nth-child(1) { animation-delay:  40ms; }
+    .fi-wi:nth-child(2) { animation-delay:  90ms; }
+    .fi-wi:nth-child(3) { animation-delay: 140ms; }
+    .fi-wi:nth-child(4) { animation-delay: 190ms; }
+    .fi-wi:nth-child(5) { animation-delay: 240ms; }
+    .fi-wi:nth-child(6) { animation-delay: 290ms; }
+
+    /* Section heading */
+    .fi-section-header {
+        @apply border-b border-zinc-100/80;
+        transition: border-color var(--dur-base) var(--ease-standard);
     }
 
-    .fi-input-wrp {
-        @apply rounded-xl border-zinc-200/80 bg-white/80;
+    .dark .fi-section-header {
+        @apply border-white/8;
+    }
+}
+
+
+
+/* ----------------------------------------------------------
+   8.  TABLES
+   ---------------------------------------------------------- */
+@layer components {
+    /* Table container - no extra border-radius needed, inherited from fi-ta-ctn */
+    .fi-ta-header {
+        @apply border-b border-zinc-100/80;
+        transition: border-color var(--dur-base) var(--ease-standard);
     }
 
-    .dark .fi-input-wrp {
-        @apply border-white/10 bg-white/5;
+    .dark .fi-ta-header {
+        @apply border-white/8;
     }
 
+    /* Table header cells */
+    .fi-ta-col-header {
+        @apply text-xs font-semibold tracking-wider text-zinc-500 uppercase;
+        transition: color var(--dur-base) var(--ease-standard);
+    }
+
+    .dark .fi-ta-col-header {
+        @apply text-zinc-400;
+    }
+
+    /* Row entrance stagger */
     .fi-ta-row {
-        @apply transition-colors;
+        animation: sigma-slide-in-up var(--dur-base) var(--ease-decel) both;
+        transition: background-color var(--dur-fast) var(--ease-standard),
+                    transform var(--dur-fast) var(--ease-standard);
     }
+
+    .fi-ta-row:nth-child(1)  { animation-delay:  20ms; }
+    .fi-ta-row:nth-child(2)  { animation-delay:  50ms; }
+    .fi-ta-row:nth-child(3)  { animation-delay:  80ms; }
+    .fi-ta-row:nth-child(4)  { animation-delay: 110ms; }
+    .fi-ta-row:nth-child(5)  { animation-delay: 140ms; }
+    .fi-ta-row:nth-child(6)  { animation-delay: 170ms; }
+    .fi-ta-row:nth-child(7)  { animation-delay: 200ms; }
+    .fi-ta-row:nth-child(8)  { animation-delay: 230ms; }
 
     .fi-ta-row:hover {
-        @apply bg-zinc-950/5;
+        @apply bg-zinc-950/[0.035];
+        transform: translateX(1px);
     }
 
     .dark .fi-ta-row:hover {
         @apply bg-white/5;
+    }
+
+    .fi-ta-row:active {
+        transform: translateX(0);
+    }
+
+    /* Row dividers */
+    .fi-ta-ctn table {
+        @apply border-separate;
+        border-spacing: 0;
+    }
+
+    .fi-ta-row + .fi-ta-row {
+        @apply border-t border-zinc-100/70;
+    }
+
+    .dark .fi-ta-row + .fi-ta-row {
+        @apply border-white/6;
+    }
+
+    /* Clickable row cursor */
+    .fi-ta-row.fi-ta-row-has-url,
+    .fi-ta-row[wire\\:click] {
+        cursor: pointer;
+    }
+
+    /* Pagination */
+    .fi-pagination {
+        @apply border-t border-zinc-100/80 pt-3;
+    }
+
+    .dark .fi-pagination {
+        @apply border-white/8;
+    }
+}
+
+/* ----------------------------------------------------------
+   9.  BUTTONS
+   ---------------------------------------------------------- */
+@layer components {
+    .fi-btn {
+        @apply rounded-xl font-medium;
+        transition: background-color var(--dur-fast) var(--ease-standard),
+                    box-shadow var(--dur-fast) var(--ease-standard),
+                    transform var(--dur-fast) var(--ease-standard),
+                    opacity var(--dur-fast) var(--ease-standard),
+                    color var(--dur-fast) var(--ease-standard);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .fi-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .fi-btn:active {
+        transform: translateY(0) scale(0.98);
+    }
+
+    /* Primary button shimmer effect */
+    .fi-btn.fi-btn-color-primary {
+        @apply shadow-sm;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .fi-btn.fi-btn-color-primary::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            105deg,
+            transparent 35%,
+            rgb(255 255 255 / 0.35) 50%,
+            transparent 65%
+        );
+        transform: translateX(-100%) skewX(-12deg);
+        pointer-events: none;
+    }
+
+    .fi-btn.fi-btn-color-primary:hover::after {
+        animation: sigma-shimmer 500ms var(--ease-decel);
+    }
+
+    .fi-btn.fi-btn-color-primary:hover {
+        box-shadow: var(--shadow-raised), 0 0 0 1px color-mix(in oklab, var(--primary-500) 30%, transparent);
+    }
+
+    /* Danger button */
+    .fi-btn.fi-btn-color-danger:hover {
+        box-shadow: 0 4px 16px -2px rgb(239 68 68 / 0.25);
+    }
+
+    /* Disabled */
+    .fi-btn:disabled,
+    .fi-btn[aria-disabled="true"] {
+        @apply cursor-not-allowed opacity-60;
+        transform: none !important;
+    }
+
+    /* Loading state */
+    .fi-btn[data-loading]::before {
+        content: '';
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: sigma-spin var(--dur-drama) linear infinite;
+        margin-right: 0.5rem;
+        vertical-align: middle;
+    }
+}
+
+/* ----------------------------------------------------------
+  10.  FORM INPUTS & FIELDS
+   ---------------------------------------------------------- */
+@layer components {
+    .fi-input-wrp {
+        @apply rounded-xl border-zinc-200/80 bg-white/90;
+        transition: border-color var(--dur-base) var(--ease-standard),
+                    box-shadow var(--dur-base) var(--ease-standard),
+                    background-color var(--dur-base) var(--ease-standard);
+    }
+
+    .dark .fi-input-wrp {
+        @apply border-white/10 bg-white/6;
+    }
+
+    /* Focus glow */
+    .fi-input-wrp:focus-within {
+        @apply border-primary-400;
+        box-shadow: var(--shadow-glow);
+        background-color: white;
+    }
+
+    .dark .fi-input-wrp:focus-within {
+        background-color: color-mix(in oklab, white 8%, transparent);
+        border-color: var(--primary-500);
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary-500) 20%, transparent);
+    }
+
+    /* Input text */
+    .fi-input {
+        @apply text-zinc-900 placeholder-zinc-400;
+        transition: color var(--dur-base) var(--ease-standard);
+    }
+
+    .dark .fi-input {
+        @apply text-zinc-100 placeholder-zinc-500;
+    }
+
+    /* Select */
+    .fi-select-input {
+        @apply rounded-xl;
+    }
+
+    /* Label */
+    .fi-fo-field-wrp-label,
+    .fi-fo-field-wrp > label {
+        @apply text-sm font-medium text-zinc-700;
+        transition: color var(--dur-base) var(--ease-standard);
+    }
+
+    .dark .fi-fo-field-wrp-label,
+    .dark .fi-fo-field-wrp > label {
+        @apply text-zinc-300;
+    }
+
+    /* Hint text */
+    .fi-fo-field-wrp-hint {
+        @apply text-xs text-zinc-400;
+    }
+
+    /* Error state */
+    .fi-input-wrp.fi-input-wrp-has-errors,
+    .fi-input-wrp[data-has-errors] {
+        @apply border-danger-400;
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--danger-500) 20%, transparent);
+    }
+}
+
+/* ----------------------------------------------------------
+  11.  MODALS & DIALOGS
+   ---------------------------------------------------------- */
+@layer components {
+    /* Backdrop */
+    .fi-modal-close-overlay {
+        animation: sigma-fade-in var(--dur-base) var(--ease-decel) both;
+    }
+
+    /* Dialog panel */
+    .fi-modal-window {
+        animation: sigma-scale-in var(--dur-slow) var(--ease-spring) both;
+        @apply rounded-2xl shadow-2xl;
+        box-shadow: var(--shadow-modal);
+    }
+
+    .dark .fi-modal-window {
+        @apply border border-white/10;
+        background-color: rgb(9 14 27 / 0.92);
+        backdrop-filter: blur(20px);
+    }
+
+    /* Modal header */
+    .fi-modal-header {
+        @apply border-b border-zinc-100/80 pb-4;
+    }
+
+    .dark .fi-modal-header {
+        @apply border-white/8;
+    }
+
+    /* Slide-in for action modal content */
+    .fi-ac-modal-cnt {
+        animation: sigma-slide-in-up var(--dur-base) var(--ease-decel) both;
+        animation-delay: 80ms;
+    }
+}
+
+/* ----------------------------------------------------------
+  12.  NOTIFICATIONS / TOASTS
+   ---------------------------------------------------------- */
+@layer components {
+    .fi-no-notification {
+        animation: sigma-notify-in var(--dur-slow) var(--ease-spring) both !important;
+        @apply rounded-2xl;
+        box-shadow: var(--shadow-modal);
+        backdrop-filter: blur(16px);
+    }
+
+    .dark .fi-no-notification {
+        @apply bg-zinc-900/90 border border-white/10;
+    }
+
+    /* Success notification */
+    .fi-no-notification.fi-no-notification-success {
+        border-left: 3px solid var(--success-500);
+    }
+
+    /* Danger notification */
+    .fi-no-notification.fi-no-notification-danger {
+        border-left: 3px solid var(--danger-500);
+    }
+
+    /* Warning notification */
+    .fi-no-notification.fi-no-notification-warning {
+        border-left: 3px solid var(--warning-500);
+    }
+
+    /* Info notification */
+    .fi-no-notification.fi-no-notification-info {
+        border-left: 3px solid var(--info-500);
+    }
+}
+
+/* ----------------------------------------------------------
+  13.  BADGES & PILLS
+   ---------------------------------------------------------- */
+@layer components {
+    .fi-badge {
+        @apply rounded-full font-medium;
+        font-size: 0.7rem;
+        letter-spacing: 0.01em;
+        transition: transform var(--dur-fast) var(--ease-spring),
+                    box-shadow var(--dur-fast) var(--ease-standard);
+    }
+
+    .fi-badge:hover {
+        transform: scale(1.05);
+    }
+}
+
+/* ----------------------------------------------------------
+  14.  TABS
+   ---------------------------------------------------------- */
+@layer components {
+    .fi-tabs-tab {
+        @apply font-medium;
+        transition: color var(--dur-base) var(--ease-standard),
+                    background-color var(--dur-base) var(--ease-standard),
+                    transform var(--dur-fast) var(--ease-standard);
+    }
+
+    .fi-tabs-tab:hover {
+        transform: translateY(-1px);
+    }
+
+    .fi-tabs-tab-active {
+        transition: all var(--dur-base) var(--ease-spring);
+    }
+
+    /* Animated underline indicator */
+    .fi-tabs-indicator {
+        transition: left var(--dur-base) var(--ease-spring),
+                    width var(--dur-base) var(--ease-spring) !important;
+    }
+}
+
+/* ----------------------------------------------------------
+  15.  BREADCRUMBS & PAGE HEADER
+   ---------------------------------------------------------- */
+@layer components {
+    .fi-header {
+        animation: sigma-slide-in-up 300ms var(--ease-decel) both;
+        animation-delay: 60ms;
+    }
+
+    .fi-breadcrumbs-item {
+        transition: color var(--dur-base) var(--ease-standard);
+    }
+
+    .fi-breadcrumbs-item:hover {
+        @apply text-primary-600;
+    }
+
+    .dark .fi-breadcrumbs-item:hover {
+        @apply text-primary-400;
+    }
+}
+
+/* ----------------------------------------------------------
+  16.  DROPDOWN MENUS
+   ---------------------------------------------------------- */
+@layer components {
+    .fi-dropdown-panel {
+        animation: sigma-scale-in 180ms var(--ease-spring) both;
+        @apply rounded-xl shadow-xl border border-zinc-200/70;
+        transform-origin: top center;
+    }
+
+    .dark .fi-dropdown-panel {
+        @apply border-white/10 bg-zinc-900/95;
+        backdrop-filter: blur(16px);
+    }
+
+    .fi-dropdown-list-item-button {
+        transition: background-color var(--dur-fast) var(--ease-standard),
+                    transform var(--dur-fast) var(--ease-standard);
+        @apply rounded-lg;
+    }
+
+    .fi-dropdown-list-item-button:hover {
+        transform: translateX(2px);
+    }
+}
+
+/* ----------------------------------------------------------
+  17.  LOADING / WIRE:LOADING STATES
+   ---------------------------------------------------------- */
+@layer components {
+    /* Generic loading indicator overlay */
+    .fi-loading-indicator {
+        animation: sigma-spin 700ms linear infinite;
+    }
+
+    /* Pulse shimmer for skeleton loading */
+    @keyframes sigma-skeleton-pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.5; }
+    }
+
+    .fi-skeleton {
+        animation: sigma-skeleton-pulse 1.8s ease-in-out infinite;
+        @apply rounded-lg bg-zinc-200;
+    }
+
+    .dark .fi-skeleton {
+        @apply bg-zinc-700;
+    }
+
+    /* Topbar loading bar */
+    .fi-topbar-progress-bar {
+        @apply h-0.5 bg-primary-500;
+        animation: sigma-shimmer 1.2s ease-in-out infinite;
+        background-size: 200% 100%;
+    }
+}
+
+/* ----------------------------------------------------------
+  18.  PROFILE / AVATAR MENU
+   ---------------------------------------------------------- */
+@layer components {
+    .fi-user-avatar {
+        transition: transform var(--dur-base) var(--ease-spring),
+                    box-shadow var(--dur-base) var(--ease-standard);
+        @apply ring-2 ring-transparent;
+    }
+
+    .fi-user-avatar:hover {
+        transform: scale(1.08);
+        @apply ring-primary-400/50;
+        box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary-400) 20%, transparent);
+    }
+}
+
+/* ----------------------------------------------------------
+  19.  CHARTS & SPARKLINES
+   ---------------------------------------------------------- */
+@layer components {
+    .fi-wi-chart {
+        animation: sigma-fade-in var(--dur-slower) var(--ease-decel) both;
+        animation-delay: 200ms;
+    }
+}
+
+/* ----------------------------------------------------------
+  20.  DARK MODE POLISH
+   ---------------------------------------------------------- */
+@layer components {
+    /* Stronger contrast for dark text elements */
+    .dark .fi-ta-col-header-cell,
+    .dark .fi-ta-cell {
+        @apply text-zinc-200;
+    }
+
+    /* Subtle scrollbar */
+    .dark ::-webkit-scrollbar-track  { background: rgb(255 255 255 / 0.04); }
+    .dark ::-webkit-scrollbar-thumb  { background: rgb(255 255 255 / 0.12); border-radius: 4px; }
+    ::-webkit-scrollbar              { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track        { background: rgb(0 0 0 / 0.04); }
+    ::-webkit-scrollbar-thumb        { background: rgb(0 0 0 / 0.16); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover  { background: rgb(0 0 0 / 0.28); }
+
+    /* Smooth theme transitions */
+    .fi-body,
+    .fi-topbar,
+    .fi-sidebar,
+    .fi-section,
+    .fi-ta-ctn,
+    .fi-wi,
+    .fi-btn,
+    .fi-input-wrp {
+        transition-property: background-color, border-color, color, box-shadow;
+        transition-duration: 250ms;
+        transition-timing-function: var(--ease-standard);
+    }
+
+    /* Ensure animations run on their own layer */
+    .fi-section,
+    .fi-wi,
+    .fi-ta-row {
+        will-change: opacity, transform;
+    }
+}
+
+/* ----------------------------------------------------------
+  21.  ACCESSIBILITY — reduce motion
+   ---------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-delay: 0ms !important;
+        transition-duration: 1ms !important;
     }
 }
