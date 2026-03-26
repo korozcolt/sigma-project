@@ -771,3 +771,175 @@ Fortify is a headless authentication backend that provides authentication routes
 - `Features::updatePasswords()` to let users change their passwords.
 - `Features::resetPasswords()` for password reset via email.
 </laravel-boost-guidelines>
+
+<!-- GSD:project-start source:PROJECT.md -->
+## Project
+
+**SIGMA - Sistema Integral de Gestion y Analisis Electoral**
+
+SIGMA is a brownfield political operations platform for running campaign management from a single system. It centralizes campaign setup, territorial organization, voter operations, validation, communications, reporting, and election-day execution with role-based access and campaign-level data isolation.
+
+Today the platform already covers core electoral workflows across multiple Filament panels, but the next milestone is focused on making those workflows feel operationally trustworthy end to end. The product direction is to consolidate SIGMA as the command center a campaign can depend on daily, not just a collection of modules.
+
+**Core Value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
+
+### Constraints
+
+- **Architecture**: Maintain the existing Laravel, Filament, Livewire, and Eloquent architecture - the current platform is already substantial and should be hardened in place
+- **Product Scope**: Prioritize hardening existing workflows over adding major new modules - the immediate goal is operational trust
+- **Isolation**: Campaign data isolation must be strict by default - cross-campaign leakage would damage trust and correctness
+- **Roles**: Experiences must remain role-aware and predictable - admins, coordinators, leaders, and reviewers each need stable boundaries
+- **Operations**: Reporting, widgets, and exports must reflect campaign reality closely enough for real decisions - inaccurate operational numbers are unacceptable
+- **Quality**: The highest-risk voter and Day D flows require test protection - fragile workflows cannot rely on manual confidence alone
+<!-- GSD:project-end -->
+
+<!-- GSD:stack-start source:codebase/STACK.md -->
+## Technology Stack
+
+## Languages
+- PHP 8.2+ - Backend logic, APIs, and Livewire components
+- JavaScript/TypeScript - Build tooling and some frontend logic
+- Blade (HTML) - Server-side rendering templates
+- CSS (TailwindCSS) - Styling
+## Runtime
+- PHP 8.2+
+- Node.js (for Vite and asset compilation)
+- Composer 2.x - PHP dependencies
+- npm 9.x+ - Node.js dependencies
+- Lockfiles: `composer.lock` and `package-lock.json` present
+## Frameworks
+- Laravel 12.0 - Web application framework
+- Livewire 3.x (via Flux/Volt) - Dynamic frontend interfaces
+- Filament 4.0 - Admin panel framework
+- Pest PHP 4.1 - Unit and Feature testing
+- Playwright 1.57 - End-to-end browser testing
+- Vite 7.0 - Frontend asset bundling
+- TailwindCSS 4.0 - Utility-first CSS framework
+- Laravel Pint 1.24 - Code style fixer
+## Key Dependencies
+- spatie/laravel-permission 6.22 - Role and permission management
+- laravel/fortify 1.30 - Headless authentication backend
+- livewire/flux 2.1 & livewire/volt 1.7 - Livewire components and UI
+- maatwebsite/excel 3.1 - Excel export/import
+- Laravel Sail 1.41 - Local Docker development environment
+- Laravel Tinker 2.10 - Interactive REPL
+## Configuration
+- `.env` files for environment variables
+- `config/` directory for Laravel configuration files
+- `vite.config.js` - Vite build configuration
+- `package.json` scripts (`npm run dev`, `npm run build`) for assets
+## Platform Requirements
+- PHP 8.2+ or Docker (via Laravel Sail)
+- Node.js & npm
+- PHP 8.2+ web server (Nginx/Apache)
+- Database (SQLite, MySQL, PostgreSQL, etc)
+- Node.js (only for build step, not required at runtime)
+<!-- GSD:stack-end -->
+
+<!-- GSD:conventions-start source:CONVENTIONS.md -->
+## Conventions
+
+## Naming Patterns
+- `PascalCase.php` for standard PHP classes (Controllers, Models, Services)
+- `kebab-case.blade.php` for Laravel Blade templates
+- `PascalCase` for Class Names, Traits, Interfaces
+- `camelCase` for methods and class properties
+- `snake_case` for database columns and relationships (e.g., `user_id`, `created_at`)
+- `camelCase` in PHP code typically (`$userAccount`), sometimes `$snake_case` used broadly in legacy or array contexts in Laravel.
+- `UPPER_SNAKE_CASE` for constants.
+## Code Style
+- Laravel Pint 1.24 (comes installed in `composer.json`)
+- Based on standard PSR-12 and Laravel's opinionated formatting.
+- Run via `./vendor/bin/pint`
+## Import Organization
+- `use` statements are ordered alphabetically at the top of the file, which is enforced by Laravel Pint.
+## Error Handling
+- Throw specific Exception classes for validation or domain logic.
+- Rely on Laravel's built-in global Exception Handler (`bootstrap/app.php` or `app/Exceptions/Handler.php`) to catch and format API/Web responses.
+- Validation logic is handled in `FormRequests` or Livewire validate boundaries, which auto-redirect back on syntax failure.
+## Logging
+- Laravel `Log` facade (Monolog under the hood).
+- Levels widely used: `Log::info`, `Log::error`, `Log::debug`.
+- Catch and log exceptions explicitly only if continuing execution:
+## Function Design
+- Keep controllers thin. Business logic moves to Actions or Services.
+- Actions should ideally have a single `handle()` or `execute()` method.
+## Frontend (Livewire/Tailwind)
+- Use Tailwind utility classes directly in Blade components.
+- Livewire Volt components combine PHP logic and UI in a single `* .blade.php` file in `resources/views/livewire`.
+<!-- GSD:conventions-end -->
+
+<!-- GSD:architecture-start source:ARCHITECTURE.md -->
+## Architecture
+
+## Pattern Overview
+- Laravel MVC backend processing HTTP requests
+- Livewire/Volt for reactive, component-based frontend without writing JS
+- Filament PHP for generating admin panels and backend CRUD interfaces
+- Eloquent ORM for database interactions
+## Layers
+- Purpose: Map web endpoints to logic
+- Contains: `routes/web.php`, `routes/api.php`, `routes/console.php`
+- Depends on: Livewire Components, Controllers, Filament Resources
+- Used by: Laravel framework request lifecycle
+- Purpose: Render HTML and handle user interactions
+- Contains: Blade templates (`resources/views/`), Volt components (`resources/views/livewire/`), Tailwind CSS (`resources/css/`)
+- Depends on: Models, sometimes Services
+- Used by: Routing Layer
+- Purpose: Manage backend data and administrative tasks
+- Contains: Filament Resources, Pages, Clusters (`app/Filament/`)
+- Depends on: Eloquent Models
+- Used by: Admin users (`/admin` namespace typically)
+- Purpose: Data persistence, schema interactions, and business rules
+- Contains: Models (`app/Models/`), Migrations (`database/migrations/`), Factories, Seeders
+- Depends on: Database
+- Used by: Livewire Components, Filament Resources, Controllers
+## Data Flow
+- Server-side state: Handled by Livewire (serialized between requests)
+- Database state: PostgreSQL/MySQL/SQLite via Eloquent
+- Session state: Laravel database/file session driver
+## Key Abstractions
+- Purpose: Single-file components combining PHP logic and Blade syntax
+- Examples: `resources/views/livewire/[name].blade.php`
+- Pattern: Reactive UI component
+- Purpose: CRUD blueprint for Eloquent Models
+- Examples: `app/Filament/Resources/UserResource.php`
+- Pattern: Builder pattern defining inputs and columns
+- Purpose: Active Record implementation linking objects to DB rows
+- Examples: `User.php`
+- Pattern: Active Record
+## Entry Points
+- Location: `public/index.php`
+- Triggers: Nginx/Apache handling HTTP traffic
+- Responsibilities: Boot Laravel, handle request, return response
+- Location: `artisan` (root directory)
+- Triggers: CLI invocation (`php artisan`)
+- Responsibilities: Run migrations, dev servers, queue workers, custom commands
+## Error Handling
+- Try/catch within specific complex business logic
+- Validation exceptions thrown automatically via Laravel Form Requests or Livewire validation (`$this->validate()`)
+## Cross-Cutting Concerns
+- Approach: Laravel Log facade writing to `storage/logs/laravel.log` via Monolog
+- Approach: Handled primarily within Livewire component methods or Filament form definitions.
+- Approach: Laravel session-based authentication (Fortify) + Spatie Laravel Permissions for RBAC.
+<!-- GSD:architecture-end -->
+
+<!-- GSD:workflow-start source:GSD defaults -->
+## GSD Workflow Enforcement
+
+Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
+
+Use these entry points:
+- `/gsd:quick` for small fixes, doc updates, and ad-hoc tasks
+- `/gsd:debug` for investigation and bug fixing
+- `/gsd:execute-phase` for planned phase work
+
+Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
+<!-- GSD:workflow-end -->
+
+<!-- GSD:profile-start -->
+## Developer Profile
+
+> Profile not yet configured. Run `/gsd:profile-user` to generate your developer profile.
+> This section is managed by `generate-claude-profile` -- do not edit manually.
+<!-- GSD:profile-end -->

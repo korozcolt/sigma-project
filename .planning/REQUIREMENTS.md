@@ -86,42 +86,42 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CAMP-01 | TBD | Pending |
-| CAMP-02 | TBD | Pending |
-| CAMP-03 | TBD | Pending |
-| CAMP-04 | TBD | Pending |
-| CAMP-05 | TBD | Pending |
-| PERM-01 | TBD | Pending |
-| PERM-02 | TBD | Pending |
-| PERM-03 | TBD | Pending |
-| VOTE-01 | TBD | Pending |
-| VOTE-02 | TBD | Pending |
-| VOTE-03 | TBD | Pending |
-| VOTE-04 | TBD | Pending |
-| VOTE-05 | TBD | Pending |
-| VOTE-06 | TBD | Pending |
-| OUTR-01 | TBD | Pending |
-| OUTR-02 | TBD | Pending |
-| OUTR-03 | TBD | Pending |
-| OUTR-04 | TBD | Pending |
-| OUTR-05 | TBD | Pending |
-| REPT-01 | TBD | Pending |
-| REPT-02 | TBD | Pending |
-| REPT-03 | TBD | Pending |
-| REPT-04 | TBD | Pending |
-| DAYD-01 | TBD | Pending |
-| DAYD-02 | TBD | Pending |
-| DAYD-03 | TBD | Pending |
-| DAYD-04 | TBD | Pending |
-| DAYD-05 | TBD | Pending |
-| QUAL-01 | TBD | Pending |
-| QUAL-02 | TBD | Pending |
+| CAMP-01 | Phase 1 | Pending |
+| CAMP-02 | Phase 1 | Pending |
+| CAMP-03 | Phase 1 | Pending |
+| CAMP-04 | Phase 1 | Pending |
+| CAMP-05 | Phase 1 | Pending |
+| PERM-01 | Phase 1 | Pending |
+| PERM-02 | Phase 1 | Pending |
+| PERM-03 | Phase 1 | Pending |
+| VOTE-01 | Phase 2 | Pending |
+| VOTE-02 | Phase 2 | Pending |
+| VOTE-03 | Phase 2 | Pending |
+| VOTE-04 | Phase 2 | Pending |
+| VOTE-05 | Phase 2 | Pending |
+| VOTE-06 | Phase 2 | Pending |
+| OUTR-01 | Phase 3 | Pending |
+| OUTR-02 | Phase 3 | Pending |
+| OUTR-03 | Phase 3 | Pending |
+| OUTR-04 | Phase 3 | Pending |
+| OUTR-05 | Phase 3 | Pending |
+| REPT-01 | Phase 4 | Pending |
+| REPT-02 | Phase 4 | Pending |
+| REPT-03 | Phase 4 | Pending |
+| REPT-04 | Phase 4 | Pending |
+| DAYD-01 | Phase 5 | Pending |
+| DAYD-02 | Phase 5 | Pending |
+| DAYD-03 | Phase 5 | Pending |
+| DAYD-04 | Phase 5 | Pending |
+| DAYD-05 | Phase 5 | Pending |
+| QUAL-01 | Phase 5 | Pending |
+| QUAL-02 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 30 total
-- Mapped to phases: 0
-- Unmapped: 30
+- Mapped to phases: 30
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after initialization*
+*Last updated: 2026-03-25 after roadmap creation*
