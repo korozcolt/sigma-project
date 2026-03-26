@@ -184,20 +184,20 @@ new class extends Component {
 
     {{-- Stats Cards --}}
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <flux:text class="text-sm text-gray-600 dark:text-gray-400">Pendientes</flux:text>
+        <div class="bg-white dark:bg-zinc-900 rounded-lg shadow p-6">
+            <flux:text class="text-sm text-zinc-600 dark:text-zinc-400">Pendientes</flux:text>
             <flux:heading size="xl">{{ $this->stats['pending'] }}</flux:heading>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <flux:text class="text-sm text-gray-600 dark:text-gray-400">En Progreso</flux:text>
+        <div class="bg-white dark:bg-zinc-900 rounded-lg shadow p-6">
+            <flux:text class="text-sm text-zinc-600 dark:text-zinc-400">En Progreso</flux:text>
             <flux:heading size="xl">{{ $this->stats['in_progress'] }}</flux:heading>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <flux:text class="text-sm text-gray-600 dark:text-gray-400">Completadas Hoy</flux:text>
+        <div class="bg-white dark:bg-zinc-900 rounded-lg shadow p-6">
+            <flux:text class="text-sm text-zinc-600 dark:text-zinc-400">Completadas Hoy</flux:text>
             <flux:heading size="xl">{{ $this->stats['completed_today'] }}</flux:heading>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <flux:text class="text-sm text-gray-600 dark:text-gray-400">Urgentes</flux:text>
+        <div class="bg-white dark:bg-zinc-900 rounded-lg shadow p-6">
+            <flux:text class="text-sm text-zinc-600 dark:text-zinc-400">Urgentes</flux:text>
             <flux:heading size="xl" class="text-red-600">{{ $this->stats['urgent'] }}</flux:heading>
         </div>
     </div>
@@ -210,13 +210,20 @@ new class extends Component {
                     <flux:heading size="md" class="mb-2">Siguiente Llamada Recomendada</flux:heading>
                     <flux:text class="font-semibold">{{ $this->nextAssignment->voter->full_name }}</flux:text>
                     <flux:text class="text-sm">
-                        {{ $this->nextAssignment->voter->phone ?? 'Sin teléfono' }} -
-                        Prioridad: {{ ucfirst($this->nextAssignment->priority) }}
+                        {{ $this->nextAssignment->voter->phone ?? 'Sin teléfono' }} —
+                        Prioridad: {{ match($this->nextAssignment->priority) {
+                            'urgent' => 'Urgente',
+                            'high'   => 'Alta',
+                            'medium' => 'Media',
+                            'low'    => 'Baja',
+                            default  => ucfirst($this->nextAssignment->priority),
+                        } }}
                     </flux:text>
                 </div>
                 <div>
-                    <flux:button wire:click="startNext" variant="primary" size="lg">
-                        Iniciar Llamada
+                    <flux:button wire:click="startNext" variant="primary" size="lg" wire:loading.attr="disabled">
+                        <span wire:loading.remove>Iniciar Llamada</span>
+                        <span wire:loading>Iniciando...</span>
                     </flux:button>
                 </div>
             </div>
@@ -224,7 +231,7 @@ new class extends Component {
     @endif
 
     {{-- Filters --}}
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+    <div class="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-6">
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
             {{-- Search --}}
             <flux:field class="md:col-span-2">
@@ -282,32 +289,38 @@ new class extends Component {
     </div>
 
     {{-- Queue Table --}}
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+    <div class="bg-white dark:bg-zinc-900 rounded-lg shadow overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-900">
+            <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
+                <thead class="bg-zinc-50 dark:bg-zinc-900">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Prioridad</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Votante</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Documento</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Teléfono</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ubicación</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Prioridad</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Votante</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Documento</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Teléfono</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Ubicación</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Estado</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody class="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-700">
                     @forelse($this->myQueue as $assignment)
-                        <tr wire:key="assignment-{{ $assignment->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <tr wire:key="assignment-{{ $assignment->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-800">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <flux:badge variant="{{ match($assignment->priority) {
                                     'urgent' => 'danger',
-                                    'high' => 'warning',
+                                    'high'   => 'warning',
                                     'medium' => 'primary',
-                                    'low' => 'ghost',
-                                    default => 'ghost'
+                                    'low'    => 'ghost',
+                                    default  => 'ghost'
                                 } }}">
-                                    {{ ucfirst($assignment->priority) }}
+                                    {{ match($assignment->priority) {
+                                        'urgent' => 'Urgente',
+                                        'high'   => 'Alta',
+                                        'medium' => 'Media',
+                                        'low'    => 'Baja',
+                                        default  => ucfirst($assignment->priority),
+                                    } }}
                                 </flux:badge>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -322,27 +335,33 @@ new class extends Component {
                             <td class="px-6 py-4">
                                 <flux:text class="text-sm">
                                     {{ $assignment->voter->municipality?->name ?? 'N/A' }}<br>
-                                    <span class="text-gray-500 dark:text-gray-400">{{ $assignment->voter->neighborhood?->name ?? 'N/A' }}</span>
+                                    <span class="text-zinc-500 dark:text-zinc-400">{{ $assignment->voter->neighborhood?->name ?? 'N/A' }}</span>
                                 </flux:text>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <flux:badge variant="{{ match($assignment->status) {
-                                    'pending' => 'ghost',
+                                    'pending'     => 'ghost',
                                     'in_progress' => 'primary',
-                                    'completed' => 'success',
-                                    'reassigned' => 'warning',
-                                    default => 'ghost'
+                                    'completed'   => 'success',
+                                    'reassigned'  => 'warning',
+                                    default       => 'ghost'
                                 } }}">
-                                    {{ ucfirst($assignment->status) }}
+                                    {{ match($assignment->status) {
+                                        'pending'     => 'Pendiente',
+                                        'in_progress' => 'En Progreso',
+                                        'completed'   => 'Completado',
+                                        'reassigned'  => 'Reasignado',
+                                        default       => ucfirst($assignment->status),
+                                    } }}
                                 </flux:badge>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @if($assignment->isPending() || $assignment->isInProgress())
-                                    <flux:button wire:click="startAssignment({{ $assignment->id }})" variant="primary" size="sm">
+                                    <flux:button wire:click="startAssignment({{ $assignment->id }})" variant="primary" size="sm" wire:loading.attr="disabled">
                                         {{ $assignment->isPending() ? 'Iniciar' : 'Continuar' }}
                                     </flux:button>
                                 @else
-                                    <flux:text class="text-sm text-gray-500 dark:text-gray-400">-</flux:text>
+                                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">—</flux:text>
                                 @endif
                             </td>
                         </tr>
@@ -360,7 +379,7 @@ new class extends Component {
         </div>
 
         {{-- Pagination --}}
-        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-700">
             {{ $this->myQueue->links() }}
         </div>
     </div>

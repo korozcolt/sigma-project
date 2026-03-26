@@ -101,11 +101,6 @@ new class extends Component {
             <flux:button variant="primary" :href="route('coordinator.leaders.create')" wire:navigate icon="user-plus">
                 Agregar Líder
             </flux:button>
-            @if(auth()->user()->hasRole(\App\Enums\UserRole::COORDINATOR->value) && !auth()->user()->hasRole(\App\Enums\UserRole::LEADER->value))
-                <flux:button variant="ghost" wire:click="becomeMyOwnLeader" icon="user">
-                    Ser mi propio líder
-                </flux:button>
-            @endif
         </div>
     </div>
 
@@ -131,6 +126,21 @@ new class extends Component {
             <flux:heading size="xl" class="mt-1">{{ number_format($totalVoters) }}</flux:heading>
         </div>
     </div>
+
+    {{-- Self-promote action (secondary, separated from primary CTAs) --}}
+    @if(auth()->user()->hasRole(\App\Enums\UserRole::COORDINATOR->value) && !auth()->user()->hasRole(\App\Enums\UserRole::LEADER->value))
+        <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
+            <div class="flex items-center justify-between">
+                <div>
+                    <flux:text class="font-medium text-zinc-700 dark:text-zinc-300">Registro personal</flux:text>
+                    <flux:text size="sm" class="text-zinc-500">Regstrate como líder para aparecer en el listado y gestionar votantes directamente.</flux:text>
+                </div>
+                <flux:button variant="outline" wire:click="becomeMyOwnLeader" icon="user" size="sm">
+                    Ser mi propio líder
+                </flux:button>
+            </div>
+        </div>
+    @endif
 
     @if(!auth()->user()->hasRole(\App\Enums\UserRole::COORDINATOR->value))
         <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">

@@ -262,9 +262,10 @@ new class extends Component {
                     <flux:input
                         wire:model.blur="document_number"
                         label="Número de Documento *"
-                        type="number"
-                        placeholder="1234567890"
+                        type="text"
                         inputmode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="1234567890"
                     />
 
                     <flux:input
@@ -409,12 +410,16 @@ new class extends Component {
                     type="submit"
                     variant="primary"
                     class="w-full"
+                    wire:loading.attr="disabled"
                 >
-                    @if($registerAnother)
-                        Guardar y Registrar Otro
-                    @else
-                        Guardar Votante
-                    @endif
+                    <span wire:loading.remove>
+                        @if($registerAnother)
+                            Guardar y Registrar Otro
+                        @else
+                            Guardar Votante
+                        @endif
+                    </span>
+                    <span wire:loading>Guardando...</span>
                 </flux:button>
 
                 <flux:button

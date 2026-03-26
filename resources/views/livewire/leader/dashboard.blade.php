@@ -53,7 +53,7 @@ new class extends Component {
             <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Votantes</p>
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Votantes</flux:text>
                         <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $total }}</p>
                     </div>
                     <div class="rounded-full bg-blue-100 p-3 dark:bg-blue-900/30">
@@ -65,7 +65,7 @@ new class extends Component {
             <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Confirmados</p>
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Confirmados</flux:text>
                         <p class="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{{ $confirmed }}</p>
                     </div>
                     <div class="rounded-full bg-green-100 p-3 dark:bg-green-900/30">
@@ -77,7 +77,7 @@ new class extends Component {
             <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Pendientes</p>
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Pendientes</flux:text>
                         <p class="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ $pending }}</p>
                     </div>
                     <div class="rounded-full bg-yellow-100 p-3 dark:bg-yellow-900/30">
@@ -89,15 +89,28 @@ new class extends Component {
             <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Tasa Confirm.</p>
-                        <p class="mt-1 text-2xl font-bold text-purple-600 dark:text-purple-400">{{ $confirmationRate }}%</p>
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Ya Votaron</flux:text>
+                        <p class="mt-1 text-2xl font-bold text-purple-600 dark:text-purple-400">{{ $voted }}</p>
                     </div>
                     <div class="rounded-full bg-purple-100 p-3 dark:bg-purple-900/30">
-                        <flux:icon.chart-bar class="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                        <flux:icon.check-badge class="h-6 w-6 text-purple-600 dark:text-purple-400" />
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Confirmation Rate Bar -->
+        @if($total > 0)
+            <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
+                <div class="flex items-center justify-between mb-2">
+                    <flux:text class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Tasa de Confirmación</flux:text>
+                    <flux:text class="text-sm font-bold text-zinc-900 dark:text-white">{{ $confirmationRate }}%</flux:text>
+                </div>
+                <div class="h-2 w-full rounded-full bg-zinc-100 dark:bg-zinc-800">
+                    <div class="h-2 rounded-full bg-green-500" style="width: {{ $confirmationRate }}%"></div>
+                </div>
+            </div>
+        @endif
 
         <!-- Quick Action Button -->
         <flux:button

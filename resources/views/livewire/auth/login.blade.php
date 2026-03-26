@@ -1,6 +1,6 @@
 <x-layouts.auth>
     <div class="flex flex-col gap-6">
-        <x-auth-header :title="__('Log in to your account')" :description="__('Enter your email and password below to log in')" />
+        <x-auth-header :title="__('Iniciar sesión')" :description="__('Sistema de gestión SIGMA — acceso solo por invitación')" />
 
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
@@ -11,12 +11,12 @@
             <!-- Email Address -->
             <flux:input
                 name="email"
-                :label="__('Email address')"
-                type="email"
+                :label="__('Correo electrónico o cédula')"
+                type="text"
                 required
                 autofocus
-                autocomplete="email"
-                placeholder="email@example.com"
+                autocomplete="username"
+                placeholder="correo@ejemplo.com ó 1234567890"
             />
 
             <!-- Password -->
@@ -42,8 +42,9 @@
             <flux:checkbox name="remember" :label="__('Remember me')" :checked="old('remember')" />
 
             <div class="flex items-center justify-end">
-                <flux:button variant="primary" type="submit" class="w-full" data-test="login-button">
-                    {{ __('Log in') }}
+                <flux:button variant="primary" type="submit" class="w-full" data-test="login-button" wire:loading.attr="disabled">
+                    <span wire:loading.remove>{{ __('Ingresar') }}</span>
+                    <span wire:loading>{{ __('Verificando...') }}</span>
                 </flux:button>
             </div>
         </form>

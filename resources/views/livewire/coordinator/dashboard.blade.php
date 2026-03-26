@@ -149,10 +149,9 @@ new class extends Component {
                                 </div>
                                 <div>
                                     <flux:text class="font-semibold">{{ $leader->name }}</flux:text>
-                                    <flux:text size="sm" class="text-zinc-500">{{ $leader->email }}</flux:text>
                                 </div>
                             </div>
-                            <flux:badge color="blue">{{ $leader->voters_count }} votantes</flux:badge>
+                            <flux:badge color="green">{{ $leader->voters_count }} votantes</flux:badge>
                         </div>
                     @endforeach
                 </div>
@@ -170,9 +169,9 @@ new class extends Component {
                         <div class="flex items-center justify-between rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
                             <div>
                                 <flux:text class="font-semibold">{{ $activity->registeredBy->name }}</flux:text>
-                                <flux:text size="sm" class="text-zinc-500">Últimos 7 días</flux:text>
+                                <flux:text size="sm" class="text-zinc-500">{{ $activity->count }} registros en los últimos 7 días</flux:text>
                             </div>
-                            <flux:badge color="green">{{ $activity->count }} registros</flux:badge>
+                            <flux:badge color="green">+{{ $activity->count }}</flux:badge>
                         </div>
                     @endforeach
                 </div>

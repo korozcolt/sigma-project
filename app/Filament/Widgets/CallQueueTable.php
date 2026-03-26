@@ -33,7 +33,8 @@ class CallQueueTable extends TableWidget
                     ->with([
                         'voter.municipality',
                         'voter.neighborhood',
-                        'verificationCalls' => fn (Builder $query) => $query->latest('call_date')->limit(1),
+                        'verificationCalls' => fn (Builder $query) => $query->latest('call_date'),
+
                     ])
                     ->when($userId, fn (Builder $query) => $query->forCaller($userId))
                     ->whereIn('status', ['pending', 'in_progress'])
