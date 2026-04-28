@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 Phase: 1 of 5 (Campaign Safety & Role Boundaries)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-03-25 - Roadmap created and all v1 requirements mapped to phases
+Last activity: 2026-04-28 - Completed quick task 260428-o0k: Create public API GET /api/cumpleanos birthday endpoint
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -51,6 +51,12 @@ None yet.
 ### Blockers/Concerns
 
 None yet.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260428-o0k | Create public API GET /api/cumpleanos birthday endpoint | 2026-04-28 | 1e71eeb | [260428-o0k-create-a-public-api-endpoint-get-api-cum](.planning/quick/260428-o0k-create-a-public-api-endpoint-get-api-cum/) |
 
 ## Session Continuity
 
