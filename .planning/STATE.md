@@ -57,7 +57,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260428-o0k | Create public API GET /api/cumpleanos birthday endpoint | 2026-04-28 | 1e71eeb | [260428-o0k-create-a-public-api-endpoint-get-api-cum](.planning/quick/260428-o0k-create-a-public-api-endpoint-get-api-cum/) |
-| 260508-w9c | Integrar consulta de puesto de votación (Registraduría) | 2026-05-08 | 3732732 | [260508-w9c-integrar-consulta-de-puesto-de-votacion-](.planning/quick/260508-w9c-integrar-consulta-de-puesto-de-votacion-/) |
+| 260508-w9c | Integrar consulta de puesto de votación (Registraduría) | 2026-05-08 | 029345a | [260508-w9c-integrar-consulta-de-puesto-de-votacion-](.planning/quick/260508-w9c-integrar-consulta-de-puesto-de-votacion-/) |
 
 ## Session Continuity
 
