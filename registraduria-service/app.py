@@ -214,30 +214,76 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
 
             await asyncio.sleep(1.5)
 
-            # Step F: Submit
+            # Step F: Submit via direct HTTP POST (bypasses JavaScript validation)
+            # Get form action, method, and all inputs
+            form_info = await page.evaluate(f"""() => {{
+                const form = document.querySelector('form');
+                if (!form) return null;
+                const data = {{}};
+                // Collect all form inputs
+                new FormData(form).forEach((v, k) => {{ data[k] = v; }});
+                // Ensure g-recaptcha-response has our token
+                data['g-recaptcha-response'] = '{token}';
+                return {{
+                    action: form.action || window.location.href,
+                    method: form.method || 'POST',
+                    data: data
+                }};
+            }}""")
+
             _set(session_id, status="waiting_result")
-            try:
-                await page.get_by_role("button", name="Consultar").click(timeout=5_000)
-            except Exception:
-                try:
-                    await page.locator("button, input[type='submit']").first.click(
-                        force=True, timeout=3_000
+
+            if form_info and form_info.get("action"):
+                # Make the POST directly from Python using browser cookies
+                _all_cookies = await context.cookies()
+                cookie_header = "; ".join(f"{c['name']}={c['value']}" for c in _all_cookies)
+
+                connector = aiohttp.TCPConnector(ssl=False)
+                async with aiohttp.ClientSession(connector=connector) as http:
+                    headers = {
+                        "User-Agent": USER_AGENT,
+                        "Cookie": cookie_header,
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "Referer": REGISTRADURIA_URL,
+                        "Origin": "https://eleccionescolombia.registraduria.gov.co",
+                    }
+                    resp = await http.post(
+                        form_info["action"],
+                        data=form_info.get("data", {"nuip": cedula, "g-recaptcha-response": token}),
+                        headers=headers,
+                        allow_redirects=True,
+                        timeout=aiohttp.ClientTimeout(total=30),
                     )
+                    html = await resp.text()
+                    if cedula in html and ("Puesto" in html or "PUESTO" in html):
+                        from playwright.async_api import expect as _expect
+                        await page.set_content(html)
+                        found = True
+                    else:
+                        # Fallback: try button click
+                        try:
+                            await page.get_by_role("button", name="Consultar").click(timeout=5_000)
+                        except Exception:
+                            await page.locator("button").first.click(force=True, timeout=3_000)
+            else:
+                try:
+                    await page.get_by_role("button", name="Consultar").click(timeout=5_000)
                 except Exception:
-                    pass
+                    await page.locator("button").first.click(force=True, timeout=3_000)
 
             # Step G: Wait for result
-            deadline = time.time() + 45
-            found = False
-            while time.time() < deadline:
-                try:
-                    body = await page.inner_text("body")
-                    if cedula in body and ("Puesto" in body or "PUESTO" in body):
-                        found = True
-                        break
-                except Exception:
-                    pass
-                await asyncio.sleep(1)
+            if not locals().get("found"):
+                found = False
+                deadline = time.time() + 45
+                while time.time() < deadline:
+                    try:
+                        body = await page.inner_text("body")
+                        if cedula in body and ("Puesto" in body or "PUESTO" in body):
+                            found = True
+                            break
+                    except Exception:
+                        pass
+                    await asyncio.sleep(1)
 
             if not found:
                 try:
