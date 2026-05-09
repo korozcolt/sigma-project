@@ -160,49 +160,60 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
             _set(session_id, status="solving_captcha")
             token = await solve_recaptcha(site_key, REGISTRADURIA_URL)
 
-            # 5 — Inject token + force-enable button + trigger callback
+            # 5 — Inject token and trigger the page's own reCAPTCHA callback
             await page.evaluate(f"""() => {{
-                // Set token in all response fields
+                const token = '{token}';
+
+                // Set token in the hidden g-recaptcha-response textarea
                 document.querySelectorAll('[name="g-recaptcha-response"], #g-recaptcha-response').forEach(el => {{
-                    el.value = '{token}';
-                    el.innerHTML = '{token}';
-                    el.dispatchEvent(new Event('change', {{bubbles: true}}));
+                    el.value = token;
+                    el.innerHTML = token;
                 }});
 
-                // Force-enable the Consultar button
-                document.querySelectorAll('button, input[type=submit]').forEach(btn => {{
-                    btn.disabled = false;
-                    btn.removeAttribute('disabled');
+                // Method 1: call the data-callback function registered on the reCAPTCHA div
+                // This is the function that enables the submit button
+                const recaptchaDivs = document.querySelectorAll('[data-callback]');
+                recaptchaDivs.forEach(div => {{
+                    const cbName = div.getAttribute('data-callback');
+                    if (cbName && typeof window[cbName] === 'function') {{
+                        try {{ window[cbName](token); }} catch (_) {{}}
+                    }}
                 }});
 
-                // Trigger reCAPTCHA callback
+                // Method 2: try ___grecaptcha_cfg internal callbacks
                 try {{
                     const cfg = window.___grecaptcha_cfg;
                     if (cfg && cfg.clients) {{
                         Object.values(cfg.clients).forEach(client => {{
                             Object.values(client).forEach(obj => {{
                                 if (obj && typeof obj.callback === 'function') {{
-                                    try {{ obj.callback('{token}'); }} catch (_) {{}}
+                                    try {{ obj.callback(token); }} catch (_) {{}}
                                 }}
                             }});
                         }});
                     }}
                 }} catch (_) {{}}
+
+                // Method 3: force-enable any disabled buttons as final fallback
+                document.querySelectorAll('button[disabled], input[type=submit][disabled]').forEach(btn => {{
+                    btn.disabled = false;
+                    btn.removeAttribute('disabled');
+                }});
             }}""")
 
             await asyncio.sleep(1.5)
 
-            # 6 — Submit: use Playwright native click with force=True (bypasses disabled state)
-            # This dispatches the click event directly at the browser level, bypassing
-            # JS event handlers that check CAPTCHA state on the client side.
+            # 6 — Click Consultar (should be enabled now via data-callback)
             _set(session_id, status="waiting_result")
             try:
-                async with page.expect_navigation(wait_until="domcontentloaded", timeout=30_000):
-                    # force=True bypasses the 'disabled' attribute actionability check
-                    consultar = page.locator("button, input[type='submit']").first
-                    await consultar.click(force=True, timeout=5_000)
+                # First try normal click (button should be enabled after callback)
+                await page.get_by_role("button", name="Consultar").click(timeout=5_000)
             except Exception:
-                pass
+                try:
+                    # Fallback: force click bypassing disabled check
+                    await page.locator("button, input[type='submit']").first.click(force=True, timeout=3_000)
+                except Exception:
+                    pass
 
             # 7 — Wait for result page (up to 30 s post-submit)
             deadline = time.time() + 30
