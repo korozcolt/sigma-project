@@ -1,24 +1,26 @@
 """
-Registraduria polling-place lookup microservice — fully automated with 2captcha.
+Registraduria polling-place lookup microservice — fully automated.
 
-Flow:
-  1. Playwright (headless=False + Xvfb) loads the page and fills the cedula
-  2. Clicks the reCAPTCHA checkbox to initialize the Google session
-  3. Captures browser cookies (includes _GRECAPTCHA session cookies)
-  4. Sends to 2captcha with cookies + userAgent from the SAME browser session
-     → token is valid for our session (no session binding mismatch)
-  5. Injects the token and triggers the reCAPTCHA callback
-  6. Clicks Consultar and parses the result
+Architecture:
+  1. 2captcha solves the reCAPTCHA token (~60-90 s)
+  2. Playwright opens a headless browser, navigates to the Registraduria page,
+     then calls the infovotantes JSON API via browser fetch() using the token
+     as Authorization: Bearer header
+  3. Result is parsed and returned
 
-The cookie+userAgent combination is the key: 2captcha solves the CAPTCHA
-using the same session context as our browser, so Google accepts the token.
+The API requires calls from a browser context (Sec-Fetch headers, HTTP/2).
+Python aiohttp is blocked; browser fetch() works.
+
+Key findings:
+  - Sitekey: 6Lc9DmgrAAAAAJAjWVhjDy1KSgqzqJikY5z7I9SV
+  - API: https://apiweb-eleccionescolombia.infovotantes.com/api/v1/citizen/get-information
+  - Auth: Authorization: Bearer {recaptcha_token}
+  - No Xvfb needed — headless=True works for aiohttp+Playwright here
 """
 
 import asyncio
 import threading
-import time
 import uuid
-import re
 
 import aiohttp
 from flask import Flask, jsonify, request
@@ -27,284 +29,113 @@ from playwright.async_api import async_playwright
 app = Flask(__name__)
 
 TWO_CAPTCHA_KEY = "9fab1f6ad28812795d61fe8858585ef4"
-REGISTRADURIA_URL = "https://eleccionescolombia.registraduria.gov.co/identificacion"
-USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/120.0.0.0 Safari/537.36"
-)
+REGISTRADURIA_SITEKEY = "6Lc9DmgrAAAAAJAjWVhjDy1KSgqzqJikY5z7I9SV"
+REGISTRADURIA_PAGE_URL = "https://eleccionescolombia.registraduria.gov.co/identificacion"
+INFOVOTANTES_API = "https://apiweb-eleccionescolombia.infovotantes.com/api/v1/citizen/get-information"
 
 sessions: dict = {}
 sessions_lock = threading.Lock()
 
 
-# ---------------------------------------------------------------------------
-# 2captcha solver (with session cookies for binding fix)
-# ---------------------------------------------------------------------------
-
-async def solve_recaptcha(site_key: str, page_url: str, cookie_str: str = "") -> str:
-    """Solve reCAPTCHA v2 via 2captcha, passing browser cookies for session continuity."""
+async def _lookup_async(session_id: str, cedula: str) -> None:
+    # Step 1 — solve reCAPTCHA via 2captcha
     connector = aiohttp.TCPConnector(ssl=False)
     async with aiohttp.ClientSession(connector=connector) as http:
-
-        data = {
+        resp = await http.post("https://2captcha.com/in.php", data={
             "key": TWO_CAPTCHA_KEY,
             "method": "userrecaptcha",
-            "googlekey": site_key,
-            "pageurl": page_url,
-            "userAgent": USER_AGENT,
+            "googlekey": REGISTRADURIA_SITEKEY,
+            "pageurl": REGISTRADURIA_PAGE_URL,
             "invisible": "0",
             "json": "1",
-        }
-        if cookie_str:
-            data["cookies"] = cookie_str
-
-        resp = await http.post("https://2captcha.com/in.php", data=data)
+        })
         payload = await resp.json(content_type=None)
         if str(payload.get("status")) != "1":
             raise RuntimeError(f"2captcha submit failed: {payload}")
 
         captcha_id = payload["request"]
+        _set(session_id, status="solving_captcha")
 
-        for _ in range(30):  # up to 150 s
+        token = None
+        for _ in range(30):
             await asyncio.sleep(5)
-            resp = await http.get(
-                "https://2captcha.com/res.php",
+            poll = await http.get("https://2captcha.com/res.php",
                 params={"key": TWO_CAPTCHA_KEY, "action": "get",
-                        "id": captcha_id, "json": "1"},
-            )
-            payload = await resp.json(content_type=None)
-            if str(payload.get("status")) == "1":
-                return payload["request"]
-            if payload.get("request") not in ("CAPCHA_NOT_READY", "CAPTCHA_NOT_READY"):
-                raise RuntimeError(f"2captcha poll error: {payload}")
+                        "id": captcha_id, "json": "1"})
+            p = await poll.json(content_type=None)
+            if str(p.get("status")) == "1":
+                token = p["request"]
+                break
+            if p.get("request") not in ("CAPCHA_NOT_READY", "CAPTCHA_NOT_READY"):
+                raise RuntimeError(f"2captcha poll error: {p}")
 
-    raise TimeoutError("2captcha did not solve within 150 s")
+    if not token:
+        raise RuntimeError("2captcha no resolvió en 150 s")
 
+    # Step 2 — call infovotantes API via browser fetch() (required by API)
+    _set(session_id, status="waiting_result")
 
-# ---------------------------------------------------------------------------
-# Playwright lookup
-# ---------------------------------------------------------------------------
-
-async def _async_lookup(session_id: str, cedula: str) -> None:
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=False,
-            args=[
-                "--disable-blink-features=AutomationControlled",
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--ignore-certificate-errors",
-            ],
+            headless=True,
+            args=["--no-sandbox", "--disable-dev-shm-usage", "--ignore-certificate-errors"],
         )
-        context = await browser.new_context(
-            viewport={"width": 1280, "height": 900},
-            user_agent=USER_AGENT,
+        ctx = await browser.new_context(
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
             ignore_https_errors=True,
         )
-        page = await context.new_page()
+        page = await ctx.new_page()
 
         try:
-            _set(session_id, status="loading")
-            await page.goto(REGISTRADURIA_URL, wait_until="domcontentloaded", timeout=30_000)
-
-            # Fill cedula
-            for selector in ['input[name="nuip"]', 'input[type="number"]', "input#nuip"]:
-                try:
-                    await page.fill(selector, cedula, timeout=3_000)
-                    break
-                except Exception:
-                    continue
-
-            # Wait for reCAPTCHA widget to initialize
-            await asyncio.sleep(3)
-
-            # Step A: Click the checkbox to initialize the reCAPTCHA session in THIS browser
-            # This creates proper Google session cookies (_GRECAPTCHA, etc.)
-            try:
-                anchor_frame = page.frame_locator('iframe[src*="recaptcha"][src*="anchor"]').first
-                await anchor_frame.locator("#recaptcha-anchor").click(timeout=5_000)
-                await asyncio.sleep(1)
-            except Exception:
-                pass  # Checkbox click optional — cookies still initialized on page load
-
-            # Step B: Capture browser cookies for session continuity
-            cookies = await context.cookies()
-            cookie_str = ";".join(
-                f"{c['name']}={c['value']}"
-                for c in cookies
-                if c.get("value")
+            await page.goto(
+                REGISTRADURIA_PAGE_URL,
+                wait_until="domcontentloaded",
+                timeout=30_000,
             )
 
-            # Step C: Extract reCAPTCHA site key
-            site_key = await page.evaluate("""() => {
-                const el = document.querySelector('[data-sitekey]');
-                if (el) return el.getAttribute('data-sitekey');
-                for (const iframe of document.querySelectorAll('iframe[src*="recaptcha"]')) {
-                    const m = iframe.src.match(/[?&]k=([A-Za-z0-9_-]{20,})/);
-                    if (m) return m[1];
-                }
-                try {
-                    const cfg = window.___grecaptcha_cfg;
-                    if (cfg && cfg.clients)
-                        for (const c of Object.values(cfg.clients))
-                            for (const obj of Object.values(c))
-                                if (obj && obj.sitekey) return obj.sitekey;
-                } catch (_) {}
-                return null;
-            }""")
-
-            if not site_key:
-                content = await page.content()
-                m = re.search(r'data-sitekey=["\']([A-Za-z0-9_-]{20,})["\']', content)
-                if m:
-                    site_key = m.group(1)
-
-            if not site_key:
-                for frame in page.frames:
-                    m = re.search(r"[?&]k=([A-Za-z0-9_-]{30,})", frame.url)
-                    if m:
-                        site_key = m.group(1)
-                        break
-
-            if not site_key:
-                raise RuntimeError("No se encontró el sitekey del reCAPTCHA")
-
-            # Step D: Solve via 2captcha with session cookies
-            _set(session_id, status="solving_captcha")
-            token = await solve_recaptcha(site_key, REGISTRADURIA_URL, cookie_str)
-
-            # Step E: Inject token and trigger all known callbacks
-            await page.evaluate(f"""() => {{
-                const token = '{token}';
-
-                // Set in hidden textarea
-                document.querySelectorAll('[name="g-recaptcha-response"], #g-recaptcha-response').forEach(el => {{
-                    el.value = token;
-                    el.innerHTML = token;
+            result = await page.evaluate(f"""async () => {{
+                const resp = await fetch('{INFOVOTANTES_API}', {{
+                    method: 'POST',
+                    headers: {{
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                    }},
+                    body: JSON.stringify({{
+                        identification: '{cedula}',
+                        identification_type: 'CC',
+                        election_code: 'presidencia',
+                        platform: 'web',
+                        module: 'polling_place'
+                    }})
                 }});
-
-                // data-callback on the reCAPTCHA div
-                document.querySelectorAll('[data-callback]').forEach(div => {{
-                    const cb = div.getAttribute('data-callback');
-                    if (cb && typeof window[cb] === 'function') {{
-                        try {{ window[cb](token); }} catch (_) {{}}
-                    }}
-                }});
-
-                // Internal ___grecaptcha_cfg callbacks
-                try {{
-                    const cfg = window.___grecaptcha_cfg;
-                    if (cfg && cfg.clients) {{
-                        Object.values(cfg.clients).forEach(c =>
-                            Object.values(c).forEach(obj => {{
-                                if (obj && typeof obj.callback === 'function')
-                                    try {{ obj.callback(token); }} catch (_) {{}}
-                            }})
-                        );
-                    }}
-                }} catch (_) {{}}
-
-                // Force-enable submit button
-                document.querySelectorAll('button[disabled], input[type=submit][disabled]').forEach(btn => {{
-                    btn.disabled = false;
-                    btn.removeAttribute('disabled');
-                }});
+                if (!resp.ok) return {{ error: 'HTTP ' + resp.status }};
+                return await resp.json();
             }}""")
 
-            await asyncio.sleep(1.5)
-
-            # Step F: Submit via direct HTTP POST (bypasses JavaScript validation)
-            # Get form action, method, and all inputs
-            form_info = await page.evaluate(f"""() => {{
-                const form = document.querySelector('form');
-                if (!form) return null;
-                const data = {{}};
-                // Collect all form inputs
-                new FormData(form).forEach((v, k) => {{ data[k] = v; }});
-                // Ensure g-recaptcha-response has our token
-                data['g-recaptcha-response'] = '{token}';
-                return {{
-                    action: form.action || window.location.href,
-                    method: form.method || 'POST',
-                    data: data
-                }};
-            }}""")
-
-            _set(session_id, status="waiting_result")
-
-            if form_info and form_info.get("action"):
-                # Make the POST directly from Python using browser cookies
-                _all_cookies = await context.cookies()
-                cookie_header = "; ".join(f"{c['name']}={c['value']}" for c in _all_cookies)
-
-                connector = aiohttp.TCPConnector(ssl=False)
-                async with aiohttp.ClientSession(connector=connector) as http:
-                    headers = {
-                        "User-Agent": USER_AGENT,
-                        "Cookie": cookie_header,
-                        "Content-Type": "application/x-www-form-urlencoded",
-                        "Referer": REGISTRADURIA_URL,
-                        "Origin": "https://eleccionescolombia.registraduria.gov.co",
-                    }
-                    resp = await http.post(
-                        form_info["action"],
-                        data=form_info.get("data", {"nuip": cedula, "g-recaptcha-response": token}),
-                        headers=headers,
-                        allow_redirects=True,
-                        timeout=aiohttp.ClientTimeout(total=30),
-                    )
-                    html = await resp.text()
-                    if cedula in html and ("Puesto" in html or "PUESTO" in html):
-                        from playwright.async_api import expect as _expect
-                        await page.set_content(html)
-                        found = True
-                    else:
-                        # Fallback: try button click
-                        try:
-                            await page.get_by_role("button", name="Consultar").click(timeout=5_000)
-                        except Exception:
-                            await page.locator("button").first.click(force=True, timeout=3_000)
-            else:
-                try:
-                    await page.get_by_role("button", name="Consultar").click(timeout=5_000)
-                except Exception:
-                    await page.locator("button").first.click(force=True, timeout=3_000)
-
-            # Step G: Wait for result
-            if not locals().get("found"):
-                found = False
-                deadline = time.time() + 45
-                while time.time() < deadline:
-                    try:
-                        body = await page.inner_text("body")
-                        if cedula in body and ("Puesto" in body or "PUESTO" in body):
-                            found = True
-                            break
-                    except Exception:
-                        pass
-                    await asyncio.sleep(1)
-
-            if not found:
-                try:
-                    url = page.url
-                    snippet = (await page.inner_text("body"))[:200].replace("\n", " ")
-                    await page.screenshot(path="/tmp/debug_reg.jpg", type="jpeg", quality=70)
-                except Exception:
-                    url, snippet = "?", "?"
-                raise TimeoutError(f"Sin resultado. URL:{url} Body:{snippet}")
-
-            await asyncio.sleep(0.5)
-            body = await page.inner_text("body")
-            _set(session_id, status="done", data=_parse_result(body))
-
-        except Exception as exc:
-            _set(session_id, status="error", error=str(exc).split("\n")[0])
         finally:
-            try:
-                await browser.close()
-            except Exception:
-                pass
+            await browser.close()
+
+    if not result or not result.get("status"):
+        raise RuntimeError(f"API error: {result}")
+
+    pp = result.get("data", {}).get("polling_place", {})
+    addr = pp.get("place_address", {})
+
+    data = {
+        "puesto_nombre": f"{pp.get('stand_code','')} - {pp.get('stand','')}".strip(" -"),
+        "puesto_codigo": pp.get("stand_code", ""),
+        "zona_codigo": addr.get("zone", ""),
+        "mesa_numero": str(pp.get("table", "")),
+        "departamento": addr.get("state", ""),
+        "municipio": addr.get("town", ""),
+        "direccion": addr.get("address", ""),
+    }
+
+    _set(session_id, status="done", data=data)
 
 
 def _set(session_id: str, **kwargs) -> None:
@@ -313,54 +144,11 @@ def _set(session_id: str, **kwargs) -> None:
 
 
 def _run(session_id: str, cedula: str) -> None:
-    asyncio.run(_async_lookup(session_id, cedula))
+    try:
+        asyncio.run(_lookup_async(session_id, cedula))
+    except Exception as exc:
+        _set(session_id, status="error", error=str(exc).split("\n")[0])
 
-
-# ---------------------------------------------------------------------------
-# Result parser
-# ---------------------------------------------------------------------------
-
-def _parse_result(text: str) -> dict:
-    result = {k: "" for k in ("puesto_nombre", "puesto_codigo", "zona_codigo",
-                               "mesa_numero", "departamento", "municipio", "direccion")}
-    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-
-    def nxt(lst, i):
-        for j in range(i + 1, min(i + 4, len(lst))):
-            if lst[j].strip():
-                return lst[j].strip()
-        return ""
-
-    for i, line in enumerate(lines):
-        n = line.upper().strip()
-        if n == "PUESTO" and not result["puesto_nombre"]: result["puesto_nombre"] = nxt(lines, i)
-        elif n == "MESA" and not result["mesa_numero"]: result["mesa_numero"] = nxt(lines, i)
-        elif n == "ZONA" and not result["zona_codigo"]: result["zona_codigo"] = nxt(lines, i)
-        elif n == "DEPARTAMENTO" and not result["departamento"]: result["departamento"] = nxt(lines, i)
-        elif n == "MUNICIPIO" and not result["municipio"]: result["municipio"] = nxt(lines, i)
-        elif n in ("DIRECCIÓN", "DIRECCION") and not result["direccion"]: result["direccion"] = nxt(lines, i)
-
-    if not result["puesto_nombre"]:
-        for line in lines:
-            if ":" not in line: continue
-            k, _, v = line.partition(":"); v = v.strip(); ku = k.upper().strip()
-            if "PUESTO" in ku: result["puesto_nombre"] = v
-            elif "ZONA" in ku: result["zona_codigo"] = v
-            elif "MESA" in ku: result["mesa_numero"] = v
-            elif "DIRECCI" in ku: result["direccion"] = v
-            elif "MUNICIPIO" in ku: result["municipio"] = v
-            elif "DEPARTAMENTO" in ku: result["departamento"] = v
-
-    nombre = result["puesto_nombre"]
-    if nombre:
-        code = nombre.split("-", 1)[0].strip()
-        result["puesto_codigo"] = code if code.isdigit() else ""
-    return result
-
-
-# ---------------------------------------------------------------------------
-# Flask routes (no screenshot proxy needed — fully automated)
-# ---------------------------------------------------------------------------
 
 @app.route("/lookup", methods=["POST"])
 def lookup():
