@@ -4,9 +4,10 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
 use App\Http\Controllers\CampaignContextController;
-use App\Http\Controllers\PublicVoterRegistrationController;
 use App\Http\Controllers\PublicCampaignLogoController;
 use App\Http\Controllers\PublicPollingPlaceOptionsController;
+use App\Http\Controllers\PublicVoterRegistrationController;
+use App\Http\Controllers\RegistraduriaController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -56,6 +57,14 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('campaign-context', [CampaignContextController::class, 'update'])
         ->name('campaign-context.update');
+
+    Route::prefix('registraduria')->name('registraduria.')->group(function () {
+        Route::post('lookup', [RegistraduriaController::class, 'lookup'])->name('lookup');
+        Route::get('result/{id}', [RegistraduriaController::class, 'result'])->name('result');
+        Route::get('screenshot/{id}', [RegistraduriaController::class, 'screenshot'])->name('screenshot');
+        Route::post('click/{id}', [RegistraduriaController::class, 'click'])->name('click');
+        Route::get('viewport/{id}', [RegistraduriaController::class, 'viewport'])->name('viewport');
+    });
 });
 
 // Campaign Admin routes
