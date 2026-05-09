@@ -1,147 +1,138 @@
 {{--
-    Registraduria browser modal — screenshot proxy with smart reCAPTCHA click.
-    Operator sees live screenshots of the real Registraduria page.
-    Clicking on the reCAPTCHA area triggers frame_locator click inside the iframe.
-    Note: use x-on: instead of @ (Blade conflict avoidance).
+    Registraduria modal — fully automated with 2captcha + session cookies.
+    No user interaction needed. Shows progress spinner.
+    Note: use x-on: instead of @ (Blade directive conflict).
 --}}
 <div
     x-data="{
         sessionId: @js($sessionId),
         isOpen: @js($isOpen),
         status: 'pending',
-        viewport: { width: 1280, height: 800 },
-        screenshotSrc: '',
+        error: null,
         statusInterval: null,
-        screenshotInterval: null,
 
         statusLabel() {
             return {
                 pending:         'Iniciando...',
-                waiting_captcha: 'Haz clic en el reCAPTCHA y luego en Consultar',
+                loading:         'Cargando página de Registraduría...',
+                solving_captcha: 'Resolviendo CAPTCHA (2captcha)...',
+                waiting_result:  'Obteniendo resultado...',
                 done:            '✅ Datos obtenidos',
                 error:           '❌ Error',
             }[this.status] ?? this.status;
         },
 
-        init() {
-            if ($el.parentElement !== document.body) document.body.appendChild($el);
-            this._updateDisplay();
-            this.$watch('isOpen', () => this._updateDisplay());
-            if (this.isOpen && this.sessionId) this.start();
+        isSpinning() {
+            return !['done', 'error'].includes(this.status);
         },
 
-        destroy() { this.stop(); },
+        init() {
+            if ($el.parentElement !== document.body) document.body.appendChild($el);
+            this._show();
+            this.$watch('isOpen', () => this._show());
+            if (this.isOpen && this.sessionId) this.poll();
+        },
 
-        _updateDisplay() {
+        destroy() { this.stopPoll(); },
+
+        _show() {
             $el.style.display = (this.isOpen && this.sessionId) ? 'flex' : 'none';
         },
 
-        start() {
-            this.screenshotSrc = '/registraduria/screenshot/' + this.sessionId + '?t=' + Date.now();
-
-            fetch('/registraduria/viewport/' + this.sessionId)
-                .then(r => r.json())
-                .then(d => { if (d && d.width) this.viewport = d; })
-                .catch(() => {});
-
-            // Screenshot every 1.5s (lightweight — JPEG q50)
-            this.screenshotInterval = setInterval(() => {
-                if (!this.isOpen) return;
-                this.screenshotSrc = '/registraduria/screenshot/' + this.sessionId + '?t=' + Date.now();
-            }, 1500);
-
-            // Status poll every 2s
+        poll() {
+            this.stopPoll();
             this.statusInterval = setInterval(() => {
-                if (!this.isOpen) { this.stop(); return; }
                 fetch('/registraduria/result/' + this.sessionId)
                     .then(r => r.json())
                     .then(d => {
                         this.status = d.status ?? 'error';
-                        if (d.status === 'done' && d.data) {
-                            this.stop();
-                            setTimeout(() => $wire.handleRegistraduriaResult(d), 1000);
+                        if (d.status === 'error') {
+                            this.error = d.error ?? 'Error desconocido';
+                            this.stopPoll();
                         }
-                        if (d.status === 'error') this.stop();
+                        if (d.status === 'done' && d.data) {
+                            this.stopPoll();
+                            setTimeout(() => $wire.handleRegistraduriaResult(d), 600);
+                        }
                     })
                     .catch(() => {});
             }, 2000);
         },
 
-        stop() {
-            if (this.screenshotInterval) { clearInterval(this.screenshotInterval); this.screenshotInterval = null; }
+        stopPoll() {
             if (this.statusInterval) { clearInterval(this.statusInterval); this.statusInterval = null; }
-        },
-
-        forwardClick(event) {
-            const rect = event.currentTarget.getBoundingClientRect();
-            const scaleX = this.viewport.width / rect.width;
-            const clickX = event.clientX - rect.left;
-            const clickY = event.clientY - rect.top + (event.currentTarget.parentElement?.scrollTop ?? 0);
-            const x = Math.round(clickX * scaleX);
-            const y = Math.round(clickY * scaleX);
-            fetch('/registraduria/click/' + this.sessionId, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '',
-                },
-                body: JSON.stringify({ x, y }),
-            }).catch(() => {});
         }
     }"
     x-on:keydown.escape.window="$wire.closeRegistraduriaBrowser()"
     style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999;
-           background:rgba(0,0,0,0.6); flex-direction:column; align-items:center; justify-content:flex-start; padding-top:2rem;"
+           background:rgba(0,0,0,0.55); align-items:center; justify-content:center;"
 >
-    <div style="background:#fff; border-radius:1rem; box-shadow:0 25px 60px rgba(0,0,0,0.35);
-                width:min(1000px,92vw); max-height:90vh; display:flex; flex-direction:column; overflow:hidden;">
+    <div style="background:#fff; border-radius:1.25rem; box-shadow:0 25px 60px rgba(0,0,0,0.3);
+                width:min(420px,88vw); padding:2.5rem 2rem; display:flex; flex-direction:column;
+                align-items:center; gap:1.5rem; text-align:center;">
 
-        {{-- Header --}}
-        <div style="display:flex; align-items:center; justify-content:space-between;
-                    padding:.75rem 1.25rem; border-bottom:1px solid #e5e7eb; background:#f9fafb; flex-shrink:0;">
-            <div style="display:flex; align-items:center; gap:.75rem;">
-                <span style="font-weight:700; font-size:.9rem; color:#111827;">Registraduría — Puesto de votación</span>
-                <span style="font-size:.8rem; font-weight:600; padding:.2rem .6rem; border-radius:9999px;
-                              background:#fef3c7; color:#92400e;" x-text="statusLabel()"></span>
-            </div>
-            <button type="button" x-on:click="$wire.closeRegistraduriaBrowser()"
-                    style="color:#9ca3af; background:none; border:none; cursor:pointer; font-size:1.25rem; line-height:1;">✕</button>
+        {{-- Spinner / Icon --}}
+        <div style="position:relative; width:64px; height:64px;">
+            <svg x-show="isSpinning()"
+                 style="position:absolute;inset:0;animation:reg-spin 1s linear infinite;"
+                 viewBox="0 0 64 64" fill="none">
+                <circle cx="32" cy="32" r="28" stroke="#e5e7eb" stroke-width="6"/>
+                <path d="M32 4a28 28 0 0 1 28 28" stroke="#2563eb" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+            <svg x-show="status === 'done'" viewBox="0 0 64 64" fill="none" style="position:absolute;inset:0;">
+                <circle cx="32" cy="32" r="30" fill="#dcfce7" stroke="#16a34a" stroke-width="3"/>
+                <path d="M20 33l9 9 15-16" stroke="#16a34a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg x-show="status === 'error'" viewBox="0 0 64 64" fill="none" style="position:absolute;inset:0;">
+                <circle cx="32" cy="32" r="30" fill="#fee2e2" stroke="#dc2626" stroke-width="3"/>
+                <path d="M22 22l20 20M42 22l-20 20" stroke="#dc2626" stroke-width="4" stroke-linecap="round"/>
+            </svg>
         </div>
 
-        {{-- Instruction --}}
-        <div style="background:#eff6ff; border-bottom:1px solid #bfdbfe; padding:.5rem 1.25rem; flex-shrink:0;">
-            <p style="font-size:.8rem; color:#1d4ed8; margin:0;">
-                <strong>1.</strong> Haz clic en el checkbox <em>"No soy un robot"</em> de la imagen &nbsp;
-                <strong>2.</strong> Haz clic en el botón <em>"Consultar"</em> de la imagen
+        {{-- Status text --}}
+        <div>
+            <p style="font-weight:700; font-size:1.1rem; color:#111827; margin:0 0 .4rem;">
+                Registraduría — Puesto de votación
             </p>
+            <p x-text="statusLabel()"
+               :style="{ color: status === 'done' ? '#16a34a' : status === 'error' ? '#dc2626' : '#2563eb' }"
+               style="font-size:.95rem; font-weight:600; margin:0;"></p>
         </div>
 
-        {{-- Screenshot area —scrollable --}}
-        <div style="flex:1; overflow-y:auto; background:#f3f4f6; padding:.5rem;">
-            <template x-if="status !== 'error'">
-                <img
-                    :src="screenshotSrc"
-                    alt="Registraduría"
-                    style="width:100%; border-radius:.5rem; border:1px solid #e5e7eb; cursor:pointer; user-select:none; display:block;"
-                    x-on:click="forwardClick($event)"
-                    draggable="false"
-                />
-            </template>
-            <template x-if="status === 'error'">
-                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:12rem; gap:.75rem; color:#dc2626;">
-                    <span style="font-size:2rem;">❌</span>
-                    <p style="font-size:.875rem; font-weight:600; margin:0;">Error al consultar Registraduría</p>
-                    <button type="button" x-on:click="$wire.closeRegistraduriaBrowser()"
-                            style="font-size:.8rem; text-decoration:underline; background:none; border:none; cursor:pointer; color:#dc2626;">Cerrar</button>
+        {{-- Steps --}}
+        <div style="width:100%; display:flex; flex-direction:column; gap:.4rem;">
+            @foreach([
+                ['loading',         '1', 'Cargando Registraduría'],
+                ['solving_captcha', '2', 'Resolviendo CAPTCHA automáticamente'],
+                ['waiting_result',  '3', 'Obteniendo datos del puesto'],
+            ] as [$step, $num, $label])
+            <div style="display:flex; align-items:center; gap:.6rem; padding:.4rem .6rem; border-radius:.4rem;"
+                 :style="{ background: status === '{{ $step }}' ? '#eff6ff' : (
+                     ['done','waiting_result','solving_captcha'].includes(status) && {{ $loop->index }} < ['loading','solving_captcha','waiting_result','done'].indexOf(status)
+                     ? '#f0fdf4' : '#f9fafb'
+                 )}">
+                <div style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;"
+                     :style="{ background: status === '{{ $step }}' ? '#2563eb' : '#e5e7eb',
+                               color: status === '{{ $step }}' ? '#fff' : '#9ca3af' }">
+                    {{ $num }}
                 </div>
-            </template>
-            <template x-if="status === 'done'">
-                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:12rem; gap:.75rem; color:#16a34a;">
-                    <span style="font-size:3rem;">✅</span>
-                    <p style="font-size:.95rem; font-weight:700; margin:0;">Datos obtenidos correctamente</p>
-                    <p style="font-size:.8rem; color:#6b7280; margin:0;">El formulario se llenará automáticamente</p>
-                </div>
-            </template>
+                <span style="font-size:.8rem; color:#374151;">{{ $label }}</span>
+            </div>
+            @endforeach
         </div>
+
+        {{-- Error --}}
+        <div x-show="status === 'error' && error"
+             style="width:100%;background:#fee2e2;border-radius:.5rem;padding:.6rem;font-size:.75rem;color:#991b1b;"
+             x-text="error"></div>
+
+        <button type="button" x-on:click="$wire.closeRegistraduriaBrowser()"
+                style="font-size:.8rem;color:#9ca3af;text-decoration:underline;background:none;border:none;cursor:pointer;">
+            Cancelar
+        </button>
     </div>
 </div>
+
+<style>
+@keyframes reg-spin { to { transform: rotate(360deg); } }
+</style>
