@@ -41,12 +41,14 @@ async def solve_recaptcha(site_key: str, page_url: str) -> str:
     connector = aiohttp.TCPConnector(ssl=False)
     async with aiohttp.ClientSession(connector=connector) as http:
 
-        # Submit job
+        # Submit job — try enterprise=1 for modern reCAPTCHA v2 implementations
         resp = await http.post("https://2captcha.com/in.php", data={
             "key": TWO_CAPTCHA_KEY,
             "method": "userrecaptcha",
             "googlekey": site_key,
             "pageurl": page_url,
+            "invisible": "0",    # checkbox type (not invisible)
+            "enterprise": "1",   # use enterprise solver for better compatibility
             "json": "1",
         })
         payload = await resp.json(content_type=None)
@@ -160,27 +162,25 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
             _set(session_id, status="solving_captcha")
             token = await solve_recaptcha(site_key, REGISTRADURIA_URL)
 
-            # 5 — Inject token and trigger the page's own reCAPTCHA callback
+            # 5 — Inject token using all known methods
             await page.evaluate(f"""() => {{
                 const token = '{token}';
 
-                // Set token in the hidden g-recaptcha-response textarea
+                // Set in hidden textarea
                 document.querySelectorAll('[name="g-recaptcha-response"], #g-recaptcha-response').forEach(el => {{
                     el.value = token;
                     el.innerHTML = token;
                 }});
 
-                // Method 1: call the data-callback function registered on the reCAPTCHA div
-                // This is the function that enables the submit button
-                const recaptchaDivs = document.querySelectorAll('[data-callback]');
-                recaptchaDivs.forEach(div => {{
+                // Method 1: data-callback attribute on the reCAPTCHA div
+                document.querySelectorAll('[data-callback]').forEach(div => {{
                     const cbName = div.getAttribute('data-callback');
                     if (cbName && typeof window[cbName] === 'function') {{
                         try {{ window[cbName](token); }} catch (_) {{}}
                     }}
                 }});
 
-                // Method 2: try ___grecaptcha_cfg internal callbacks
+                // Method 2: ___grecaptcha_cfg internal client callbacks
                 try {{
                     const cfg = window.___grecaptcha_cfg;
                     if (cfg && cfg.clients) {{
@@ -194,12 +194,15 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                     }}
                 }} catch (_) {{}}
 
-                // Method 3: force-enable any disabled buttons as final fallback
+                // Method 3: force-enable buttons
                 document.querySelectorAll('button[disabled], input[type=submit][disabled]').forEach(btn => {{
                     btn.disabled = false;
                     btn.removeAttribute('disabled');
                 }});
             }}""")
+
+            # Wait then check if button became enabled naturally (callback worked)
+            await asyncio.sleep(2)
 
             await asyncio.sleep(1.5)
 
