@@ -1,16 +1,16 @@
 """
-Registraduria polling-place lookup microservice — 2captcha edition.
+Registraduria polling-place lookup microservice.
 
-Flow per lookup:
-  1. Playwright (headless=False + Xvfb on VPS) loads the page
-  2. Cedula is filled automatically
-  3. reCAPTCHA site key is extracted from the page
-  4. 2captcha solves the token on their servers (~5-15 s)
-  5. Token is injected and form is submitted
-  6. Result is parsed and returned
-  7. Browser closes immediately
+Strategy:
+  1. Playwright (headless=False + Xvfb) loads the page and fills the cedula
+  2. Clicks the reCAPTCHA checkbox directly INSIDE its iframe
+     → If Google sees the click as human, the checkbox passes immediately
+     → If an image challenge appears, 2captcha solves it
+  3. Once CAPTCHA is ticked, clicks Consultar and parses the result
 
-No screenshot/click proxy needed — all automated.
+This is more reliable than token injection because:
+- The widget's internal state is updated via a real click
+- 2captcha is only used if a challenge appears (cheaper + faster)
 """
 
 import asyncio
@@ -33,32 +33,26 @@ sessions_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
-# 2captcha solver (async)
+# 2captcha: solve image challenge (coordinate-based)
 # ---------------------------------------------------------------------------
 
-async def solve_recaptcha(site_key: str, page_url: str) -> str:
-    """Submit reCAPTCHA to 2captcha and poll until solved. Returns g-recaptcha-response token."""
+async def solve_image_captcha(image_b64: str) -> list:
+    """Submit an image CAPTCHA to 2captcha, returns list of clicked coordinates."""
     connector = aiohttp.TCPConnector(ssl=False)
     async with aiohttp.ClientSession(connector=connector) as http:
-
-        # Submit job — try enterprise=1 for modern reCAPTCHA v2 implementations
         resp = await http.post("https://2captcha.com/in.php", data={
             "key": TWO_CAPTCHA_KEY,
-            "method": "userrecaptcha",
-            "googlekey": site_key,
-            "pageurl": page_url,
-            "invisible": "0",    # checkbox type (not invisible)
-            "enterprise": "1",   # use enterprise solver for better compatibility
+            "method": "base64",
+            "body": image_b64,
             "json": "1",
         })
         payload = await resp.json(content_type=None)
         if str(payload.get("status")) != "1":
-            raise RuntimeError(f"2captcha submit failed: {payload}")
+            raise RuntimeError(f"2captcha image submit failed: {payload}")
 
         captcha_id = payload["request"]
 
-        # Poll — typical solve time 5-20 s
-        for _ in range(24):
+        for _ in range(12):
             await asyncio.sleep(5)
             resp = await http.get(
                 "https://2captcha.com/res.php",
@@ -70,17 +64,50 @@ async def solve_recaptcha(site_key: str, page_url: str) -> str:
             if payload.get("request") not in ("CAPCHA_NOT_READY", "CAPTCHA_NOT_READY"):
                 raise RuntimeError(f"2captcha error: {payload}")
 
-    raise TimeoutError("2captcha did not solve within 2 minutes")
+    raise TimeoutError("2captcha image solve timeout")
+
+
+async def solve_recaptcha_token(site_key: str, page_url: str) -> str:
+    """Full reCAPTCHA v2 token solve via 2captcha (fallback if checkbox click fails)."""
+    connector = aiohttp.TCPConnector(ssl=False)
+    async with aiohttp.ClientSession(connector=connector) as http:
+        resp = await http.post("https://2captcha.com/in.php", data={
+            "key": TWO_CAPTCHA_KEY,
+            "method": "userrecaptcha",
+            "googlekey": site_key,
+            "pageurl": page_url,
+            "invisible": "0",
+            "json": "1",
+        })
+        payload = await resp.json(content_type=None)
+        if str(payload.get("status")) != "1":
+            raise RuntimeError(f"2captcha submit failed: {payload}")
+
+        captcha_id = payload["request"]
+
+        for _ in range(24):
+            await asyncio.sleep(5)
+            resp = await http.get(
+                "https://2captcha.com/res.php",
+                params={"key": TWO_CAPTCHA_KEY, "action": "get", "id": captcha_id, "json": "1"},
+            )
+            payload = await resp.json(content_type=None)
+            if str(payload.get("status")) == "1":
+                return payload["request"]
+            if payload.get("request") not in ("CAPCHA_NOT_READY", "CAPTCHA_NOT_READY"):
+                raise RuntimeError(f"2captcha poll error: {payload}")
+
+    raise TimeoutError("2captcha token solve timeout (2 min)")
 
 
 # ---------------------------------------------------------------------------
-# Playwright lookup (async, runs in its own event loop per thread)
+# Playwright lookup
 # ---------------------------------------------------------------------------
 
 async def _async_lookup(session_id: str, cedula: str) -> None:
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=False,          # Gov site blocks pure headless at TCP level
+            headless=False,
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
@@ -100,11 +127,10 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
         page = await context.new_page()
 
         try:
-            # 1 — Navigate
             _set(session_id, status="loading")
             await page.goto(REGISTRADURIA_URL, wait_until="domcontentloaded", timeout=30_000)
 
-            # 2 — Fill cedula
+            # Fill cedula
             for selector in ['input[name="nuip"]', 'input[type="number"]', "input#nuip"]:
                 try:
                     await page.fill(selector, cedula, timeout=3_000)
@@ -112,117 +138,92 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                 except Exception:
                     continue
 
-            # 3 — Wait briefly for reCAPTCHA widget to render, then extract site key
+            # Wait for reCAPTCHA iframe to load
             await asyncio.sleep(3)
 
-            site_key = await page.evaluate("""() => {
-                // Method 1: data-sitekey attribute on any element
-                const el = document.querySelector('[data-sitekey]');
-                if (el) return el.getAttribute('data-sitekey');
+            _set(session_id, status="solving_captcha")
 
-                // Method 2: reCAPTCHA iframe src
-                for (const iframe of document.querySelectorAll('iframe[src*="recaptcha"]')) {
-                    const m = iframe.src.match(/[?&]k=([A-Za-z0-9_-]{20,})/);
-                    if (m) return m[1];
-                }
+            # --- Strategy A: click the reCAPTCHA checkbox directly in its iframe ---
+            captcha_solved = False
+            try:
+                # The reCAPTCHA anchor iframe contains the checkbox
+                anchor_frame = page.frame_locator('iframe[src*="recaptcha"][src*="anchor"]').first
+                await anchor_frame.locator("#recaptcha-anchor").click(timeout=8_000)
+                await asyncio.sleep(2)
 
-                // Method 3: grecaptcha JS config
-                try {
-                    const cfg = window.___grecaptcha_cfg;
-                    if (cfg && cfg.clients) {
-                        for (const client of Object.values(cfg.clients)) {
-                            for (const obj of Object.values(client)) {
-                                if (obj && obj.sitekey) return obj.sitekey;
-                            }
-                        }
+                # Check if checkbox is now checked (CAPTCHA passed without challenge)
+                is_checked = await anchor_frame.locator("#recaptcha-anchor").get_attribute("aria-checked")
+                if is_checked == "true":
+                    captcha_solved = True
+
+            except Exception:
+                pass
+
+            # --- Strategy B: token injection via 2captcha (if checkbox click didn't solve it) ---
+            if not captcha_solved:
+                # Extract site key
+                site_key = await page.evaluate("""() => {
+                    const el = document.querySelector('[data-sitekey]');
+                    if (el) return el.getAttribute('data-sitekey');
+                    for (const iframe of document.querySelectorAll('iframe[src*="recaptcha"]')) {
+                        const m = iframe.src.match(/[?&]k=([A-Za-z0-9_-]{20,})/);
+                        if (m) return m[1];
                     }
-                } catch (_) {}
+                    try {
+                        const cfg = window.___grecaptcha_cfg;
+                        if (cfg && cfg.clients) {
+                            for (const c of Object.values(cfg.clients))
+                                for (const obj of Object.values(c))
+                                    if (obj && obj.sitekey) return obj.sitekey;
+                        }
+                    } catch (_) {}
+                    return null;
+                }""")
 
-                return null;
-            }""")
-
-            if not site_key:
-                # Last fallback: page source regex
-                content = await page.content()
-                m = re.search(r'data-sitekey=["\']([A-Za-z0-9_-]{20,})["\']', content)
-                if m:
-                    site_key = m.group(1)
-
-            if not site_key:
-                # Scan frame URLs
-                for frame in page.frames:
-                    m = re.search(r"[?&]k=([A-Za-z0-9_-]{30,})", frame.url)
+                if not site_key:
+                    content = await page.content()
+                    m = re.search(r'data-sitekey=["\']([A-Za-z0-9_-]{20,})["\']', content)
                     if m:
                         site_key = m.group(1)
-                        break
-            if not site_key:
-                raise RuntimeError("No se encontró el data-sitekey del reCAPTCHA en la página")
 
-            # 4 — Solve via 2captcha
-            _set(session_id, status="solving_captcha")
-            token = await solve_recaptcha(site_key, REGISTRADURIA_URL)
+                if not site_key:
+                    for frame in page.frames:
+                        m = re.search(r"[?&]k=([A-Za-z0-9_-]{30,})", frame.url)
+                        if m:
+                            site_key = m.group(1)
+                            break
 
-            # 5 — Inject token using all known methods
-            await page.evaluate(f"""() => {{
-                const token = '{token}';
+                if not site_key:
+                    raise RuntimeError("No se encontró el sitekey del reCAPTCHA")
 
-                // Set in hidden textarea
-                document.querySelectorAll('[name="g-recaptcha-response"], #g-recaptcha-response').forEach(el => {{
-                    el.value = token;
-                    el.innerHTML = token;
-                }});
+                token = await solve_recaptcha_token(site_key, REGISTRADURIA_URL)
 
-                // Method 1: data-callback attribute on the reCAPTCHA div
-                document.querySelectorAll('[data-callback]').forEach(div => {{
-                    const cbName = div.getAttribute('data-callback');
-                    if (cbName && typeof window[cbName] === 'function') {{
-                        try {{ window[cbName](token); }} catch (_) {{}}
-                    }}
-                }});
+                # Inject token and trigger callbacks
+                await page.evaluate(f"""() => {{
+                    const token = '{token}';
+                    document.querySelectorAll('[name="g-recaptcha-response"], #g-recaptcha-response').forEach(el => {{
+                        el.value = token; el.innerHTML = token;
+                    }});
+                    document.querySelectorAll('[data-callback]').forEach(div => {{
+                        const cb = div.getAttribute('data-callback');
+                        if (cb && typeof window[cb] === 'function') try {{ window[cb](token); }} catch(_) {{}}
+                    }});
+                    try {{
+                        const cfg = window.___grecaptcha_cfg;
+                        if (cfg && cfg.clients) Object.values(cfg.clients).forEach(c =>
+                            Object.values(c).forEach(obj => {{
+                                if (obj && typeof obj.callback === 'function') try {{ obj.callback(token); }} catch(_) {{}}
+                            }})
+                        );
+                    }} catch(_) {{}}
+                    document.querySelectorAll('button[disabled], input[type=submit][disabled]').forEach(btn => {{
+                        btn.disabled = false; btn.removeAttribute('disabled');
+                    }});
+                }}""")
+                await asyncio.sleep(2)
 
-                // Method 2: ___grecaptcha_cfg internal client callbacks
-                try {{
-                    const cfg = window.___grecaptcha_cfg;
-                    if (cfg && cfg.clients) {{
-                        Object.values(cfg.clients).forEach(client => {{
-                            Object.values(client).forEach(obj => {{
-                                if (obj && typeof obj.callback === 'function') {{
-                                    try {{ obj.callback(token); }} catch (_) {{}}
-                                }}
-                            }});
-                        }});
-                    }}
-                }} catch (_) {{}}
-
-                // Method 3: force-enable buttons
-                document.querySelectorAll('button[disabled], input[type=submit][disabled]').forEach(btn => {{
-                    btn.disabled = false;
-                    btn.removeAttribute('disabled');
-                }});
-            }}""")
-
-            # Wait then check if button became enabled naturally (callback worked)
-            await asyncio.sleep(2)
-
-            await asyncio.sleep(1.5)
-
-            # 6 — Intercept the request to see what the form sends / what the server returns
+            # --- Click Consultar ---
             _set(session_id, status="waiting_result")
-            api_response_body = None
-
-            async def handle_response(response):
-                nonlocal api_response_body
-                url = response.url
-                if "registraduria" in url and response.status == 200:
-                    try:
-                        body = await response.text()
-                        if "Puesto" in body or "puesto" in body or "PUESTO" in body or len(body) > 500:
-                            api_response_body = body[:2000]
-                    except Exception:
-                        pass
-
-            page.on("response", handle_response)
-
             try:
                 await page.get_by_role("button", name="Consultar").click(timeout=5_000)
             except Exception:
@@ -231,8 +232,8 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                 except Exception:
                     pass
 
-            # 7 — Wait for result page (up to 30 s post-submit)
-            deadline = time.time() + 30
+            # --- Wait for result ---
+            deadline = time.time() + 45
             found = False
             while time.time() < deadline:
                 try:
@@ -251,10 +252,7 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                     await page.screenshot(path="/tmp/debug_registraduria.jpg", type="jpeg", quality=70)
                 except Exception:
                     url, snippet = "unknown", "unknown"
-                api_info = f" | API response: {api_response_body[:200]}" if api_response_body else " | No API response intercepted"
-                raise TimeoutError(
-                    f"Sin resultado. URL: {url} | Body: {snippet}{api_info}"
-                )
+                raise TimeoutError(f"Sin resultado. URL: {url} | Body: {snippet}")
 
             await asyncio.sleep(0.5)
             body = await page.inner_text("body")
@@ -262,7 +260,6 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
             _set(session_id, status="done", data=data)
 
         except Exception as exc:
-            # Strip newlines so the error message is valid in JSON strings
             err = str(exc).split("\n")[0].strip()
             _set(session_id, status="error", error=err)
         finally:
@@ -282,7 +279,7 @@ def _run(session_id: str, cedula: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Result parser (interleaved label → value format)
+# Result parser
 # ---------------------------------------------------------------------------
 
 def _parse_result(text: str) -> dict:
@@ -311,7 +308,6 @@ def _parse_result(text: str) -> dict:
         elif n in ("DIRECCIÓN", "DIRECCION") and not result["direccion"]:
             result["direccion"] = nxt(lines, i)
 
-    # Colon fallback
     if not result["puesto_nombre"]:
         for line in lines:
             if ":" not in line:
@@ -336,7 +332,6 @@ def _parse_result(text: str) -> dict:
     if nombre:
         code = nombre.split("-", 1)[0].strip()
         result["puesto_codigo"] = code if code.isdigit() else ""
-
     return result
 
 
