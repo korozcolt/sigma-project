@@ -45,10 +45,9 @@ def run_lookup(session_id: str, cedula: str) -> None:
                 except Exception:
                     page.fill('input#nuip', cedula)
 
-            # Click Consultar button
-            page.get_by_role("button", name="Consultar").click()
-
-            # Notify the poller that we are now waiting for the CAPTCHA
+            # The "Consultar" button is disabled until the reCAPTCHA is solved.
+            # We do NOT click it — the user must solve the CAPTCHA and click the
+            # button themselves in the visible browser window.
             with sessions_lock:
                 sessions[session_id]["status"] = "waiting_captcha"
 
@@ -96,26 +95,24 @@ def run_lookup(session_id: str, cedula: str) -> None:
 def _parse_result_text(text: str) -> dict:
     """Parse the Registraduria result page body text into a structured dict.
 
-    The result page layout groups column headers together, then their values:
+    The real page layout is interleaved label → value on consecutive lines:
 
-        Puesto          <- column headers (all 3 on consecutive lines)
+        Puesto
+        02 - IE SAN JOSE C I P
         Mesa
-        Zona
-        02 - IE SAN JOSE C I P   <- values in same order
         13
+        Zona
         03
-
-        Departamento    <- column headers
+        Departamento
+        SUCRE
         Municipio
-        Dirección
-        SUCRE           <- values
         SINCELEJO
+        Dirección
         CL 22 No. 10A-380
 
-    Strategy: find the line that is EXACTLY "Puesto" (not "Puesto de Votación"),
-    confirm "Mesa" and "Zona" follow, then read values positionally.
-    Same for the Departamento/Municipio/Dirección group.
-    Fallback: inline "Label: value" scan if positional fails.
+    Strategy: find exact label lines and grab the immediately following
+    non-empty line as the value.
+    Fallback: inline "Label: value" (colon on same line).
     """
     result = {
         "puesto_nombre": "",
@@ -132,67 +129,40 @@ def _parse_result_text(text: str) -> dict:
     def norm(s: str) -> str:
         return s.upper().strip()
 
-    # ── Positional group 1: Puesto / Mesa / Zona ────────────────────────────
+    def next_value(lines: list, i: int) -> str:
+        """Return the first non-empty line after index i."""
+        for j in range(i + 1, min(i + 4, len(lines))):
+            if lines[j].strip():
+                return lines[j].strip()
+        return ""
+
+    # ── Pass 1: interleaved label → value (real page layout) ────────────────
     for i, line in enumerate(lines):
         n = norm(line)
-        # Match exactly "PUESTO" (not "PUESTO DE VOTACIÓN" which has spaces after)
-        if n == "PUESTO" or n == "PUESTO DE VOTACIÓN":
-            # Check next lines for Mesa and Zona
-            remaining = lines[i + 1:]
-            non_empty = [l for l in remaining[:6] if l]
-            # Look for Mesa and Zona within the next 3 lines
-            if len(non_empty) >= 2:
-                heads = [norm(non_empty[0]), norm(non_empty[1]) if len(non_empty) > 1 else ""]
-                if "MESA" in heads[0] or "ZONA" in heads[0] or "MESA" in heads[1] or "ZONA" in heads[1]:
-                    # Find where values start (after the 3 headers)
-                    header_count = 0
-                    val_start = i + 1
-                    while val_start < len(lines) and header_count < 3:
-                        if norm(lines[val_start]) in ("PUESTO", "MESA", "ZONA",
-                                                       "PUESTO DE VOTACIÓN"):
-                            header_count += 1
-                            val_start += 1
-                        else:
-                            break
-                    vals = [lines[j] for j in range(val_start, min(val_start + 3, len(lines)))]
-                    if len(vals) >= 1:
-                        result["puesto_nombre"] = vals[0]
-                    if len(vals) >= 2:
-                        result["mesa_numero"] = vals[1]
-                    if len(vals) >= 3:
-                        result["zona_codigo"] = vals[2]
-                    break
 
-    # ── Positional group 2: Departamento / Municipio / Dirección ────────────
-    for i, line in enumerate(lines):
-        n = norm(line)
-        if n == "DEPARTAMENTO":
-            remaining = [lines[j] for j in range(i + 1, min(i + 8, len(lines)))]
-            # Skip past Municipio and Dirección headers, collect values
-            header_count = 0
-            val_start = i + 1
-            while val_start < len(lines) and header_count < 3:
-                u = norm(lines[val_start])
-                if u in ("DEPARTAMENTO", "MUNICIPIO", "DIRECCIÓN", "DIRECCION") or u.startswith("DIRECCI"):
-                    header_count += 1
-                    val_start += 1
-                else:
-                    break
-            vals = [lines[j] for j in range(val_start, min(val_start + 3, len(lines)))]
-            if len(vals) >= 1:
-                result["departamento"] = vals[0]
-            if len(vals) >= 2:
-                result["municipio"] = vals[1]
-            if len(vals) >= 3:
-                result["direccion"] = vals[2]
-            break
+        if n == "PUESTO" and not result["puesto_nombre"]:
+            result["puesto_nombre"] = next_value(lines, i)
 
-    # ── Fallback: inline "Label: value" scan (handles alternative layouts) ──
+        elif n == "MESA" and not result["mesa_numero"]:
+            result["mesa_numero"] = next_value(lines, i)
+
+        elif n == "ZONA" and not result["zona_codigo"]:
+            result["zona_codigo"] = next_value(lines, i)
+
+        elif n == "DEPARTAMENTO" and not result["departamento"]:
+            result["departamento"] = next_value(lines, i)
+
+        elif n == "MUNICIPIO" and not result["municipio"]:
+            result["municipio"] = next_value(lines, i)
+
+        elif (n == "DIRECCIÓN" or n == "DIRECCION") and not result["direccion"]:
+            result["direccion"] = next_value(lines, i)
+
+    # ── Pass 2: inline "Label: value" fallback ───────────────────────────────
     if not result["puesto_nombre"] or not result["departamento"]:
         for line in lines:
             if ":" not in line:
                 continue
-            u = line.upper()
             key, _, val = line.partition(":")
             val = val.strip()
             if not val:
