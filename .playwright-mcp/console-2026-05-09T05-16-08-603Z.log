@@ -1,0 +1,3 @@
+[     203ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://sigma-project.test/registraduria/result/63e33e0c-9438-451d-bf0f-2be680c6e1cd:0
+[   91556ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://sigma-project.test/livewire/update:0
+[   91596ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: https://sigma-project.test/_boost/browser-logs @ :6

@@ -1,159 +1,131 @@
 {{--
-    Registraduria headless browser modal.
-    Variables:
-        $sessionId  string  — Python service session ID
-    Alpine.js handles:
-        - Screenshot polling (img src updated every 400ms)
-        - Status polling (fetch /registraduria/result every 2s)
-        - Click forwarding (scaled coordinates POSTed to /registraduria/click)
-        - Viewport fetch on init (for coordinate scaling)
-    Note: Use x-on: instead of @ shorthand to avoid Blade directive conflicts.
+    Registraduria browser modal.
+    Always rendered by Placeholder (Livewire controls sessionId + isOpen).
+    On init: appends itself to <body> to escape Filament's CSS transform stacking context.
+    Note: use x-on: instead of @ for Alpine events (avoids Blade directive conflicts).
 --}}
 <div
     x-data="{
         sessionId: @js($sessionId),
+        isOpen: @js($isOpen),
         status: 'pending',
-        error: null,
         viewport: { width: 1280, height: 800 },
         screenshotSrc: '',
         statusInterval: null,
         screenshotInterval: null,
 
         init() {
-            this.screenshotSrc = '/registraduria/screenshot/' + this.sessionId + '?t=' + Date.now();
+            if ($el.parentElement !== document.body) {
+                document.body.appendChild($el);
+            }
+            // Control display manually — x-show only sets display:none/''
+            // but we need display:flex, so we manage it via $watch
+            this._show = () => {
+                $el.style.display = (this.isOpen && this.sessionId) ? 'flex' : 'none';
+            };
+            this.$watch('isOpen', () => this._show());
+            this._show();
+            if (this.isOpen && this.sessionId) {
+                this.start();
+            }
+        },
 
+        destroy() { this.stop(); },
+
+        start() {
+            this.screenshotSrc = '/registraduria/screenshot/' + this.sessionId + '?t=' + Date.now();
             fetch('/registraduria/viewport/' + this.sessionId)
                 .then(r => r.json())
-                .then(data => { if (data && data.width) this.viewport = data; })
+                .then(d => { if (d && d.width) this.viewport = d; })
                 .catch(() => {});
 
             this.screenshotInterval = setInterval(() => {
+                if (!this.isOpen) return;
                 this.screenshotSrc = '/registraduria/screenshot/' + this.sessionId + '?t=' + Date.now();
             }, 400);
 
             this.statusInterval = setInterval(() => {
+                if (!this.isOpen) { this.stop(); return; }
                 fetch('/registraduria/result/' + this.sessionId)
                     .then(r => r.json())
-                    .then(data => {
-                        this.status = data.status ?? 'error';
-
-                        if (data.status === 'done' || data.status === 'error') {
-                            clearInterval(this.statusInterval);
-                            clearInterval(this.screenshotInterval);
-                            this.statusInterval = null;
-                            this.screenshotInterval = null;
-
-                            setTimeout(() => {
-                                $wire.handleRegistraduriaResult(data);
-                            }, 1500);
+                    .then(d => {
+                        this.status = d.status ?? 'error';
+                        if (d.status === 'done' || d.status === 'error') {
+                            this.stop();
+                            setTimeout(() => $wire.handleRegistraduriaResult(d), 1200);
                         }
                     })
-                    .catch(() => { this.error = 'Error de comunicación con el servicio.'; });
+                    .catch(() => {});
             }, 2000);
         },
 
-        destroy() {
-            if (this.statusInterval) clearInterval(this.statusInterval);
-            if (this.screenshotInterval) clearInterval(this.screenshotInterval);
+        stop() {
+            if (this.screenshotInterval) { clearInterval(this.screenshotInterval); this.screenshotInterval = null; }
+            if (this.statusInterval) { clearInterval(this.statusInterval); this.statusInterval = null; }
         },
 
         forwardClick(event) {
-            const img = event.target;
-            const rect = img.getBoundingClientRect();
-            const scaleX = this.viewport.width / rect.width;
-            const scaleY = this.viewport.height / rect.height;
-            const x = Math.round((event.clientX - rect.left) * scaleX);
-            const y = Math.round((event.clientY - rect.top) * scaleY);
-
+            const rect = event.currentTarget.getBoundingClientRect();
+            const x = Math.round((event.clientX - rect.left) * (this.viewport.width / rect.width));
+            const y = Math.round((event.clientY - rect.top) * (this.viewport.height / rect.height));
             fetch('/registraduria/click/' + this.sessionId, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '',
                 },
-                body: JSON.stringify({ x, y })
+                body: JSON.stringify({ x, y }),
             }).catch(() => {});
         },
 
         statusLabel() {
-            const labels = {
-                pending: 'Cargando...',
-                waiting_captcha: 'Resuelve el CAPTCHA',
-                done: 'Completado',
-                error: 'Error',
-            };
-            return labels[this.status] ?? this.status;
+            return { pending: 'Cargando...', waiting_captcha: 'Resuelve el CAPTCHA', done: 'Listo', error: 'Error' }[this.status] ?? this.status;
         },
 
-        statusColor() {
-            const colors = {
-                pending: 'bg-gray-100 text-gray-700',
-                waiting_captcha: 'bg-yellow-100 text-yellow-800',
-                done: 'bg-green-100 text-green-800',
-                error: 'bg-red-100 text-red-800',
-            };
-            return colors[this.status] ?? 'bg-gray-100 text-gray-700';
+        statusClass() {
+            return { pending: 'bg-gray-100 text-gray-600', waiting_captcha: 'bg-amber-100 text-amber-700', done: 'bg-green-100 text-green-700', error: 'bg-red-100 text-red-700' }[this.status] ?? 'bg-gray-100 text-gray-600';
         }
     }"
-    class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 pt-8"
     x-on:keydown.escape.window="$wire.closeRegistraduriaBrowser()"
+    style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; background:rgba(0,0,0,0.6); flex-direction:column; align-items:center; justify-content:flex-start; padding-top:2.5rem;"
 >
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 flex flex-col overflow-hidden"
-         style="max-height: 90vh;">
+    <div class="bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden mx-4"
+         style="width:min(1000px,92vw); max-height:88vh;">
 
         {{-- Header --}}
-        <div class="flex items-center justify-between px-5 py-3 border-b border-gray-200 shrink-0">
+        <div class="flex items-center justify-between px-5 py-3 border-b bg-gray-50 rounded-t-2xl shrink-0">
             <div class="flex items-center gap-3">
-                <span class="font-semibold text-gray-800 text-sm">Registraduría — Consulta de puesto de votación</span>
-                <span
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    :class="statusColor()"
-                    x-text="statusLabel()"
-                ></span>
+                <span class="font-semibold text-gray-800 text-sm">Registraduría — Puesto de votación</span>
+                <span class="text-xs font-medium px-2.5 py-0.5 rounded-full" :class="statusClass()" x-text="statusLabel()"></span>
             </div>
-            <button
-                type="button"
-                class="text-gray-400 hover:text-gray-600 transition-colors"
-                x-on:click="$wire.closeRegistraduriaBrowser()"
-                title="Cerrar"
-            >
+            <button type="button" x-on:click="$wire.closeRegistraduriaBrowser()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
         </div>
 
-        {{-- Instruction bar --}}
+        {{-- Instruction --}}
         <div class="bg-blue-50 border-b border-blue-100 px-5 py-2 shrink-0">
-            <p class="text-xs text-blue-700">
-                Haz clic directamente sobre la imagen para interactuar con la página.
-                El formulario se llenará automáticamente al obtener el resultado.
-            </p>
+            <p class="text-xs text-blue-700">Haz clic sobre la imagen para interactuar. El formulario se llenará automáticamente.</p>
         </div>
 
-        {{-- Screenshot area --}}
-        <div class="flex-1 overflow-auto bg-gray-100 p-3">
+        {{-- Screenshot --}}
+        <div class="flex-1 overflow-hidden bg-gray-100 p-2">
             <template x-if="status !== 'error'">
                 <img
                     :src="screenshotSrc"
                     alt="Registraduría"
-                    class="w-full rounded cursor-pointer select-none object-contain object-top"
-                    style="max-height: calc(85vh - 130px);"
+                    class="w-full rounded-lg border border-gray-200 cursor-pointer select-none object-contain object-top"
+                    style="max-height: calc(88vh - 110px);"
                     x-on:click="forwardClick($event)"
+                    draggable="false"
                 />
             </template>
             <template x-if="status === 'error'">
-                <div class="flex flex-col items-center justify-center h-48 gap-2 text-red-600">
-                    <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                              d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                    </svg>
-                    <p class="text-sm font-medium" x-text="error ?? 'Ocurrió un error al consultar la Registraduría.'"></p>
-                    <button
-                        type="button"
-                        class="text-xs underline text-red-500 hover:text-red-700"
-                        x-on:click="$wire.closeRegistraduriaBrowser()"
-                    >Cerrar</button>
+                <div class="flex flex-col items-center justify-center h-48 gap-3 text-red-600">
+                    <p class="text-sm font-medium">Error al consultar la Registraduría</p>
+                    <button type="button" x-on:click="$wire.closeRegistraduriaBrowser()" class="text-xs underline text-red-500">Cerrar</button>
                 </div>
             </template>
         </div>

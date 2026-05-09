@@ -51,10 +51,12 @@ class VoterForm
                     ->hiddenLabel()
                     ->dehydrated(false)
                     ->columnSpanFull()
-                    ->content(fn ($livewire): HtmlString => $livewire->registraduriaOpen && $livewire->registraduriaSessionId
-                        ? new HtmlString(view('filament.registraduria-browser', ['sessionId' => $livewire->registraduriaSessionId])->render())
-                        : new HtmlString('')
-                    ),
+                    ->content(fn ($livewire): HtmlString => new HtmlString(
+                        view('filament.registraduria-browser', [
+                            'sessionId' => $livewire->registraduriaSessionId ?: '',
+                            'isOpen' => $livewire->registraduriaOpen,
+                        ])->render()
+                    )),
 
                 Hidden::make('campaign_scope_state')->dehydrated(false),
                 Hidden::make('campaign_department_id_state')->dehydrated(false),

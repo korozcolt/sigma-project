@@ -1,0 +1,285 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - button "Contraer barra lateral" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+      - link "SigmaProject logo" [ref=e8] [cursor=pointer]:
+        - /url: https://sigma-project.test/admin
+        - img "SigmaProject logo" [ref=e9]
+    - generic [ref=e10]:
+      - generic [ref=e13]:
+        - generic [ref=e14]: Búsqueda global
+        - generic [ref=e15]:
+          - img [ref=e17]
+          - searchbox "Búsqueda global" [ref=e20]
+      - button "Menú del Usuario" [ref=e23] [cursor=pointer]:
+        - img "Avatar of Administrador" [ref=e24]
+    - generic [ref=e25]:
+      - generic [ref=e26]: Campaña
+      - combobox [ref=e27]:
+        - option "Todas"
+        - option "Alcaldía Sincelejo 2027" [selected]
+      - button "Cambiar" [ref=e28] [cursor=pointer]
+  - generic [ref=e29]:
+    - complementary [ref=e31]:
+      - navigation [ref=e32]:
+        - list [ref=e33]:
+          - listitem [ref=e34]:
+            - list [ref=e35]:
+              - listitem [ref=e36]:
+                - link "Escritorio" [ref=e37] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin
+                  - img [ref=e38]
+                  - generic [ref=e40]: Escritorio
+          - listitem [ref=e41]:
+            - generic [ref=e43]: Gestión
+            - list [ref=e44]:
+              - listitem [ref=e45]:
+                - link "Campañas" [ref=e46] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/campaigns
+                  - img [ref=e47]
+                  - generic [ref=e49]: Campañas
+              - listitem [ref=e50]:
+                - link "Coordinadores" [ref=e51] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/coordinators
+                  - img [ref=e52]
+                  - generic [ref=e54]: Coordinadores
+              - listitem [ref=e55]:
+                - link "Líderes" [ref=e56] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/leaders
+                  - img [ref=e57]
+                  - generic [ref=e59]: Líderes
+              - listitem [ref=e60]:
+                - link "Votantes" [ref=e61] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/voters
+                  - img [ref=e62]
+                  - generic [ref=e64]: Votantes
+              - listitem [ref=e65]:
+                - link "Enlaces de registro" [ref=e66] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/invitations
+                  - img [ref=e67]
+                  - generic [ref=e69]: Enlaces de registro
+          - listitem [ref=e70]:
+            - generic [ref=e72]: Call Center
+            - list [ref=e73]:
+              - listitem [ref=e74]:
+                - link "Centro de Llamadas" [ref=e75] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/call-center
+                  - img [ref=e76]
+                  - generic [ref=e78]: Centro de Llamadas
+              - listitem [ref=e79]:
+                - link "Llamadas de Verificación" [ref=e80] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/verification-calls
+                  - img [ref=e81]
+                  - generic [ref=e83]: Llamadas de Verificación
+              - listitem [ref=e84]:
+                - link "Encuestas" [ref=e85] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/surveys
+                  - img [ref=e86]
+                  - generic [ref=e88]: Encuestas
+          - listitem [ref=e89]:
+            - generic [ref=e91]: Mensajería
+            - list [ref=e92]:
+              - listitem [ref=e93]:
+                - link "Mensajes" [ref=e94] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/messages
+                  - img [ref=e95]
+                  - generic [ref=e97]: Mensajes
+              - listitem [ref=e98]:
+                - link "Plantillas" [ref=e99] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/messages/message-templates
+                  - img [ref=e100]
+                  - generic [ref=e102]: Plantillas
+              - listitem [ref=e103]:
+                - link "Envíos Masivos" [ref=e104] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/messages/message-batches
+                  - img [ref=e105]
+                  - generic [ref=e107]: Envíos Masivos
+          - listitem [ref=e108]:
+            - generic [ref=e110]: Jornada Electoral
+            - list [ref=e111]:
+              - listitem [ref=e112]:
+                - link "Gestión de Eventos" [ref=e113] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/manage-election-events
+                  - img [ref=e114]
+                  - generic [ref=e116]: Gestión de Eventos
+              - listitem [ref=e117]:
+                - link "Jornada Electoral (Día D)" [ref=e118] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/dia-d
+                  - img [ref=e119]
+                  - generic [ref=e121]: Jornada Electoral (Día D)
+              - listitem [ref=e122]:
+                - link "Eventos (Avanzado)" [ref=e123] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/election-events
+                  - img [ref=e124]
+                  - generic [ref=e126]: Eventos (Avanzado)
+          - listitem [ref=e127]:
+            - generic [ref=e129]: Configuración
+            - list [ref=e130]:
+              - listitem [ref=e131]:
+                - link "Departamentos" [ref=e132] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/departments
+                  - img [ref=e133]
+                  - generic [ref=e135]: Departamentos
+              - listitem [ref=e136]:
+                - link "Usuarios" [ref=e137] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/users
+                  - img [ref=e138]
+                  - generic [ref=e140]: Usuarios
+              - listitem [ref=e141]:
+                - link "Municipios" [ref=e142] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/municipalities
+                  - img [ref=e143]
+                  - generic [ref=e145]: Municipios
+              - listitem [ref=e146]:
+                - link "Barrios" [ref=e147] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/neighborhoods
+                  - img [ref=e148]
+                  - generic [ref=e150]: Barrios
+    - main [ref=e152]:
+      - generic [ref=e154]:
+        - generic [ref=e156]:
+          - navigation [ref=e157]:
+            - list [ref=e158]:
+              - listitem [ref=e159]:
+                - link "Votantes" [ref=e160] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/voters
+              - listitem [ref=e161]:
+                - img [ref=e162]
+                - generic [ref=e164]: Crear
+          - heading "Crear Votante" [level=1] [ref=e165]
+        - generic [ref=e171]:
+          - generic [ref=e175]:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - definition
+            - generic [ref=e179]:
+              - heading "Campaña y Estado" [level=2] [ref=e182]
+              - generic [ref=e184]:
+                - generic [ref=e187]:
+                  - generic [ref=e191]: Campaña
+                  - generic [ref=e192]:
+                    - button "Alcaldía Sincelejo 2027 Clear selection" [disabled] [ref=e198]:
+                      - generic [ref=e199]:
+                        - generic [ref=e200]: Alcaldía Sincelejo 2027
+                        - button "Clear selection" [disabled] [ref=e201] [cursor=pointer]:
+                          - img [ref=e202]
+                    - generic [ref=e207]: Campaña a la que pertenece el votante
+                - generic [ref=e210]:
+                  - generic [ref=e214]:
+                    - text: Estado
+                    - superscript [ref=e215]: "*"
+                  - generic [ref=e216]:
+                    - combobox "Estado*" [ref=e219]:
+                      - option "Seleccione una opción"
+                      - option "Pendiente de Revisión" [selected]
+                      - option "Rechazado en Censo"
+                      - option "Verificado en Censo"
+                      - option "Requiere Corrección"
+                      - option "Verificado por Llamada"
+                      - option "Confirmado"
+                      - option "Votó"
+                      - option "No Votó"
+                    - generic [ref=e223]: Estado actual del votante en el proceso
+            - generic [ref=e227]:
+              - heading "Asignación" [level=2] [ref=e230]
+              - generic [ref=e232]:
+                - generic [ref=e235]:
+                  - generic [ref=e239]: Coordinador
+                  - button "Seleccione una opción" [ref=e246] [cursor=pointer]:
+                    - generic [ref=e248]: Seleccione una opción
+                - generic [ref=e251]:
+                  - generic [ref=e255]:
+                    - text: Líder
+                    - superscript [ref=e256]: "*"
+                  - generic [ref=e257]:
+                    - button "Seleccione una opción" [ref=e263] [cursor=pointer]:
+                      - generic [ref=e265]: Seleccione una opción
+                    - generic [ref=e269]: El votante siempre debe pertenecer a un líder.
+            - generic [ref=e273]:
+              - heading "Información Personal" [level=2] [ref=e276]
+              - generic [ref=e278]:
+                - generic [ref=e281]:
+                  - generic [ref=e285]:
+                    - text: Nombre
+                    - superscript [ref=e286]: "*"
+                  - textbox "Nombre*" [ref=e290]
+                - generic [ref=e293]:
+                  - generic [ref=e297]:
+                    - text: Apellido
+                    - superscript [ref=e298]: "*"
+                  - textbox "Apellido*" [ref=e302]
+                - generic [ref=e305]:
+                  - generic [ref=e309]:
+                    - text: Número de Documento
+                    - superscript [ref=e310]: "*"
+                  - generic [ref=e311]:
+                    - generic [ref=e312]:
+                      - textbox "Número de Documento*" [ref=e314]
+                      - button "Consultar Registraduría" [ref=e317] [cursor=pointer]:
+                        - img [ref=e318]
+                    - generic [ref=e323]: Debe ser único en el sistema
+                - generic [ref=e326]:
+                  - generic [ref=e330]: Fecha de Nacimiento
+                  - button [ref=e335] [cursor=pointer]:
+                    - textbox "Fecha de Nacimiento" [ref=e336]:
+                      - /placeholder: ""
+            - generic [ref=e340]:
+              - heading "Información de Contacto" [level=2] [ref=e343]
+              - generic [ref=e345]:
+                - generic [ref=e348]:
+                  - generic [ref=e352]:
+                    - text: Teléfono Principal
+                    - superscript [ref=e353]: "*"
+                  - textbox "Teléfono Principal*" [ref=e357]
+                - generic [ref=e360]:
+                  - generic [ref=e364]: Teléfono Secundario
+                  - textbox "Teléfono Secundario" [ref=e368]
+                - generic [ref=e371]:
+                  - generic [ref=e375]: Correo Electrónico
+                  - textbox "Correo Electrónico" [ref=e379]
+            - generic [ref=e383]:
+              - heading "Ubicación" [level=2] [ref=e386]
+              - generic [ref=e388]:
+                - generic [ref=e391]:
+                  - generic [ref=e395]: Departamento
+                  - button [disabled] [ref=e402]
+                - generic [ref=e406]:
+                  - generic [ref=e410]: Municipio
+                  - generic [ref=e411]:
+                    - button [disabled] [ref=e417]
+                    - generic [ref=e422]: Si la campaña tiene un municipio definido, quedará fijo.
+                - generic [ref=e425]:
+                  - generic [ref=e429]: Barrio
+                  - generic [ref=e430]:
+                    - button [disabled] [ref=e436]
+                    - generic [ref=e441]: Seleccione primero un municipio
+                - generic [ref=e444]:
+                  - generic [ref=e448]: Puesto de votación
+                  - generic [ref=e449]:
+                    - button [disabled] [ref=e455]
+                    - generic [ref=e460]: Opcional. Se usa para asignar el puesto de votación y validar el número de mesa.
+                - generic [ref=e463]:
+                  - generic [ref=e467]: Número de mesa
+                  - spinbutton "Número de mesa" [disabled] [ref=e471]
+                - generic [ref=e474]:
+                  - generic [ref=e478]: Dirección
+                  - textbox "Dirección" [ref=e482]
+                - generic [ref=e485]:
+                  - generic [ref=e489]: Dirección Detallada
+                  - generic [ref=e490]:
+                    - textbox "Dirección Detallada" [ref=e494]
+                    - generic [ref=e498]: Referencias, puntos de interés cercanos, etc.
+            - generic [ref=e503] [cursor=pointer]:
+              - heading "Notas" [level=2] [ref=e505]
+              - button [ref=e506]:
+                - img [ref=e507]
+          - generic [ref=e513]:
+            - button "Crear" [ref=e514] [cursor=pointer]:
+              - generic [ref=e515]: Crear
+            - button "Crear y crear otro" [ref=e516] [cursor=pointer]
+            - button "Cancelar" [ref=e517] [cursor=pointer]
+  - generic:
+    - status

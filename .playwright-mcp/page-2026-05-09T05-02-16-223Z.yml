@@ -1,0 +1,202 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - button "Contraer barra lateral" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+      - link "SigmaProject logo" [ref=e8] [cursor=pointer]:
+        - /url: https://sigma-project.test/admin
+        - img "SigmaProject logo" [ref=e9]
+    - generic [ref=e10]:
+      - generic [ref=e13]:
+        - generic [ref=e14]: Búsqueda global
+        - generic [ref=e15]:
+          - img [ref=e17]
+          - searchbox "Búsqueda global" [ref=e20]
+      - button "Menú del Usuario" [ref=e23] [cursor=pointer]:
+        - img "Avatar of Administrador" [ref=e24]
+    - generic [ref=e25]:
+      - generic [ref=e26]: Campaña
+      - combobox [ref=e27]:
+        - option "Todas"
+        - option "Alcaldía Sincelejo 2027" [selected]
+      - button "Cambiar" [ref=e28] [cursor=pointer]
+  - generic [ref=e29]:
+    - complementary [ref=e31]:
+      - navigation [ref=e32]:
+        - list [ref=e33]:
+          - listitem [ref=e34]:
+            - list [ref=e35]:
+              - listitem [ref=e36]:
+                - link "Escritorio" [ref=e37] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin
+                  - img [ref=e38]
+                  - generic [ref=e40]: Escritorio
+          - listitem [ref=e41]:
+            - generic [ref=e43]: Gestión
+            - list [ref=e44]:
+              - listitem [ref=e45]:
+                - link "Campañas" [ref=e46] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/campaigns
+                  - img [ref=e47]
+                  - generic [ref=e49]: Campañas
+              - listitem [ref=e50]:
+                - link "Coordinadores" [ref=e51] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/coordinators
+                  - img [ref=e52]
+                  - generic [ref=e54]: Coordinadores
+              - listitem [ref=e55]:
+                - link "Líderes" [ref=e56] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/leaders
+                  - img [ref=e57]
+                  - generic [ref=e59]: Líderes
+              - listitem [ref=e60]:
+                - link "Votantes" [ref=e61] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/voters
+                  - img [ref=e62]
+                  - generic [ref=e64]: Votantes
+              - listitem [ref=e65]:
+                - link "Enlaces de registro" [ref=e66] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/invitations
+                  - img [ref=e67]
+                  - generic [ref=e69]: Enlaces de registro
+          - listitem [ref=e70]:
+            - generic [ref=e72]: Call Center
+            - list [ref=e73]:
+              - listitem [ref=e74]:
+                - link "Centro de Llamadas" [ref=e75] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/call-center
+                  - img [ref=e76]
+                  - generic [ref=e78]: Centro de Llamadas
+              - listitem [ref=e79]:
+                - link "Llamadas de Verificación" [ref=e80] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/verification-calls
+                  - img [ref=e81]
+                  - generic [ref=e83]: Llamadas de Verificación
+              - listitem [ref=e84]:
+                - link "Encuestas" [ref=e85] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/surveys
+                  - img [ref=e86]
+                  - generic [ref=e88]: Encuestas
+          - listitem [ref=e89]:
+            - generic [ref=e91]: Mensajería
+            - list [ref=e92]:
+              - listitem [ref=e93]:
+                - link "Mensajes" [ref=e94] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/messages
+                  - img [ref=e95]
+                  - generic [ref=e97]: Mensajes
+              - listitem [ref=e98]:
+                - link "Plantillas" [ref=e99] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/messages/message-templates
+                  - img [ref=e100]
+                  - generic [ref=e102]: Plantillas
+              - listitem [ref=e103]:
+                - link "Envíos Masivos" [ref=e104] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/messages/message-batches
+                  - img [ref=e105]
+                  - generic [ref=e107]: Envíos Masivos
+          - listitem [ref=e108]:
+            - generic [ref=e110]: Jornada Electoral
+            - list [ref=e111]:
+              - listitem [ref=e112]:
+                - link "Gestión de Eventos" [ref=e113] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/manage-election-events
+                  - img [ref=e114]
+                  - generic [ref=e116]: Gestión de Eventos
+              - listitem [ref=e117]:
+                - link "Jornada Electoral (Día D)" [ref=e118] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/dia-d
+                  - img [ref=e119]
+                  - generic [ref=e121]: Jornada Electoral (Día D)
+              - listitem [ref=e122]:
+                - link "Eventos (Avanzado)" [ref=e123] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/election-events
+                  - img [ref=e124]
+                  - generic [ref=e126]: Eventos (Avanzado)
+          - listitem [ref=e127]:
+            - generic [ref=e129]: Configuración
+            - list [ref=e130]:
+              - listitem [ref=e131]:
+                - link "Departamentos" [ref=e132] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/departments
+                  - img [ref=e133]
+                  - generic [ref=e135]: Departamentos
+              - listitem [ref=e136]:
+                - link "Usuarios" [ref=e137] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/users
+                  - img [ref=e138]
+                  - generic [ref=e140]: Usuarios
+              - listitem [ref=e141]:
+                - link "Municipios" [ref=e142] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/municipalities
+                  - img [ref=e143]
+                  - generic [ref=e145]: Municipios
+              - listitem [ref=e146]:
+                - link "Barrios" [ref=e147] [cursor=pointer]:
+                  - /url: https://sigma-project.test/admin/neighborhoods
+                  - img [ref=e148]
+                  - generic [ref=e150]: Barrios
+    - main [ref=e152]:
+      - generic [ref=e154]:
+        - heading "Escritorio" [level=1] [ref=e157]
+        - generic [ref=e164]:
+          - generic [ref=e168]:
+            - img "Avatar of Administrador" [ref=e169]
+            - generic [ref=e170]:
+              - heading "Bienvenida/o" [level=2] [ref=e171]
+              - paragraph [ref=e172]: Administrador
+            - button "Salir" [ref=e174] [cursor=pointer]:
+              - img [ref=e175]
+              - text: Salir
+          - generic [ref=e185]:
+            - generic [ref=e189]:
+              - generic [ref=e191]: Total de Votantes
+              - generic [ref=e192]: "0"
+              - generic [ref=e193]:
+                - generic [ref=e194]: 0 nuevos esta semana
+                - img [ref=e195]
+            - generic [ref=e200]:
+              - generic [ref=e202]: Votantes Confirmados
+              - generic [ref=e203]: "0"
+              - generic [ref=e204]:
+                - generic [ref=e205]: 0% del total
+                - img [ref=e206]
+            - generic [ref=e211]:
+              - generic [ref=e213]: Líderes Activos
+              - generic [ref=e214]: "0"
+              - generic [ref=e215]:
+                - generic [ref=e216]: 0 votantes/líder promedio
+                - img [ref=e217]
+            - generic [ref=e222]:
+              - generic [ref=e224]: Progreso de Validación
+              - generic [ref=e225]: 0%
+              - generic [ref=e226]:
+                - generic [ref=e227]: 0 de 0 validados
+                - img [ref=e228]
+          - generic [ref=e236]:
+            - heading "Progreso de Validación — 30 días" [level=2] [ref=e237]
+            - paragraph [ref=e238]: Total de votantes registrados vs validados por llamada
+          - generic [ref=e251]:
+            - generic [ref=e255]:
+              - generic [ref=e257]: Total Encuestas
+              - generic [ref=e258]: "0"
+              - generic [ref=e259]:
+                - generic [ref=e260]: Encuestas creadas en el sistema
+                - img [ref=e261]
+            - generic [ref=e266]:
+              - generic [ref=e268]: Encuestas Activas
+              - generic [ref=e269]: "0"
+              - generic [ref=e270]:
+                - generic [ref=e271]: Encuestas disponibles actualmente
+                - img [ref=e272]
+            - generic [ref=e277]:
+              - generic [ref=e279]: Total Respuestas
+              - generic [ref=e280]: "0"
+              - generic [ref=e281]:
+                - generic [ref=e282]: Respuestas recibidas
+                - img [ref=e283]
+          - generic [ref=e288]:
+            - heading "Top 10 Municipios con más Votantes" [level=2] [ref=e289]
+            - paragraph [ref=e290]: Distribución territorial de la campaña activa
+  - generic:
+    - status

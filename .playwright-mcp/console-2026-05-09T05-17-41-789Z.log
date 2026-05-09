@@ -1,0 +1,2 @@
+[   70447ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://sigma-project.test/livewire/update:0
+[   70465ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: https://sigma-project.test/_boost/browser-logs @ :6

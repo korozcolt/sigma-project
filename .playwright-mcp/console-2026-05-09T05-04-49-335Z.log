@@ -1,0 +1,10 @@
+[   12781ms] [ERROR] Failed to load resource: the server responded with a status of 503 () @ https://sigma-project.test/registraduria/viewport/fd34dd50-d5dd-4aa9-a9bb-5a09838ab7fb:0
+[   12792ms] [ERROR] Failed to load resource: the server responded with a status of 503 () @ https://sigma-project.test/registraduria/screenshot/fd34dd50-d5dd-4aa9-a9bb-5a09838ab7fb?t=1778303097030:0
+[   28672ms] [ERROR] Failed to load resource: the server responded with a status of 503 () @ https://sigma-project.test/registraduria/screenshot/fd34dd50-d5dd-4aa9-a9bb-5a09838ab7fb?t=1778303117431:0
+[   30172ms] Could not find Livewire component in DOM tree
+[   30211ms] Could not find Livewire component in DOM tree
+[   30248ms] Could not find Livewire component in DOM tree
+[   30287ms] Could not find Livewire component in DOM tree
+[   30325ms] Could not find Livewire component in DOM tree
+[   30365ms] Could not find Livewire component in DOM tree
+[   30404ms] Could not find Livewire component in DOM tree
