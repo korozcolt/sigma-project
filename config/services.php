@@ -42,4 +42,8 @@ return [
         'sandbox_mode' => env('HABLAME_SANDBOX_MODE', false),
     ],
 
+    'registraduria' => [
+        'url' => env('REGISTRADURIA_SERVICE_URL', 'http://localhost:5757'),
+    ],
+
 ];
