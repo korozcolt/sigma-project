@@ -203,14 +203,27 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
 
             await asyncio.sleep(1.5)
 
-            # 6 — Click Consultar (should be enabled now via data-callback)
+            # 6 — Intercept the request to see what the form sends / what the server returns
             _set(session_id, status="waiting_result")
+            api_response_body = None
+
+            async def handle_response(response):
+                nonlocal api_response_body
+                url = response.url
+                if "registraduria" in url and response.status == 200:
+                    try:
+                        body = await response.text()
+                        if "Puesto" in body or "puesto" in body or "PUESTO" in body or len(body) > 500:
+                            api_response_body = body[:2000]
+                    except Exception:
+                        pass
+
+            page.on("response", handle_response)
+
             try:
-                # First try normal click (button should be enabled after callback)
                 await page.get_by_role("button", name="Consultar").click(timeout=5_000)
             except Exception:
                 try:
-                    # Fallback: force click bypassing disabled check
                     await page.locator("button, input[type='submit']").first.click(force=True, timeout=3_000)
                 except Exception:
                     pass
@@ -229,17 +242,15 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                 await asyncio.sleep(1)
 
             if not found:
-                # Capture page state for debugging
                 try:
                     url = page.url
-                    full_body = await page.inner_text("body")
-                    snippet = full_body[:600].replace("\n", " ")
-                    # Save debug screenshot
+                    snippet = (await page.inner_text("body"))[:300].replace("\n", " ")
                     await page.screenshot(path="/tmp/debug_registraduria.jpg", type="jpeg", quality=70)
                 except Exception:
                     url, snippet = "unknown", "unknown"
+                api_info = f" | API response: {api_response_body[:200]}" if api_response_body else " | No API response intercepted"
                 raise TimeoutError(
-                    f"Sin resultado. URL: {url} | Contenido: {snippet[:300]}"
+                    f"Sin resultado. URL: {url} | Body: {snippet}{api_info}"
                 )
 
             await asyncio.sleep(0.5)
