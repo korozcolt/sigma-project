@@ -1,110 +1,132 @@
 """
-Registraduria polling-place lookup microservice.
+Registraduria polling-place lookup microservice — screenshot proxy edition.
 
-Strategy:
-  1. Playwright (headless=False + Xvfb) loads the page and fills the cedula
-  2. Clicks the reCAPTCHA checkbox directly INSIDE its iframe
-     → If Google sees the click as human, the checkbox passes immediately
-     → If an image challenge appears, 2captcha solves it
-  3. Once CAPTCHA is ticked, clicks Consultar and parses the result
+The reCAPTCHA must be solved by a HUMAN in the same browser session.
+2captcha tokens don't work because Google verifies session continuity.
 
-This is more reliable than token injection because:
-- The widget's internal state is updated via a real click
-- 2captcha is only used if a challenge appears (cheaper + faster)
+Flow:
+  1. Playwright (headless=False + Xvfb) loads the page, fills cedula
+  2. Operator sees live screenshots in SIGMA modal and clicks the reCAPTCHA area
+  3. Click is forwarded: if it hits the reCAPTCHA iframe → clicks #recaptcha-anchor
+     properly inside the frame (Google registers a real-session human click)
+  4. If Google shows image challenge → operator clicks tiles via screenshot
+  5. Once CAPTCHA is ticked, operator clicks Consultar → result parsed
+
+Screenshot poll: every 1.5 s, JPEG q50 (lightweight).
+Thread safety: all Playwright calls go through asyncio queues back to the owner thread.
 """
 
 import asyncio
+import queue
 import threading
 import time
 import uuid
-import re
 
-import aiohttp
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
 from playwright.async_api import async_playwright
 
 app = Flask(__name__)
 
-TWO_CAPTCHA_KEY = "9fab1f6ad28812795d61fe8858585ef4"
 REGISTRADURIA_URL = "https://eleccionescolombia.registraduria.gov.co/identificacion"
 
 sessions: dict = {}
 sessions_lock = threading.Lock()
 
+# Per-session command bridges (sync→async via threading.Queue)
+session_bridges: dict = {}
+session_bridges_lock = threading.Lock()
 
-# ---------------------------------------------------------------------------
-# 2captcha: solve image challenge (coordinate-based)
-# ---------------------------------------------------------------------------
-
-async def solve_image_captcha(image_b64: str) -> list:
-    """Submit an image CAPTCHA to 2captcha, returns list of clicked coordinates."""
-    connector = aiohttp.TCPConnector(ssl=False)
-    async with aiohttp.ClientSession(connector=connector) as http:
-        resp = await http.post("https://2captcha.com/in.php", data={
-            "key": TWO_CAPTCHA_KEY,
-            "method": "base64",
-            "body": image_b64,
-            "json": "1",
-        })
-        payload = await resp.json(content_type=None)
-        if str(payload.get("status")) != "1":
-            raise RuntimeError(f"2captcha image submit failed: {payload}")
-
-        captcha_id = payload["request"]
-
-        for _ in range(12):
-            await asyncio.sleep(5)
-            resp = await http.get(
-                "https://2captcha.com/res.php",
-                params={"key": TWO_CAPTCHA_KEY, "action": "get", "id": captcha_id, "json": "1"},
-            )
-            payload = await resp.json(content_type=None)
-            if str(payload.get("status")) == "1":
-                return payload["request"]
-            if payload.get("request") not in ("CAPCHA_NOT_READY", "CAPTCHA_NOT_READY"):
-                raise RuntimeError(f"2captcha error: {payload}")
-
-    raise TimeoutError("2captcha image solve timeout")
-
-
-async def solve_recaptcha_token(site_key: str, page_url: str) -> str:
-    """Full reCAPTCHA v2 token solve via 2captcha (fallback if checkbox click fails)."""
-    connector = aiohttp.TCPConnector(ssl=False)
-    async with aiohttp.ClientSession(connector=connector) as http:
-        resp = await http.post("https://2captcha.com/in.php", data={
-            "key": TWO_CAPTCHA_KEY,
-            "method": "userrecaptcha",
-            "googlekey": site_key,
-            "pageurl": page_url,
-            "invisible": "0",
-            "json": "1",
-        })
-        payload = await resp.json(content_type=None)
-        if str(payload.get("status")) != "1":
-            raise RuntimeError(f"2captcha submit failed: {payload}")
-
-        captcha_id = payload["request"]
-
-        for _ in range(24):
-            await asyncio.sleep(5)
-            resp = await http.get(
-                "https://2captcha.com/res.php",
-                params={"key": TWO_CAPTCHA_KEY, "action": "get", "id": captcha_id, "json": "1"},
-            )
-            payload = await resp.json(content_type=None)
-            if str(payload.get("status")) == "1":
-                return payload["request"]
-            if payload.get("request") not in ("CAPCHA_NOT_READY", "CAPTCHA_NOT_READY"):
-                raise RuntimeError(f"2captcha poll error: {payload}")
-
-    raise TimeoutError("2captcha token solve timeout (2 min)")
+_LOADING_PNG: bytes = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00"
+    b"\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx"
+    b"\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+)
 
 
 # ---------------------------------------------------------------------------
-# Playwright lookup
+# Sync→async bridge
 # ---------------------------------------------------------------------------
 
-async def _async_lookup(session_id: str, cedula: str) -> None:
+def _send_cmd(session_id: str, cmd: dict, timeout: float = 8.0):
+    resp_q: queue.Queue = queue.Queue()
+    cmd["_resp_q"] = resp_q
+    with session_bridges_lock:
+        bridge = session_bridges.get(session_id)
+    if bridge is None:
+        return None
+    bridge.put(cmd)
+    try:
+        return resp_q.get(timeout=timeout)
+    except queue.Empty:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Playwright async lookup
+# ---------------------------------------------------------------------------
+
+async def _async_lookup(session_id: str, cedula: str, bridge: queue.Queue) -> None:
+
+    async def process_bridge(page) -> None:
+        """Drain pending commands from the sync bridge."""
+        while True:
+            try:
+                cmd = bridge.get_nowait()
+            except queue.Empty:
+                break
+            resp_q = cmd.pop("_resp_q", None)
+            t = cmd.get("type")
+            try:
+                if t == "screenshot":
+                    img = await page.screenshot(type="jpeg", quality=50)
+                    if resp_q:
+                        resp_q.put({"ok": True, "data": img})
+
+                elif t == "click":
+                    x, y = cmd["x"], cmd["y"]
+                    # Check if click is inside any reCAPTCHA iframe
+                    clicked_in_frame = False
+                    for frame in page.frames:
+                        if "recaptcha" not in frame.url:
+                            continue
+                        try:
+                            frame_el = await frame.frame_element()
+                            box = await frame_el.bounding_box()
+                            if box and box["x"] <= x <= box["x"] + box["width"] \
+                               and box["y"] <= y <= box["y"] + box["height"]:
+                                # Click the reCAPTCHA anchor/checkbox inside the frame
+                                if "anchor" in frame.url:
+                                    try:
+                                        await frame.locator("#recaptcha-anchor").click(timeout=3_000)
+                                        clicked_in_frame = True
+                                    except Exception:
+                                        pass
+                                if not clicked_in_frame:
+                                    fx = x - box["x"]
+                                    fy = y - box["y"]
+                                    await frame.evaluate(
+                                        f"() => {{ const el = document.elementFromPoint({fx},{fy}); if(el) el.click(); }}"
+                                    )
+                                    clicked_in_frame = True
+                                break
+                        except Exception:
+                            pass
+                    if not clicked_in_frame:
+                        await page.mouse.click(x, y)
+                    if resp_q:
+                        resp_q.put({"ok": True})
+
+                elif t == "viewport":
+                    vp = page.viewport_size or {"width": 1280, "height": 800}
+                    if resp_q:
+                        resp_q.put({"ok": True, "data": vp})
+                else:
+                    if resp_q:
+                        resp_q.put({"ok": False, "error": f"unknown cmd {t}"})
+            except Exception as exc:
+                if resp_q:
+                    resp_q.put({"ok": False, "error": str(exc).split("\n")[0]})
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=False,
@@ -127,8 +149,14 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
         page = await context.new_page()
 
         try:
-            _set(session_id, status="loading")
-            await page.goto(REGISTRADURIA_URL, wait_until="domcontentloaded", timeout=30_000)
+            # Navigate concurrently with screenshot serving
+            goto_task = asyncio.create_task(
+                page.goto(REGISTRADURIA_URL, wait_until="domcontentloaded", timeout=30_000)
+            )
+            while not goto_task.done():
+                await process_bridge(page)
+                await asyncio.sleep(0.1)
+            await goto_task
 
             # Fill cedula
             for selector in ['input[name="nuip"]', 'input[type="number"]', "input#nuip"]:
@@ -138,104 +166,14 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                 except Exception:
                     continue
 
-            # Wait for reCAPTCHA iframe to load
-            await asyncio.sleep(3)
+            with sessions_lock:
+                sessions[session_id]["status"] = "waiting_captcha"
 
-            _set(session_id, status="solving_captcha")
-
-            # --- Strategy A: click the reCAPTCHA checkbox directly in its iframe ---
-            captcha_solved = False
-            try:
-                # The reCAPTCHA anchor iframe contains the checkbox
-                anchor_frame = page.frame_locator('iframe[src*="recaptcha"][src*="anchor"]').first
-                await anchor_frame.locator("#recaptcha-anchor").click(timeout=8_000)
-                await asyncio.sleep(2)
-
-                # Check if checkbox is now checked (CAPTCHA passed without challenge)
-                is_checked = await anchor_frame.locator("#recaptcha-anchor").get_attribute("aria-checked")
-                if is_checked == "true":
-                    captcha_solved = True
-
-            except Exception:
-                pass
-
-            # --- Strategy B: token injection via 2captcha (if checkbox click didn't solve it) ---
-            if not captcha_solved:
-                # Extract site key
-                site_key = await page.evaluate("""() => {
-                    const el = document.querySelector('[data-sitekey]');
-                    if (el) return el.getAttribute('data-sitekey');
-                    for (const iframe of document.querySelectorAll('iframe[src*="recaptcha"]')) {
-                        const m = iframe.src.match(/[?&]k=([A-Za-z0-9_-]{20,})/);
-                        if (m) return m[1];
-                    }
-                    try {
-                        const cfg = window.___grecaptcha_cfg;
-                        if (cfg && cfg.clients) {
-                            for (const c of Object.values(cfg.clients))
-                                for (const obj of Object.values(c))
-                                    if (obj && obj.sitekey) return obj.sitekey;
-                        }
-                    } catch (_) {}
-                    return null;
-                }""")
-
-                if not site_key:
-                    content = await page.content()
-                    m = re.search(r'data-sitekey=["\']([A-Za-z0-9_-]{20,})["\']', content)
-                    if m:
-                        site_key = m.group(1)
-
-                if not site_key:
-                    for frame in page.frames:
-                        m = re.search(r"[?&]k=([A-Za-z0-9_-]{30,})", frame.url)
-                        if m:
-                            site_key = m.group(1)
-                            break
-
-                if not site_key:
-                    raise RuntimeError("No se encontró el sitekey del reCAPTCHA")
-
-                token = await solve_recaptcha_token(site_key, REGISTRADURIA_URL)
-
-                # Inject token and trigger callbacks
-                await page.evaluate(f"""() => {{
-                    const token = '{token}';
-                    document.querySelectorAll('[name="g-recaptcha-response"], #g-recaptcha-response').forEach(el => {{
-                        el.value = token; el.innerHTML = token;
-                    }});
-                    document.querySelectorAll('[data-callback]').forEach(div => {{
-                        const cb = div.getAttribute('data-callback');
-                        if (cb && typeof window[cb] === 'function') try {{ window[cb](token); }} catch(_) {{}}
-                    }});
-                    try {{
-                        const cfg = window.___grecaptcha_cfg;
-                        if (cfg && cfg.clients) Object.values(cfg.clients).forEach(c =>
-                            Object.values(c).forEach(obj => {{
-                                if (obj && typeof obj.callback === 'function') try {{ obj.callback(token); }} catch(_) {{}}
-                            }})
-                        );
-                    }} catch(_) {{}}
-                    document.querySelectorAll('button[disabled], input[type=submit][disabled]').forEach(btn => {{
-                        btn.disabled = false; btn.removeAttribute('disabled');
-                    }});
-                }}""")
-                await asyncio.sleep(2)
-
-            # --- Click Consultar ---
-            _set(session_id, status="waiting_result")
-            try:
-                await page.get_by_role("button", name="Consultar").click(timeout=5_000)
-            except Exception:
-                try:
-                    await page.locator("button, input[type='submit']").first.click(force=True, timeout=3_000)
-                except Exception:
-                    pass
-
-            # --- Wait for result ---
-            deadline = time.time() + 45
+            # Monitor for result while serving screenshot/click commands
+            deadline = time.time() + 180
             found = False
             while time.time() < deadline:
+                await process_bridge(page)
                 try:
                     body = await page.inner_text("body")
                     if cedula in body and ("Puesto" in body or "PUESTO" in body):
@@ -243,39 +181,41 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                         break
                 except Exception:
                     pass
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.15)
 
             if not found:
-                try:
-                    url = page.url
-                    snippet = (await page.inner_text("body"))[:300].replace("\n", " ")
-                    await page.screenshot(path="/tmp/debug_registraduria.jpg", type="jpeg", quality=70)
-                except Exception:
-                    url, snippet = "unknown", "unknown"
-                raise TimeoutError(f"Sin resultado. URL: {url} | Body: {snippet}")
+                raise TimeoutError("Tiempo agotado esperando el resultado (180 s)")
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
             body = await page.inner_text("body")
             data = _parse_result(body)
-            _set(session_id, status="done", data=data)
+
+            with sessions_lock:
+                sessions[session_id]["status"] = "done"
+                sessions[session_id]["data"] = data
+
+            # Keep serving screenshots for a few seconds so operator sees result
+            deadline_final = time.time() + 4
+            while time.time() < deadline_final:
+                await process_bridge(page)
+                await asyncio.sleep(0.1)
 
         except Exception as exc:
             err = str(exc).split("\n")[0].strip()
-            _set(session_id, status="error", error=err)
+            with sessions_lock:
+                sessions[session_id]["status"] = "error"
+                sessions[session_id]["error"] = err
         finally:
+            with session_bridges_lock:
+                session_bridges.pop(session_id, None)
             try:
                 await browser.close()
             except Exception:
                 pass
 
 
-def _set(session_id: str, **kwargs) -> None:
-    with sessions_lock:
-        sessions[session_id].update(kwargs)
-
-
-def _run(session_id: str, cedula: str) -> None:
-    asyncio.run(_async_lookup(session_id, cedula))
+def _run(session_id: str, cedula: str, bridge: queue.Queue) -> None:
+    asyncio.run(_async_lookup(session_id, cedula, bridge))
 
 
 # ---------------------------------------------------------------------------
@@ -315,18 +255,12 @@ def _parse_result(text: str) -> dict:
             k, _, v = line.partition(":")
             v = v.strip()
             ku = k.upper().strip()
-            if "PUESTO" in ku:
-                result["puesto_nombre"] = v
-            elif "ZONA" in ku:
-                result["zona_codigo"] = v
-            elif "MESA" in ku:
-                result["mesa_numero"] = v
-            elif "DIRECCI" in ku:
-                result["direccion"] = v
-            elif "MUNICIPIO" in ku:
-                result["municipio"] = v
-            elif "DEPARTAMENTO" in ku:
-                result["departamento"] = v
+            if "PUESTO" in ku: result["puesto_nombre"] = v
+            elif "ZONA" in ku: result["zona_codigo"] = v
+            elif "MESA" in ku: result["mesa_numero"] = v
+            elif "DIRECCI" in ku: result["direccion"] = v
+            elif "MUNICIPIO" in ku: result["municipio"] = v
+            elif "DEPARTAMENTO" in ku: result["departamento"] = v
 
     nombre = result["puesto_nombre"]
     if nombre:
@@ -347,10 +281,14 @@ def lookup():
         return jsonify({"error": "El campo 'cedula' es requerido."}), 400
 
     session_id = str(uuid.uuid4())
+    bridge: queue.Queue = queue.Queue()
+
     with sessions_lock:
         sessions[session_id] = {"status": "pending", "data": None, "error": None}
+    with session_bridges_lock:
+        session_bridges[session_id] = bridge
 
-    threading.Thread(target=_run, args=(session_id, cedula), daemon=True).start()
+    threading.Thread(target=_run, args=(session_id, cedula, bridge), daemon=True).start()
     return jsonify({"session_id": session_id}), 200
 
 
@@ -361,6 +299,37 @@ def result(session_id: str):
     if session is None:
         return jsonify({"error": f"Sesión '{session_id}' no encontrada."}), 404
     return jsonify(session), 200
+
+
+@app.route("/screenshot/<session_id>", methods=["GET"])
+def screenshot_route(session_id: str):
+    resp = _send_cmd(session_id, {"type": "screenshot"}, timeout=6.0)
+    if resp is None or not resp.get("ok"):
+        return Response(_LOADING_PNG, mimetype="image/png",
+                        headers={"Cache-Control": "no-store"})
+    return Response(resp["data"], mimetype="image/jpeg",
+                    headers={"Cache-Control": "no-store, no-cache"})
+
+
+@app.route("/click/<session_id>", methods=["POST"])
+def click_route(session_id: str):
+    body = request.get_json(silent=True) or {}
+    try:
+        x, y = int(body["x"]), int(body["y"])
+    except (KeyError, ValueError, TypeError):
+        return jsonify({"error": "x e y requeridos"}), 400
+    resp = _send_cmd(session_id, {"type": "click", "x": x, "y": y}, timeout=8.0)
+    if resp is None:
+        return jsonify({"error": "sesión no activa"}), 503
+    return jsonify({"ok": resp.get("ok", False)}), 200
+
+
+@app.route("/viewport/<session_id>", methods=["GET"])
+def viewport_route(session_id: str):
+    resp = _send_cmd(session_id, {"type": "viewport"}, timeout=6.0)
+    if resp is None or not resp.get("ok"):
+        return jsonify({"width": 1280, "height": 800}), 200
+    return jsonify(resp["data"]), 200
 
 
 if __name__ == "__main__":
