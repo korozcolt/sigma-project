@@ -24,3 +24,11 @@ yarn-error.log
 tests/Visual/.auth
 output/playwright
 output/playwright-report
+
+# Test artifacts
+.playwright-mcp/
+registraduria-*.png
+registraduria-service/__pycache__/
+
+# GSD worktrees
+.claude/worktrees/
