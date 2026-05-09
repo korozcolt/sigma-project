@@ -232,11 +232,14 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                 # Capture page state for debugging
                 try:
                     url = page.url
-                    snippet = (await page.inner_text("body"))[:400].replace("\n", " ")
+                    full_body = await page.inner_text("body")
+                    snippet = full_body[:600].replace("\n", " ")
+                    # Save debug screenshot
+                    await page.screenshot(path="/tmp/debug_registraduria.jpg", type="jpeg", quality=70)
                 except Exception:
                     url, snippet = "unknown", "unknown"
                 raise TimeoutError(
-                    f"Sin resultado. URL: {url} | Contenido: {snippet[:200]}"
+                    f"Sin resultado. URL: {url} | Contenido: {snippet[:300]}"
                 )
 
             await asyncio.sleep(0.5)
