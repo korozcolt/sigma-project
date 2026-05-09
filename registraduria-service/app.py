@@ -110,10 +110,44 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                 except Exception:
                     continue
 
-            # 3 — Extract reCAPTCHA site key
-            site_key = await page.get_attribute("[data-sitekey]", "data-sitekey")
+            # 3 — Wait briefly for reCAPTCHA widget to render, then extract site key
+            await asyncio.sleep(3)
+
+            site_key = await page.evaluate("""() => {
+                // Method 1: data-sitekey attribute on any element
+                const el = document.querySelector('[data-sitekey]');
+                if (el) return el.getAttribute('data-sitekey');
+
+                // Method 2: reCAPTCHA iframe src
+                for (const iframe of document.querySelectorAll('iframe[src*="recaptcha"]')) {
+                    const m = iframe.src.match(/[?&]k=([A-Za-z0-9_-]{20,})/);
+                    if (m) return m[1];
+                }
+
+                // Method 3: grecaptcha JS config
+                try {
+                    const cfg = window.___grecaptcha_cfg;
+                    if (cfg && cfg.clients) {
+                        for (const client of Object.values(cfg.clients)) {
+                            for (const obj of Object.values(client)) {
+                                if (obj && obj.sitekey) return obj.sitekey;
+                            }
+                        }
+                    }
+                } catch (_) {}
+
+                return null;
+            }""")
+
             if not site_key:
-                # Fallback: scan frame URLs
+                # Last fallback: page source regex
+                content = await page.content()
+                m = re.search(r'data-sitekey=["\']([A-Za-z0-9_-]{20,})["\']', content)
+                if m:
+                    site_key = m.group(1)
+
+            if not site_key:
+                # Scan frame URLs
                 for frame in page.frames:
                     m = re.search(r"[?&]k=([A-Za-z0-9_-]{30,})", frame.url)
                     if m:
@@ -179,7 +213,9 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
             _set(session_id, status="done", data=data)
 
         except Exception as exc:
-            _set(session_id, status="error", error=str(exc))
+            # Strip newlines so the error message is valid in JSON strings
+            err = str(exc).split("\n")[0].strip()
+            _set(session_id, status="error", error=err)
         finally:
             try:
                 await browser.close()
