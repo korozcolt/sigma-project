@@ -192,17 +192,16 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
 
             await asyncio.sleep(1.5)
 
-            # 6 — Click button and wait for navigation
+            # 6 — Submit: use Playwright native click with force=True (bypasses disabled state)
+            # This dispatches the click event directly at the browser level, bypassing
+            # JS event handlers that check CAPTCHA state on the client side.
             _set(session_id, status="waiting_result")
             try:
                 async with page.expect_navigation(wait_until="domcontentloaded", timeout=30_000):
-                    await page.evaluate("""() => {
-                        const btn = document.querySelector('button, input[type=submit]');
-                        if (btn) btn.click();
-                        else { const f = document.querySelector('form'); if (f) f.submit(); }
-                    }""")
+                    # force=True bypasses the 'disabled' attribute actionability check
+                    consultar = page.locator("button, input[type='submit']").first
+                    await consultar.click(force=True, timeout=5_000)
             except Exception:
-                # Navigation may have already completed or timed out
                 pass
 
             # 7 — Wait for result page (up to 30 s post-submit)
