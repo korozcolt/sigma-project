@@ -10,28 +10,59 @@ use Filament\Notifications\Notification;
 
 trait HasRegistraduriaPolling
 {
+    public string $registraduriaSessionId = '';
+
+    public bool $registraduriaOpen = false;
+
     /**
-     * Poll the Registraduria service for a lookup result and fill form fields on success.
-     *
-     * Called by Alpine.js every 2 seconds via $wire.call().
-     * Returns the result array when status is "done" or "error", null otherwise (keep polling).
-     *
-     * @return array{status: string, data: array<string, string>|null, error: string|null}|null
+     * Called by the suffixAction on the document_number field.
+     * Starts the Python lookup, opens the screenshot modal.
      */
-    public function pollRegistraduria(string $sessionId): ?array
+    public function openRegistraduriaBrowser(string $cedula): void
     {
-        $service = new RegistraduriaService;
-        $result = $service->getResult($sessionId);
+        if (blank($cedula)) {
+            Notification::make()
+                ->title('Número de documento requerido')
+                ->body('Ingresa el número de cédula antes de consultar.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        try {
+            $service = new RegistraduriaService;
+            $sessionId = $service->startLookup($cedula);
+
+            $this->registraduriaSessionId = $sessionId;
+            $this->registraduriaOpen = true;
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error al conectar con el servicio')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    /**
+     * Called from Alpine.js via $wire.handleRegistraduriaResult(data)
+     * when the screenshot modal detects status=done.
+     *
+     * @param  array{status: string, data: array<string, string>|null, error: string|null}  $result
+     */
+    public function handleRegistraduriaResult(array $result): void
+    {
+        $this->registraduriaOpen = false;
+        $this->registraduriaSessionId = '';
 
         if ($result['status'] === 'done' && isset($result['data'])) {
             $data = $result['data'];
 
-            // Resolve municipality by name (case-insensitive match)
             $municipality = Municipality::query()
                 ->whereRaw('LOWER(name) = ?', [strtolower($data['municipio'] ?? '')])
                 ->first();
 
-            // Resolve department by name if municipality not found directly
             $department = null;
 
             if ($municipality) {
@@ -42,7 +73,6 @@ trait HasRegistraduriaPolling
                     ->first();
             }
 
-            // Find or create PollingPlace
             $placeCode = $data['puesto_codigo'] ?? substr($data['puesto_nombre'] ?? '', 0, 2);
             $pollingPlace = null;
 
@@ -65,7 +95,6 @@ trait HasRegistraduriaPolling
                 }
             }
 
-            // Set form fields via Livewire data bag
             if ($municipality) {
                 $this->data['municipality_id'] = $municipality->id;
             }
@@ -81,8 +110,6 @@ trait HasRegistraduriaPolling
                 ->body("Puesto: {$data['puesto_nombre']} — Mesa: {$data['mesa_numero']}")
                 ->success()
                 ->send();
-
-            return $result;
         }
 
         if ($result['status'] === 'error') {
@@ -91,11 +118,15 @@ trait HasRegistraduriaPolling
                 ->body($result['error'] ?? 'Error desconocido')
                 ->danger()
                 ->send();
-
-            return $result;
         }
+    }
 
-        // Still pending or waiting_captcha — return null to keep polling
-        return null;
+    /**
+     * Called from Alpine.js close button via $wire.closeRegistraduriaBrowser().
+     */
+    public function closeRegistraduriaBrowser(): void
+    {
+        $this->registraduriaOpen = false;
+        $this->registraduriaSessionId = '';
     }
 }
