@@ -160,19 +160,22 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
             _set(session_id, status="solving_captcha")
             token = await solve_recaptcha(site_key, REGISTRADURIA_URL)
 
-            # 5 — Inject token and trigger callback
+            # 5 — Inject token into all g-recaptcha-response fields (some pages have hidden ones)
             await page.evaluate(f"""() => {{
-                const el = document.getElementById('g-recaptcha-response');
-                if (el) el.innerHTML = '{token}';
+                // Set all recaptcha response fields
+                document.querySelectorAll('[name="g-recaptcha-response"], #g-recaptcha-response').forEach(el => {{
+                    el.value = '{token}';
+                    el.innerHTML = '{token}';
+                }});
 
-                // Trigger the reCAPTCHA callback so the button enables
+                // Try callback trigger
                 try {{
                     const cfg = window.___grecaptcha_cfg;
                     if (cfg && cfg.clients) {{
                         Object.values(cfg.clients).forEach(client => {{
                             Object.values(client).forEach(obj => {{
                                 if (obj && typeof obj.callback === 'function') {{
-                                    obj.callback('{token}');
+                                    try {{ obj.callback('{token}'); }} catch (_) {{}}
                                 }}
                             }});
                         }});
@@ -180,19 +183,25 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                 }} catch (_) {{}}
             }}""")
 
-            await asyncio.sleep(0.8)
+            await asyncio.sleep(1)
 
-            # 6 — Click Consultar (may be enabled now) or submit form directly
-            try:
-                btn = page.locator("button:has-text('Consultar'), input[type=submit]")
-                await btn.first.click(timeout=5_000)
-            except Exception:
-                # Last resort: JS form submit
-                await page.evaluate("document.querySelector('form') && document.querySelector('form').submit()")
+            # 6 — Submit form directly (bypasses disabled button state)
+            # form.submit() sends the form including g-recaptcha-response value
+            submitted = await page.evaluate("""() => {
+                const form = document.querySelector('form');
+                if (form) { form.submit(); return true; }
+                return false;
+            }""")
+            if not submitted:
+                # Fallback: click the button
+                try:
+                    await page.get_by_role("button", name="Consultar").click(timeout=5_000)
+                except Exception:
+                    pass
 
-            # 7 — Wait for result page
+            # 7 — Wait for result page (up to 60 s)
             _set(session_id, status="waiting_result")
-            deadline = time.time() + 30
+            deadline = time.time() + 60
             found = False
             while time.time() < deadline:
                 try:
@@ -205,7 +214,7 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                 await asyncio.sleep(1)
 
             if not found:
-                raise TimeoutError("El resultado de la Registraduría no apareció en 30 s")
+                raise TimeoutError("El resultado de la Registraduría no apareció en 60 s")
 
             await asyncio.sleep(0.5)
             body = await page.inner_text("body")
