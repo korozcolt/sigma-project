@@ -11,11 +11,14 @@ use App\Models\Municipality;
 use App\Models\User;
 use App\Rules\MaxTablesForPollingPlace;
 use App\Services\CampaignContext;
+use App\Services\RegistraduriaService;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -180,6 +183,43 @@ class VoterForm
                             ->required()
                             ->maxLength(255)
                             ->helperText('Debe ser único en el sistema')
+                            ->suffixAction(
+                                Action::make('consultar_registraduria')
+                                    ->icon('heroicon-o-magnifying-glass')
+                                    ->label('Consultar Registraduría')
+                                    ->tooltip('Buscar puesto de votación en la Registraduría')
+                                    ->action(function ($state, callable $set, $livewire): void {
+                                        if (blank($state)) {
+                                            Notification::make()
+                                                ->title('Número de documento requerido')
+                                                ->body('Ingresa el número de cédula antes de consultar.')
+                                                ->warning()
+                                                ->send();
+
+                                            return;
+                                        }
+
+                                        try {
+                                            $service = new RegistraduriaService;
+                                            $sessionId = $service->startLookup($state);
+
+                                            Notification::make()
+                                                ->title('Ventana del navegador abierta')
+                                                ->body('Resuelve el CAPTCHA en la ventana del navegador que se abrió. Los datos se llenarán automáticamente.')
+                                                ->info()
+                                                ->persistent()
+                                                ->send();
+
+                                            $livewire->dispatch('registraduria-start-polling', session_id: $sessionId);
+                                        } catch (\Exception $e) {
+                                            Notification::make()
+                                                ->title('Error al conectar con el servicio')
+                                                ->body($e->getMessage())
+                                                ->danger()
+                                                ->send();
+                                        }
+                                    })
+                            )
                             ->rule(function (Get $get, $record) {
                                 return [
                                     Rule::unique('voters', 'document_number')
@@ -200,10 +240,11 @@ class VoterForm
                                             $leader = $existing->user ?? $existing->registeredBy;
                                             $leaderName = $leader?->name ?? 'otro líder';
                                             $fail("El votante ya está registrado en esta campaña por {$leaderName}.");
+
                                             return;
                                         }
 
-                                        $fail("El votante ya está registrado en otra campaña.");
+                                        $fail('El votante ya está registrado en otra campaña.');
                                     },
                                 ];
                             }),
@@ -214,7 +255,24 @@ class VoterForm
                             ->displayFormat('d/m/Y')
                             ->native(false),
                     ])
-                    ->columns(2),
+                    ->columns(2)
+                    ->extraAttributes([
+                        'x-data' => '{ registraduriaPolling: null }',
+                        'x-init' => '
+                            $wire.on("registraduria-start-polling", (data) => {
+                                if (registraduriaPolling) clearInterval(registraduriaPolling);
+                                const sessionId = data[0].session_id ?? data.session_id;
+                                registraduriaPolling = setInterval(() => {
+                                    $wire.call("pollRegistraduria", sessionId).then((result) => {
+                                        if (result && (result.status === "done" || result.status === "error")) {
+                                            clearInterval(registraduriaPolling);
+                                            registraduriaPolling = null;
+                                        }
+                                    });
+                                }, 2000);
+                            });
+                        ',
+                    ]),
 
                 Section::make('Información de Contacto')
                     ->schema([

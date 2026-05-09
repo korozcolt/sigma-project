@@ -3,11 +3,14 @@
 namespace App\Filament\Resources\Voters\Pages;
 
 use App\Enums\UserRole;
+use App\Filament\Resources\Voters\Concerns\HasRegistraduriaPolling;
 use App\Filament\Resources\Voters\VoterResource;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateVoter extends CreateRecord
 {
+    use HasRegistraduriaPolling;
+
     protected static string $resource = VoterResource::class;
 
     protected function mutateFormDataBeforeCreate(array $data): array
