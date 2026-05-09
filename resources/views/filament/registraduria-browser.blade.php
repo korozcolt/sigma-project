@@ -7,6 +7,7 @@
         - Status polling (fetch /registraduria/result every 2s)
         - Click forwarding (scaled coordinates POSTed to /registraduria/click)
         - Viewport fetch on init (for coordinate scaling)
+    Note: Use x-on: instead of @ shorthand to avoid Blade directive conflicts.
 --}}
 <div
     x-data="{
@@ -21,18 +22,15 @@
         init() {
             this.screenshotSrc = '/registraduria/screenshot/' + this.sessionId + '?t=' + Date.now();
 
-            // Fetch viewport dimensions once for coordinate scaling
             fetch('/registraduria/viewport/' + this.sessionId)
                 .then(r => r.json())
                 .then(data => { if (data && data.width) this.viewport = data; })
                 .catch(() => {});
 
-            // Screenshot polling every 400ms — just change the src (no fetch overhead)
             this.screenshotInterval = setInterval(() => {
                 this.screenshotSrc = '/registraduria/screenshot/' + this.sessionId + '?t=' + Date.now();
             }, 400);
 
-            // Status polling every 2s
             this.statusInterval = setInterval(() => {
                 fetch('/registraduria/result/' + this.sessionId)
                     .then(r => r.json())
@@ -45,7 +43,6 @@
                             this.statusInterval = null;
                             this.screenshotInterval = null;
 
-                            // Give a short pause so the screenshot updates to the result page
                             setTimeout(() => {
                                 $wire.handleRegistraduriaResult(data);
                             }, 1500);
@@ -81,7 +78,7 @@
         statusLabel() {
             const labels = {
                 pending: 'Cargando...',
-                waiting_captcha: 'Esperando captcha',
+                waiting_captcha: 'Resuelve el CAPTCHA',
                 done: 'Completado',
                 error: 'Error',
             };
@@ -99,7 +96,7 @@
         }
     }"
     class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 pt-8"
-    @keydown.escape.window="$wire.closeRegistraduriaBrowser()"
+    x-on:keydown.escape.window="$wire.closeRegistraduriaBrowser()"
 >
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 flex flex-col overflow-hidden"
          style="max-height: 90vh;">
@@ -117,7 +114,7 @@
             <button
                 type="button"
                 class="text-gray-400 hover:text-gray-600 transition-colors"
-                @click="$wire.closeRegistraduriaBrowser()"
+                x-on:click="$wire.closeRegistraduriaBrowser()"
                 title="Cerrar"
             >
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -142,8 +139,7 @@
                     alt="Registraduría"
                     class="w-full rounded cursor-pointer select-none object-contain object-top"
                     style="max-height: calc(85vh - 130px);"
-                    @click="forwardClick($event)"
-                    @error="/* ignore transient screenshot load errors */"
+                    x-on:click="forwardClick($event)"
                 />
             </template>
             <template x-if="status === 'error'">
@@ -156,7 +152,7 @@
                     <button
                         type="button"
                         class="text-xs underline text-red-500 hover:text-red-700"
-                        @click="$wire.closeRegistraduriaBrowser()"
+                        x-on:click="$wire.closeRegistraduriaBrowser()"
                     >Cerrar</button>
                 </div>
             </template>
