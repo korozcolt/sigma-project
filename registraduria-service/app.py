@@ -83,11 +83,33 @@ async def _async_lookup(session_id: str, cedula: str, bridge: queue.Queue) -> No
             try:
                 t = cmd.get("type")
                 if t == "screenshot":
-                    png = await page.screenshot()
+                    # JPEG is ~5x smaller than PNG — much faster over the network
+                    img = await page.screenshot(type="jpeg", quality=75)
                     if resp_q:
-                        resp_q.put({"ok": True, "data": png})
+                        resp_q.put({"ok": True, "data": img, "mime": "image/jpeg"})
                 elif t == "click":
-                    await page.mouse.click(cmd["x"], cmd["y"])
+                    x, y = cmd["x"], cmd["y"]
+                    # Try to click inside any frame whose bounding box contains (x, y)
+                    # This handles reCAPTCHA iframes that intercept mouse events
+                    clicked_in_frame = False
+                    for frame in page.frames:
+                        if frame == page.main_frame:
+                            continue
+                        try:
+                            frame_el = await frame.frame_element()
+                            box = await frame_el.bounding_box()
+                            if box and box["x"] <= x <= box["x"] + box["width"] and box["y"] <= y <= box["y"] + box["height"]:
+                                # Translate to frame-local coords
+                                fx = x - box["x"]
+                                fy = y - box["y"]
+                                await frame.evaluate(f"() => {{ const el = document.elementFromPoint({fx}, {fy}); if(el) el.click(); }}")
+                                await page.mouse.click(x, y)
+                                clicked_in_frame = True
+                                break
+                        except Exception:
+                            pass
+                    if not clicked_in_frame:
+                        await page.mouse.click(x, y)
                     if resp_q:
                         resp_q.put({"ok": True})
                 elif t == "viewport":
@@ -327,7 +349,7 @@ def screenshot_route(session_id: str):
         )
     return Response(
         resp["data"],
-        mimetype="image/png",
+        mimetype=resp.get("mime", "image/jpeg"),
         headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
     )
 

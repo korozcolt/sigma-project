@@ -42,7 +42,7 @@
             this.screenshotInterval = setInterval(() => {
                 if (!this.isOpen) return;
                 this.screenshotSrc = '/registraduria/screenshot/' + this.sessionId + '?t=' + Date.now();
-            }, 400);
+            }, 800);
 
             this.statusInterval = setInterval(() => {
                 if (!this.isOpen) { this.stop(); return; }
