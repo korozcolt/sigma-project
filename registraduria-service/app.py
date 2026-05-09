@@ -219,7 +219,15 @@ async def _async_lookup(session_id: str, cedula: str) -> None:
                 await asyncio.sleep(1)
 
             if not found:
-                raise TimeoutError("El resultado de la Registraduría no apareció tras enviar el formulario")
+                # Capture page state for debugging
+                try:
+                    url = page.url
+                    snippet = (await page.inner_text("body"))[:400].replace("\n", " ")
+                except Exception:
+                    url, snippet = "unknown", "unknown"
+                raise TimeoutError(
+                    f"Sin resultado. URL: {url} | Contenido: {snippet[:200]}"
+                )
 
             await asyncio.sleep(0.5)
             body = await page.inner_text("body")
