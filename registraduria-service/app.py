@@ -358,4 +358,4 @@ def viewport_route(session_id: str):
 
 if __name__ == "__main__":
     _LOADING_PNG = _make_loading_png()
-    app.run(port=5757, debug=False, threaded=True)
+    app.run(host="0.0.0.0", port=5757, debug=False, threaded=True)
