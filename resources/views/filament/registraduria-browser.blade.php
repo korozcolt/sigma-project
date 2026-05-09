@@ -65,9 +65,17 @@
         },
 
         forwardClick(event) {
-            const rect = event.currentTarget.getBoundingClientRect();
-            const x = Math.round((event.clientX - rect.left) * (this.viewport.width / rect.width));
-            const y = Math.round((event.clientY - rect.top) * (this.viewport.height / rect.height));
+            const img = event.currentTarget;
+            const rect = img.getBoundingClientRect();
+            const container = img.parentElement;
+            // Scale factor between displayed image and real browser viewport
+            const scaleX = this.viewport.width / rect.width;
+            const scaleY = this.viewport.height / (rect.width * this.viewport.height / this.viewport.width);
+            // Click position relative to image top-left, including scroll offset
+            const clickX = event.clientX - rect.left;
+            const clickY = event.clientY - rect.top + (container ? container.scrollTop : 0);
+            const x = Math.round(clickX * scaleX);
+            const y = Math.round(clickY * scaleX);
             fetch('/registraduria/click/' + this.sessionId, {
                 method: 'POST',
                 headers: {
@@ -110,14 +118,13 @@
             <p class="text-xs text-blue-700">Haz clic sobre la imagen para interactuar. El formulario se llenará automáticamente.</p>
         </div>
 
-        {{-- Screenshot --}}
-        <div class="flex-1 overflow-hidden bg-gray-100 p-2">
+        {{-- Screenshot — scrollable so CAPTCHA below the fold is reachable --}}
+        <div class="flex-1 overflow-y-auto bg-gray-100 p-2" style="overscroll-behavior:contain;">
             <template x-if="status !== 'error'">
                 <img
                     :src="screenshotSrc"
                     alt="Registraduría"
-                    class="w-full rounded-lg border border-gray-200 cursor-pointer select-none object-contain object-top"
-                    style="max-height: calc(88vh - 110px);"
+                    class="w-full rounded-lg border border-gray-200 cursor-pointer select-none"
                     x-on:click="forwardClick($event)"
                     draggable="false"
                 />
