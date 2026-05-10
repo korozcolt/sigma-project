@@ -27,10 +27,17 @@
         },
 
         init() {
+            // Capture Livewire component ID BEFORE moving element out of component tree
+            this._componentId = $wire.__instance?.id ?? null;
             if ($el.parentElement !== document.body) document.body.appendChild($el);
             this._show();
             this.$watch('isOpen', () => this._show());
             if (this.isOpen && this.sessionId) this.poll();
+        },
+
+        _livewire() {
+            // After appendChild, $wire is unavailable — use Livewire.find() instead
+            return this._componentId ? window.Livewire.find(this._componentId) : null;
         },
 
         destroy() { this.stopPoll(); },
@@ -52,7 +59,9 @@
                         }
                         if (d.status === 'done' && d.data) {
                             this.stopPoll();
-                            setTimeout(() => $wire.handleRegistraduriaResult(d), 600);
+                            // Pass d.data (not d) — method expects polling_place fields directly
+                            const lw = this._livewire();
+                            setTimeout(() => lw && lw.handleRegistraduriaResult(d.data), 600);
                         }
                     })
                     .catch(() => {});
@@ -63,7 +72,7 @@
             if (this.statusInterval) { clearInterval(this.statusInterval); this.statusInterval = null; }
         }
     }"
-    x-on:keydown.escape.window="$wire.closeRegistraduriaBrowser()"
+    x-on:keydown.escape.window="this._livewire() && this._livewire().closeRegistraduriaBrowser()"
     style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999;
            background:rgba(0,0,0,0.55); align-items:center; justify-content:center;"
 >
@@ -126,7 +135,7 @@
              style="width:100%;background:#fee2e2;border-radius:.5rem;padding:.6rem;font-size:.75rem;color:#991b1b;"
              x-text="error"></div>
 
-        <button type="button" x-on:click="$wire.closeRegistraduriaBrowser()"
+        <button type="button" x-on:click="this._livewire() && this._livewire().closeRegistraduriaBrowser()"
                 style="font-size:.8rem;color:#9ca3af;text-decoration:underline;background:none;border:none;cursor:pointer;">
             Cancelar
         </button>
