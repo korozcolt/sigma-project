@@ -1,6 +1,7 @@
 {{--
-    Registraduria modal — fully automated with 2captcha + session cookies.
-    No user interaction needed. Shows progress spinner.
+    Registraduria modal — fully automated with 2captcha.
+    Uses window.Livewire.dispatch() for all Livewire calls so they work even after
+    document.body.appendChild() moves the element outside the component tree.
     Note: use x-on: instead of @ (Blade directive conflict).
 --}}
 <div
@@ -10,16 +11,21 @@
         status: 'pending',
         error: null,
         statusInterval: null,
+        elapsed: 0,
+        elapsedInterval: null,
 
         statusLabel() {
-            return {
+            const base = {
                 pending:         'Iniciando...',
-                loading:         'Cargando página de Registraduría...',
+                loading:         'Cargando página...',
                 solving_captcha: 'Resolviendo CAPTCHA (2captcha)...',
                 waiting_result:  'Obteniendo resultado...',
                 done:            '✅ Datos obtenidos',
                 error:           '❌ Error',
             }[this.status] ?? this.status;
+            if (this.isSpinning() && this.elapsed > 0)
+                return base + ' (' + this.elapsed + 's)';
+            return base;
         },
 
         isSpinning() {
@@ -27,57 +33,60 @@
         },
 
         init() {
-            // Capture Livewire component ID BEFORE moving element out of component tree
-            this._componentId = $wire.__instance?.id ?? null;
             if ($el.parentElement !== document.body) document.body.appendChild($el);
-            this._show();
-            this.$watch('isOpen', () => this._show());
-            if (this.isOpen && this.sessionId) this.poll();
+            this._updateDisplay();
+            this.$watch('isOpen', () => this._updateDisplay());
+            if (this.isOpen && this.sessionId) this.start();
         },
 
-        _livewire() {
-            // After appendChild, $wire is unavailable — use Livewire.find() instead
-            return this._componentId ? window.Livewire.find(this._componentId) : null;
-        },
+        destroy() { this.stopAll(); },
 
-        destroy() { this.stopPoll(); },
-
-        _show() {
+        _updateDisplay() {
             $el.style.display = (this.isOpen && this.sessionId) ? 'flex' : 'none';
         },
 
-        poll() {
-            this.stopPoll();
+        start() {
+            this.elapsed = 0;
+            this.elapsedInterval = setInterval(() => this.elapsed++, 1000);
             this.statusInterval = setInterval(() => {
                 fetch('/registraduria/result/' + this.sessionId)
                     .then(r => r.json())
                     .then(d => {
                         this.status = d.status ?? 'error';
+
                         if (d.status === 'error') {
                             this.error = d.error ?? 'Error desconocido';
-                            this.stopPoll();
+                            this.stopAll();
                         }
+
                         if (d.status === 'done' && d.data) {
-                            this.stopPoll();
-                            // Pass d.data (not d) — method expects polling_place fields directly
-                            const lw = this._livewire();
-                            setTimeout(() => lw && lw.handleRegistraduriaResult(d.data), 600);
+                            this.stopAll();
+                            // Use global Livewire.dispatch() — works outside component DOM tree
+                            setTimeout(() => {
+                                window.Livewire.dispatch('registraduria-result', { data: d.data });
+                            }, 600);
                         }
                     })
                     .catch(() => {});
             }, 2000);
         },
 
-        stopPoll() {
+        stopAll() {
             if (this.statusInterval) { clearInterval(this.statusInterval); this.statusInterval = null; }
+            if (this.elapsedInterval) { clearInterval(this.elapsedInterval); this.elapsedInterval = null; }
+        },
+
+        close() {
+            this.stopAll();
+            window.Livewire.dispatch('registraduria-close');
         }
     }"
-    x-on:keydown.escape.window="this._livewire() && this._livewire().closeRegistraduriaBrowser()"
+    x-on:keydown.escape.window="close()"
     style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999;
            background:rgba(0,0,0,0.55); align-items:center; justify-content:center;"
 >
     <div style="background:#fff; border-radius:1.25rem; box-shadow:0 25px 60px rgba(0,0,0,0.3);
-                width:min(420px,88vw); padding:2.5rem 2rem; display:flex; flex-direction:column;
+                width:min(440px,90vw); padding:2.5rem 2rem; display:flex; flex-direction:column;
                 align-items:center; gap:1.5rem; text-align:center;">
 
         {{-- Spinner / Icon --}}
@@ -105,7 +114,7 @@
             </p>
             <p x-text="statusLabel()"
                :style="{ color: status === 'done' ? '#16a34a' : status === 'error' ? '#dc2626' : '#2563eb' }"
-               style="font-size:.95rem; font-weight:600; margin:0;"></p>
+               style="font-size:.9rem; font-weight:600; margin:0;"></p>
         </div>
 
         {{-- Steps --}}
@@ -115,33 +124,31 @@
                 ['solving_captcha', '2', 'Resolviendo CAPTCHA automáticamente'],
                 ['waiting_result',  '3', 'Obteniendo datos del puesto'],
             ] as [$step, $num, $label])
-            <div style="display:flex; align-items:center; gap:.6rem; padding:.4rem .6rem; border-radius:.4rem;"
-                 :style="{ background: status === '{{ $step }}' ? '#eff6ff' : (
-                     ['done','waiting_result','solving_captcha'].includes(status) && {{ $loop->index }} < ['loading','solving_captcha','waiting_result','done'].indexOf(status)
-                     ? '#f0fdf4' : '#f9fafb'
-                 )}">
-                <div style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;"
-                     :style="{ background: status === '{{ $step }}' ? '#2563eb' : '#e5e7eb',
-                               color: status === '{{ $step }}' ? '#fff' : '#9ca3af' }">
+            <div style="display:flex; align-items:center; gap:.6rem; padding:.4rem .7rem; border-radius:.4rem;
+                        background:#f9fafb; transition: background .3s;"
+                 :style="status === '{{ $step }}' ? 'background:#eff6ff;' : ''">
+                <div style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+                            font-size:.7rem;font-weight:700;flex-shrink:0; transition: background .3s, color .3s;"
+                     :style="status === '{{ $step }}' ? 'background:#2563eb;color:#fff;' : 'background:#e5e7eb;color:#9ca3af;'">
                     {{ $num }}
                 </div>
-                <span style="font-size:.8rem; color:#374151;">{{ $label }}</span>
+                <span style="font-size:.82rem; color:#374151;">{{ $label }}</span>
             </div>
             @endforeach
         </div>
 
         {{-- Error --}}
         <div x-show="status === 'error' && error"
-             style="width:100%;background:#fee2e2;border-radius:.5rem;padding:.6rem;font-size:.75rem;color:#991b1b;"
+             style="width:100%;background:#fee2e2;border-radius:.5rem;padding:.6rem .8rem;font-size:.78rem;color:#991b1b;text-align:left;"
              x-text="error"></div>
 
-        <button type="button" x-on:click="this._livewire() && this._livewire().closeRegistraduriaBrowser()"
-                style="font-size:.8rem;color:#9ca3af;text-decoration:underline;background:none;border:none;cursor:pointer;">
+        {{-- Cancel --}}
+        <button type="button"
+                x-on:click="close()"
+                style="font-size:.82rem;color:#9ca3af;text-decoration:underline;background:none;border:none;cursor:pointer;padding:.25rem 0;">
             Cancelar
         </button>
     </div>
 </div>
 
-<style>
-@keyframes reg-spin { to { transform: rotate(360deg); } }
-</style>
+<style>@keyframes reg-spin { to { transform: rotate(360deg); } }</style>

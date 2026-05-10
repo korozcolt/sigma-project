@@ -8,6 +8,7 @@ use App\Models\PollingPlace;
 use App\Services\RegistraduriaService;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Cache;
+use Livewire\Attributes\On;
 
 trait HasRegistraduriaPolling
 {
@@ -67,11 +68,12 @@ trait HasRegistraduriaPolling
     }
 
     /**
-     * Called from Alpine.js (Livewire.find(id).handleRegistraduriaResult(d.data))
-     * when the modal detects status=done.
+     * Triggered via window.Livewire.dispatch('registraduria-result', {data: {...}})
+     * from Alpine.js inside the modal (which lives outside the Livewire component DOM).
      *
      * @param  array<string, string>  $data  Direct polling-place fields from the API
      */
+    #[On('registraduria-result')]
     public function handleRegistraduriaResult(array $data): void
     {
         $this->registraduriaOpen = false;
@@ -157,8 +159,9 @@ trait HasRegistraduriaPolling
     }
 
     /**
-     * Called from Alpine.js close button.
+     * Triggered via window.Livewire.dispatch('registraduria-close') from Alpine.js.
      */
+    #[On('registraduria-close')]
     public function closeRegistraduriaBrowser(): void
     {
         $this->registraduriaOpen = false;
