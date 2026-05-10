@@ -145,6 +145,7 @@ trait HasRegistraduriaPolling
                     'name' => $data['puesto_nombre'] ?? 'Desconocido',
                     'address' => $data['direccion'] ?? null,
                     'department_id' => $department?->id,
+                    'max_tables' => 0,
                 ]
             );
 
