@@ -91,41 +91,32 @@ async def _lookup_async(session_id: str, cedula: str) -> None:
         page = await ctx.new_page()
 
         try:
-            # Intercept the outgoing fetch to add the correct Origin header.
-            # This bypasses CORS restrictions that arise from data: null origin.
-            async def add_origin(route):
-                hdrs = dict(route.request.headers)
-                hdrs["origin"] = "https://eleccionescolombia.registraduria.gov.co"
-                hdrs["referer"] = "https://eleccionescolombia.registraduria.gov.co/identificacion"
-                await route.continue_(headers=hdrs)
-
-            await ctx.route("**infovotantes**", add_origin)
-
-            # Navigate to a blank page — we only need the browser's HTTP stack
-            await page.goto("data:text/html,<html></html>", wait_until="load", timeout=10_000)
-
-            result = await page.evaluate(f"""async () => {{
-                try {{
-                    const resp = await fetch('{INFOVOTANTES_API}', {{
-                        method: 'POST',
-                        headers: {{
-                            'Authorization': 'Bearer {token}',
-                            'Content-Type': 'application/json',
-                        }},
-                        body: JSON.stringify({{
-                            identification: '{cedula}',
-                            identification_type: 'CC',
-                            election_code: 'presidencia',
-                            platform: 'web',
-                            module: 'polling_place'
-                        }})
-                    }});
-                    if (!resp.ok) return {{ error: 'HTTP ' + resp.status }};
-                    return await resp.json();
-                }} catch(e) {{
-                    return {{ error: e.toString() }};
-                }}
-            }}""")
+            import json as _json
+            # Use Playwright's built-in request API — bypasses CORS, no page load needed
+            api_response = await page.request.fetch(
+                INFOVOTANTES_API,
+                method="POST",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                    "Origin": "https://eleccionescolombia.registraduria.gov.co",
+                    "Referer": "https://eleccionescolombia.registraduria.gov.co/identificacion",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "*/*",
+                    "Sec-Fetch-Site": "cross-site",
+                    "Sec-Fetch-Mode": "cors",
+                    "Sec-Fetch-Dest": "empty",
+                },
+                data=_json.dumps({
+                    "identification": cedula,
+                    "identification_type": "CC",
+                    "election_code": "presidencia",
+                    "platform": "web",
+                    "module": "polling_place",
+                }),
+                timeout=20_000,
+            )
+            result = await api_response.json()
 
         finally:
             await browser.close()
