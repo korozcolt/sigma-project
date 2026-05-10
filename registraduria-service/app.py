@@ -91,27 +91,40 @@ async def _lookup_async(session_id: str, cedula: str) -> None:
         page = await ctx.new_page()
 
         try:
-            # Use a blank HTTPS page — we only need the browser's fetch() stack,
-            # not the Registraduria page itself (which blocks headless)
+            # Intercept the outgoing fetch to add the correct Origin header.
+            # This bypasses CORS restrictions that arise from data: null origin.
+            async def add_origin(route):
+                hdrs = dict(route.request.headers)
+                hdrs["origin"] = "https://eleccionescolombia.registraduria.gov.co"
+                hdrs["referer"] = "https://eleccionescolombia.registraduria.gov.co/identificacion"
+                await route.continue_(headers=hdrs)
+
+            await ctx.route("**infovotantes**", add_origin)
+
+            # Navigate to a blank page — we only need the browser's HTTP stack
             await page.goto("data:text/html,<html></html>", wait_until="load", timeout=10_000)
 
             result = await page.evaluate(f"""async () => {{
-                const resp = await fetch('{INFOVOTANTES_API}', {{
-                    method: 'POST',
-                    headers: {{
-                        'Authorization': 'Bearer {token}',
-                        'Content-Type': 'application/json',
-                    }},
-                    body: JSON.stringify({{
-                        identification: '{cedula}',
-                        identification_type: 'CC',
-                        election_code: 'presidencia',
-                        platform: 'web',
-                        module: 'polling_place'
-                    }})
-                }});
-                if (!resp.ok) return {{ error: 'HTTP ' + resp.status }};
-                return await resp.json();
+                try {{
+                    const resp = await fetch('{INFOVOTANTES_API}', {{
+                        method: 'POST',
+                        headers: {{
+                            'Authorization': 'Bearer {token}',
+                            'Content-Type': 'application/json',
+                        }},
+                        body: JSON.stringify({{
+                            identification: '{cedula}',
+                            identification_type: 'CC',
+                            election_code: 'presidencia',
+                            platform: 'web',
+                            module: 'polling_place'
+                        }})
+                    }});
+                    if (!resp.ok) return {{ error: 'HTTP ' + resp.status }};
+                    return await resp.json();
+                }} catch(e) {{
+                    return {{ error: e.toString() }};
+                }}
             }}""")
 
         finally:
