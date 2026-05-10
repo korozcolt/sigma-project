@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Voters\Concerns;
 
+use App\Models\CensusRecord;
 use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\PollingPlace;
+use App\Services\CampaignContext;
 use App\Services\RegistraduriaService;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Cache;
@@ -156,7 +158,28 @@ trait HasRegistraduriaPolling
             $this->data['polling_place_id'] = $pollingPlace->id;
         }
 
-        $this->data['polling_table_number'] = ltrim($data['mesa_numero'] ?? '', '0') ?: null;
+        $tableNumber = ltrim($data['mesa_numero'] ?? '', '0') ?: null;
+        $this->data['polling_table_number'] = $tableNumber;
+
+        // Enrich census: upsert the census_record for this cedula so the
+        // registry accumulates real, verified Registraduria data with every lookup.
+        $cedula = $this->data['document_number'] ?? null;
+        $campaignId = CampaignContext::currentCampaignId();
+
+        if ($cedula && $campaignId) {
+            CensusRecord::updateOrCreate(
+                [
+                    'campaign_id' => $campaignId,
+                    'document_number' => $cedula,
+                ],
+                [
+                    'polling_station' => $data['puesto_nombre'] ?? null,
+                    'table_number' => $tableNumber,
+                    'municipality_code' => $municipality?->code,
+                    'imported_at' => now(),
+                ]
+            );
+        }
     }
 
     /**
