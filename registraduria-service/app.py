@@ -91,11 +91,9 @@ async def _lookup_async(session_id: str, cedula: str) -> None:
         page = await ctx.new_page()
 
         try:
-            await page.goto(
-                REGISTRADURIA_PAGE_URL,
-                wait_until="domcontentloaded",
-                timeout=30_000,
-            )
+            # Use a blank HTTPS page — we only need the browser's fetch() stack,
+            # not the Registraduria page itself (which blocks headless)
+            await page.goto("data:text/html,<html></html>", wait_until="load", timeout=10_000)
 
             result = await page.evaluate(f"""async () => {{
                 const resp = await fetch('{INFOVOTANTES_API}', {{
