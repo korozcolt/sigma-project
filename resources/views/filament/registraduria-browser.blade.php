@@ -57,12 +57,20 @@
                         if (d.status === 'error') {
                             this.error = d.error ?? 'Error desconocido';
                             this.stopAll();
+                            setTimeout(() => {
+                                this.isOpen = false;
+                                this._updateDisplay();
+                                window.Livewire.dispatch('registraduria-close');
+                            }, 3000);
                         }
 
                         if (d.status === 'done' && d.data) {
                             this.stopAll();
-                            // Use global Livewire.dispatch() — works outside component DOM tree
+                            // Close the modal visually first (element is in body, outside Livewire tree),
+                            // then dispatch so Livewire fills the form fields.
                             setTimeout(() => {
+                                this.isOpen = false;
+                                this._updateDisplay();
                                 window.Livewire.dispatch('registraduria-result', { data: d.data });
                             }, 600);
                         }

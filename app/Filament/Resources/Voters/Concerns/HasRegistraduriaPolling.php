@@ -154,6 +154,10 @@ trait HasRegistraduriaPolling
             $this->data['municipality_id'] = $municipality->id;
         }
 
+        if ($department) {
+            $this->data['department_id'] = $department->id;
+        }
+
         if ($pollingPlace) {
             $this->data['polling_place_id'] = $pollingPlace->id;
         }
@@ -161,18 +165,34 @@ trait HasRegistraduriaPolling
         $tableNumber = ltrim($data['mesa_numero'] ?? '', '0') ?: null;
         $this->data['polling_table_number'] = $tableNumber;
 
+        if (filled($data['direccion'] ?? '')) {
+            $this->data['address'] = $data['direccion'];
+        }
+
+        $zonaPart = filled($data['zona_codigo'] ?? '') ? "Zona {$data['zona_codigo']}" : null;
+        $puestoPart = filled($data['puesto_nombre'] ?? '') ? "Puesto: {$data['puesto_nombre']}" : null;
+        $detailedParts = array_filter([$zonaPart, $puestoPart]);
+        if ($detailedParts) {
+            $this->data['detailed_address'] = implode(' — ', $detailedParts);
+        }
+
         // Enrich census: upsert the census_record for this cedula so the
         // registry accumulates real, verified Registraduria data with every lookup.
         $cedula = $this->data['document_number'] ?? null;
         $campaignId = CampaignContext::currentCampaignId();
 
         if ($cedula && $campaignId) {
+            $firstName = trim($this->data['first_name'] ?? '');
+            $lastName = trim($this->data['last_name'] ?? '');
+            $fullName = trim("{$firstName} {$lastName}") ?: null;
+
             CensusRecord::updateOrCreate(
                 [
                     'campaign_id' => $campaignId,
                     'document_number' => $cedula,
                 ],
                 [
+                    'full_name' => $fullName,
                     'polling_station' => $data['puesto_nombre'] ?? null,
                     'table_number' => $tableNumber,
                     'municipality_code' => $municipality?->code,
