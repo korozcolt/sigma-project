@@ -28,8 +28,11 @@ trait HasRegistraduriaPolling
 
     /**
      * Called by the suffixAction on the document_number field.
-     * Checks cache first — if hit, fills form immediately at zero cost.
-     * Otherwise starts the 2captcha lookup and opens the progress modal.
+     *
+     * Lookup order (cheapest first):
+     *   1. Redis cache      — 30-day TTL, instant
+     *   2. DB reconstruction — census_records + polling_places, permanent, zero cost
+     *   3. 2captcha request  — last resort, costs money
      */
     public function openRegistraduriaBrowser(string $cedula): void
     {
@@ -43,7 +46,7 @@ trait HasRegistraduriaPolling
             return;
         }
 
-        // Check cache — avoids a 2captcha call if we've seen this cedula before
+        // Layer 1: Redis cache (30-day TTL)
         $cached = Cache::get($this->registraduriaCacheKey($cedula));
         if ($cached) {
             $this->fillPollingPlaceFields($cached);
@@ -56,6 +59,22 @@ trait HasRegistraduriaPolling
             return;
         }
 
+        // Layer 2: DB reconstruction — no cost, permanent
+        $fromDb = $this->resolveFromDatabase($cedula);
+        if ($fromDb) {
+            $this->fillPollingPlaceFields($fromDb);
+            // Re-warm Redis so next lookup is instant
+            Cache::put($this->registraduriaCacheKey($cedula), $fromDb, now()->addDays(self::CACHE_TTL_DAYS));
+            Notification::make()
+                ->title('Puesto de votación (desde base de datos)')
+                ->body("Puesto: {$fromDb['puesto_nombre']} — Mesa: {$fromDb['mesa_numero']}")
+                ->info()
+                ->send();
+
+            return;
+        }
+
+        // Layer 3: 2captcha — only if we have no prior data anywhere
         try {
             $sessionId = app(RegistraduriaService::class)->startLookup($cedula);
             $this->registraduriaSessionId = $sessionId;
@@ -67,6 +86,57 @@ trait HasRegistraduriaPolling
                 ->danger()
                 ->send();
         }
+    }
+
+    /**
+     * Reconstruct Registraduría data from census_records + polling_places.
+     * Used as a zero-cost fallback when Redis cache is cold.
+     *
+     * @return array<string, string>|null
+     */
+    private function resolveFromDatabase(string $cedula): ?array
+    {
+        $census = CensusRecord::query()
+            ->where('document_number', $cedula)
+            ->whereNotNull('polling_station')
+            ->latest('imported_at')
+            ->first();
+
+        if (! $census || blank($census->polling_station)) {
+            return null;
+        }
+
+        $municipality = filled($census->municipality_code)
+            ? Municipality::query()->where('code', $census->municipality_code)->first()
+            : null;
+
+        $pollingPlace = null;
+        if ($municipality) {
+            $pollingPlace = PollingPlace::query()
+                ->where('municipality_id', $municipality->id)
+                ->where('name', $census->polling_station)
+                ->with(['municipality.department', 'department'])
+                ->first();
+        }
+
+        // Need at least municipality to be useful
+        if (! $municipality && ! $pollingPlace) {
+            return null;
+        }
+
+        $department = $pollingPlace?->department
+            ?? $pollingPlace?->municipality?->department
+            ?? $municipality?->department;
+
+        return [
+            'puesto_nombre' => $census->polling_station,
+            'puesto_codigo' => $pollingPlace?->place_code ?? '',
+            'zona_codigo' => $pollingPlace?->zone_code ?? '',
+            'mesa_numero' => (string) ($census->table_number ?? ''),
+            'departamento' => $department?->name ?? '',
+            'municipio' => $municipality?->name ?? $pollingPlace?->municipality?->name ?? '',
+            'direccion' => $pollingPlace?->address ?? '',
+        ];
     }
 
     /**
