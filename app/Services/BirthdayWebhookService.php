@@ -75,7 +75,7 @@ class BirthdayWebhookService
         $payload = [
             'campaign_id' => $campaign->id,
             'campaign_name' => $campaign->name,
-            'candidate_name' => $campaign->settings['candidate_name'] ?? $campaign->name,
+            'candidate_name' => $campaign->candidate_name,
             'date' => $colombia->format('Y-m-d'),
             'dispatched_at' => $colombia->toIso8601String(),
             'total' => count($people),
