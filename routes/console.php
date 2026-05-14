@@ -10,3 +10,5 @@ Artisan::command('inspire', function () {
 
 // Enviar mensajes de cumpleaños todos los días a las 9:00 AM
 Schedule::command('messages:send-birthdays')->dailyAt('09:00');
+
+Schedule::command('birthday:dispatch-webhooks')->everyMinute()->withoutOverlapping();

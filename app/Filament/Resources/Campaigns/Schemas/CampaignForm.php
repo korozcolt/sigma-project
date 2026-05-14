@@ -11,10 +11,12 @@ use Filament\Forms\Components\BaseFileUpload;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\KeyValue;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -121,6 +123,7 @@ class CampaignForm
                                 }
 
                                 $scope = ElectionType::from($type)->scope()->value;
+
                                 return in_array($scope, [
                                     CampaignScope::Municipal->value,
                                     CampaignScope::Departamental->value,
@@ -133,6 +136,7 @@ class CampaignForm
                                 }
 
                                 $scope = ElectionType::from($type)->scope()->value;
+
                                 return in_array($scope, [
                                     CampaignScope::Municipal->value,
                                     CampaignScope::Departamental->value,
@@ -190,6 +194,29 @@ class CampaignForm
                             ->after('start_date'),
                     ])
                     ->columns(3),
+
+                Section::make('Automatización de Cumpleaños')
+                    ->schema([
+                        Toggle::make('settings.birthday_webhook_enabled')
+                            ->label('Activar webhook de cumpleaños')
+                            ->helperText('Al activar, se enviará automáticamente un JSON al webhook en la hora configurada.')
+                            ->columnSpanFull()
+                            ->live(),
+                        TextInput::make('settings.birthday_webhook_url')
+                            ->label('URL del Webhook')
+                            ->url()
+                            ->placeholder('https://hooks.ejemplo.com/cumpleanos')
+                            ->columnSpanFull()
+                            ->visible(fn (Get $get) => (bool) $get('settings.birthday_webhook_enabled')),
+                        TimePicker::make('settings.birthday_webhook_time')
+                            ->label('Hora de envío (horario colombiano)')
+                            ->seconds(false)
+                            ->default('08:00')
+                            ->helperText('Hora en la que se enviará el webhook (hora de Colombia, UTC-5).')
+                            ->visible(fn (Get $get) => (bool) $get('settings.birthday_webhook_enabled')),
+                    ])
+                    ->collapsible()
+                    ->columns(2),
 
                 Section::make('Configuración')
                     ->schema([
