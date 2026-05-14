@@ -53,7 +53,7 @@ class BirthdayWebhookService
                 'document_number' => $voter->document_number,
                 'phone' => $voter->phone,
                 'birth_date' => Carbon::parse($voter->birth_date)->format('Y-m-d'),
-                'age' => $colombia->diffInYears(Carbon::parse($voter->birth_date)),
+                'age' => (int) Carbon::parse($voter->birth_date)->diffInYears($colombia),
             ];
         }
 
@@ -68,7 +68,7 @@ class BirthdayWebhookService
                 'document_number' => $user->document_number,
                 'phone' => $user->phone,
                 'birth_date' => Carbon::parse($user->birth_date)->format('Y-m-d'),
-                'age' => $colombia->diffInYears(Carbon::parse($user->birth_date)),
+                'age' => (int) Carbon::parse($user->birth_date)->diffInYears($colombia),
             ];
         }
 
