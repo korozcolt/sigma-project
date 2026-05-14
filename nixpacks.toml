@@ -1,2 +1,5 @@
+[variables]
+NIXPACKS_NODE_VERSION = "22"
+
 [phases.build]
-cmds = ["php artisan storage:link"]
+cmds = ["npm run build", "php artisan storage:link", "chmod -R ug+rwX,o+rwX storage bootstrap/cache", "chmod +x scripts/worker.sh"]
