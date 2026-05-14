@@ -34,7 +34,7 @@ class AlcaldiaInstancia2027Seeder extends Seeder
             [
                 'election_type' => ElectionType::MAYOR,
                 'scope' => CampaignScope::Municipal,
-                'candidate_name' => 'Aldemar',
+                'candidate_name' => 'Aldemar Alfaro',
                 'description' => 'Campaña para la Alcaldía de Sincelejo, Sucre - Elecciones 2027',
                 'status' => CampaignStatus::ACTIVE,
                 'department_id' => $sucre->id,
@@ -50,7 +50,7 @@ class AlcaldiaInstancia2027Seeder extends Seeder
         $aldemar = User::updateOrCreate(
             ['email' => 'aldemar@sincelejo2027.sigma'],
             [
-                'name' => 'Aldemar',
+                'name' => 'Aldemar Alfaro',
                 'password' => Hash::make('Aldemar2027!'),
                 'email_verified_at' => now(),
             ]
