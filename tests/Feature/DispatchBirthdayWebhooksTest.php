@@ -9,6 +9,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
+    $this->seed(\Database\Seeders\RoleSeeder::class);
     Carbon::setTestNow(Carbon::create(2026, 5, 14, 13, 0, 0, 'UTC')); // 08:00 Colombia
 });
 
