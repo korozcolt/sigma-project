@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: "Completed quick task 260508-wze: Registraduria headless proxy screenshots"
-last_updated: "2026-05-09T04:55:20.828Z"
-last_activity: "2026-05-08 - Completed quick task 260508-w9c: Integrar consulta de puesto de votación (Registraduría)"
+stopped_at: "Completed quick task 260514-mng: Birthday webhook automation"
+last_updated: "2026-05-14T13:21:10Z"
+last_activity: "2026-05-14 - Completed quick task 260514-mng: Implementar automatización de webhook de cumpleaños"
 progress:
   percent: 0
 ---
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 Phase: 1 of 5 (Campaign Safety & Role Boundaries)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-05-09 - Completed quick task 260508-wze: Registraduría headless proxy screenshots interactivo modal SIGMA VPS
+Last activity: 2026-05-14 - Completed quick task 260514-mng: Birthday webhook automation (BirthdayWebhookService + DispatchBirthdayWebhooks command)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -73,9 +73,10 @@ None yet.
 | 260428-o0k | Create public API GET /api/cumpleanos birthday endpoint | 2026-04-28 | 1e71eeb | [260428-o0k-create-a-public-api-endpoint-get-api-cum](.planning/quick/260428-o0k-create-a-public-api-endpoint-get-api-cum/) |
 | 260508-w9c | Integrar consulta de puesto de votación (Registraduría) | 2026-05-08 | 029345a | [260508-w9c-integrar-consulta-de-puesto-de-votacion-](.planning/quick/260508-w9c-integrar-consulta-de-puesto-de-votacion-/) |
 | 260508-wze | Registraduría headless proxy screenshots modal SIGMA VPS | 2026-05-09 | 030e091 | [260508-wze-registraduria-headless-proxy-screenshots](.planning/quick/260508-wze-registraduria-headless-proxy-screenshots/) |
+| 260514-mng | Birthday webhook automation — BirthdayWebhookService + DispatchBirthdayWebhooks command | 2026-05-14 | 12262d1 | [260514-mng-implementar-automatizaci-n-de-webhook-de](.planning/quick/260514-mng-implementar-automatizaci-n-de-webhook-de/) |
 
 ## Session Continuity
 
-Last session: 2026-05-09T04:55:20.826Z
-Stopped at: Completed quick task 260508-wze: Registraduria headless proxy screenshots
+Last session: 2026-05-14T13:21:10Z
+Stopped at: Completed quick task 260514-mng: Birthday webhook automation
 Resume file: None
