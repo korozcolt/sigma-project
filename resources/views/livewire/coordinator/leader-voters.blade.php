@@ -8,7 +8,7 @@ use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use function Livewire\Volt\{layout, state, with};
 
-layout('components.layouts::app', ['title' => 'Votantes del Líder']);
+layout('components.layouts::app', ['title' => 'Apoyos del Líder']);
 
 new class extends Component {
     use WithPagination;
@@ -106,7 +106,7 @@ new class extends Component {
             Volver
         </flux:button>
         <div class="flex-1">
-            <flux:heading size="xl">Votantes de {{ $leader->name }}</flux:heading>
+            <flux:heading size="xl">Apoyos de {{ $leader->name }}</flux:heading>
             <flux:subheading>{{ $leader->email }}</flux:subheading>
         </div>
     </div>
@@ -134,7 +134,7 @@ new class extends Component {
     <!-- Stats Grid -->
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
-            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Total Votantes</flux:text>
+            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Total Apoyos</flux:text>
             <div class="mt-1 flex items-baseline gap-2">
                 <flux:heading size="xl">{{ number_format($totalVoters) }}</flux:heading>
             </div>
@@ -199,9 +199,9 @@ new class extends Component {
                 </flux:button>
             @else
                 <flux:icon.users class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600" />
-                <flux:heading size="lg" class="mt-2">No hay votantes registrados</flux:heading>
+                <flux:heading size="lg" class="mt-2">No hay apoyos registrados</flux:heading>
                 <flux:text class="mt-1 text-zinc-500 dark:text-zinc-400">
-                    Este líder aún no ha registrado votantes
+                    Este líder aún no ha registrado apoyos
                 </flux:text>
             @endif
         </div>

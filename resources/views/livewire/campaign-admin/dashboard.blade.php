@@ -40,7 +40,7 @@ new class extends Component {
             ->whereHas('campaigns', fn ($q) => $q->whereIn('campaigns.id', $campaignIds))
             ->count();
 
-        // Top 5 líderes con más votantes
+        // Top 5 líderes con más apoyos
         $topLeaders = User::role('leader')
             ->whereHas('campaigns', fn ($q) => $q->whereIn('campaigns.id', $campaignIds))
             ->withCount(['registeredVoters as voters_count' => fn ($q) => $q->whereIn('campaign_id', $campaignIds)])
@@ -107,11 +107,11 @@ new class extends Component {
 
     <!-- Main Stats Grid -->
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <!-- Total Votantes -->
+        <!-- Total Apoyos -->
         <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
             <div class="flex items-center justify-between">
                 <div>
-                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Total Votantes</flux:text>
+                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Total Apoyos</flux:text>
                     <flux:heading size="xl" class="mt-2">{{ number_format($totalVoters) }}</flux:heading>
                 </div>
                 <div class="rounded-full bg-blue-100 p-3 dark:bg-blue-900/30">
@@ -120,7 +120,7 @@ new class extends Component {
             </div>
         </div>
 
-        <!-- Votantes Confirmados -->
+        <!-- Apoyos Confirmados -->
         <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
             <div class="flex items-center justify-between">
                 <div>
@@ -134,7 +134,7 @@ new class extends Component {
             </div>
         </div>
 
-        <!-- Votantes que Votaron -->
+        <!-- Apoyos que Votaron -->
         <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
             <div class="flex items-center justify-between">
                 <div>
@@ -185,7 +185,7 @@ new class extends Component {
                                     <flux:text size="sm" class="text-zinc-500">{{ $leader->email }}</flux:text>
                                 </div>
                             </div>
-                            <flux:badge color="blue">{{ $leader->voters_count }} votantes</flux:badge>
+                            <flux:badge color="blue">{{ $leader->voters_count }} apoyos</flux:badge>
                         </div>
                     @endforeach
                 </div>
@@ -194,7 +194,7 @@ new class extends Component {
 
         <!-- Voters by Municipality -->
         <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
-            <flux:heading size="lg" class="mb-4">Votantes por Municipio</flux:heading>
+            <flux:heading size="lg" class="mb-4">Apoyos por Municipio</flux:heading>
             @if($votersByMunicipality->isEmpty())
                 <flux:text class="text-center text-zinc-500">No hay datos disponibles</flux:text>
             @else

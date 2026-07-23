@@ -23,7 +23,7 @@ new class extends Component {
 
         $leaderIds = $leaders->pluck('id');
 
-        // Estadísticas de votantes
+        // Estadísticas de apoyos
         $totalVoters = Voter::whereIn('registered_by', $leaderIds)
             ->whereIn('campaign_id', $campaignIds)
             ->count();
@@ -91,11 +91,11 @@ new class extends Component {
             </div>
         </div>
 
-        <!-- Total Votantes -->
+        <!-- Total Apoyos -->
         <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
             <div class="flex items-center justify-between">
                 <div>
-                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Total Votantes</flux:text>
+                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Total Apoyos</flux:text>
                     <flux:heading size="xl" class="mt-2">{{ number_format($totalVoters) }}</flux:heading>
                 </div>
                 <div class="rounded-full bg-purple-100 p-3 dark:bg-purple-900/30">
@@ -151,7 +151,7 @@ new class extends Component {
                                     <flux:text class="font-semibold">{{ $leader->name }}</flux:text>
                                 </div>
                             </div>
-                            <flux:badge color="green">{{ $leader->voters_count }} votantes</flux:badge>
+                            <flux:badge color="green">{{ $leader->voters_count }} apoyos</flux:badge>
                         </div>
                     @endforeach
                 </div>

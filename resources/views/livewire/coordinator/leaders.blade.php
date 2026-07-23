@@ -122,7 +122,7 @@ new class extends Component {
             <flux:heading size="xl" class="mt-1">{{ $totalLeaders }}</flux:heading>
         </div>
         <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
-            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Votantes Registrados</flux:text>
+            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Apoyos Registrados</flux:text>
             <flux:heading size="xl" class="mt-1">{{ number_format($totalVoters) }}</flux:heading>
         </div>
     </div>
@@ -133,7 +133,7 @@ new class extends Component {
             <div class="flex items-center justify-between">
                 <div>
                     <flux:text class="font-medium text-zinc-700 dark:text-zinc-300">Registro personal</flux:text>
-                    <flux:text size="sm" class="text-zinc-500">Regstrate como líder para aparecer en el listado y gestionar votantes directamente.</flux:text>
+                    <flux:text size="sm" class="text-zinc-500">Regstrate como líder para aparecer en el listado y gestionar apoyos directamente.</flux:text>
                 </div>
                 <flux:button variant="outline" wire:click="becomeMyOwnLeader" icon="user" size="sm">
                     Ser mi propio líder
@@ -223,7 +223,7 @@ new class extends Component {
                                     <div class="mt-2 flex items-center gap-4">
                                         <flux:text size="sm" class="text-zinc-600 dark:text-zinc-400">
                                             <flux:icon.users class="inline h-4 w-4" />
-                                            {{ $leader->voters_count }} votantes registrados
+                                            {{ $leader->voters_count }} apoyos registrados
                                         </flux:text>
                                         <flux:text size="sm" class="text-zinc-500 dark:text-zinc-500">
                                             <flux:icon.clock class="inline h-3.5 w-3.5" />
