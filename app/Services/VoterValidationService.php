@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Enums\VoterStatus;
 use App\Models\CensusRecord;
+use App\Models\ValidationHistory;
 use App\Models\Voter;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class VoterValidationService
@@ -48,6 +50,8 @@ class VoterValidationService
      */
     public function updateVoterStatus(Voter $voter, bool $found): Voter
     {
+        $previousStatus = $voter->status;
+
         if ($found) {
             $voter->update([
                 'status' => VoterStatus::VERIFIED_CENSUS,
@@ -59,6 +63,17 @@ class VoterValidationService
                 'notes' => 'No se encontró en el censo electoral',
             ]);
         }
+
+        ValidationHistory::create([
+            'voter_id' => $voter->id,
+            'previous_status' => $previousStatus,
+            'new_status' => $voter->status,
+            'validated_by' => Auth::id(),
+            'validation_type' => 'census',
+            'notes' => $found
+                ? 'Validado exitosamente contra el censo electoral'
+                : 'No se encontró en el censo electoral',
+        ]);
 
         return $voter->fresh();
     }

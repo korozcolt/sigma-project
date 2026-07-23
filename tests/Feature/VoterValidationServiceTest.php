@@ -3,8 +3,11 @@
 use App\Enums\VoterStatus;
 use App\Models\Campaign;
 use App\Models\CensusRecord;
+use App\Models\User;
 use App\Models\Voter;
 use App\Services\VoterValidationService;
+
+use function Pest\Laravel\actingAs;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -65,6 +68,8 @@ it('updates voter status to verified when found in census', function () {
         'status' => VoterStatus::PENDING_REVIEW,
     ]);
 
+    actingAs(User::factory()->create());
+
     $updatedVoter = $this->service->updateVoterStatus($voter, true);
 
     expect($updatedVoter->status)->toBe(VoterStatus::VERIFIED_CENSUS);
@@ -75,6 +80,8 @@ it('updates voter status to rejected when not found in census', function () {
     $voter = Voter::factory()->create([
         'status' => VoterStatus::PENDING_REVIEW,
     ]);
+
+    actingAs(User::factory()->create());
 
     $updatedVoter = $this->service->updateVoterStatus($voter, false);
 
@@ -95,6 +102,8 @@ it('validates and updates voter in one operation', function () {
         'document_number' => '1234567890',
         'status' => VoterStatus::PENDING_REVIEW,
     ]);
+
+    actingAs(User::factory()->create());
 
     $result = $this->service->validateAndUpdate($voter);
 
@@ -135,6 +144,8 @@ it('validates all pending voters for a campaign', function () {
         'document_number' => '9999999999',
         'status' => VoterStatus::PENDING_REVIEW,
     ]);
+
+    actingAs(User::factory()->create());
 
     $result = $this->service->validatePendingVoters($campaign->id);
 
