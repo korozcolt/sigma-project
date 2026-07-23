@@ -148,7 +148,7 @@ new class extends Component {
 
     {{-- Voter Information Card --}}
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-        <flux:heading size="md" class="mb-4">Información del Votante</flux:heading>
+        <flux:heading size="md" class="mb-4">Información del Apoyo</flux:heading>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -288,7 +288,7 @@ new class extends Component {
             <div class="p-6">
                 <flux:heading size="lg" class="mb-4">Aplicar Encuesta</flux:heading>
                 <flux:text class="mb-6">
-                    La llamada fue exitosa. ¿Desea aplicar la encuesta al votante ahora?
+                    La llamada fue exitosa. ¿Desea aplicar la encuesta al apoyo ahora?
                 </flux:text>
 
                 <div class="flex gap-3">

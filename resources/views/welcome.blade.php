@@ -103,7 +103,7 @@
                     </h1>
 
                     <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-600 dark:text-zinc-400 sm:text-xl">
-                        Plataforma integral para la gestión de campañas políticas. Organiza tu equipo, registra votantes y toma decisiones basadas en datos en tiempo real.
+                        Plataforma integral para la gestión de campañas políticas. Organiza tu equipo, registra apoyos y toma decisiones basadas en datos en tiempo real.
                     </p>
 
                     <div class="mt-10 flex items-center justify-center gap-4">
@@ -207,10 +207,10 @@
                                 </svg>
                             </div>
                             <h3 class="mt-4 text-lg font-semibold text-zinc-900 dark:text-white">
-                                Registro de Votantes
+                                Registro de Apoyos
                             </h3>
                             <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                                Sistema completo de registro y seguimiento de votantes con métricas en tiempo real y análisis predictivo.
+                                Sistema completo de registro y seguimiento de apoyos con métricas en tiempo real y análisis predictivo.
                             </p>
                         </div>
                         <div class="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-[#e74f32] to-[#0172b9] transition-all group-hover:w-full"></div>
@@ -407,7 +407,7 @@
                                     <div class="rounded-xl border border-zinc-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6 dark:border-zinc-800 dark:from-blue-950/50 dark:to-blue-900/30">
                                         <div class="flex items-center justify-between">
                                             <div>
-                                                <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Total Votantes</p>
+                                                <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Total Apoyos</p>
                                                 <p class="mt-2 text-3xl font-bold text-blue-600">15,342</p>
                                             </div>
                                             <div class="rounded-xl bg-blue-600 p-3 shadow-lg shadow-blue-500/30">
