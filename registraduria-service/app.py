@@ -28,10 +28,29 @@ from playwright.async_api import async_playwright
 
 app = Flask(__name__)
 
-TWO_CAPTCHA_KEY = "9fab1f6ad28812795d61fe8858585ef4"
+import os
+
+def load_env():
+    for path in ('../.env', '.env'):
+        if os.path.exists(path):
+            try:
+                with open(path, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            k, v = line.split('=', 1)
+                            k = k.strip()
+                            v = v.strip().strip('"').strip("'")
+                            os.environ[k] = v
+            except Exception:
+                pass
+
+load_env()
+TWO_CAPTCHA_KEY = os.environ.get("TWO_CAPTCHA_KEY", "9fab1f6ad28812795d61fe8858585ef4")
 REGISTRADURIA_SITEKEY = "6Lc9DmgrAAAAAJAjWVhjDy1KSgqzqJikY5z7I9SV"
 REGISTRADURIA_PAGE_URL = "https://eleccionescolombia.registraduria.gov.co/identificacion"
 INFOVOTANTES_API = "https://apiweb-eleccionescolombia.infovotantes.com/api/v1/citizen/get-information"
+
 
 sessions: dict = {}
 sessions_lock = threading.Lock()

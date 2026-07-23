@@ -10,7 +10,6 @@ use App\Models\Municipality;
 use Filament\Forms\Components\BaseFileUpload;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -218,17 +217,6 @@ class CampaignForm
                     ->collapsible()
                     ->columns(2),
 
-                Section::make('Configuración')
-                    ->schema([
-                        KeyValue::make('settings')
-                            ->label('Configuraciones Personalizadas')
-                            ->keyLabel('Clave')
-                            ->valueLabel('Valor')
-                            ->addActionLabel('Agregar configuración')
-                            ->columnSpanFull(),
-                    ])
-                    ->collapsible()
-                    ->collapsed(),
             ]);
     }
 }

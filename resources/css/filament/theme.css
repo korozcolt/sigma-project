@@ -61,6 +61,19 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/*
+ * sigma-section-in: animación para .fi-section SIN transform en ningún keyframe.
+ *
+ * Cualquier transform (incluso translateY(0) o matrix identidad) hace que Chrome
+ * trate el elemento como containing block para position:absolute, atrapando
+ * el panel del DatePicker y los selects dentro de la sección.
+ * Usamos solo opacity para la entrada de las secciones.
+ */
+@keyframes sigma-section-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
 @keyframes sigma-slide-in-right {
     from { opacity: 0; transform: translateX(24px); }
     to   { opacity: 1; transform: translateX(0); }
@@ -238,32 +251,59 @@
    6.  SECTIONS, CARDS, WIDGETS
    ---------------------------------------------------------- */
 @layer components {
+    /*
+     * IMPORTANTE — por qué NO usamos backdrop-filter ni position:relative aquí:
+     *
+     * Filament renderiza el panel del DatePicker (y selects) como `position:absolute`
+     * DENTRO del DOM de la sección (no es un portal al body). Cualquier propiedad CSS
+     * en `.fi-section` que cree un "stacking context" o un "containing block" para
+     * elementos absolutos hace que esos paneles queden atrapados dentro de la card:
+     *
+     *   ❌ backdrop-filter   → crea stacking context
+     *   ❌ position:relative → convierte la sección en containing block para position:absolute
+     *   ❌ will-change:transform/opacity → crea stacking context
+     *   ❌ transform         → crea stacking context
+     *
+     * Solución: efecto "glass" se logra con background semitransparente + sombras,
+     * sin crear ningún stacking context ni containing block adicional.
+     */
     .fi-section,
     .fi-ta-ctn {
-        @apply rounded-2xl border border-zinc-200/60 bg-white/85 backdrop-blur-sm;
-        box-shadow: var(--shadow-card);
-        animation: sigma-slide-in-up var(--dur-slow) var(--ease-decel) both;
+        @apply rounded-2xl border border-zinc-200/60;
+        background-color: rgb(255 255 255 / 0.88);
+        box-shadow: var(--shadow-card),
+                    inset 0 1px 0 0 rgb(255 255 255 / 0.6);
+        animation: sigma-section-in var(--dur-slow) var(--ease-decel);
         transition: box-shadow var(--dur-base) var(--ease-standard),
-                    border-color var(--dur-base) var(--ease-standard);
+                    border-color var(--dur-base) var(--ease-standard),
+                    background-color var(--dur-base) var(--ease-standard);
     }
 
     .fi-section:hover,
     .fi-ta-ctn:hover {
-        box-shadow: var(--shadow-raised);
+        box-shadow: var(--shadow-raised),
+                    inset 0 1px 0 0 rgb(255 255 255 / 0.7);
         border-color: color-mix(in oklab, var(--primary-300) 40%, var(--color-zinc-200));
+        background-color: rgb(255 255 255 / 0.95);
     }
 
     .dark .fi-section,
     .dark .fi-ta-ctn {
-        @apply border-white/8 bg-white/5;
-        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 0 0 1px rgb(255 255 255 / 0.04);
+        @apply border-white/8;
+        background-color: rgb(255 255 255 / 0.055);
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3),
+                    0 0 0 1px rgb(255 255 255 / 0.04),
+                    inset 0 1px 0 0 rgb(255 255 255 / 0.06);
     }
 
     .dark .fi-section:hover,
     .dark .fi-ta-ctn:hover,
     .dark .fi-wi:hover {
         @apply border-white/14;
-        box-shadow: 0 8px 32px -4px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.08);
+        box-shadow: 0 8px 32px -4px rgb(0 0 0 / 0.5),
+                    0 0 0 1px rgb(255 255 255 / 0.08),
+                    inset 0 1px 0 0 rgb(255 255 255 / 0.08);
+        background-color: rgb(255 255 255 / 0.075);
     }
 
     /* Stagger widget animations */
@@ -773,8 +813,12 @@
         transition-timing-function: var(--ease-standard);
     }
 
-    /* Ensure animations run on their own layer */
-    .fi-section,
+    /*
+     * FIX: will-change se elimina de .fi-section porque crea un stacking
+     * context persistente que impedía a los portals flotantes (DatePicker,
+     * Select) renderizarse sobre secciones posteriores.
+     * .fi-wi y .fi-ta-row lo conservan (no contienen portals flotantes).
+     */
     .fi-wi,
     .fi-ta-row {
         will-change: opacity, transform;

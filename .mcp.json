@@ -13,11 +13,11 @@
                 "/Applications/Herd.app/Contents/Resources/herd-mcp.phar"
             ],
             "env": {
-                "SITE_PATH": "/Users/kronnos/Herd/sigma-project"
+                "SITE_PATH": "/Volumes/NAS(MAC)/Data/Herd/sigma-project"
             }
         },
         "chrome-devtools": {
-            "command": "/Users/kronnos/Library/Application Support/Herd/config/nvm/versions/node/v22.21.1/bin/chrome-devtools-mcp"
+            "command": "/Users/korbytes/Library/Application Support/Herd/config/nvm/versions/node/v22.22.3/bin/chrome-devtools-mcp"
         }
     }
 }
