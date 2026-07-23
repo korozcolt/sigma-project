@@ -3,10 +3,10 @@
 namespace App\Filament\Resources\Invitations\Schemas;
 
 use App\Services\CampaignContext;
-use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\DateTimePicker;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -53,7 +53,7 @@ class InvitationForm
                             ->helperText('Los apoyos se asignarán a este líder.'),
                     ])
                     ->columns(2),
-                
+
                 Section::make('Alcance')
                     ->schema([
                         Select::make('campaign_id')
@@ -64,7 +64,7 @@ class InvitationForm
                             ->required()
                             ->default(fn () => CampaignContext::currentCampaignId())
                             ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
-                        
+
                         Select::make('municipality_id')
                             ->label('Municipio')
                             ->relationship('municipality', 'name')
@@ -73,14 +73,14 @@ class InvitationForm
                             ->nullable(),
                     ])
                     ->columns(2),
-                
+
                 Section::make('Configuración')
                     ->schema([
                         DateTimePicker::make('expires_at')
                             ->label('Fecha de expiración')
                             ->nullable()
                             ->default(now()->addDays(7)),
-                        
+
                         Textarea::make('notes')
                             ->label('Notas')
                             ->rows(3)
