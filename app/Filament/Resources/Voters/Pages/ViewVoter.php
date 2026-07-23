@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Voters\Pages;
 
+use App\Enums\VoterStatus;
 use App\Filament\Resources\Voters\VoterResource;
+use App\Models\Voter;
 use Filament\Actions\EditAction;
 use Filament\Infolists\Components;
 use Filament\Resources\Pages\ViewRecord;
@@ -39,6 +41,71 @@ class ViewVoter extends ViewRecord
                 ->label('Barrio'),
             Components\TextEntry::make('campaign.name')
                 ->label('Campaña'),
+
+            Components\TextEntry::make('census_validated_at')
+                ->label('Validado contra Censo')
+                ->dateTime('d/m/Y H:i')
+                ->placeholder('Aún no validado contra el censo'),
+
+            Components\TextEntry::make('last_validation_source')
+                ->label('Fuente de Última Validación')
+                ->state(fn (Voter $record): string => $this->latestValidationSource($record))
+                ->badge()
+                ->color('info'),
+
+            Components\TextEntry::make('next_step')
+                ->label('Próxima Acción Recomendada')
+                ->state(fn (Voter $record): string => $this->nextStepGuidance($record))
+                ->badge()
+                ->color('warning'),
+
+            Components\TextEntry::make('missing_data')
+                ->label('Datos Faltantes')
+                ->state(fn (Voter $record): string => $this->missingDataSummary($record))
+                ->color(fn (Voter $record): string => $this->missingDataSummary($record) === 'Sin datos faltantes' ? 'success' : 'danger'),
         ]);
+    }
+
+    private function latestValidationSource(Voter $record): string
+    {
+        $latest = $record->validationHistories()->latest()->first();
+
+        if (! $latest) {
+            return 'Sin validaciones registradas';
+        }
+
+        return match ($latest->validation_type) {
+            'census' => 'Censo Electoral',
+            'call' => 'Llamada de Verificación',
+            'election' => 'Jornada Electoral (Día D)',
+            default => $latest->validation_type,
+        };
+    }
+
+    private function nextStepGuidance(Voter $record): string
+    {
+        return match ($record->status) {
+            VoterStatus::PENDING_REVIEW => 'Validar contra el censo electoral para continuar el flujo.',
+            VoterStatus::REJECTED_CENSUS => 'Revisar y corregir el documento del apoyo antes de re-intentar la validación.',
+            VoterStatus::VERIFIED_CENSUS => 'Asignar a un revisor para verificación telefónica.',
+            VoterStatus::CORRECTION_REQUIRED => 'Corregir los datos señalados y volver a intentar la validación.',
+            VoterStatus::VERIFIED_CALL => 'Confirmar asistencia para el día de la jornada electoral.',
+            VoterStatus::CONFIRMED => 'Listo para el Día D — sin acciones pendientes.',
+            VoterStatus::VOTED => 'Proceso completo — el apoyo ya ejerció su voto.',
+            VoterStatus::DID_NOT_VOTE => 'Sin acciones pendientes — el apoyo no asistió a votar.',
+            VoterStatus::DUPLICATE => 'Resolver la cédula duplicada desde el panel de administración.',
+        };
+    }
+
+    private function missingDataSummary(Voter $record): string
+    {
+        $missing = collect([
+            'phone' => 'Teléfono',
+            'email' => 'Email',
+            'neighborhood_id' => 'Barrio',
+            'birth_date' => 'Fecha de nacimiento',
+        ])->filter(fn (string $label, string $field) => blank($record->{$field}))->values();
+
+        return $missing->isEmpty() ? 'Sin datos faltantes' : $missing->implode(', ');
     }
 }
