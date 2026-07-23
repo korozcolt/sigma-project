@@ -2,9 +2,11 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\UserRole;
 use App\Models\Voter;
 use App\Services\CampaignContext;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class TerritorialDistributionChart extends ChartWidget
@@ -35,10 +37,20 @@ class TerritorialDistributionChart extends ChartWidget
         }
 
         // Obtener top 10 municipios con más apoyos
+        $user = Auth::user();
+
         $data = Voter::query()
             ->select('municipalities.name', DB::raw('COUNT(*) as total'))
             ->join('municipalities', 'voters.municipality_id', '=', 'municipalities.id')
             ->where('voters.campaign_id', $activeCampaign->id)
+            ->when(
+                $user?->hasRole(UserRole::LEADER->value),
+                fn ($q) => $q->where('voters.registered_by', Auth::id())
+            )
+            ->when(
+                $user?->hasRole(UserRole::COORDINATOR->value),
+                fn ($q) => $q->whereIn('voters.registered_by', $user->leaders()->pluck('id'))
+            )
             ->groupBy('municipalities.id', 'municipalities.name')
             ->orderByDesc('total')
             ->limit(10)

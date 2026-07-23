@@ -2,9 +2,13 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\UserRole;
+use App\Models\Campaign;
 use App\Models\Voter;
 use App\Services\CampaignContext;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class ValidationProgressChart extends ChartWidget
 {
@@ -43,12 +47,12 @@ class ValidationProgressChart extends ChartWidget
             $days[] = $date->format('d M');
 
             // Apoyos validados hasta esta fecha
-            $validated = Voter::where('campaign_id', $activeCampaign->id)
+            $validated = $this->scopedVoterQuery($activeCampaign)
                 ->whereDate('call_verified_at', '<=', $date)
                 ->count();
 
             // Total de apoyos creados hasta esta fecha
-            $total = Voter::where('campaign_id', $activeCampaign->id)
+            $total = $this->scopedVoterQuery($activeCampaign)
                 ->whereDate('created_at', '<=', $date)
                 ->count();
 
@@ -75,6 +79,22 @@ class ValidationProgressChart extends ChartWidget
             ],
             'labels' => $days,
         ];
+    }
+
+    private function scopedVoterQuery(Campaign $campaign): Builder
+    {
+        $user = Auth::user();
+        $query = Voter::where('campaign_id', $campaign->id);
+
+        if ($user?->hasRole(UserRole::LEADER->value)) {
+            return $query->where('registered_by', $user->id);
+        }
+
+        if ($user?->hasRole(UserRole::COORDINATOR->value)) {
+            return $query->whereIn('registered_by', $user->leaders()->pluck('id'));
+        }
+
+        return $query;
     }
 
     protected function getType(): string

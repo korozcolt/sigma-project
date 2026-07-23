@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Exports\TopLeadersExport;
 use App\Models\User;
@@ -11,6 +12,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class TopLeadersTable extends TableWidget
 {
@@ -27,6 +29,7 @@ class TopLeadersTable extends TableWidget
     public function table(Table $table): Table
     {
         $activeCampaign = CampaignContext::currentCampaign();
+        $user = Auth::user();
 
         return $table
             ->query(
@@ -39,6 +42,10 @@ class TopLeadersTable extends TableWidget
                                 ->where('status', '!=', VoterStatus::DUPLICATE->value)])
                             ->orderByDesc('registered_voters_count');
                     })
+                    ->when(
+                        $user?->hasRole(UserRole::COORDINATOR->value),
+                        fn ($query) => $query->where('coordinator_user_id', $user->id)
+                    )
                     ->limit(10)
             )
             ->columns([
