@@ -3,8 +3,11 @@
 use App\Enums\VoterStatus;
 use App\Models\Campaign;
 use App\Models\CensusRecord;
+use App\Models\User;
 use App\Models\Voter;
 use App\Services\VoterValidationService;
+
+use function Pest\Laravel\actingAs;
 
 it('validates pending voters and updates statuses accordingly', function () {
     $campaign = Campaign::factory()->create();
@@ -28,7 +31,9 @@ it('validates pending voters and updates statuses accordingly', function () {
         'status' => VoterStatus::PENDING_REVIEW,
     ]);
 
-    $service = new VoterValidationService();
+    $service = new VoterValidationService;
+
+    actingAs(User::factory()->create());
 
     $result = $service->validatePendingVoters($campaign->id);
 
