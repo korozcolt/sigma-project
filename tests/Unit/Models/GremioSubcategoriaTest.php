@@ -14,8 +14,8 @@ use Tests\TestCase;
 uses(TestCase::class, RefreshDatabase::class);
 
 // (Plan 02.1-02): Verifies the Gremio -> Subcategoria global catalog for
-// D-04/D-05/D-09. One assertion (Voter optional gremio_id/subcategoria_id)
-// is skipped until those columns land on `voters` in plan 02.1-08.
+// D-04/D-05/D-09. (Plan 02.1-08): Adds voters.gremio_id/subcategoria_id/
+// lugar_expedicion_cedula/placa coverage now that those columns exist.
 
 it('a Subcategoria belongs to exactly one Gremio', function () {
     $gremio = Gremio::factory()->create();
@@ -48,10 +48,37 @@ it('a Voter can be created without gremio_id or subcategoria_id (both optional, 
 
     expect($voter->gremio_id)->toBeNull()
         ->and($voter->subcategoria_id)->toBeNull();
-})->skip(
-    fn (): bool => ! Schema::hasColumn('voters', 'gremio_id') || ! Schema::hasColumn('voters', 'subcategoria_id'),
-    'voters.gremio_id/subcategoria_id land in plan 02.1-08'
-);
+});
+
+it('a Voter gremio relation resolves to null or to a Gremio instance (D-05)', function () {
+    $withoutGremio = Voter::factory()->create(['gremio_id' => null]);
+    $gremio = Gremio::factory()->create();
+    $withGremio = Voter::factory()->create(['gremio_id' => $gremio->id]);
+
+    expect($withoutGremio->gremio)->toBeNull()
+        ->and($withGremio->gremio)->toBeInstanceOf(Gremio::class)
+        ->and($withGremio->gremio->id)->toBe($gremio->id);
+});
+
+it('a Voter subcategoria relation resolves to null or to a Subcategoria instance (D-05)', function () {
+    $withoutSubcategoria = Voter::factory()->create(['subcategoria_id' => null]);
+    $subcategoria = Subcategoria::factory()->create();
+    $withSubcategoria = Voter::factory()->create(['subcategoria_id' => $subcategoria->id]);
+
+    expect($withoutSubcategoria->subcategoria)->toBeNull()
+        ->and($withSubcategoria->subcategoria)->toBeInstanceOf(Subcategoria::class)
+        ->and($withSubcategoria->subcategoria->id)->toBe($subcategoria->id);
+});
+
+it('a Voter can be created without lugar_expedicion_cedula or placa (both optional)', function () {
+    $voter = Voter::factory()->create([
+        'lugar_expedicion_cedula' => null,
+        'placa' => null,
+    ]);
+
+    expect($voter->lugar_expedicion_cedula)->toBeNull()
+        ->and($voter->placa)->toBeNull();
+});
 
 it('GremioFactory and SubcategoriaFactory produce valid records', function () {
     $gremio = Gremio::factory()->create();

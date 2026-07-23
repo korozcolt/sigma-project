@@ -41,6 +41,10 @@ class Voter extends Model
         'confirmed_at',
         'voted_at',
         'notes',
+        'gremio_id',
+        'subcategoria_id',
+        'lugar_expedicion_cedula',
+        'placa',
     ];
 
     protected function casts(): array
@@ -94,6 +98,16 @@ class Voter extends Model
     public function pollingPlace(): BelongsTo
     {
         return $this->belongsTo(PollingPlace::class);
+    }
+
+    public function gremio(): BelongsTo
+    {
+        return $this->belongsTo(Gremio::class);
+    }
+
+    public function subcategoria(): BelongsTo
+    {
+        return $this->belongsTo(Subcategoria::class);
     }
 
     public function registeredBy(): BelongsTo
