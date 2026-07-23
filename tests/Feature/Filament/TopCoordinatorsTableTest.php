@@ -71,8 +71,8 @@ test('top coordinators table shows apoyos_equipo_count as the sum of non-duplica
 
     Livewire::test(TopCoordinatorsTable::class)
         ->assertCanSeeTableRecords([$coordinator])
-        ->assertTableColumnStateSet('apoyos_equipo_count', 15, $coordinator)
-        ->assertTableColumnStateSet('leaders_count', 2, $coordinator);
+        ->assertTableColumnStateSet('apoyos_equipo_count', 15, $coordinator->getKey())
+        ->assertTableColumnStateSet('leaders_count', 2, $coordinator->getKey());
 });
 
 test('top coordinators table shows a coordinator with 0 leaders and 0 apoyos in the active campaign (coverage report, not top-N)', function () {
@@ -82,8 +82,8 @@ test('top coordinators table shows a coordinator with 0 leaders and 0 apoyos in 
 
     Livewire::test(TopCoordinatorsTable::class)
         ->assertCanSeeTableRecords([$coordinator])
-        ->assertTableColumnStateSet('apoyos_equipo_count', 0, $coordinator)
-        ->assertTableColumnStateSet('leaders_count', 0, $coordinator);
+        ->assertTableColumnStateSet('apoyos_equipo_count', 0, $coordinator->getKey())
+        ->assertTableColumnStateSet('leaders_count', 0, $coordinator->getKey());
 });
 
 test('top coordinators table does not show a coordinator belonging to a different campaign', function () {
@@ -91,7 +91,14 @@ test('top coordinators table does not show a coordinator belonging to a differen
 
     $otherCoordinator = User::factory()->create(['municipality_id' => $this->municipality->id]);
     $otherCoordinator->assignRole(UserRole::COORDINATOR->value);
+
+    Session::put('campaign_context.campaign_id', $otherCampaign->id);
+    Session::put('campaign_context.mode', 'single');
+
     $otherCoordinator->campaigns()->attach($otherCampaign);
+
+    Session::put('campaign_context.campaign_id', $this->campaign->id);
+    Session::put('campaign_context.mode', 'single');
 
     Livewire::test(TopCoordinatorsTable::class)
         ->assertCanNotSeeTableRecords([$otherCoordinator]);
