@@ -94,13 +94,13 @@ Plans:
 **Goal:** Seis reportes/dashboards trustworthy sobre datos de Apoyos (ranking lideres/coordinadores/puestos de votacion, informe de rechazos, informe de duplicados con excepcion intencional de cruce de campanas, CSV plano combinado Apoyos+Lideres+Coordinadores, informe de jurisdiccion dentro/fuera) — cada uno como widget de dashboard con boton de exportar, excluyendo apoyos DUPLICATE de todos los conteos/rankings salvo el propio informe de duplicados.
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06 (locked decisions from 04.1-CONTEXT.md; no formal REQ-IDs assigned)
 **Depends on:** Phase 4
-**Plans:** 1/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 - [x] 04.1-01-PLAN.md — Wave 0: RED test scaffolding for all 6 reports + D-01 regression test + missing PollingPlaceFactory
-- [ ] 04.1-02-PLAN.md — Rankings: fix TopLeadersTable (D-01), build TopCoordinatorsTable (D-05 team rollup), build TopPollingPlacesTable
-- [ ] 04.1-03-PLAN.md — RejectionsReportTable + DuplicatesReportTable (D-06 intentional cross-campaign exception)
-- [ ] 04.1-04-PLAN.md — JurisdictionReportTable (D-04 Nacional hide) + ApoyosLideresCoordinadoresTable/Export (D-03 flat CSV)
+- [x] 04.1-02-PLAN.md — Rankings: fix TopLeadersTable (D-01), build TopCoordinatorsTable (D-05 team rollup), build TopPollingPlacesTable
+- [x] 04.1-03-PLAN.md — RejectionsReportTable + DuplicatesReportTable (D-06 intentional cross-campaign exception)
+- [x] 04.1-04-PLAN.md — JurisdictionReportTable (D-04 Nacional hide) + ApoyosLideresCoordinadoresTable/Export (D-03 flat CSV)
 - [ ] 04.1-05-PLAN.md — Wave 2: wire all 6 new widgets into AdminPanelProvider + full-suite regression gate
 
 ### Phase 5: Day D Readiness & Trust Safeguards
