@@ -12,8 +12,6 @@ use Illuminate\Support\Facades\DB;
 
 class CampaignStatsOverview extends StatsOverviewWidget
 {
-
-
     protected static ?int $sort = 0;
 
     protected ?string $pollingInterval = '60s';
@@ -33,7 +31,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
         $activeCampaign = CampaignContext::currentCampaign();
 
         if (! $activeCampaign) {
-            return Stat::make('Total de Votantes', 0)
+            return Stat::make('Total de Apoyos', 0)
                 ->description('No hay campaña seleccionada')
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color('warning');
@@ -44,7 +42,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
             ->whereBetween('created_at', [now()->subWeek(), now()])
             ->count();
 
-        return Stat::make('Total de Votantes', number_format($total))
+        return Stat::make('Total de Apoyos', number_format($total))
             ->description($lastWeek.' nuevos esta semana')
             ->descriptionIcon('heroicon-m-user-group')
             ->color('primary')
@@ -56,7 +54,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
         $activeCampaign = CampaignContext::currentCampaign();
 
         if (! $activeCampaign) {
-            return Stat::make('Votantes Confirmados', 0);
+            return Stat::make('Apoyos Confirmados', 0);
         }
 
         $confirmed = Voter::where('campaign_id', $activeCampaign->id)
@@ -72,7 +70,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
             default => 'danger',
         };
 
-        return Stat::make('Votantes Confirmados', number_format($confirmed))
+        return Stat::make('Apoyos Confirmados', number_format($confirmed))
             ->description(round($percentage, 1).'% del total')
             ->descriptionIcon('heroicon-m-check-circle')
             ->color($color);
@@ -86,7 +84,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
             return Stat::make('Líderes Activos', 0);
         }
 
-        // Líderes son usuarios que tienen votantes registrados
+        // Líderes son usuarios que tienen apoyos registrados
         $leadersCount = User::query()
             ->whereHas('campaigns', fn ($q) => $q->where('campaigns.id', $activeCampaign->id))
             ->whereHas('registeredVoters', fn ($q) => $q->where('campaign_id', $activeCampaign->id))
@@ -112,7 +110,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
         }
 
         return Stat::make('Líderes Activos', number_format($leadersCount))
-            ->description(round($avgVoters, 1).' votantes/líder promedio')
+            ->description(round($avgVoters, 1).' apoyos/líder promedio')
             ->descriptionIcon('heroicon-m-star')
             ->color('success');
     }

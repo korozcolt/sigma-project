@@ -77,7 +77,7 @@ class SurveyStatsOverview extends StatsOverviewWidget
                 ->color('primary'),
 
             Stat::make('Respuestas Únicas', $totalResponses)
-                ->description('Votantes que han respondido')
+                ->description('Apoyos que han respondido')
                 ->descriptionIcon('heroicon-o-users')
                 ->color('success')
                 ->chart($this->getResponsesChart($survey)),

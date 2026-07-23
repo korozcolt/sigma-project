@@ -127,7 +127,7 @@ class DiaD extends Page
 
         if (! $this->voter) {
             Notification::make()
-                ->title('Votante no encontrado en la campaña activa')
+                ->title('Apoyo no encontrado en la campaña activa')
                 ->warning()
                 ->send();
 
@@ -148,7 +148,7 @@ class DiaD extends Page
     public function markVoted(): void
     {
         if (! $this->voterId || ! ($voter = Voter::find($this->voterId))) {
-            Notification::make()->title('Primero busque un votante')->warning()->send();
+            Notification::make()->title('Primero busque un apoyo')->warning()->send();
 
             return;
         }
@@ -175,11 +175,12 @@ class DiaD extends Page
         }
 
         // Validación adicional para asegurar que el archivo existe antes de validar
-        if (!$this->photo) {
+        if (! $this->photo) {
             Notification::make()
                 ->title('Debe seleccionar una foto como evidencia antes de continuar')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -193,7 +194,7 @@ class DiaD extends Page
             'longitude.required' => 'Debe capturar la ubicación (GPS).',
         ]);
 
-        // Verificar si ya existe un registro de voto para este votante en este evento
+        // Verificar si ya existe un registro de voto para este apoyo en este evento
         $existingRecord = VoteRecord::where('voter_id', $voter->id)
             ->where('election_event_id', $activeEvent->id)
             ->first();
@@ -201,7 +202,7 @@ class DiaD extends Page
         if ($existingRecord) {
             $eventType = $activeEvent->isSimulation() ? 'simulacro' : 'evento electoral';
             Notification::make()
-                ->title("Este votante ya tiene un registro de voto en este {$eventType}")
+                ->title("Este apoyo ya tiene un registro de voto en este {$eventType}")
                 ->warning()
                 ->send();
 
@@ -217,19 +218,19 @@ class DiaD extends Page
         // Guardar la foto con manejo robusto de errores
         try {
             $photoPath = $this->photo->storePublicly("vote-records/{$activeEvent->id}", 'public');
-            
-            if (!$photoPath) {
+
+            if (! $photoPath) {
                 throw new \Exception('No se pudo guardar el archivo en el almacenamiento');
             }
         } catch (\Exception $e) {
-            // Revertir el cambio de estado del votante si falla el upload
+            // Revertir el cambio de estado del apoyo si falla el upload
             $voter->update(['status' => $previous]);
-            
+
             Notification::make()
-                ->title('Error al guardar la foto: ' . $e->getMessage())
+                ->title('Error al guardar la foto: '.$e->getMessage())
                 ->danger()
                 ->send();
-            
+
             return;
         }
 
@@ -258,7 +259,7 @@ class DiaD extends Page
             'notes' => "Marcado en Día D como VOTÓ - {$activeEvent->name}",
         ]);
 
-        Notification::make()->title('Votante marcado como VOTÓ')->success()->send();
+        Notification::make()->title('Apoyo marcado como VOTÓ')->success()->send();
         $this->refreshStats();
         $this->fillVoterData($voter->fresh());
         $this->updateActionPermissions();
@@ -267,7 +268,7 @@ class DiaD extends Page
     public function markDidNotVote(): void
     {
         if (! $this->voterId || ! ($voter = Voter::find($this->voterId))) {
-            Notification::make()->title('Primero busque un votante')->warning()->send();
+            Notification::make()->title('Primero busque un apoyo')->warning()->send();
 
             return;
         }
@@ -287,7 +288,7 @@ class DiaD extends Page
             'notes' => 'Marcado en Día D como NO VOTÓ',
         ]);
 
-        Notification::make()->title('Votante marcado como NO VOTÓ')->success()->send();
+        Notification::make()->title('Apoyo marcado como NO VOTÓ')->success()->send();
         $this->refreshStats();
         $this->fillVoterData($voter->fresh());
         $this->updateActionPermissions();

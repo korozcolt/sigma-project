@@ -11,7 +11,7 @@ class TerritorialDistributionChart extends ChartWidget
 {
     protected static ?int $sort = 2;
 
-    protected ?string $heading = 'Top 10 Municipios con más Votantes';
+    protected ?string $heading = 'Top 10 Municipios con más Apoyos';
 
     protected ?string $description = 'Distribución territorial de la campaña activa';
 
@@ -25,7 +25,7 @@ class TerritorialDistributionChart extends ChartWidget
             return [
                 'datasets' => [
                     [
-                        'label' => 'Votantes',
+                        'label' => 'Apoyos',
                         'data' => [],
                         'backgroundColor' => '#3b82f6',
                     ],
@@ -34,7 +34,7 @@ class TerritorialDistributionChart extends ChartWidget
             ];
         }
 
-        // Obtener top 10 municipios con más votantes
+        // Obtener top 10 municipios con más apoyos
         $data = Voter::query()
             ->select('municipalities.name', DB::raw('COUNT(*) as total'))
             ->join('municipalities', 'voters.municipality_id', '=', 'municipalities.id')
@@ -47,7 +47,7 @@ class TerritorialDistributionChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Votantes',
+                    'label' => 'Apoyos',
                     'data' => $data->pluck('total')->toArray(),
                     'backgroundColor' => [
                         '#3b82f6',

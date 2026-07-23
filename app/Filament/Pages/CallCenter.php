@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
-use App\Services\CallAssignmentService;
-use App\Services\CampaignContext;
-use Filament\Actions\Action;
 use App\Filament\Widgets\CallCenterStatsOverview;
 use App\Filament\Widgets\CallHistoryTable;
 use App\Filament\Widgets\CallQueueTable;
+use App\Services\CallAssignmentService;
+use App\Services\CampaignContext;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -87,7 +87,7 @@ class CallCenter extends Page
 
                     if ($created === 0) {
                         Notification::make()
-                            ->title('Ya tienes tu cola completa o no hay votantes disponibles')
+                            ->title('Ya tienes tu cola completa o no hay apoyos disponibles')
                             ->info()
                             ->send();
 
@@ -95,7 +95,7 @@ class CallCenter extends Page
                     }
 
                     Notification::make()
-                        ->title("Se asignaron {$created} votantes a tu cola")
+                        ->title("Se asignaron {$created} apoyos a tu cola")
                         ->success()
                         ->send();
                 }),

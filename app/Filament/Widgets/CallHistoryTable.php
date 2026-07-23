@@ -28,7 +28,7 @@ class CallHistoryTable extends TableWidget
             ->description('Últimas llamadas realizadas')
             ->columns([
                 TextColumn::make('voter.full_name')
-                    ->label('Votante')
+                    ->label('Apoyo')
                     ->searchable(['first_name', 'last_name'])
                     ->description(fn ($record) => $record->voter->document_number),
 

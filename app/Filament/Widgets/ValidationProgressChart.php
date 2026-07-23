@@ -12,7 +12,7 @@ class ValidationProgressChart extends ChartWidget
 
     protected ?string $heading = 'Progreso de Validación — 30 días';
 
-    protected ?string $description = 'Total de votantes registrados vs validados por llamada';
+    protected ?string $description = 'Total de apoyos registrados vs validados por llamada';
 
     protected ?string $pollingInterval = '120s';
 
@@ -42,12 +42,12 @@ class ValidationProgressChart extends ChartWidget
             $date = now()->subDays($i);
             $days[] = $date->format('d M');
 
-            // Votantes validados hasta esta fecha
+            // Apoyos validados hasta esta fecha
             $validated = Voter::where('campaign_id', $activeCampaign->id)
                 ->whereDate('call_verified_at', '<=', $date)
                 ->count();
 
-            // Total de votantes creados hasta esta fecha
+            // Total de apoyos creados hasta esta fecha
             $total = Voter::where('campaign_id', $activeCampaign->id)
                 ->whereDate('created_at', '<=', $date)
                 ->count();
@@ -59,7 +59,7 @@ class ValidationProgressChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Total Votantes',
+                    'label' => 'Total Apoyos',
                     'data' => $totalData,
                     'borderColor' => '#3b82f6',
                     'backgroundColor' => 'rgba(59, 130, 246, 0.1)',

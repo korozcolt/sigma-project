@@ -15,7 +15,7 @@ class TopLeadersTable extends TableWidget
 
     protected static ?string $heading = 'Ranking de Líderes';
 
-    protected static ?string $description = 'Top 10 líderes por votantes registrados en la campaña';
+    protected static ?string $description = 'Top 10 líderes por apoyos registrados en la campaña';
 
     protected ?string $pollingInterval = '120s';
 
@@ -78,7 +78,7 @@ class TopLeadersTable extends TableWidget
                     ->toggleable(),
 
                 TextColumn::make('registered_voters_count')
-                    ->label('Votantes')
+                    ->label('Apoyos')
                     ->sortable()
                     ->badge()
                     ->color(fn (int $state): string => match (true) {

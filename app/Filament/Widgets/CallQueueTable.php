@@ -42,10 +42,10 @@ class CallQueueTable extends TableWidget
                     ->oldest('assigned_at')
             )
             ->heading('Cola de Llamadas Pendientes')
-            ->description('Votantes asignados a tu cola (usa "Cargar 5" para asignar)')
+            ->description('Apoyos asignados a tu cola (usa "Cargar 5" para asignar)')
             ->columns([
                 TextColumn::make('voter.full_name')
-                    ->label('Votante')
+                    ->label('Apoyo')
                     ->searchable(['voter.first_name', 'voter.last_name'])
                     ->sortable()
                     ->description(fn (CallAssignment $record) => $record->voter?->document_number),

@@ -10,8 +10,6 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class DiaDStatsOverview extends StatsOverviewWidget
 {
-
-
     protected ?string $heading = 'Estado del Día D';
 
     protected ?string $description = 'Participación en tiempo real — actualiza cada 10 segundos';
@@ -24,7 +22,7 @@ class DiaDStatsOverview extends StatsOverviewWidget
 
         if (! $campaign) {
             return [
-                Stat::make('Total Votantes', 0)->description('No hay campaña seleccionada')->color('warning'),
+                Stat::make('Total Apoyos', 0)->description('No hay campaña seleccionada')->color('warning'),
             ];
         }
 
@@ -36,7 +34,7 @@ class DiaDStatsOverview extends StatsOverviewWidget
         $participation = $total > 0 ? round(($voted / $total) * 100, 1) : 0;
 
         return [
-            Stat::make('Total Votantes', number_format($total))
+            Stat::make('Total Apoyos', number_format($total))
                 ->description('En campaña activa')
                 ->descriptionIcon('heroicon-m-users')
                 ->color('primary'),

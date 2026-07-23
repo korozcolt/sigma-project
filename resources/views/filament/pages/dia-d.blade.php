@@ -1,7 +1,7 @@
 <x-filament-panels::page>
     {{-- Búsqueda --}}
     <x-filament::section>
-        <x-slot name="heading">Búsqueda de Votante</x-slot>
+        <x-slot name="heading">Búsqueda de Apoyo</x-slot>
 
         <form wire:submit.prevent="searchVoter">
             <div class="flex items-end gap-3">
@@ -25,7 +25,7 @@
         </form>
     </x-filament::section>
 
-    {{-- Información del Votante --}}
+    {{-- Información del Apoyo --}}
     @if ($voterId ?? false)
         <x-filament::section>
             <x-slot name="heading">{{ $voterData['full_name'] ?? 'N/A' }}</x-slot>
@@ -46,7 +46,7 @@
                     </x-filament::badge>
                 </div>
 
-                {{-- Botones de Acción — lo más prominente una vez encontrado el votante --}}
+                {{-- Botones de Acción — lo más prominente una vez encontrado el apoyo --}}
                 <div class="grid gap-3 md:grid-cols-2">
                     @if ($canMarkVoted ?? false)
                         <x-filament::button
@@ -138,7 +138,7 @@
 
                     <div class="grid gap-3 md:grid-cols-2">
                         <div>
-                            <label class="mb-1 block text-xs text-gray-600 dark:text-gray-400">Foto del votante</label>
+                            <label class="mb-1 block text-xs text-gray-600 dark:text-gray-400">Foto del apoyo</label>
                             <input
                                 type="file"
                                 accept="image/*"
