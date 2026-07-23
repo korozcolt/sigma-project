@@ -21,6 +21,7 @@ Campaign teams can run critical voter and field operations from one place with t
 - ✓ Survey workflows, call center flows, and SMS communication features exist - existing
 - ✓ Election-day execution exists with vote records, evidence capture, and audit-oriented traceability - existing
 - ✓ Administrative panels, leader/coordinator panels, widgets, exports, and operational dashboards exist - existing
+- ✓ Apoyos (renamed from Votantes in the UI) support duplicate-cédula tracking with an auditable sufijo, leader/coordinator exclusion from being registered as someone else's Apoyo, global Gremio/Subcategoría classification, and admin-only CSV bulk import - validated in Phase 02.1
 
 ### Active
 
@@ -67,6 +68,7 @@ Real users think in tasks rather than modules. They need to load voters, validat
 | Treat multi-campaign safety as a default product behavior | Role boundaries and campaign scoping must be invisible and reliable for normal users | - Pending |
 | Use dashboards and reporting as operational control surfaces | SIGMA should act as a campaign command center, not just a record system | - Pending |
 | Capture production failures as planning inputs | Real breakages like the call queue widget error reveal where operator trust is weakest | - Pending |
+| "Reasignar dueño de duplicado" performs a real ownership transfer (registered_by), not just a status-flag clear | Client's original written requirement said "reasignar la propiedad de la cédula al otro Líder" — literal ownership transfer, confirmed during Phase 02.1's gap closure (plan 02.1-11) after initial narrower reading was flagged by verification | Implemented in Phase 02.1 |
 
 ## Evolution
 
@@ -86,4 +88,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-25 after initialization*
+*Last updated: 2026-07-23 after Phase 02.1 completion*
