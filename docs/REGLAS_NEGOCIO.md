@@ -92,7 +92,7 @@ Archivos de pruebas que validan estas reglas (orientativo):
 - Duplicados de cédula con sufijo (Apoyos):
   - `tests/Feature/VoterTest.php`
   - `tests/Feature/ApoyoDuplicateSequenceTest.php`
-  - `tests/Feature/Filament/VoterResourceTest.php` (rewritten in plan 02.1-09)
+  - `tests/Feature/Filament/VoterResourceTest.php`
 - Día D evidencia + flujo:
   - `tests/Feature/Livewire/DiaDComponentTest.php`
   - `tests/Browser/DiaDVotingFlowTest.php`

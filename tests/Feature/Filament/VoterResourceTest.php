@@ -186,7 +186,7 @@ test('cannot create voter without required fields', function () {
         ]);
 });
 
-test('cannot create voter with duplicate document in same campaign', function () {
+test('creating a duplicate document without confirmation shows a validation error', function () {
     $campaign = Campaign::factory()->create();
     $municipality = Municipality::factory()->create();
 
@@ -216,12 +216,13 @@ test('cannot create voter with duplicate document in same campaign', function ()
             'document_number' => '12345678',
             'phone' => '3001234567',
             'municipality_id' => $municipality->id,
+            'confirm_duplicate' => false,
         ])
         ->call('create')
-        ->assertHasFormErrors(['document_number' => 'unique']);
+        ->assertHasFormErrors(['document_number']);
 });
 
-test('cannot create voter with duplicate document in different campaign', function () {
+test('creating a duplicate document with confirmation succeeds as a tracked duplicate', function () {
     $campaign1 = Campaign::factory()->create();
     $campaign2 = Campaign::factory()->create();
     $municipality = Municipality::factory()->create();
@@ -252,9 +253,46 @@ test('cannot create voter with duplicate document in different campaign', functi
             'document_number' => '12345678',
             'phone' => '3001234567',
             'municipality_id' => $municipality->id,
+            'confirm_duplicate' => true,
         ])
         ->call('create')
-        ->assertHasFormErrors(['document_number' => 'unique']);
+        ->assertHasNoFormErrors();
+
+    $this->assertDatabaseHas('voters', [
+        'document_number' => '12345678',
+        'duplicate_sequence' => 1,
+    ]);
+});
+
+test('creating a voter whose document belongs to an existing leader fails regardless of confirmation', function () {
+    $campaign = Campaign::factory()->create();
+    $municipality = Municipality::factory()->create();
+
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+        'document_number' => '99988877',
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
+    Livewire::test(CreateVoter::class)
+        ->fillForm([
+            'campaign_id' => $campaign->id,
+            'coordinator_user_id' => $coordinator->id,
+            'registered_by' => $leader->id,
+            'first_name' => 'Test',
+            'last_name' => 'Voter',
+            'document_number' => '99988877',
+            'phone' => '3001234567',
+            'municipality_id' => $municipality->id,
+            'confirm_duplicate' => true,
+        ])
+        ->call('create')
+        ->assertHasFormErrors(['document_number']);
 });
 
 test('can create voter with all optional fields', function () {
@@ -390,7 +428,7 @@ test('can change voter status', function () {
     expect($voter->status)->toBe(VoterStatus::CONFIRMED);
 });
 
-test('cannot edit voter with duplicate document in same campaign', function () {
+test('editing a voter to a duplicate document without confirmation shows a validation error', function () {
     $campaign = Campaign::factory()->create();
 
     $municipality = Municipality::factory()->create();
@@ -421,9 +459,10 @@ test('cannot edit voter with duplicate document in same campaign', function () {
     Livewire::test(EditVoter::class, ['record' => $voter->id])
         ->fillForm([
             'document_number' => '12345678',
+            'confirm_duplicate' => false,
         ])
         ->call('save')
-        ->assertHasFormErrors(['document_number' => 'unique']);
+        ->assertHasFormErrors(['document_number']);
 });
 
 // ============ Tests de Visualización ============
