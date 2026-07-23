@@ -32,8 +32,8 @@ class SurveyExportService
         // Build headers
         $headers = [
             'ID Respuesta',
-            'ID Votante',
-            'Nombre Votante',
+            'ID Apoyo',
+            'Nombre Apoyo',
             'Documento',
             'Respondido Por',
             'Fecha Respuesta',

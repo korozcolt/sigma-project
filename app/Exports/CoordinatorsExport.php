@@ -59,7 +59,7 @@ class CoordinatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, Wit
             'Municipio',
             'Barrio',
             'Campañas',
-            'Votantes Registrados',
+            'Apoyos Registrados',
             'Fecha de Creación',
         ];
     }

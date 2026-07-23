@@ -45,7 +45,7 @@ class AnnotatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
             'Email',
             'Teléfono',
             'Municipio',
-            'Votantes Registrados',
+            'Apoyos Registrados',
             'Fecha de Creación',
         ];
     }

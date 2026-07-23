@@ -58,7 +58,7 @@ class LeadersExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapp
             'Teléfono',
             'Municipio',
             'Barrio',
-            'Votantes Registrados',
+            'Apoyos Registrados',
             'Fecha de Creación',
         ];
     }

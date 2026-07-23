@@ -48,7 +48,7 @@ enum CampaignStatus: string implements HasColor, HasDescription, HasIcon, HasLab
     {
         return match ($this) {
             self::DRAFT => 'Campaña en preparación, no visible para el equipo.',
-            self::ACTIVE => 'Campaña en curso, equipo activo registrando votantes.',
+            self::ACTIVE => 'Campaña en curso, equipo activo registrando apoyos.',
             self::PAUSED => 'Campaña temporalmente pausada, sin nuevos registros.',
             self::COMPLETED => 'Campaña finalizada, solo lectura y reportes.',
         };

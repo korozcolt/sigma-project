@@ -54,8 +54,8 @@ enum UserRole: string implements HasColor, HasDescription, HasIcon, HasLabel
             self::SUPER_ADMIN => 'Acceso completo al sistema y gestión de todas las campañas.',
             self::ADMIN_CAMPAIGN => 'Administra una campaña específica y su equipo.',
             self::COORDINATOR => 'Coordina líderes en un territorio específico.',
-            self::LEADER => 'Registra y gestiona votantes en su zona.',
-            self::REVIEWER => 'Valida votantes y realiza llamadas de verificación.',
+            self::LEADER => 'Registra y gestiona apoyos en su zona.',
+            self::REVIEWER => 'Valida apoyos y realiza llamadas de verificación.',
         };
     }
 
