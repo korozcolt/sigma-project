@@ -11,44 +11,44 @@
 - [ ] **CAMP-02**: Campaign-scoped users can only view data that belongs to their active campaign across tables, widgets, dashboards, and detail pages
 - [ ] **CAMP-03**: Campaign-scoped users can only create, update, import, export, message, validate, or trigger workflows within their active campaign
 - [ ] **CAMP-04**: Campaign records capture election scope and territory rules needed to operate municipal, departmental, and national campaigns safely
-- [ ] **CAMP-05**: Background jobs, exports, and reporting queries honor campaign boundaries the same way interactive UI actions do
+- [x] **CAMP-05**: Background jobs, exports, and reporting queries honor campaign boundaries the same way interactive UI actions do
 
 ### Permissions and Role Experience
 
 - [ ] **PERM-01**: Admins, coordinators, leaders, reviewers, and super admins each see only the panels, actions, and records that match their role
-- [ ] **PERM-02**: When a user cannot perform an action, SIGMA shows a clear operational reason instead of an ambiguous or technical failure
-- [ ] **PERM-03**: Territorial ownership and assignment are visible enough that operators can tell who is responsible for a voter, territory, or follow-up queue
+- [x] **PERM-02**: When a user cannot perform an action, SIGMA shows a clear operational reason instead of an ambiguous or technical failure
+- [x] **PERM-03**: Territorial ownership and assignment are visible enough that operators can tell who is responsible for a voter, territory, or follow-up queue
 
 ### Voter Operations
 
 - [ ] **VOTE-01**: Operator can create or import voters into the active campaign without cross-campaign contamination
 - [ ] **VOTE-02**: Operator can assign voters to the correct territorial structure and responsible role within the active campaign
-- [ ] **VOTE-03**: Operator can validate voter records against census data and see the validation result and source clearly
-- [ ] **VOTE-04**: Operator can see each voter's current workflow stage, what is missing, and the next recommended action
+- [x] **VOTE-03**: Operator can validate voter records against census data and see the validation result and source clearly
+- [x] **VOTE-04**: Operator can see each voter's current workflow stage, what is missing, and the next recommended action
 - [ ] **VOTE-05**: Voter status remains consistent across imports, validation, surveys, calls, messages, dashboards, and Day D workflows
-- [ ] **VOTE-06**: Operator can segment voters for follow-up using campaign-safe filters based on readiness, validation, territory, and contact state
+- [x] **VOTE-06**: Operator can segment voters for follow-up using campaign-safe filters based on readiness, validation, territory, and contact state
 
 ### Outreach and Follow-up
 
-- [ ] **OUTR-01**: Reviewer or operator can work a campaign-safe call queue without runtime errors or cross-campaign leakage
+- [x] **OUTR-01**: Reviewer or operator can work a campaign-safe call queue without runtime errors or cross-campaign leakage
 - [ ] **OUTR-02**: Call outcomes update follow-up state in a way that is traceable to the assignment and contact attempt
 - [ ] **OUTR-03**: Survey responses remain linked to the outreach attempt or call context that produced them
-- [ ] **OUTR-04**: SMS or outbound communication status is auditable from send intent through provider outcome
-- [ ] **OUTR-05**: SIGMA prevents duplicate or invalid follow-up caused by stale queue state, stale segmentation, or missing reconciliation
+- [x] **OUTR-04**: SMS or outbound communication status is auditable from send intent through provider outcome
+- [x] **OUTR-05**: SIGMA prevents duplicate or invalid follow-up caused by stale queue state, stale segmentation, or missing reconciliation
 
 ### Reporting and Control
 
 - [ ] **REPT-01**: Dashboards, widgets, filters, and exports show counts that reconcile to campaign-scoped source records
 - [ ] **REPT-02**: Decision-makers can see campaign health indicators for voter progress, validation progress, follow-up backlog, and Day D readiness
-- [ ] **REPT-03**: Coordinators and leaders can view territorial progress and owned workload relevant to their scope
+- [x] **REPT-03**: Coordinators and leaders can view territorial progress and owned workload relevant to their scope
 - [ ] **REPT-04**: Key operational metrics support drill-through from aggregate count to underlying record list
 
 ### Election Day
 
 - [ ] **DAYD-01**: Operator can find the correct voter quickly within the active campaign during election-day operations
 - [ ] **DAYD-02**: Operator can mark vote status with required evidence rules enforced for "voted" outcomes
-- [ ] **DAYD-03**: SIGMA prevents duplicate or conflicting election-day status registration for the same voter and event
-- [ ] **DAYD-04**: Operators can see participation progress by campaign and relevant territory during live election-day activity
+- [x] **DAYD-03**: SIGMA prevents duplicate or conflicting election-day status registration for the same voter and event
+- [x] **DAYD-04**: Operators can see participation progress by campaign and relevant territory during live election-day activity
 - [ ] **DAYD-05**: Election-day actions and evidence are stored with audit-ready metadata tied to campaign, actor, time, and event
 
 ### Quality and Verification

@@ -130,10 +130,10 @@ Plans:
   6. Coordinator and Leader dashboards show workload/territory scoped to that user's own team, not campaign-wide totals (REPT-03); dashboards show a follow-up backlog indicator (REPT-02); at least the highest-value widgets support drill-through from aggregate to filtered record list (REPT-04).
   7. `vote_records` has a DB-level uniqueness constraint on `(voter_id, election_event_id)` and a defined voted/did-not-vote conflict rule (DAYD-03); Day D participation stats break down by territory, not just campaign totals (DAYD-04).
   8. `FinalizeElectionEvent` has a direct test (dispatching the real job, not reimplementing its query) and DB-level duplicate prevention is tested (QUAL-01); the Day D path has structured logging and the finalize job runs queued (not `dispatchSync`) with failure visibility (QUAL-02).
-**Plans:** 9 plans (2 waves)
+**Plans:** 1/9 plans executed
 
 Plans:
-- [ ] 05.1-01-PLAN.md — Auth/permissions hardening: reason-specific denial messages + consolidated ownership view + CAMP-05 audit (PERM-02, PERM-03, CAMP-05)
+- [x] 05.1-01-PLAN.md — Auth/permissions hardening: reason-specific denial messages + consolidated ownership view + CAMP-05 audit (PERM-02, PERM-03, CAMP-05)
 - [ ] 05.1-02-PLAN.md — OTP verification for coordinator-driven leader-account creation, via Hablame SMS priority:true (client request)
 - [ ] 05.1-03-PLAN.md — Super Admin maintenance kill switch with automatic bypass (client request)
 - [ ] 05.1-04-PLAN.md — Voter UI: census validation action + profile guidance + contact-state filter (VOTE-03, VOTE-04, VOTE-06)
@@ -158,4 +158,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1
 | 3. Outreach & Follow-up Reliability | 0/TBD | Substantially covered (~70%, incidental work) — see 05.1-CONTEXT.md | - |
 | 4. Trusted Reporting & Control Surfaces | 5/5 | Substantially covered (~55%, via 04.1) — see 05.1-CONTEXT.md | 2026-07-23 |
 | 5. Day D Readiness & Trust Safeguards | 0/TBD | Substantially covered (~60-65%, incidental work) — see 05.1-CONTEXT.md | - |
-| 05.1. Cross-Phase Hardening & Trust Safeguards Closure (INSERTED) | 0/9 | Planned — ready for execute-phase | - |
+| 05.1. Cross-Phase Hardening & Trust Safeguards Closure (INSERTED) | 1/9 | In Progress|  |

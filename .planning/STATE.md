@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: "Phase 05.1 planned: 9 plans in 2 waves, verified by gsd-plan-checker (0 blockers after 1 revision round). Covers all 16 gap requirements + OTP + kill switch. Ready for /gsd:execute-phase 05.1."
-last_updated: "2026-07-23T19:10:00.000Z"
+stopped_at: Completed 05.1-01-PLAN.md
+last_updated: "2026-07-23T20:20:16.281Z"
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 2
-  total_plans: 16
+  total_plans: 25
   completed_plans: 16
 ---
 
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 05.1 — cross-phase-hardening-closure (gap-closure across Phases 1-5, see `.planning/phases/05.1-cross-phase-hardening-closure/05.1-CONTEXT.md`)
+**Current focus:** Phase 05.1 — cross-phase-hardening-closure
 
 ## Current Position
 
-Phase: 05.1
-Plan: Not started
+Phase: 05.1 (cross-phase-hardening-closure) — EXECUTING
+Plan: 6 of 9
 
 ## Performance Metrics
 
@@ -52,6 +52,11 @@ Plan: Not started
 | Phase 02.1 P11 | 15 | 2 tasks | 5 files |
 | Phase 04.1 P01 | 20 | 3 tasks | 9 files |
 | Phase 04.1 P05 | 15min | 2 tasks | 3 files |
+| Phase 05.1 P05 | 25min | 2 tasks | 3 files |
+| Phase 05.1 P08 | 25min | 2 tasks | 6 files |
+| Phase 05.1 P06 | 55min | 3 tasks | 5 files |
+| Phase 05.1 P04 | 70 | 3 tasks | 7 files |
+| Phase 05.1 P01 | 25min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -73,6 +78,17 @@ Recent decisions affecting current work:
 - [Phase 04.1]: [Phase 04.1] Plan 05: All 6 new report widgets registered admin-panel-only (not coordinator/leader panels), leaving cross-panel visibility to future Phase 1/4 role-boundary work
 - [Phase 04.1]: [Phase 04.1] Plan 05: Full regression gate closed the phase — composer test green (829/829), Pint clean, D-06 withoutGlobalScopes exclusivity confirmed exclusive to DuplicatesReportTable/DuplicatesExport across all 5 plans
 - [Phase quick-260723-f26]: forceRefreshFromRegistraduria() duplicates only Layer 3 (2captcha) of openRegistraduriaBrowser, leaving the existing Redis->DB->2captcha cache flow on the primary button completely untouched; the new secondary suffixAction is gated by requiresConfirmation() since it always costs a paid lookup with no cache short-circuit
+- [Phase 05.1]: [Phase 05.1] Plan 05: statusId 1 (processing) treated as non-failed in HablameSmsService::send() per confirmed live delivery bug; CallAssignmentService.php left untouched since OUTR-01/OUTR-05 gaps were missing test coverage only, not missing logic
+- [Phase 05.1]: [Phase 05.1] Plan 08: DB-level unique constraint (with pre-migration dedup) closes the vote_records race condition; markDidNotVote() now blocks on conflicting evidence; new per-municipality DiaDTerritorialProgressTable widget added (DAYD-03, DAYD-04)
+- [Phase 05.1]: [Phase 05.1] Plan 06: Ownership-scoped widgets use explicit per-widget hasRole()/Auth::id() branching (mirroring CallCenterStatsOverview), not a shared abstraction or global scope, per CAMP-05's queue-context no-op risk
+- [Phase 05.1]: [Phase 05.1] Plan 06: assertSeeText/assertDontSeeText (tag-stripped) preferred over raw assertSeeHtml/assertDontSeeHtml for widget stat-value assertions, after raw HTML substring search produced false positives against wire:snapshot checksums and SVG icon path data
+- [Phase 05.1]: [Phase 05.1] Plan 04: Fixed two pre-existing VoterValidationServiceTest suites to authenticate before calling updateVoterStatus/validateAndUpdate/validatePendingVoters, since validated_by is now a required, non-nullable ValidationHistory field written on every census validation
+- [Phase 05.1]: [Phase 05.1] Plan 04: Worktree parallel-executor environments require a real composer install (not a symlinked vendor, which breaks Application::inferBasePath() during tests) plus npm run build, for a genuinely green full test suite
+- [Phase 05.1]: TEST-PROBE-MARKER-XYZ
+- [Phase 05.1]: [Phase 05.1] Plan 01: EnsureUserHasRole now throws AuthorizationException (not abort(403)) naming the required role; updated the one pre-existing RoleMiddlewareTest assertion that expected a raw HttpException
+- [Phase 05.1]: [Phase 05.1] Plan 01: TerritorialOwnershipTable registered admin-panel-only (PERM-03), consistent with existing admin-only report widget precedent
+- [Phase 05.1]: [Phase 05.1] Plan 01: CAMP-05 audit test added without touching VoterResource/SurveyResource/CampaignResource — confirmed as latent risk, not an active leak
+- [Phase 05.1]: [Phase 05.1] Plan 01: CampaignContext::setCampaignId() mutates process-lifetime static properties; tests calling it must reset via reflection in afterEach() to avoid leaking a campaign override into unrelated test files
 
 ### Roadmap Evolution
 
@@ -91,6 +107,7 @@ Recent decisions affecting current work:
 yet.
 
 - Intermittent flake in Tests/Feature/Filament/UserResourceTest > can update user campaigns (~1/3 of full-suite runs); pre-existing, out of Phase 04.1 scope — logged in 04.1 deferred-items.md for future investigation
+- Pre-existing test files (IsElectionDayMiddlewareTest, Filament/UserResourceTest, tests/E2E/ChromeDevTools/*) call CampaignContext::setCampaignId() without resetting the static override afterward — latent test-pollution risk; worth a dedicated cleanup in a future hardening plan. Found/scoped during Phase 05.1 Plan 01.
 
 ### Quick Tasks Completed
 
@@ -104,6 +121,6 @@ yet.
 
 ## Session Continuity
 
-Last session: 2026-07-23T19:10:00.000Z
-Stopped at: Phase 05.1 fully planned (9 plans, 2 waves, plan-checker passed after 1 revision round for import-style + shared-file dependency fixes). Ready for /gsd:execute-phase 05.1.
+Last session: 2026-07-23T20:20:05.532Z
+Stopped at: Completed 05.1-01-PLAN.md
 Resume file: None
