@@ -24,13 +24,13 @@ class VoterResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
-    protected static ?string $navigationLabel = 'Votantes';
+    protected static ?string $navigationLabel = 'Apoyos';
 
     protected static UnitEnum|string|null $navigationGroup = 'Gestión';
 
-    protected static ?string $modelLabel = 'Votante';
+    protected static ?string $modelLabel = 'Apoyo';
 
-    protected static ?string $pluralModelLabel = 'Votantes';
+    protected static ?string $pluralModelLabel = 'Apoyos';
 
     protected static ?int $navigationSort = 4;
 

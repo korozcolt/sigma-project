@@ -58,6 +58,10 @@ class VotersTable
                     ->copyable()
                     ->copyMessage('Documento copiado'),
 
+                TextColumn::make('duplicate_sequence')
+                    ->label('Secuencia Duplicado')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('phone')
                     ->label('Teléfono')
                     ->searchable()
@@ -82,6 +86,7 @@ class VotersTable
                         VoterStatus::CONFIRMED => 'success',
                         VoterStatus::VOTED => 'primary',
                         VoterStatus::DID_NOT_VOTE => 'gray',
+                        VoterStatus::DUPLICATE => 'warning',
                     })
                     ->sortable(),
 

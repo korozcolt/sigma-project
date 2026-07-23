@@ -122,14 +122,14 @@ class VoterForm
                                 $set('polling_place_id', null);
                                 $set('polling_table_number', null);
                             })
-                            ->helperText('Campaña a la que pertenece el votante'),
+                            ->helperText('Campaña a la que pertenece el apoyo'),
 
                         Select::make('status')
                             ->label('Estado')
                             ->options(VoterStatus::class)
                             ->default(VoterStatus::PENDING_REVIEW)
                             ->required()
-                            ->helperText('Estado actual del votante en el proceso'),
+                            ->helperText('Estado actual del apoyo en el proceso'),
                     ])
                     ->columns(2),
 
@@ -171,7 +171,7 @@ class VoterForm
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->helperText('El votante siempre debe pertenecer a un líder.'),
+                            ->helperText('El apoyo siempre debe pertenecer a un líder.'),
                     ])
                     ->columns(2),
 
@@ -193,7 +193,7 @@ class VoterForm
                             ->label('Número de Documento')
                             ->required()
                             ->maxLength(255)
-                            ->helperText('Debe ser único en el sistema')
+                            ->helperText('Puede repetirse; se marcará como duplicado en disputa hasta que un admin lo resuelva')
                             ->suffixAction(
                                 Action::make('consultar_registraduria')
                                     ->icon('heroicon-o-magnifying-glass')
@@ -231,6 +231,38 @@ class VoterForm
                                     },
                                 ];
                             }),
+
+                        Select::make('gremio_id')
+                            ->label('Gremio')
+                            ->relationship(name: 'gremio', titleAttribute: 'name')
+                            ->searchable()
+                            ->preload()
+                            ->live()
+                            ->afterStateUpdated(fn (callable $set) => $set('subcategoria_id', null))
+                            ->nullable(),
+
+                        Select::make('subcategoria_id')
+                            ->label('Subcategoría')
+                            ->relationship(
+                                name: 'subcategoria',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query, Get $get) => $query
+                                    ->when($get('gremio_id'), fn (Builder $q, $gremioId) => $q->where('gremio_id', $gremioId))
+                                    ->orderBy('name'),
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->disabled(fn (Get $get): bool => ! filled($get('gremio_id')))
+                            ->nullable(),
+
+                        TextInput::make('lugar_expedicion_cedula')
+                            ->label('Lugar de Expedición de Cédula')
+                            ->maxLength(255),
+
+                        TextInput::make('placa')
+                            ->label('Placa')
+                            ->maxLength(20)
+                            ->helperText('Aplica principalmente a mototaxistas u oficios similares'),
 
                         DatePicker::make('birth_date')
                             ->label('Fecha de Nacimiento')
@@ -369,7 +401,7 @@ class VoterForm
                             ->label('Observaciones')
                             ->rows(4)
                             ->columnSpanFull()
-                            ->helperText('Información adicional relevante sobre el votante'),
+                            ->helperText('Información adicional relevante sobre el apoyo'),
                     ])
                     ->collapsible()
                     ->collapsed(),
