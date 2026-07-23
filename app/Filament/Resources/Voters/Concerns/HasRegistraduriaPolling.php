@@ -89,6 +89,40 @@ trait HasRegistraduriaPolling
     }
 
     /**
+     * Force a fresh Registraduría lookup for a cédula, bypassing both the Redis
+     * cache and the DB reconstruction fallback. Used by the secondary "Actualizar
+     * datos" button when an operator explicitly needs to refresh already-resolved
+     * polling-place data (e.g. after a Registraduría data correction).
+     *
+     * Always costs a paid 2captcha lookup — do not call this from any automatic
+     * flow, only from an explicit user action with confirmation.
+     */
+    public function forceRefreshFromRegistraduria(string $cedula): void
+    {
+        if (blank($cedula)) {
+            Notification::make()
+                ->title('Número de documento requerido')
+                ->body('Ingresa el número de cédula antes de actualizar.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        try {
+            $sessionId = app(RegistraduriaService::class)->startLookup($cedula);
+            $this->registraduriaSessionId = $sessionId;
+            $this->registraduriaOpen = true;
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error al conectar con el servicio')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    /**
      * Reconstruct Registraduría data from census_records + polling_places.
      * Used as a zero-cost fallback when Redis cache is cold.
      *
