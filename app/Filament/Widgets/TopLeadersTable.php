@@ -2,8 +2,11 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\VoterStatus;
+use App\Exports\TopLeadersExport;
 use App\Models\User;
 use App\Services\CampaignContext;
+use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
@@ -30,8 +33,10 @@ class TopLeadersTable extends TableWidget
                 fn (): Builder => User::query()
                     ->when($activeCampaign, function ($query) use ($activeCampaign) {
                         $query->whereHas('campaigns', fn ($q) => $q->where('campaigns.id', $activeCampaign->id))
-                            ->whereHas('registeredVoters', fn ($q) => $q->where('campaign_id', $activeCampaign->id))
-                            ->withCount(['registeredVoters' => fn ($q) => $q->where('campaign_id', $activeCampaign->id)])
+                            ->whereHas('registeredVoters', fn ($q) => $q->where('campaign_id', $activeCampaign->id)
+                                ->where('status', '!=', VoterStatus::DUPLICATE->value))
+                            ->withCount(['registeredVoters' => fn ($q) => $q->where('campaign_id', $activeCampaign->id)
+                                ->where('status', '!=', VoterStatus::DUPLICATE->value)])
                             ->orderByDesc('registered_voters_count');
                     })
                     ->limit(10)
@@ -88,6 +93,12 @@ class TopLeadersTable extends TableWidget
                         default => 'gray',
                     })
                     ->icon('heroicon-m-user-group'),
+            ])
+            ->headerActions([
+                Action::make('export')
+                    ->label('Exportar')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->action(fn () => (new TopLeadersExport($activeCampaign?->id))->download('ranking-lideres.xlsx')),
             ])
             ->paginated(false);
     }

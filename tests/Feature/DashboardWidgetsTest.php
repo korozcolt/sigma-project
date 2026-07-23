@@ -237,7 +237,7 @@ test('top leaders table excludes DUPLICATE status voters from the ranking count 
 
     Livewire::test(TopLeadersTable::class)
         ->assertCanSeeTableRecords([$leader])
-        ->assertTableColumnStateSet('registered_voters_count', 5, $leader);
+        ->assertTableColumnStateSet('registered_voters_count', 5, $leader->getKey());
 });
 
 test('validation progress chart widget displays correctly', function () {
