@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Enums\VoterStatus;
 use App\Models\Department;
-use App\Models\PollingPlace;
 use App\Models\Municipality;
+use App\Models\PollingPlace;
 use App\Models\Voter;
 use App\Rules\MaxTablesForPollingPlace;
 use App\Services\InvitationService;
@@ -18,9 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 class PublicVoterRegistrationController extends Controller
 {
-    public function __construct(private InvitationService $invitationService)
-    {
-    }
+    public function __construct(private InvitationService $invitationService) {}
 
     public function show(string $token)
     {
@@ -147,7 +145,7 @@ class PublicVoterRegistrationController extends Controller
 
             return redirect()
                 ->route('home')
-                ->with('success', 'Tu registro fue enviado correctamente. Si necesitas registrar otro votante, vuelve a abrir el enlace.');
+                ->with('success', 'Tu registro fue enviado correctamente. Si necesitas registrar otro apoyo, vuelve a abrir el enlace.');
         } catch (\Throwable $e) {
             DB::rollBack();
 

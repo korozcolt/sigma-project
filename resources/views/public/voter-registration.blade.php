@@ -1,4 +1,4 @@
-<x-layouts.public :title="'Registro de votantes'">
+<x-layouts.public :title="'Registro de apoyos'">
     <div class="relative overflow-hidden bg-gray-50 dark:bg-gray-950">
         <div class="absolute inset-0 bg-gradient-to-b from-gray-100 to-transparent dark:from-white/5"></div>
 
@@ -33,10 +33,10 @@
             <div class="flex flex-col items-center gap-3 text-center">
                 <div class="max-w-2xl">
                     <h1 class="text-balance text-2xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
-                        Registro de votantes
+                        Registro de apoyos
                     </h1>
                     <p class="mt-2 text-pretty text-sm text-gray-600 dark:text-gray-300 sm:text-base">
-                        Completa el formulario. El votante quedará asociado al líder indicado por este enlace.
+                        Completa el formulario. El apoyo quedará asociado al líder indicado por este enlace.
                     </p>
                 </div>
             </div>
@@ -96,7 +96,7 @@
                         </dl>
 
                         <p class="mt-6 text-xs text-gray-500 dark:text-gray-400">
-                            Si necesitas registrar más de un votante, puedes volver a abrir este enlace y completar el formulario nuevamente.
+                            Si necesitas registrar más de un apoyo, puedes volver a abrir este enlace y completar el formulario nuevamente.
                         </p>
                     </div>
                 </div>
@@ -253,7 +253,7 @@
 	                                    @endif
 	                                    <p id="polling_place_help" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
 	                                        @if ($invitation->municipality_id)
-	                                            Selecciona el puesto de votación del votante (opcional).
+	                                            Selecciona el puesto de votación del apoyo (opcional).
 	                                        @else
                                             Selecciona un municipio para ver los puestos disponibles.
                                         @endif

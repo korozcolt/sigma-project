@@ -33,7 +33,7 @@ it('muestra el registro público con la información del líder y coordinador', 
     $response = $this->get(route('public.voters.register', $invitation->token));
 
     $response->assertOk();
-    $response->assertSee('Registro de votantes');
+    $response->assertSee('Registro de apoyos');
     $response->assertSee($campaign->name);
     $response->assertSee($coordinator->name);
     $response->assertSee($leader->name);
