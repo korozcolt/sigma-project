@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 02.1-10-PLAN.md
-last_updated: "2026-07-23T11:04:01.882Z"
+stopped_at: Completed 02.1-11-PLAN.md (gap closure)
+last_updated: "2026-07-23T13:20:19.431Z"
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 11
+  completed_plans: 11
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 02.1 (apoyos-reglas-core-y-segmentacion-rename-cosmetico-votante-apoyo-exclusion-lider-apoyo-duplicados-con-sufijo-gremio-subcategoria-import-masivo-csv) — EXECUTING
-Plan: 5 of 10
+Plan: 6 of 10
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Plan: 5 of 10
 | Phase 02.1 P08 | 15 | 2 tasks | 5 files |
 | Phase 02.1 P09 | 15 | 3 tasks | 5 files |
 | Phase 02.1 P10 | 330 | 3 tasks | 8 files |
+| Phase 02.1 P11 | 15 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,7 @@ Recent decisions affecting current work:
 - [Phase 02.1]: Plan 02.1-09: Split Task 1/Task 2 edits into two atomic commits (rename+new-fields vs. duplicate-confirmation rewrite) since the plan describes both touching the same document_number closure
 - [Phase 02.1]: Plan 02.1-10: Used Filament's native ImportAction/Importer for CSV bulk import (D-06) instead of hand-rolled maatwebsite/excel, per RESEARCH.md recommendation; municipality_id resolved via a required options-form Select since it's not a client CSV column
 - [Phase 02.1]: Plan 02.1-10: Fixed a cross-campaign duplicate_sequence bug in VoterDuplicateAssignmentService (query was scoped to the current campaign context, missing duplicates registered under other campaigns) and closed out the phase-level D-01 rename gate (leftover Spanish comments/log messages/export filenames)
+- [Phase 02.1]: Plan 02.1-11 (gap closure): reassignDuplicateOwner now transfers real ownership (registered_by) transactionally across all sibling rows sharing a document_number, restricted server-side via Rule::in to actual co-registrants, closing the UAT-confirmed D-03/D-10 gap.
 
 ### Roadmap Evolution
 
@@ -90,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-23T11:04:01.880Z
-Stopped at: Completed 02.1-10-PLAN.md
+Last session: 2026-07-23T13:20:19.429Z
+Stopped at: Completed 02.1-11-PLAN.md (gap closure)
 Resume file: None

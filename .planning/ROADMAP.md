@@ -50,7 +50,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Goal:** Campaign operators work with "Apoyos" (not "Votantes") everywhere in the UI, leaders/coordinators cannot be registered as someone else's Apoyo, duplicate cedulas are tracked with an auditable suffix instead of blocked, Apoyos can be optionally classified by Gremio/Subcategoria, and admins can bulk-import Apoyos via CSV with a partial-success rejection report.
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10 (locked decisions from 02.1-CONTEXT.md; no formal REQ-IDs assigned)
 **Depends on:** Phase 2
-**Plans:** 10/10 plans complete
+**Plans:** 11/11 plans complete
 
 Plans:
 - [x] 02.1-01-PLAN.md — Wave 0: test scaffolding + Filament import infrastructure migrations
