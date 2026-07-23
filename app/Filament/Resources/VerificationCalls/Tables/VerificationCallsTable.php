@@ -28,7 +28,7 @@ class VerificationCallsTable
                     ->sortable(),
 
                 TextColumn::make('voter_display')
-                    ->label('Votante')
+                    ->label('Apoyo')
                     ->getStateUsing(fn ($record) => $record->voter
                         ? sprintf('%s - %s', $record->voter->full_name, $record->voter->document_number)
                         : '—')

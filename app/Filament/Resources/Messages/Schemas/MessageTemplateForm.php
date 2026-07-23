@@ -85,12 +85,12 @@ class MessageTemplateForm
             Section::make('Control Anti-Spam')
                 ->schema([
                     TextInput::make('max_per_voter_per_day')
-                        ->label('Máximo por Votante al Día')
+                        ->label('Máximo por Apoyo al Día')
                         ->numeric()
                         ->default(3)
                         ->minValue(1)
                         ->maxValue(50)
-                        ->helperText('Límite de mensajes que un votante puede recibir en un día'),
+                        ->helperText('Límite de mensajes que un apoyo puede recibir en un día'),
 
                     TextInput::make('max_per_campaign_per_hour')
                         ->label('Máximo por Campaña por Hora')

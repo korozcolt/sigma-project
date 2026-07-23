@@ -79,7 +79,7 @@ class MessageTemplatesTable
                 Tables\Columns\TextColumn::make('max_per_voter_per_day')
                     ->label('Límite Diario')
                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->suffix(' msg/votante'),
+                    ->suffix(' msg/apoyo'),
 
                 Tables\Columns\TextColumn::make('max_per_campaign_per_hour')
                     ->label('Límite Horario')

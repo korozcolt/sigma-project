@@ -2,11 +2,11 @@
 
 namespace App\Filament\Resources\Coordinators\Schemas;
 
-use App\Models\Neighborhood;
+use App\Services\CampaignContext;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -72,7 +72,36 @@ class CoordinatorForm
                 ->schema([
                     Select::make('municipality_id')
                         ->label('Municipio')
-                        ->relationship('municipality', 'name', fn (Builder $query) => $query->orderBy('name'))
+                        ->relationship('municipality', 'name', function (Builder $query) {
+                            $campaign = CampaignContext::currentCampaign();
+
+                            // Campaña municipal: solo el municipio de la campaña
+                            if ($campaign?->municipality_id) {
+                                return $query->where('id', $campaign->municipality_id)->orderBy('name');
+                            }
+
+                            // Campaña departamental: solo municipios del departamento
+                            if ($campaign?->department_id) {
+                                return $query->where('department_id', $campaign->department_id)->orderBy('name');
+                            }
+
+                            // Sin contexto de campaña (super admin modo global): todos
+                            return $query->orderBy('name');
+                        })
+                        ->default(fn () => CampaignContext::currentCampaign()?->municipality_id)
+                        ->helperText(function (): ?string {
+                            $campaign = CampaignContext::currentCampaign();
+                            if ($campaign?->municipality_id) {
+                                return 'Fijado por la campaña activa.';
+                            }
+                            if ($campaign?->department_id) {
+                                return 'Filtrado al departamento de la campaña activa.';
+                            }
+
+                            return null;
+                        })
+                        ->disabled(fn (): bool => CampaignContext::currentCampaign()?->municipality_id !== null)
+                        ->dehydrated()
                         ->searchable()
                         ->preload()
                         ->live()
@@ -110,7 +139,7 @@ class CoordinatorForm
 
                     Toggle::make('also_leader')
                         ->label('También será líder')
-                        ->helperText('Permite que el coordinador aparezca como líder en su propio listado y tenga votantes.')
+                        ->helperText('Permite que el coordinador aparezca como líder en su propio listado y tenga apoyos.')
                         ->dehydrated(false)
                         ->default(false),
                 ])
@@ -118,4 +147,3 @@ class CoordinatorForm
         ]);
     }
 }
-

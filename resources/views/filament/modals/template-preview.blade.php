@@ -46,7 +46,7 @@
         <div>
             <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Límites:</p>
             <p class="text-xs text-gray-600 dark:text-gray-400">
-                • {{ $template->max_per_voter_per_day }} mensajes/votante/día<br>
+                • {{ $template->max_per_voter_per_day }} mensajes/apoyo/día<br>
                 • {{ $template->max_per_campaign_per_hour }} mensajes/campaña/hora
             </p>
         </div>

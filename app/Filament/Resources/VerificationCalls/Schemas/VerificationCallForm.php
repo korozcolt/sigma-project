@@ -31,10 +31,10 @@ class VerificationCallForm
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(fn (callable $set) => $set('voter_id', null))
-                                    ->helperText('Seleccione primero el líder para filtrar sus votantes'),
+                                    ->helperText('Seleccione primero el líder para filtrar sus apoyos'),
 
                                 Select::make('voter_id')
-                                    ->label('Votante')
+                                    ->label('Apoyo')
                                     ->searchable()
                                     ->disabled(fn (callable $get) => ! $get('caller_id'))
                                     ->options(function (callable $get) {
@@ -79,7 +79,7 @@ class VerificationCallForm
                                     ))
                                     ->helperText(fn (callable $get) => ! $get('caller_id')
                                         ? 'Primero seleccione un líder'
-                                        : 'Seleccione o busque un votante del líder')
+                                        : 'Seleccione o busque un apoyo del líder')
                                     ->required(),
 
                                 TextInput::make('attempt_number')

@@ -106,7 +106,7 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('registered_voters_count')
-                    ->label('Votantes')
+                    ->label('Apoyos')
                     ->counts('registeredVoters')
                     ->sortable()
                     ->toggleable()

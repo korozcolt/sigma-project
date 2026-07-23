@@ -50,7 +50,7 @@ class InvitationForm
                             ->required()
                             ->live()
                             ->disabled(fn ($get): bool => ! $get('coordinator_user_id'))
-                            ->helperText('Los votantes se asignarán a este líder.'),
+                            ->helperText('Los apoyos se asignarán a este líder.'),
                     ])
                     ->columns(2),
                 

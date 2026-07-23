@@ -32,7 +32,7 @@ class MessageForm
                         ->visible(fn (): bool => CampaignContext::isSuperAdmin()),
 
                     Select::make('voter_id')
-                        ->label('Votante')
+                        ->label('Apoyo')
                         // Usamos una columna real para evitar errores SQL y calculamos la etiqueta
                         ->relationship('voter', 'first_name')
                         ->required()

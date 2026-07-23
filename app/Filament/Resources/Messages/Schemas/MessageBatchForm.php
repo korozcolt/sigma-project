@@ -92,7 +92,7 @@ class MessageBatchForm
                         ->numeric()
                         ->required()
                         ->minValue(1)
-                        ->helperText('Número total de votantes que recibirán el mensaje'),
+                        ->helperText('Número total de apoyos que recibirán el mensaje'),
 
                     KeyValue::make('filters')
                         ->label('Filtros Aplicados')

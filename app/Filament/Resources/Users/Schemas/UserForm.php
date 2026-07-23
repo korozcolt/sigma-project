@@ -223,12 +223,12 @@ class UserForm
                     ->collapsible()
                     ->collapsed(),
 
-                Section::make('Registro como Votante')
+                Section::make('Registro como Apoyo')
                     ->description('Los coordinadores y líderes deben estar incluidos en la base de datos electoral para las estadísticas')
                     ->schema([
                         Toggle::make('register_as_voter')
-                            ->label('Registrar también como votante')
-                            ->helperText('Crear perfil de votante con los datos de este usuario')
+                            ->label('Registrar también como apoyo')
+                            ->helperText('Crear perfil de apoyo con los datos de este usuario')
                             ->live()
                             ->default(false)
                             ->dehydrated(false)
@@ -236,11 +236,11 @@ class UserForm
 
                         Placeholder::make('voter_registered_info')
                             ->label('Estado')
-                            ->content('Este usuario ya está registrado como votante')
+                            ->content('Este usuario ya está registrado como apoyo')
                             ->visible(fn (string $operation, $record) => $operation === 'edit' && $record?->voter_id),
 
                         Select::make('voter_campaign_id')
-                            ->label('Campaña del Votante')
+                            ->label('Campaña del Apoyo')
                             ->options(Campaign::query()
                                 ->when(! CampaignContext::isSuperAdmin(), fn ($query) => $query->whereKey(CampaignContext::currentCampaignId()))
                                 ->pluck('name', 'id'))
@@ -249,14 +249,14 @@ class UserForm
                             ->searchable()
                             ->preload()
                             ->visible(fn (Get $get, string $operation) => $operation === 'create' && $get('register_as_voter'))
-                            ->helperText('Campaña a la que pertenecerá como votante')
+                            ->helperText('Campaña a la que pertenecerá como apoyo')
                             ->dehydrated(false),
 
                         Textarea::make('voter_notes')
-                            ->label('Notas del Votante')
+                            ->label('Notas del Apoyo')
                             ->rows(2)
                             ->visible(fn (Get $get, string $operation) => $operation === 'create' && $get('register_as_voter'))
-                            ->helperText('Observaciones adicionales para el perfil de votante')
+                            ->helperText('Observaciones adicionales para el perfil de apoyo')
                             ->dehydrated(false)
                             ->columnSpanFull(),
                     ])

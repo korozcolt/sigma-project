@@ -42,7 +42,7 @@ class CreateUser extends CreateRecord
             'address' => $this->record->address,
             'registered_by' => auth()->id(),
             'status' => VoterStatus::CONFIRMED,
-            'notes' => $this->data['voter_notes'] ?? 'Usuario del sistema registrado como votante',
+            'notes' => $this->data['voter_notes'] ?? 'Usuario del sistema registrado como apoyo',
         ]);
 
         // Vincular el voter al usuario

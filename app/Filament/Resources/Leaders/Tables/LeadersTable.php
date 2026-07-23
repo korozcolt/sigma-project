@@ -35,7 +35,7 @@ class LeadersTable
 
                 TextColumn::make('registered_voters_count')
                     ->counts('registeredVoters')
-                    ->label('Votantes')
+                    ->label('Apoyos')
                     ->sortable(),
 
                 TextColumn::make('created_at')
