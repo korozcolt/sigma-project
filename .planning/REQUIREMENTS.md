@@ -113,8 +113,8 @@
 | REPT-04 | Phase 4 | Not covered (closing in Phase 05.1) |
 | DAYD-01 | Phase 5 | Done |
 | DAYD-02 | Phase 5 | Done |
-| DAYD-03 | Phase 5 | Partial (closing in Phase 05.1) |
-| DAYD-04 | Phase 5 | Partial (closing in Phase 05.1) |
+| DAYD-03 | Phase 5 | Done (closed in Phase 05.1, plan 08) |
+| DAYD-04 | Phase 5 | Done (closed in Phase 05.1, plan 08) |
 | DAYD-05 | Phase 5 | Done |
 | QUAL-01 | Phase 5 | Partial (closing in Phase 05.1) |
 | QUAL-02 | Phase 5 | Not covered (closing in Phase 05.1 — biggest Phase 5 gap) |

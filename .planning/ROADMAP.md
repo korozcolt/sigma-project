@@ -158,4 +158,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1
 | 3. Outreach & Follow-up Reliability | 0/TBD | Substantially covered (~70%, incidental work) — see 05.1-CONTEXT.md | - |
 | 4. Trusted Reporting & Control Surfaces | 5/5 | Substantially covered (~55%, via 04.1) — see 05.1-CONTEXT.md | 2026-07-23 |
 | 5. Day D Readiness & Trust Safeguards | 0/TBD | Substantially covered (~60-65%, incidental work) — see 05.1-CONTEXT.md | - |
-| 05.1. Cross-Phase Hardening & Trust Safeguards Closure (INSERTED) | 1/9 | In Progress|  |
+| 05.1. Cross-Phase Hardening & Trust Safeguards Closure (INSERTED) | 5/9 | In Progress (Wave 1 complete) | - |

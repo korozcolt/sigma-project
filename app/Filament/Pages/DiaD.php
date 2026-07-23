@@ -6,6 +6,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\VoterStatus;
 use App\Filament\Widgets\DiaDStatsOverview;
+use App\Filament\Widgets\DiaDTerritorialProgressTable;
 use App\Models\ElectionEvent;
 use App\Models\ValidationHistory;
 use App\Models\Voter;
@@ -235,20 +236,35 @@ class DiaD extends Page
         }
 
         // Crear registro detallado del voto con referencia al evento
-        VoteRecord::create([
-            'voter_id' => $voter->id,
-            'campaign_id' => $campaign->id,
-            'election_event_id' => $activeEvent->id,
-            'recorded_by' => Auth::id(),
-            'voted_at' => now(),
-            'photo_path' => $photoPath,
-            'latitude' => $this->latitude,
-            'longitude' => $this->longitude,
-            'polling_station' => $this->pollingStation,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'notes' => "Voto registrado en {$activeEvent->name}",
-        ]);
+        try {
+            VoteRecord::create([
+                'voter_id' => $voter->id,
+                'campaign_id' => $campaign->id,
+                'election_event_id' => $activeEvent->id,
+                'recorded_by' => Auth::id(),
+                'voted_at' => now(),
+                'photo_path' => $photoPath,
+                'latitude' => $this->latitude,
+                'longitude' => $this->longitude,
+                'polling_station' => $this->pollingStation,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'notes' => "Voto registrado en {$activeEvent->name}",
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ((int) $e->getCode() === 23000) {
+                $voter->update(['status' => $previous]);
+
+                Notification::make()
+                    ->title('Este apoyo ya tiene un registro de voto en este evento (registrado simultáneamente)')
+                    ->warning()
+                    ->send();
+
+                return;
+            }
+
+            throw $e;
+        }
 
         ValidationHistory::create([
             'voter_id' => $voter->id,
@@ -271,6 +287,23 @@ class DiaD extends Page
             Notification::make()->title('Primero busque un apoyo')->warning()->send();
 
             return;
+        }
+
+        $activeEvent = ElectionEvent::where('is_active', true)->first();
+
+        if ($activeEvent) {
+            $existingRecord = VoteRecord::where('voter_id', $voter->id)
+                ->where('election_event_id', $activeEvent->id)
+                ->first();
+
+            if ($existingRecord) {
+                Notification::make()
+                    ->title('Este apoyo ya tiene evidencia de voto registrada en este evento. No se puede marcar como NO VOTÓ sin anular primero el registro de voto.')
+                    ->danger()
+                    ->send();
+
+                return;
+            }
         }
 
         $previous = $voter->status;
@@ -324,6 +357,7 @@ class DiaD extends Page
     {
         return [
             DiaDStatsOverview::class,
+            DiaDTerritorialProgressTable::class,
         ];
     }
 

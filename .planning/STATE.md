@@ -84,7 +84,6 @@ Recent decisions affecting current work:
 - [Phase 05.1]: [Phase 05.1] Plan 06: assertSeeText/assertDontSeeText (tag-stripped) preferred over raw assertSeeHtml/assertDontSeeHtml for widget stat-value assertions, after raw HTML substring search produced false positives against wire:snapshot checksums and SVG icon path data
 - [Phase 05.1]: [Phase 05.1] Plan 04: Fixed two pre-existing VoterValidationServiceTest suites to authenticate before calling updateVoterStatus/validateAndUpdate/validatePendingVoters, since validated_by is now a required, non-nullable ValidationHistory field written on every census validation
 - [Phase 05.1]: [Phase 05.1] Plan 04: Worktree parallel-executor environments require a real composer install (not a symlinked vendor, which breaks Application::inferBasePath() during tests) plus npm run build, for a genuinely green full test suite
-- [Phase 05.1]: TEST-PROBE-MARKER-XYZ
 - [Phase 05.1]: [Phase 05.1] Plan 01: EnsureUserHasRole now throws AuthorizationException (not abort(403)) naming the required role; updated the one pre-existing RoleMiddlewareTest assertion that expected a raw HttpException
 - [Phase 05.1]: [Phase 05.1] Plan 01: TerritorialOwnershipTable registered admin-panel-only (PERM-03), consistent with existing admin-only report widget precedent
 - [Phase 05.1]: [Phase 05.1] Plan 01: CAMP-05 audit test added without touching VoterResource/SurveyResource/CampaignResource — confirmed as latent risk, not an active leak

@@ -38,4 +38,12 @@ class Municipality extends Model
     {
         return $this->hasMany(Neighborhood::class);
     }
+
+    /**
+     * Get the voters registered in this municipality.
+     */
+    public function voters(): HasMany
+    {
+        return $this->hasMany(Voter::class);
+    }
 }
