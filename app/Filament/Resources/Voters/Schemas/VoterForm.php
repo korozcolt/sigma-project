@@ -207,6 +207,21 @@ class VoterForm
                                         $livewire->openRegistraduriaBrowser($state);
                                     })
                             )
+                            ->suffixAction(
+                                Action::make('actualizar_registraduria')
+                                    ->icon('heroicon-o-arrow-path')
+                                    ->label('Actualizar datos desde Registraduría')
+                                    ->tooltip('Forzar nueva consulta a la Registraduría (ignora la caché)')
+                                    ->color('gray')
+                                    ->visible(fn (Get $get): bool => filled($get('polling_place_id')))
+                                    ->requiresConfirmation()
+                                    ->modalHeading('Actualizar datos desde Registraduría')
+                                    ->modalDescription('Esto hace una nueva consulta pagada a la Registraduría e ignora los datos ya guardados en caché/base de datos. Úsalo solo si necesitas corregir un puesto de votación desactualizado.')
+                                    ->modalSubmitActionLabel('Sí, actualizar')
+                                    ->action(function ($state, $livewire): void {
+                                        $livewire->forceRefreshFromRegistraduria($state);
+                                    })
+                            )
                             ->rule(function (Get $get, $record) {
                                 return [
                                     new DocumentNotBelongsToLeaderOrCoordinator($record?->id),
