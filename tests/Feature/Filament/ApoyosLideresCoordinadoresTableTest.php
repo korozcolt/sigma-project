@@ -34,10 +34,17 @@ test('apoyos lideres coordinadores table renders, is campaign-scoped, and has an
     ]);
 
     $otherCampaign = Campaign::factory()->create(['status' => 'active']);
+
+    Session::put('campaign_context.campaign_id', $otherCampaign->id);
+    Session::put('campaign_context.mode', 'single');
+
     $otherVoter = Voter::factory()->create([
         'campaign_id' => $otherCampaign->id,
         'municipality_id' => $this->municipality->id,
     ]);
+
+    Session::put('campaign_context.campaign_id', $this->campaign->id);
+    Session::put('campaign_context.mode', 'single');
 
     Livewire::test(ApoyosLideresCoordinadoresTable::class)
         ->assertOk()
