@@ -17,6 +17,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
     case CONFIRMED = 'confirmed';
     case VOTED = 'voted';
     case DID_NOT_VOTE = 'did_not_vote';
+    case DUPLICATE = 'duplicate';
 
     public function getLabel(): ?string
     {
@@ -29,6 +30,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
             self::CONFIRMED => 'Confirmado',
             self::VOTED => 'Votó',
             self::DID_NOT_VOTE => 'No Votó',
+            self::DUPLICATE => 'Duplicado en Disputa',
         };
     }
 
@@ -43,6 +45,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
             self::CONFIRMED => 'success',
             self::VOTED => 'success',
             self::DID_NOT_VOTE => 'danger',
+            self::DUPLICATE => 'warning',
         };
     }
 
@@ -57,20 +60,22 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
             self::CONFIRMED => 'heroicon-m-check-circle',
             self::VOTED => 'heroicon-m-hand-thumb-up',
             self::DID_NOT_VOTE => 'heroicon-m-hand-thumb-down',
+            self::DUPLICATE => 'heroicon-m-document-duplicate',
         };
     }
 
     public function getDescription(): ?string
     {
         return match ($this) {
-            self::PENDING_REVIEW => 'El votante está pendiente de revisión inicial',
-            self::REJECTED_CENSUS => 'El votante fue rechazado al validar contra el censo electoral',
-            self::VERIFIED_CENSUS => 'El votante fue verificado exitosamente en el censo electoral',
-            self::CORRECTION_REQUIRED => 'Los datos del votante requieren corrección antes de continuar',
-            self::VERIFIED_CALL => 'El votante fue verificado mediante llamada telefónica',
-            self::CONFIRMED => 'El votante confirmó su asistencia a votar',
-            self::VOTED => 'El votante ejerció su derecho al voto',
-            self::DID_NOT_VOTE => 'El votante no asistió a votar',
+            self::PENDING_REVIEW => 'El apoyo está pendiente de revisión inicial',
+            self::REJECTED_CENSUS => 'El apoyo fue rechazado al validar contra el censo electoral',
+            self::VERIFIED_CENSUS => 'El apoyo fue verificado exitosamente en el censo electoral',
+            self::CORRECTION_REQUIRED => 'Los datos del apoyo requieren corrección antes de continuar',
+            self::VERIFIED_CALL => 'El apoyo fue verificado mediante llamada telefónica',
+            self::CONFIRMED => 'El apoyo confirmó su asistencia a votar',
+            self::VOTED => 'El apoyo ejerció su derecho al voto',
+            self::DID_NOT_VOTE => 'El apoyo no asistió a votar',
+            self::DUPLICATE => 'El apoyo tiene una cédula duplicada pendiente de resolución por un administrador',
         };
     }
 }
