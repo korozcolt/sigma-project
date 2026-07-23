@@ -83,6 +83,75 @@ it('assigns duplicate_sequence 2 to a third voter registered with the same docum
         ->and($second->fresh()->duplicate_sequence)->toBe(1);
 });
 
+it('the reassignDuplicateOwner action is visible to an admin_campaign on a DUPLICATE voter', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+
+    Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '6666666666',
+    ]);
+
+    $duplicate = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '6666666666',
+    ]);
+
+    actingAs($admin);
+
+    Livewire::test(EditVoter::class, ['record' => $duplicate->id])
+        ->assertActionVisible('reassignDuplicateOwner');
+});
+
+it('the reassignDuplicateOwner action is hidden when the voter status is not DUPLICATE', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+
+    $voter = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '7777777777',
+        'status' => VoterStatus::PENDING_REVIEW,
+    ]);
+
+    actingAs($admin);
+
+    Livewire::test(EditVoter::class, ['record' => $voter->id])
+        ->assertActionHidden('reassignDuplicateOwner');
+});
+
+it('the reassignDuplicateOwner action is hidden from leader and coordinator roles even when the voter is DUPLICATE', function () {
+    Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '8888888888',
+    ]);
+
+    $duplicate = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '8888888888',
+    ]);
+
+    $leader = User::factory()->create();
+    $leader->assignRole(UserRole::LEADER->value);
+
+    actingAs($leader);
+
+    Livewire::test(EditVoter::class, ['record' => $duplicate->id])
+        ->assertActionHidden('reassignDuplicateOwner');
+
+    $coordinator = User::factory()->create();
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+
+    actingAs($coordinator);
+
+    Livewire::test(EditVoter::class, ['record' => $duplicate->id])
+        ->assertActionHidden('reassignDuplicateOwner');
+});
+
 it('reassigning the owner of a duplicate requires a mandatory note and writes a validation_histories row with validation_type duplicate_reassignment', function () {
     $admin = User::factory()->create();
     $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
