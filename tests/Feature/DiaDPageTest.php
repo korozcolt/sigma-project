@@ -24,5 +24,5 @@ it('admin dia d page loads and shows header and widgets', function () {
 
     $response->assertStatus(200);
     $response->assertSee('Jornada Electoral (Día D)');
-    $response->assertSee('Búsqueda de Votante');
+    $response->assertSee('Búsqueda de Apoyo');
 });

@@ -36,7 +36,7 @@ it('shows dia-d stats overview widget on the page', function () {
 
     // Also test the widget directly via Livewire to ensure it renders the stats
     Livewire\Livewire::test(\App\Filament\Widgets\DiaDStatsOverview::class)
-        ->assertSee('Total Votantes')
+        ->assertSee('Total Apoyos')
         ->assertSee('Confirmados')
         ->assertSee('Votaron')
         ->assertSee('No Votaron')

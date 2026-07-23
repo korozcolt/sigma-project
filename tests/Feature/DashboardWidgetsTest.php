@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Filament\Widgets\CampaignStatsOverview;
 use App\Filament\Widgets\TerritorialDistributionChart;
@@ -11,10 +12,9 @@ use App\Models\Municipality;
 use App\Models\Neighborhood;
 use App\Models\User;
 use App\Models\Voter;
+use Illuminate\Support\Facades\Session;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
-use App\Enums\UserRole;
-use Illuminate\Support\Facades\Session;
 
 uses()->group('dashboard-widgets');
 
@@ -49,7 +49,7 @@ test('campaign stats overview shows total voters stat', function () {
 
     Livewire::test(CampaignStatsOverview::class)
         ->assertOk()
-        ->assertSee('Total de Votantes')
+        ->assertSee('Total de Apoyos')
         ->assertSee('10');
 });
 
@@ -69,7 +69,7 @@ test('campaign stats overview shows confirmed voters percentage', function () {
 
     Livewire::test(CampaignStatsOverview::class)
         ->assertOk()
-        ->assertSee('Votantes Confirmados')
+        ->assertSee('Apoyos Confirmados')
         ->assertSee('8');
 });
 
@@ -136,7 +136,7 @@ test('territorial distribution chart shows data for municipalities', function ()
 
     Livewire::test(TerritorialDistributionChart::class)
         ->assertOk()
-        ->assertSee('Distribución Territorial de Votantes');
+        ->assertSee('Top 10 Municipios con más Apoyos');
 });
 
 test('territorial distribution chart handles no active campaign', function () {
