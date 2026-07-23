@@ -15,10 +15,11 @@ use Spatie\Permission\Models\Role;
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
 
-// NOTE (Wave 0 / plan 02.1-01): This file scaffolds RED tests for D-02/D-03/D-10.
-// `duplicate_sequence` column and `VoterStatus::DUPLICATE` do not exist yet - they are
-// implemented in plan 02.1-03. The reassignment action (`reassignDuplicateOwner`) is
-// implemented in plan 02.1-08. Failing/erroring here is expected and correct.
+// NOTE: This file scaffolds tests for D-02/D-03/D-10.
+// `duplicate_sequence` column and `VoterStatus::DUPLICATE` were implemented in plan 02.1-03
+// (sequence-assignment tests below are green). The reassignment action
+// (`reassignDuplicateOwner`) is implemented in plan 02.1-08 - the two reassignment-audit
+// tests below remain red/erroring until that plan lands.
 
 beforeEach(function () {
     collect(UserRole::values())->each(function ($role) {

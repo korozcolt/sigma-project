@@ -82,7 +82,7 @@ it('casts dates correctly', function () {
     expect($voter->census_validated_at)->toBeInstanceOf(Carbon\Carbon::class);
 });
 
-it('document_number is globally unique', function () {
+it('document_number can be duplicated and is tracked via duplicate_sequence', function () {
     $campaign = Campaign::factory()->create();
 
     Voter::factory()->create([
@@ -90,13 +90,16 @@ it('document_number is globally unique', function () {
         'document_number' => '1234567890',
     ]);
 
-    expect(fn () => Voter::factory()->create([
+    $secondVoter = Voter::factory()->create([
         'campaign_id' => $campaign->id,
         'document_number' => '1234567890',
-    ]))->toThrow(Exception::class);
+    ]);
+
+    expect($secondVoter->duplicate_sequence)->toBe(1)
+        ->and($secondVoter->status)->toBe(VoterStatus::DUPLICATE);
 });
 
-it('document_number cannot be duplicated across different campaigns', function () {
+it('document_number duplicate across different campaigns is tracked, not blocked', function () {
     $campaign1 = Campaign::factory()->create();
     $campaign2 = Campaign::factory()->create();
 
@@ -105,9 +108,24 @@ it('document_number cannot be duplicated across different campaigns', function (
         'document_number' => '1234567890',
     ]);
 
-    expect(fn () => Voter::factory()->create([
+    $secondVoter = Voter::factory()->create([
         'campaign_id' => $campaign2->id,
         'document_number' => '1234567890',
+    ]);
+
+    expect($secondVoter->duplicate_sequence)->toBe(1)
+        ->and($secondVoter->status)->toBe(VoterStatus::DUPLICATE);
+});
+
+it('throws when duplicate_sequence collides for the same document_number', function () {
+    Voter::factory()->create([
+        'document_number' => '999',
+        'duplicate_sequence' => 0,
+    ]);
+
+    expect(fn () => Voter::factory()->create([
+        'document_number' => '999',
+        'duplicate_sequence' => 0,
     ]))->toThrow(Exception::class);
 });
 

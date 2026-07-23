@@ -62,6 +62,10 @@ class Voter extends Model
                 return;
             }
 
+            if (blank($voter->document_number)) {
+                return;
+            }
+
             $sequence = app(VoterDuplicateAssignmentService::class)->nextSequenceFor($voter->document_number);
 
             $voter->duplicate_sequence = $sequence;

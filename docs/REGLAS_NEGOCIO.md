@@ -14,17 +14,16 @@ Este documento describe las reglas de negocio vigentes y los cambios recientes p
 - Casos de regresión deben cubrir aislamiento entre campañas.
 - Un usuario no-super no puede ver ni operar datos de otra campaña.
 
-### 2) Unicidad global del documento del votante
+### 2) Duplicados de cédula con sufijo (Apoyos)
 
-- `voters.document_number` es **único global** (en toda la base de datos).
-- El formulario de Votantes en Filament valida unicidad global y muestra el mensaje correspondiente.
-
-**Implicaciones para datos/migración:**
-- Si existen votantes con el mismo `document_number` en distintas campañas, la migración fallará. Se debe depurar/mergear antes de aplicar en producción.
+- `voters.document_number` YA NO es único global. Se permite registrar más de un Apoyo con la misma cédula.
+- Cada fila tiene `duplicate_sequence` (entero, empieza en 0). La constraint única real es compuesta: `(document_number, duplicate_sequence)`.
+- El primer registro de una cédula queda `duplicate_sequence = 0` con su estado normal. Cada registro posterior de la misma cédula recibe el siguiente `duplicate_sequence` disponible y el estado `VoterStatus::DUPLICATE` ("Duplicado en Disputa"), sin importar si es la misma campaña u otra.
+- Un admin de campaña o super admin puede reasignar el dueño de un duplicado; la reasignación requiere nota obligatoria y queda auditada en `validation_histories` (`validation_type = 'duplicate_reassignment'`). El `duplicate_sequence` de cada fila es inmutable — nunca se renumera.
 
 **Implicaciones para pruebas:**
-- Probar que no se puede crear el mismo documento en campañas distintas.
-- Probar que el mensaje de validación se emite en Filament en el campo `document_number`.
+- Probar que un segundo registro con la misma cédula se crea exitosamente con `duplicate_sequence` incrementado y estado `DUPLICATE`.
+- Probar que insertar la misma combinación `(document_number, duplicate_sequence)` sí falla (constraint compuesta real).
 
 ### 3) Call center: cola por revisor con “Cargar 5”
 
@@ -90,9 +89,10 @@ Para regresión, las acciones mínimas a auditar/verificar son:
 Archivos de pruebas que validan estas reglas (orientativo):
 
 - Campaña única activa: `tests/Feature/CampaignTest.php`
-- Unicidad global de documento del votante:
+- Duplicados de cédula con sufijo (Apoyos):
   - `tests/Feature/VoterTest.php`
-  - `tests/Feature/Filament/VoterResourceTest.php`
+  - `tests/Feature/ApoyoDuplicateSequenceTest.php`
+  - `tests/Feature/Filament/VoterResourceTest.php` (rewritten in plan 02.1-09)
 - Día D evidencia + flujo:
   - `tests/Feature/Livewire/DiaDComponentTest.php`
   - `tests/Browser/DiaDVotingFlowTest.php`
