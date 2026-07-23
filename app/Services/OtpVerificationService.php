@@ -13,9 +13,7 @@ class OtpVerificationService
 
     private const MAX_ATTEMPTS = 5;
 
-    public function __construct(private HablameSmsService $sms)
-    {
-    }
+    public function __construct(private HablameSmsService $sms) {}
 
     public function generate(string $phone, Campaign $campaign): OtpVerification
     {

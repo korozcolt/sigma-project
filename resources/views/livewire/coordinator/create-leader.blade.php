@@ -8,11 +8,13 @@ use App\Services\OtpVerificationService;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
-use function Livewire\Volt\{layout, state};
+
+use function Livewire\Volt\layout;
 
 layout('components.layouts::app', ['title' => 'Agregar Líder']);
 
-new class extends Component {
+new class extends Component
+{
     #[Validate('required|string|max:255')]
     public string $name = '';
 
