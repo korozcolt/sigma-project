@@ -214,6 +214,32 @@ test('top leaders table does not show users without voters', function () {
         ->assertCanNotSeeTableRecords([$userWithoutVoters]);
 });
 
+test('top leaders table excludes DUPLICATE status voters from the ranking count (D-01)', function () {
+    $leader = User::factory()->create(['municipality_id' => $this->municipality->id]);
+    $leader->campaigns()->attach($this->campaign);
+
+    Voter::factory()->count(5)->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'registered_by' => $leader->id,
+    ]);
+
+    foreach (range(1, 3) as $i) {
+        Voter::factory()->create([
+            'campaign_id' => $this->campaign->id,
+            'municipality_id' => $this->municipality->id,
+            'registered_by' => $leader->id,
+            'document_number' => "900000000{$i}",
+            'status' => VoterStatus::DUPLICATE,
+            'duplicate_sequence' => 1,
+        ]);
+    }
+
+    Livewire::test(TopLeadersTable::class)
+        ->assertCanSeeTableRecords([$leader])
+        ->assertTableColumnStateSet('registered_voters_count', 5, $leader);
+});
+
 test('validation progress chart widget displays correctly', function () {
     Livewire::test(ValidationProgressChart::class)
         ->assertOk();
