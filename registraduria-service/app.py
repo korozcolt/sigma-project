@@ -46,7 +46,7 @@ def load_env():
                 pass
 
 load_env()
-TWO_CAPTCHA_KEY = os.environ.get("TWO_CAPTCHA_KEY", "9fab1f6ad28812795d61fe8858585ef4")
+TWO_CAPTCHA_KEY = os.environ["TWO_CAPTCHA_KEY"]
 REGISTRADURIA_SITEKEY = "6Lc9DmgrAAAAAJAjWVhjDy1KSgqzqJikY5z7I9SV"
 REGISTRADURIA_PAGE_URL = "https://eleccionescolombia.registraduria.gov.co/identificacion"
 INFOVOTANTES_API = "https://apiweb-eleccionescolombia.infovotantes.com/api/v1/citizen/get-information"
