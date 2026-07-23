@@ -54,10 +54,16 @@ class MaintenanceKillSwitch extends Page
 
                         Notification::make()
                             ->title('Modo mantenimiento activado')
-                            ->body('Enlace de acceso para Super Admin (guárdelo, no se mostrará de nuevo): '.url('/'.$secret))
+                            ->body('Enlace de acceso para otros Super Admin (guárdelo, no se mostrará de nuevo): '.url('/'.$secret))
                             ->warning()
                             ->persistent()
                             ->send();
+
+                        // Bypass the current admin's own session immediately — otherwise
+                        // their very next request (even this action's own redirect) hits
+                        // PreventRequestsDuringMaintenance and locks them out too, since the
+                        // bypass cookie is only set by actually visiting the secret URL.
+                        $this->redirect(url('/'.$secret));
                     }
                 }),
         ];

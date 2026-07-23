@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Enums\UserRole;
+use App\Filament\Pages\MaintenanceKillSwitch;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
@@ -38,6 +40,20 @@ test('super admin bypasses maintenance mode via secret link', function () {
             ->get('/admin');
 
         $response->assertStatus(200);
+    } finally {
+        Artisan::call('up');
+    }
+});
+
+test('activating maintenance mode immediately redirects the acting super admin through the bypass secret, not just showing it in a notification', function () {
+    $superAdmin = User::factory()->create();
+    $superAdmin->assignRole(UserRole::SUPER_ADMIN->value);
+
+    try {
+        Livewire::actingAs($superAdmin)
+            ->test(MaintenanceKillSwitch::class)
+            ->callAction('toggleMaintenance')
+            ->assertRedirect();
     } finally {
         Artisan::call('up');
     }
