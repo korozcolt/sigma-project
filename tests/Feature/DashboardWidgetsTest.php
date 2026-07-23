@@ -8,6 +8,7 @@ use App\Filament\Widgets\DuplicatesReportTable;
 use App\Filament\Widgets\JurisdictionReportTable;
 use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\TerritorialDistributionChart;
+use App\Filament\Widgets\TerritorialOwnershipTable;
 use App\Filament\Widgets\TopCoordinatorsTable;
 use App\Filament\Widgets\TopLeadersTable;
 use App\Filament\Widgets\TopPollingPlacesTable;
@@ -27,6 +28,7 @@ uses()->group('dashboard-widgets');
 beforeEach(function () {
     Role::firstOrCreate(['name' => UserRole::SUPER_ADMIN->value, 'guard_name' => 'web']);
     Role::firstOrCreate(['name' => UserRole::COORDINATOR->value, 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => UserRole::LEADER->value, 'guard_name' => 'web']);
     $user = User::factory()->create();
     $user->assignRole(UserRole::SUPER_ADMIN->value);
     $this->actingAs($user);
@@ -290,6 +292,41 @@ test('all widgets render correctly without errors', function () {
     Livewire::test(TerritorialDistributionChart::class)->assertOk();
     Livewire::test(TopLeadersTable::class)->assertOk();
     Livewire::test(ValidationProgressChart::class)->assertOk();
+});
+
+test('territorial ownership table widget displays correctly (PERM-03)', function () {
+    Livewire::test(TerritorialOwnershipTable::class)
+        ->assertOk();
+});
+
+test('territorial ownership table shows coordinator/leader hierarchy, territory, and workload', function () {
+    $coordinator = User::factory()->create([
+        'name' => 'Coordinador Uno',
+        'municipality_id' => $this->municipality->id,
+    ]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->campaigns()->attach($this->campaign);
+
+    $leader = User::factory()->create([
+        'name' => 'Lider Uno',
+        'municipality_id' => $this->municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+    $leader->campaigns()->attach($this->campaign);
+
+    Voter::factory()->count(4)->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'registered_by' => $leader->id,
+    ]);
+
+    Livewire::test(TerritorialOwnershipTable::class)
+        ->assertCanSeeTableRecords([$coordinator, $leader])
+        ->assertSee('Coordinador Uno')
+        ->assertSee('Lider Uno')
+        ->assertTableColumnStateSet('registered_voters_count', 4, $leader->getKey())
+        ->assertTableColumnStateSet('leaders_count', 1, $coordinator->getKey());
 });
 
 test('all 6 new report widgets render correctly without errors when wired into the panel (04.1-05)', function () {

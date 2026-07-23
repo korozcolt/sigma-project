@@ -10,6 +10,7 @@ use App\Filament\Widgets\JurisdictionReportTable;
 use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\SurveyStatsOverview;
 use App\Filament\Widgets\TerritorialDistributionChart;
+use App\Filament\Widgets\TerritorialOwnershipTable;
 use App\Filament\Widgets\TopCoordinatorsTable;
 use App\Filament\Widgets\TopLeadersTable;
 use App\Filament\Widgets\TopPollingPlacesTable;
@@ -73,6 +74,7 @@ class AdminPanelProvider extends PanelProvider
                 TerritorialDistributionChart::class, // Mapa — fila 2 der
                 TopLeadersTable::class,          // Ranking líderes (D-01 fix) — fila 3 completa
                 TopCoordinatorsTable::class,     // Ranking + cobertura coordinadores (D-05) — fila 4 completa
+                TerritorialOwnershipTable::class, // Propiedad territorial/equipos consolidada (PERM-03)
                 TopPollingPlacesTable::class,    // Ranking puestos de votación — fila 5 completa
                 RejectionsReportTable::class,    // Informe de rechazos — fila 6 completa
                 DuplicatesReportTable::class,    // Informe de duplicados (D-06, cruza campañas) — fila 7 completa

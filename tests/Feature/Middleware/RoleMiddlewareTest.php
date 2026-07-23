@@ -61,10 +61,10 @@ test('EnsureUserHasRole denies access when user does not have required role', fu
 
     $middleware = new EnsureUserHasRole;
 
-    $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+    $this->expectException(\Illuminate\Auth\Access\AuthorizationException::class);
 
     $middleware->handle($request, fn () => new Response('success'), 'super_admin');
-})->throws(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+})->throws(\Illuminate\Auth\Access\AuthorizationException::class);
 
 test('EnsureUserHasRole returns 401 when user is not authenticated', function () {
     $request = Request::create('/test', 'GET');

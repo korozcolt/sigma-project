@@ -6,6 +6,7 @@ use App\Models\Invitation;
 use App\Models\User;
 use App\Policies\InvitationPolicy;
 use App\Services\CampaignContext;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -49,11 +50,15 @@ class AuthServiceProvider extends ServiceProvider
             $model = $arguments[0] ?? null;
 
             if ($model instanceof User) {
-                return $model->campaigns()->whereKey($campaignId)->exists() ? null : false;
+                return $model->campaigns()->whereKey($campaignId)->exists()
+                    ? null
+                    : Response::deny('Este usuario no pertenece a la campaña activa.');
             }
 
             if ($model instanceof Model && $model->getAttribute('campaign_id')) {
-                return (int) $model->getAttribute('campaign_id') === (int) $campaignId ? null : false;
+                return (int) $model->getAttribute('campaign_id') === (int) $campaignId
+                    ? null
+                    : Response::deny('Este registro pertenece a otra campaña y no es accesible desde tu contexto actual.');
             }
 
             return null;
