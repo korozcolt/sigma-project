@@ -6,14 +6,20 @@ use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Models\Voter;
 use App\Services\CampaignContext;
+use App\Services\VoterValidationService;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class VotersTable
 {
@@ -184,11 +190,52 @@ class VotersTable
                     ->preload()
                     ->multiple(),
 
+                Filter::make('contact_state')
+                    ->label('Estado de Contacto')
+                    ->form([
+                        Select::make('value')
+                            ->label('Estado de Contacto')
+                            ->options([
+                                'has_open_call' => 'Con llamada pendiente',
+                                'survey_completed' => 'Encuesta completada',
+                                'no_contact' => 'Sin ningún contacto registrado',
+                            ]),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? null) {
+                            'has_open_call' => $query->whereHas('callAssignments', fn ($q) => $q->whereIn('status', ['pending', 'in_progress'])),
+                            'survey_completed' => $query->whereHas('surveyResponses'),
+                            'no_contact' => $query->whereDoesntHave('callAssignments')->whereDoesntHave('surveyResponses'),
+                            default => $query,
+                        };
+                    })
+                    ->indicateUsing(fn (array $data): ?string => match ($data['value'] ?? null) {
+                        'has_open_call' => 'Con llamada pendiente',
+                        'survey_completed' => 'Encuesta completada',
+                        'no_contact' => 'Sin contacto',
+                        default => null,
+                    }),
+
                 TrashedFilter::make(),
             ])
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+                Action::make('validateCensus')
+                    ->label('Validar contra Censo')
+                    ->icon('heroicon-o-shield-check')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalDescription('Se comparará el documento del apoyo contra los registros del censo electoral de esta campaña.')
+                    ->visible(fn (Voter $record): bool => $record->status !== VoterStatus::DUPLICATE)
+                    ->action(function (Voter $record): void {
+                        app(VoterValidationService::class)->validateAndUpdate($record);
+
+                        Notification::make()
+                            ->title('Validación contra censo completada')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
