@@ -2,12 +2,16 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\UserRole;
 use App\Enums\VoterStatus;
+use App\Models\Campaign;
 use App\Models\User;
 use App\Models\Voter;
 use App\Services\CampaignContext;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class CampaignStatsOverview extends StatsOverviewWidget
@@ -37,8 +41,8 @@ class CampaignStatsOverview extends StatsOverviewWidget
                 ->color('warning');
         }
 
-        $total = Voter::where('campaign_id', $activeCampaign->id)->count();
-        $lastWeek = Voter::where('campaign_id', $activeCampaign->id)
+        $total = $this->scopedVoterQuery($activeCampaign)->count();
+        $lastWeek = $this->scopedVoterQuery($activeCampaign)
             ->whereBetween('created_at', [now()->subWeek(), now()])
             ->count();
 
@@ -57,11 +61,11 @@ class CampaignStatsOverview extends StatsOverviewWidget
             return Stat::make('Apoyos Confirmados', 0);
         }
 
-        $confirmed = Voter::where('campaign_id', $activeCampaign->id)
+        $confirmed = $this->scopedVoterQuery($activeCampaign)
             ->where('status', VoterStatus::CONFIRMED->value)
             ->count();
 
-        $total = Voter::where('campaign_id', $activeCampaign->id)->count();
+        $total = $this->scopedVoterQuery($activeCampaign)->count();
         $percentage = $total > 0 ? ($confirmed / $total) * 100 : 0;
 
         $color = match (true) {
@@ -84,14 +88,34 @@ class CampaignStatsOverview extends StatsOverviewWidget
             return Stat::make('Líderes Activos', 0);
         }
 
+        $user = Auth::user();
+
+        if ($user?->hasRole(UserRole::LEADER->value)) {
+            $ownVotersCount = $user->registeredVoters()->where('campaign_id', $activeCampaign->id)->count();
+
+            return Stat::make('Mis Apoyos Registrados', number_format($ownVotersCount))
+                ->descriptionIcon('heroicon-m-user')
+                ->color('success');
+        }
+
+        if ($user?->hasRole(UserRole::COORDINATOR->value)) {
+            $leadersCount = $user->leaders()->count();
+            $totalVotersForLeaders = Voter::where('campaign_id', $activeCampaign->id)
+                ->whereIn('registered_by', $user->leaders()->pluck('id'))
+                ->count();
+
+            $avgVoters = $leadersCount > 0 ? $totalVotersForLeaders / $leadersCount : 0;
+
+            return Stat::make('Líderes Activos', number_format($leadersCount))
+                ->description(round($avgVoters, 1).' apoyos/líder promedio')
+                ->descriptionIcon('heroicon-m-star')
+                ->color('success');
+        }
+
         // Líderes son usuarios que tienen apoyos registrados
         $leadersCount = User::query()
             ->whereHas('campaigns', fn ($q) => $q->where('campaigns.id', $activeCampaign->id))
             ->whereHas('registeredVoters', fn ($q) => $q->where('campaign_id', $activeCampaign->id))
-            ->count();
-
-        $totalUsers = User::query()
-            ->whereHas('campaigns', fn ($q) => $q->where('campaigns.id', $activeCampaign->id))
             ->count();
 
         if ($leadersCount > 0) {
@@ -123,8 +147,8 @@ class CampaignStatsOverview extends StatsOverviewWidget
             return Stat::make('Progreso de Validación', '0%');
         }
 
-        $total = Voter::where('campaign_id', $activeCampaign->id)->count();
-        $validated = Voter::where('campaign_id', $activeCampaign->id)
+        $total = $this->scopedVoterQuery($activeCampaign)->count();
+        $validated = $this->scopedVoterQuery($activeCampaign)
             ->whereNotNull('call_verified_at')
             ->count();
 
@@ -146,9 +170,10 @@ class CampaignStatsOverview extends StatsOverviewWidget
 
     protected function getVotersGrowthChart(int $campaignId): array
     {
-        return Voter::query()
+        $campaign = Campaign::find($campaignId);
+
+        return $this->scopedVoterQuery($campaign)
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(*) as count'))
-            ->where('campaign_id', $campaignId)
             ->whereBetween('created_at', [now()->subDays(6)->startOfDay(), now()->endOfDay()])
             ->groupBy('date')
             ->orderBy('date')
@@ -158,13 +183,15 @@ class CampaignStatsOverview extends StatsOverviewWidget
 
     protected function getValidationProgressChart(int $campaignId): array
     {
+        $campaign = Campaign::find($campaignId);
+
         $days = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i)->toDateString();
-            $validated = Voter::where('campaign_id', $campaignId)
+            $validated = $this->scopedVoterQuery($campaign)
                 ->whereDate('call_verified_at', '<=', $date)
                 ->count();
-            $total = Voter::where('campaign_id', $campaignId)
+            $total = $this->scopedVoterQuery($campaign)
                 ->whereDate('created_at', '<=', $date)
                 ->count();
 
@@ -172,5 +199,21 @@ class CampaignStatsOverview extends StatsOverviewWidget
         }
 
         return $days;
+    }
+
+    private function scopedVoterQuery(Campaign $campaign): Builder
+    {
+        $user = Auth::user();
+        $query = Voter::where('campaign_id', $campaign->id);
+
+        if ($user?->hasRole(UserRole::LEADER->value)) {
+            return $query->where('registered_by', $user->id);
+        }
+
+        if ($user?->hasRole(UserRole::COORDINATOR->value)) {
+            return $query->whereIn('registered_by', $user->leaders()->pluck('id'));
+        }
+
+        return $query;
     }
 }
