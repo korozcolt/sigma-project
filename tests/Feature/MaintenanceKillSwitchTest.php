@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
@@ -15,14 +16,26 @@ beforeEach(function () {
     });
 });
 
-test('super admin bypasses maintenance mode', function () {
+test('super admin bypasses maintenance mode via secret link', function () {
     $superAdmin = User::factory()->create();
     $superAdmin->assignRole(UserRole::SUPER_ADMIN->value);
 
-    try {
-        Artisan::call('down');
+    $secret = Str::random(40);
 
-        $response = $this->actingAs($superAdmin)->get('/admin');
+    try {
+        Artisan::call('down', ['--secret' => $secret]);
+
+        // Visiting the secret URL sets the maintenance bypass cookie (Laravel's
+        // native mechanism), simulating the link a Super Admin gets in the
+        // Filament notification when activating maintenance mode.
+        $bypassVisit = $this->actingAs($superAdmin)->get('/'.$secret);
+        $bypassVisit->assertRedirect();
+
+        $cookieValue = $bypassVisit->getCookie('laravel_maintenance', decrypt: false)->getValue();
+
+        $response = $this->actingAs($superAdmin)
+            ->withUnencryptedCookie('laravel_maintenance', $cookieValue)
+            ->get('/admin');
 
         $response->assertStatus(200);
     } finally {

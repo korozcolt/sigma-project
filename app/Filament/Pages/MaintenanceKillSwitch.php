@@ -12,6 +12,7 @@ use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class MaintenanceKillSwitch extends Page
 {
@@ -47,9 +48,16 @@ class MaintenanceKillSwitch extends Page
 
                         Notification::make()->title('Mantenimiento desactivado')->success()->send();
                     } else {
-                        Artisan::call('down', ['--retry' => 60]);
+                        $secret = Str::random(40);
 
-                        Notification::make()->title('Modo mantenimiento activado')->warning()->send();
+                        Artisan::call('down', ['--retry' => 60, '--secret' => $secret]);
+
+                        Notification::make()
+                            ->title('Modo mantenimiento activado')
+                            ->body('Enlace de acceso para Super Admin (guárdelo, no se mostrará de nuevo): '.url('/'.$secret))
+                            ->warning()
+                            ->persistent()
+                            ->send();
                     }
                 }),
         ];
