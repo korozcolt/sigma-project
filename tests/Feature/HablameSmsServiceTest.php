@@ -143,6 +143,72 @@ test('handles API errors gracefully', function () {
         ->and($result['error'])->toContain('Invalid phone number');
 });
 
+test('classifies statusId 1 (processing) as sent, not failed', function () {
+    Config::set('services.hablame.sandbox_mode', false);
+    Config::set('services.hablame.api_key', 'test_api_key');
+
+    Http::fake([
+        '*/sms/v5/send' => Http::response([
+            'payLoad' => [
+                'batch_id' => 'test_batch_processing',
+                'messages' => [
+                    [
+                        'statusId' => 1, // 1 = en procesamiento (async, confirmado por Hablame vía polling)
+                        'price' => 0.034,
+                        'to' => '3001234567',
+                    ],
+                ],
+            ],
+            'statusCode' => 201,
+            'statusMessage' => 'Message sent successfully',
+            'responseTime' => '85',
+        ], 201),
+    ]);
+
+    $campaign = Campaign::factory()->create();
+    $voter = Voter::factory()->for($campaign)->create(['phone' => '+573001234567']);
+    $message = Message::factory()->for($campaign)->for($voter)->sms()->create();
+
+    $service = app(HablameSmsService::class);
+    $result = $service->send($message);
+
+    expect($result['sent'])->toBe(1)
+        ->and($result['failed'])->toBe(0);
+});
+
+test('still classifies a genuinely unknown statusId as failed', function () {
+    Config::set('services.hablame.sandbox_mode', false);
+    Config::set('services.hablame.api_key', 'test_api_key');
+
+    Http::fake([
+        '*/sms/v5/send' => Http::response([
+            'payLoad' => [
+                'batch_id' => 'test_batch_unknown',
+                'messages' => [
+                    [
+                        'statusId' => 999, // código desconocido/fallo genuino
+                        'price' => 0.034,
+                        'to' => '3001234567',
+                    ],
+                ],
+            ],
+            'statusCode' => 201,
+            'statusMessage' => 'Message sent successfully',
+            'responseTime' => '85',
+        ], 201),
+    ]);
+
+    $campaign = Campaign::factory()->create();
+    $voter = Voter::factory()->for($campaign)->create(['phone' => '+573001234567']);
+    $message = Message::factory()->for($campaign)->for($voter)->sms()->create();
+
+    $service = app(HablameSmsService::class);
+    $result = $service->send($message);
+
+    expect($result['failed'])->toBe(1)
+        ->and($result['sent'])->toBe(0);
+});
+
 test('can get real account info', function () {
     Config::set('services.hablame.sandbox_mode', false);
     Config::set('services.hablame.api_key', 'test_api_key');

@@ -90,8 +90,10 @@ class HablameSmsService
                         'message' => $msg,
                     ]);
 
-                    // Considerar exitosos: 102 (enviado) y 106 (programado/en cola)
-                    if (in_array($statusId, [102, 106])) {
+                    // Considerar no-fallidos: 102 (enviado), 106 (programado/en cola) y
+                    // 1 (en procesamiento — Hablame confirma entrega asíncrona vía polling;
+                    // no debe contabilizarse como fallo mientras el mensaje sigue en tránsito)
+                    if (in_array($statusId, [1, 102, 106], true)) {
                         $sent++;
                     } else {
                         $failed++;
