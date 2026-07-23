@@ -26,6 +26,19 @@ beforeEach(function () {
     $this->campaignB = Campaign::factory()->create();
 });
 
+// CampaignContext::setCampaignId() mutates static properties that live for the whole
+// test process (not per-test). Reset them after each test so this file never leaks a
+// campaign override into unrelated test files that run afterward.
+afterEach(function () {
+    $reflection = new ReflectionClass(CampaignContext::class);
+
+    foreach (['overrideCampaignId', 'overrideMode'] as $property) {
+        $prop = $reflection->getProperty($property);
+        $prop->setAccessible(true);
+        $prop->setValue(null, null);
+    }
+});
+
 test('VoterResource route binding does not leak a soft-deleted Voter from another campaign', function () {
     CampaignContext::setCampaignId($this->campaignB->id);
     $voterB = Voter::factory()->create(['campaign_id' => $this->campaignB->id]);

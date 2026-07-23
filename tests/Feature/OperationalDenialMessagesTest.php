@@ -23,6 +23,19 @@ beforeEach(function () {
     });
 });
 
+// CampaignContext::setCampaignId() mutates static properties that live for the whole
+// test process (not per-test). Reset them after each test so this file never leaks a
+// campaign override into unrelated test files that run afterward.
+afterEach(function () {
+    $reflection = new ReflectionClass(CampaignContext::class);
+
+    foreach (['overrideCampaignId', 'overrideMode'] as $property) {
+        $prop = $reflection->getProperty($property);
+        $prop->setAccessible(true);
+        $prop->setValue(null, null);
+    }
+});
+
 test('EnsureUserHasRole denies access with a message naming the missing role', function () {
     $user = User::factory()->create();
     $user->assignRole(UserRole::LEADER->value);
