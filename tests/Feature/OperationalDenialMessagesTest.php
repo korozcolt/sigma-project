@@ -47,13 +47,13 @@ test('CampaignContext::enforceCampaignId throws OperationalDenialException menti
 
     CampaignContext::setCampaignId(null);
 
-    $voter = Voter::factory()->make();
+    $voter = new Voter;
 
     try {
         CampaignContext::enforceCampaignId($voter);
         $this->fail('Expected OperationalDenialException was not thrown.');
     } catch (OperationalDenialException $e) {
-        expect($e->getMessage())->toContain('contexto de campaña');
+        expect($e->getMessage())->toContain('Contexto de campaña');
     }
 });
 

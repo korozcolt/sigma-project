@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\UserRole;
 use Closure;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -29,6 +31,10 @@ class EnsureUserHasRole
             }
         }
 
-        abort(403, 'No tienes permiso para acceder a esta sección');
+        $labels = collect($roles)
+            ->map(fn (string $role) => UserRole::tryFrom($role)?->getLabel() ?? $role)
+            ->implode(', ');
+
+        throw new AuthorizationException("Tu rol actual no tiene acceso a esta sección. Se requiere el rol: {$labels}.");
     }
 }

@@ -4,12 +4,12 @@ namespace App\Services;
 
 use App\Enums\CampaignStatus;
 use App\Enums\UserRole;
+use App\Exceptions\OperationalDenialException;
 use App\Models\Campaign;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
-use RuntimeException;
 
 class CampaignContext
 {
@@ -122,7 +122,7 @@ class CampaignContext
             }
 
             if (Auth::check()) {
-                throw new RuntimeException('No campaign context available for this action.');
+                throw OperationalDenialException::campaignScope('no hay una campaña activa seleccionada. Selecciona una campaña e intenta de nuevo.');
             }
 
             return;
@@ -144,7 +144,7 @@ class CampaignContext
                 return;
             }
 
-            throw new RuntimeException('Campaign change is not allowed without context.');
+            throw OperationalDenialException::campaignScope('no se puede cambiar la campaña de este registro sin un contexto de campaña activo.');
         }
 
         $model->setAttribute('campaign_id', $campaignId);
