@@ -84,44 +84,47 @@
 
 ## Traceability
 
+**Reconciled 2026-07-23** against a full codebase audit — see `.planning/phases/05.1-cross-phase-hardening-closure/05.1-CONTEXT.md` for per-requirement evidence. Phases 1-5's roadmap status was stale; most requirements are already substantially satisfied via inserted phases 02.1/04.1 plus incidental work. Remaining "Partial" items close in Phase 05.1.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CAMP-01 | Phase 1 | Pending |
-| CAMP-02 | Phase 1 | Pending |
-| CAMP-03 | Phase 1 | Pending |
-| CAMP-04 | Phase 1 | Pending |
-| CAMP-05 | Phase 1 | Pending |
-| PERM-01 | Phase 1 | Pending |
-| PERM-02 | Phase 1 | Pending |
-| PERM-03 | Phase 1 | Pending |
-| VOTE-01 | Phase 2 | Pending |
-| VOTE-02 | Phase 2 | Pending |
-| VOTE-03 | Phase 2 | Pending |
-| VOTE-04 | Phase 2 | Pending |
-| VOTE-05 | Phase 2 | Pending |
-| VOTE-06 | Phase 2 | Pending |
-| OUTR-01 | Phase 3 | Pending |
-| OUTR-02 | Phase 3 | Pending |
-| OUTR-03 | Phase 3 | Pending |
-| OUTR-04 | Phase 3 | Pending |
-| OUTR-05 | Phase 3 | Pending |
-| REPT-01 | Phase 4 | Pending |
-| REPT-02 | Phase 4 | Pending |
-| REPT-03 | Phase 4 | Pending |
-| REPT-04 | Phase 4 | Pending |
-| DAYD-01 | Phase 5 | Pending |
-| DAYD-02 | Phase 5 | Pending |
-| DAYD-03 | Phase 5 | Pending |
-| DAYD-04 | Phase 5 | Pending |
-| DAYD-05 | Phase 5 | Pending |
-| QUAL-01 | Phase 5 | Pending |
-| QUAL-02 | Phase 5 | Pending |
+| CAMP-01 | Phase 1 | Done |
+| CAMP-02 | Phase 1 | Done |
+| CAMP-03 | Phase 1 | Done |
+| CAMP-04 | Phase 1 | Done |
+| CAMP-05 | Phase 1 | Partial (closing in Phase 05.1) |
+| PERM-01 | Phase 1 | Done |
+| PERM-02 | Phase 1 | Partial (closing in Phase 05.1) |
+| PERM-03 | Phase 1 | Partial (closing in Phase 05.1) |
+| VOTE-01 | Phase 2 | Done |
+| VOTE-02 | Phase 2 | Done |
+| VOTE-03 | Phase 2 | Partial (closing in Phase 05.1) |
+| VOTE-04 | Phase 2 | Partial (closing in Phase 05.1) |
+| VOTE-05 | Phase 2 | Done |
+| VOTE-06 | Phase 2 | Partial (closing in Phase 05.1) |
+| OUTR-01 | Phase 3 | Partial (closing in Phase 05.1) |
+| OUTR-02 | Phase 3 | Done |
+| OUTR-03 | Phase 3 | Done |
+| OUTR-04 | Phase 3 | Partial (closing in Phase 05.1 — live bug confirmed 2026-07-23) |
+| OUTR-05 | Phase 3 | Partial (closing in Phase 05.1) |
+| REPT-01 | Phase 4 | Done |
+| REPT-02 | Phase 4 | Partial (closing in Phase 05.1) |
+| REPT-03 | Phase 4 | Partial (closing in Phase 05.1 — biggest Phase 4 gap) |
+| REPT-04 | Phase 4 | Not covered (closing in Phase 05.1) |
+| DAYD-01 | Phase 5 | Done |
+| DAYD-02 | Phase 5 | Done |
+| DAYD-03 | Phase 5 | Partial (closing in Phase 05.1) |
+| DAYD-04 | Phase 5 | Partial (closing in Phase 05.1) |
+| DAYD-05 | Phase 5 | Done |
+| QUAL-01 | Phase 5 | Partial (closing in Phase 05.1) |
+| QUAL-02 | Phase 5 | Not covered (closing in Phase 05.1 — biggest Phase 5 gap) |
 
 **Coverage:**
 - v1 requirements: 30 total
 - Mapped to phases: 30
 - Unmapped: 0
+- Done: 15 | Partial: 13 | Not covered: 2
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after roadmap creation*
+*Last updated: 2026-07-23 after full codebase audit reconciliation (Phase 05.1 inserted)*

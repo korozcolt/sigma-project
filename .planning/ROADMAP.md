@@ -116,15 +116,35 @@ Plans:
 **Plans**: TBD
 **UI hint**: yes
 
+### Phase 05.1: Cross-Phase Hardening & Trust Safeguards Closure (INSERTED)
+
+**Goal:** Close the genuine, bounded gaps found by a full codebase audit (2026-07-23) of Phases 1-5 — do NOT rebuild anything already working. The audit found Phases 1-5's core spines substantially already built (via inserted phases 02.1/04.1 plus incidental work), with the roadmap's "Not started" status stale across the board. This phase closes the specific remaining gaps rather than re-executing Phases 1-5 from scratch.
+**Requirements**: PERM-02, PERM-03, CAMP-05, VOTE-03, VOTE-04, VOTE-06, OUTR-01, OUTR-04, OUTR-05, REPT-02, REPT-03, REPT-04, DAYD-03, DAYD-04, QUAL-01, QUAL-02 (all previously-defined v1 requirements, now Partial rather than new; plus 2 client-requested items without formal REQ-IDs: leader-registration OTP via Hablame SMS, and a Super Admin maintenance kill switch)
+**Depends on:** Phases 1-5 (audit baseline — see `.planning/phases/05.1-cross-phase-hardening-closure/05.1-CONTEXT.md` for full gap detail per requirement)
+**Success Criteria** (what must be TRUE):
+  1. Authorization denials tell the operator whether campaign scope, role, or territorial ownership caused the block (PERM-02), and a consolidated view shows who owns a given territory/follow-up queue (PERM-03).
+  2. Campaign scoping is verified safe inside queue/job contexts, not just interactive requests (CAMP-05).
+  3. Leader registration requires OTP verification via Hablame SMS with a per-campaign-configurable message, and reliably reaches the device (`priority: true` fix); a Super Admin can toggle maintenance mode with automatic self-bypass.
+  4. Operator can trigger census validation from the Voter UI and see a clear result + source (VOTE-03); the Voter profile shows what's missing and the next recommended action (VOTE-04); VotersTable supports filtering by contact state (VOTE-06).
+  5. Call-queue campaign isolation and anti-duplicate-assignment logic have dedicated regression tests (OUTR-01, OUTR-05); Hablame SMS status classification correctly handles `statusId` values beyond 102/106 so real deliveries aren't misreported as failed (OUTR-04).
+  6. Coordinator and Leader dashboards show workload/territory scoped to that user's own team, not campaign-wide totals (REPT-03); dashboards show a follow-up backlog indicator (REPT-02); at least the highest-value widgets support drill-through from aggregate to filtered record list (REPT-04).
+  7. `vote_records` has a DB-level uniqueness constraint on `(voter_id, election_event_id)` and a defined voted/did-not-vote conflict rule (DAYD-03); Day D participation stats break down by territory, not just campaign totals (DAYD-04).
+  8. `FinalizeElectionEvent` has a direct test (dispatching the real job, not reimplementing its query) and DB-level duplicate prevention is tested (QUAL-01); the Day D path has structured logging and the finalize job runs queued (not `dispatchSync`) with failure visibility (QUAL-02).
+**Plans**: TBD
+**UI hint**: yes (REPT-03 dashboard scoping, VOTE-04 profile guidance, PERM-02 error messaging all have user-facing surfaces)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1
+
+**Audit note (2026-07-23):** A full codebase audit found Phases 1-5's roadmap status below stale — see `.planning/phases/05.1-cross-phase-hardening-closure/05.1-CONTEXT.md` for the complete per-requirement coverage table. Actual coverage: Phase 1 ~70%, Phase 2 ~65%, Phase 3 ~70%, Phase 4 ~55%, Phase 5 ~60-65%. Phase 05.1 closes the real remaining gaps across all five.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Campaign Safety & Role Boundaries | 0/TBD | Not started | - |
-| 2. Voter Spine Hardening | 0/TBD | Not started | - |
-| 3. Outreach & Follow-up Reliability | 0/TBD | Not started | - |
-| 4. Trusted Reporting & Control Surfaces | 0/TBD | Not started | - |
-| 5. Day D Readiness & Trust Safeguards | 0/TBD | Not started | - |
+| 1. Campaign Safety & Role Boundaries | 0/TBD | Substantially covered (~70%, via 02.1 + incidental work) — see 05.1-CONTEXT.md | - |
+| 2. Voter Spine Hardening | 0/TBD | Substantially covered (~65%, via 02.1 + incidental work) — see 05.1-CONTEXT.md | - |
+| 3. Outreach & Follow-up Reliability | 0/TBD | Substantially covered (~70%, incidental work) — see 05.1-CONTEXT.md | - |
+| 4. Trusted Reporting & Control Surfaces | 5/5 | Substantially covered (~55%, via 04.1) — see 05.1-CONTEXT.md | 2026-07-23 |
+| 5. Day D Readiness & Trust Safeguards | 0/TBD | Substantially covered (~60-65%, incidental work) — see 05.1-CONTEXT.md | - |
+| 05.1. Cross-Phase Hardening & Trust Safeguards Closure (INSERTED) | 0/TBD | Not started | - |

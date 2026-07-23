@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-stopped_at: "Quick task 260723-f26 closed (code + E2E attempt done, blocked externally on Registraduría's decommissioned election subdomain). Main line reverts to Phase 04.1 — fully executed, ready for /gsd:verify-work."
-last_updated: "2026-07-23T17:20:00.000Z"
+stopped_at: "Full 5-phase codebase audit (2026-07-23) found Phases 1-5 substantially already covered (roadmap was stale). Phase 05.1 inserted after Phase 5 to close the real remaining gaps; ROADMAP.md/REQUIREMENTS.md reconciled. Ready for /gsd:plan-phase 05.1."
+last_updated: "2026-07-23T18:40:00.000Z"
 progress:
   total_phases: 7
   completed_phases: 2
@@ -19,11 +19,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 04.1 — reportes-avanzados-de-apoyos-ranking-lider-coordinador-puesto-votacion-informe-rechazos-informe-duplicados-export-csv-plano-informe-jurisdiccion-dentro-fuera
+**Current focus:** Phase 05.1 — cross-phase-hardening-closure (gap-closure across Phases 1-5, see `.planning/phases/05.1-cross-phase-hardening-closure/05.1-CONTEXT.md`)
 
 ## Current Position
 
-Phase: 5
+Phase: 05.1
 Plan: Not started
 
 ## Performance Metrics
@@ -78,10 +78,11 @@ Recent decisions affecting current work:
 
 - Phase 02.1 inserted after Phase 2: Apoyos - Reglas Core y Segmentacion (rename cosmetico Votante->Apoyo, exclusion lider-apoyo, duplicados con sufijo, gremio/subcategoria, import masivo CSV) (URGENT - client request)
 - Phase 04.1 inserted after Phase 4: Reportes Avanzados de Apoyos (ranking lider-coordinador-puesto votacion, informe rechazos, informe duplicados, export CSV plano, informe jurisdiccion dentro-fuera) (URGENT - client request)
+- Phase 05.1 inserted after Phase 5 (2026-07-23): Cross-Phase Hardening & Trust Safeguards Closure. Triggered by a full codebase audit (5 parallel research agents, one per Phase 1-5) that found ROADMAP.md's "Not started" status for Phases 1-4 completely stale — actual coverage: Phase 1 ~70%, Phase 2 ~65%, Phase 3 ~70%, Phase 4 ~55%, Phase 5 ~60-65% (Phase 5 itself, via the pre-existing DiaD page/VoteRecord/DiaDStatsOverview infra, contradicted its own "0/TBD" status too). ROADMAP.md and REQUIREMENTS.md traceability table updated to reflect real per-requirement status (Done/Partial/Not covered). Phase 05.1 closes the ~16 genuine gaps found (see `.planning/phases/05.1-cross-phase-hardening-closure/05.1-CONTEXT.md`) instead of re-executing Phases 1-5 from scratch.
 
 ### Pending Todos
 
-- When planning Phase 1 (Campaign Safety & Role Boundaries), fold in client-requested security items: OTP verification for leader registration via Hablame SMS (service already integrated as HablameSmsService) and a Super Admin kill switch / maintenance mode toggle (build on Laravel's native maintenance mode, managed from a Filament action, with automatic bypass for the super admin role). **New sub-requirements surfaced 2026-07-23** (see `.planning/notes/2026-07-23-requisito-nuevo-feature-pendiente.md`): (1) OTP message text must be parameterizable per campaign, stored in Campaign settings, not hardcoded; (2) a live test send never reached the test device despite operator-level delivery confirmation (generic shortcode `893181` used instead of the configured `HABLAME_FROM=SIGMA`) — **per Hablame support, the fix is entirely on our side**: add `"priority": true` to each message in the `POST /sms/v5/send` body (no sender-ID registration or certified-product contract needed). Implement in `HablameSmsService::send()` when sending OTP/transactional messages.
+- ~~When planning Phase 1, fold in OTP + kill switch~~ — **superseded 2026-07-23**: now formally scoped into Phase 05.1 (see `.planning/phases/05.1-cross-phase-hardening-closure/05.1-CONTEXT.md`, which includes the OTP-parameterization requirement and the Hablame `priority:true` delivery fix from `.planning/notes/2026-07-23-requisito-nuevo-feature-pendiente.md`).
 - Separately (not urgent per user): production `sigma-registraduria` container on `korserver` (Dokploy) still runs the OLD hardcoded-2captcha-key code — needs a Dokploy redeploy to pick up commit `ac1dd5a` (env-var-only fix) + the new `TWO_CAPTCHA_KEY` env var the user already set in Dokploy. Project isn't in production use yet, so user said this can happen whenever.
 - **Registraduría election-lookup endpoints currently decommissioned** (found 2026-07-23 during quick task 260723-f26's E2E attempt): both `eleccionescolombia.registraduria.gov.co` and `apiweb-eleccionescolombia.infovotantes.com` have no DNS record at all (confirmed via authoritative NOERROR/ANSWER:0 responses, not a local network issue) — likely temporary election-season infrastructure taken down between election cycles. The whole Registraduría lookup feature (both the existing primary button and the new secondary refresh button) will fail with a network error until Registraduría reactivates it. Not fixable on our end — revisit if/when an election cycle makes those subdomains live again.
 
@@ -103,6 +104,6 @@ yet.
 
 ## Session Continuity
 
-Last session: 2026-07-23T17:20:00.000Z
-Stopped at: Quick task 260723-f26 closed out (code done, E2E blocked externally on Registraduría). Main line: Phase 04.1 fully executed, ready for /gsd:verify-work.
+Last session: 2026-07-23T18:40:00.000Z
+Stopped at: Phase 04.1 UAT complete (8/8 passed). Full 1-5 codebase audit run, ROADMAP.md/REQUIREMENTS.md reconciled, Phase 05.1 inserted for gap closure. Ready for /gsd:plan-phase 05.1.
 Resume file: None
