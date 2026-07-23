@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to execute
-stopped_at: Phase 04.1 Wave 1 complete (plans 01-04 of 5)
-last_updated: "2026-07-23T15:10:20.378Z"
+status: Phase complete — ready for verification
+stopped_at: "Completed 04.1-05-PLAN.md — Phase 04.1 fully executed, ready for /gsd:verify-work"
+last_updated: "2026-07-23T15:19:03.376Z"
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 16
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 04.1 (reportes-avanzados-de-apoyos-ranking-lider-coordinador-puesto-votacion-informe-rechazos-informe-duplicados-export-csv-plano-informe-jurisdiccion-dentro-fuera) — EXECUTING
-Plan: 2 of 5
+Plan: 5 of 5
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Plan: 2 of 5
 | Phase 02.1 P10 | 330 | 3 tasks | 8 files |
 | Phase 02.1 P11 | 15 | 2 tasks | 5 files |
 | Phase 04.1 P01 | 20 | 3 tasks | 9 files |
+| Phase 04.1 P05 | 15min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - [Phase 02.1]: Plan 02.1-10: Fixed a cross-campaign duplicate_sequence bug in VoterDuplicateAssignmentService (query was scoped to the current campaign context, missing duplicates registered under other campaigns) and closed out the phase-level D-01 rename gate (leftover Spanish comments/log messages/export filenames)
 - [Phase 02.1]: Plan 02.1-11 (gap closure): reassignDuplicateOwner now transfers real ownership (registered_by) transactionally across all sibling rows sharing a document_number, restricted server-side via Rule::in to actual co-registrants, closing the UAT-confirmed D-03/D-10 gap.
 - [Phase 04.1]: [Phase 04.1] Plan 01: Defined the D-03 combined CSV export's 15-column map() order as a documented contract in the RED test file so Wave 1 (plan 04.1-04) implements against a fixed target
+- [Phase 04.1]: [Phase 04.1] Plan 05: All 6 new report widgets registered admin-panel-only (not coordinator/leader panels), leaving cross-panel visibility to future Phase 1/4 role-boundary work
+- [Phase 04.1]: [Phase 04.1] Plan 05: Full regression gate closed the phase — composer test green (829/829), Pint clean, D-06 withoutGlobalScopes exclusivity confirmed exclusive to DuplicatesReportTable/DuplicatesExport across all 5 plans
 
 ### Roadmap Evolution
 
@@ -81,7 +84,9 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-None yet.
+yet.
+
+- Intermittent flake in Tests/Feature/Filament/UserResourceTest > can update user campaigns (~1/3 of full-suite runs); pre-existing, out of Phase 04.1 scope — logged in 04.1 deferred-items.md for future investigation
 
 ### Quick Tasks Completed
 
@@ -94,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-23T15:10:20.376Z
-Stopped at: Phase 04.1 Wave 1 complete (plans 01-04 of 5)
-Resume file: .planning/phases/04.1-reportes-avanzados-de-apoyos-ranking-lider-coordinador-puesto-votacion-informe-rechazos-informe-duplicados-export-csv-plano-informe-jurisdiccion-dentro-fuera/04.1-05-PLAN.md
+Last session: 2026-07-23T15:18:57.350Z
+Stopped at: Completed 04.1-05-PLAN.md — Phase 04.1 fully executed, ready for /gsd:verify-work
+Resume file: None
