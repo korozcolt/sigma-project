@@ -2,14 +2,17 @@
 
 namespace App\Filament\Resources\Voters\Pages;
 
+use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Exports\VotersExport;
+use App\Filament\Imports\ApoyoImporter;
 use App\Filament\Resources\Voters\VoterResource;
 use App\Services\CampaignContext;
 use App\Services\VoterDuplicateReport;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Actions\ImportAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -25,6 +28,11 @@ class ListVoters extends ListRecords
     {
         return [
             CreateAction::make(),
+
+            ImportAction::make()
+                ->importer(ApoyoImporter::class)
+                ->label('Importar Apoyos')
+                ->visible(fn (): bool => auth()->user()?->hasAnyRole([UserRole::ADMIN_CAMPAIGN->value, UserRole::SUPER_ADMIN->value]) ?? false),
 
             Action::make('exportCurrent')
                 ->label('Exportar vista actual')
@@ -46,7 +54,7 @@ class ListVoters extends ListRecords
                         queryBuilder: $query,
                     );
 
-                    return $export->download('votantes.xlsx');
+                    return $export->download('apoyos.xlsx');
                 })
                 ->tooltip('Exporta exactamente lo que ves en la tabla'),
 
@@ -54,7 +62,7 @@ class ListVoters extends ListRecords
                 ->label('Exportar')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('success')
-                ->modalHeading('Exportar Votantes')
+                ->modalHeading('Exportar Apoyos')
                 ->modalSubmitActionLabel('Descargar')
                 ->form([
                     Select::make('campaign_id')
@@ -122,7 +130,7 @@ class ListVoters extends ListRecords
                         createdUntil: $data['created_until'] ?? null,
                     );
 
-                    return $export->download('votantes.xlsx');
+                    return $export->download('apoyos.xlsx');
                 }),
 
             Action::make('duplicatesReport')
@@ -185,7 +193,7 @@ class ListVoters extends ListRecords
                         return null;
                     }
 
-                    $report = new VoterDuplicateReport();
+                    $report = new VoterDuplicateReport;
                     $documentNumbers = $report->parseDocumentNumbers($path, 'local');
 
                     if (empty($documentNumbers)) {
@@ -208,7 +216,7 @@ class ListVoters extends ListRecords
                         includeMissing: $includeMissing
                     );
 
-                    $filename = 'reporte-duplicados-' . now()->format('Ymd-His') . '.csv';
+                    $filename = 'reporte-duplicados-'.now()->format('Ymd-His').'.csv';
 
                     return response()->streamDownload(function () use ($rows) {
                         $handle = fopen('php://output', 'w');
