@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Voter;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class VoterDuplicateAssignmentService
@@ -24,5 +25,20 @@ class VoterDuplicateAssignmentService
 
             return $maxSequence === null ? 0 : ((int) $maxSequence) + 1;
         });
+    }
+
+    /**
+     * @return Collection<int, Voter>
+     */
+    public function siblingsFor(string $documentNumber): Collection
+    {
+        // Sibling rows for a disputed cédula may live under a different campaign
+        // context than the currently active one, so this lookup must bypass the
+        // campaign-scoped global scope just like nextSequenceFor() above.
+        return Voter::withoutGlobalScopes()
+            ->withTrashed()
+            ->where('document_number', $documentNumber)
+            ->orderBy('duplicate_sequence')
+            ->get();
     }
 }

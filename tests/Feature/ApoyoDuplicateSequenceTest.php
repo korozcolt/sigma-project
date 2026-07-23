@@ -152,11 +152,11 @@ it('the reassignDuplicateOwner action is hidden from leader and coordinator role
         ->assertActionHidden('reassignDuplicateOwner');
 });
 
-it('reassigning the owner of a duplicate requires a mandatory note and writes a validation_histories row with validation_type duplicate_reassignment', function () {
+it('reassigning ownership to the duplicate (sequence-1) row transfers registered_by, flips the sibling to DUPLICATE, and audits both rows', function () {
     $admin = User::factory()->create();
     $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
 
-    Voter::factory()->create([
+    $original = Voter::factory()->create([
         'campaign_id' => $this->campaign->id,
         'municipality_id' => $this->municipality->id,
         'document_number' => '4444444444',
@@ -170,29 +170,57 @@ it('reassigning the owner of a duplicate requires a mandatory note and writes a 
 
     actingAs($admin);
 
-    // Submitting without a note must fail form validation (D-03: note is mandatory).
-    Livewire::test(EditVoter::class, ['record' => $duplicate->id])
-        ->callAction('reassignDuplicateOwner', ['notes' => ''])
-        ->assertHasActionErrors(['notes' => 'required']);
-
-    // Submitting with a note must succeed and write a fully audited validation_histories row.
     Livewire::test(EditVoter::class, ['record' => $duplicate->id])
         ->callAction('reassignDuplicateOwner', [
+            'new_owner_user_id' => $duplicate->registered_by,
             'notes' => 'Se confirmó con el coordinador que este apoyo pertenece al segundo líder.',
         ])
         ->assertHasNoActionErrors();
 
-    expect($duplicate->fresh()->status)->not->toBe(VoterStatus::DUPLICATE);
+    expect($duplicate->fresh()->status)->toBe(VoterStatus::PENDING_REVIEW)
+        ->and($duplicate->fresh()->registered_by)->toBe($duplicate->registered_by)
+        ->and($original->fresh()->status)->toBe(VoterStatus::DUPLICATE);
 
     assertDatabaseHas('validation_histories', [
         'voter_id' => $duplicate->id,
         'validation_type' => 'duplicate_reassignment',
         'validated_by' => $admin->id,
-        'notes' => 'Se confirmó con el coordinador que este apoyo pertenece al segundo líder.',
+    ]);
+
+    assertDatabaseHas('validation_histories', [
+        'voter_id' => $original->id,
+        'validation_type' => 'duplicate_reassignment',
+        'validated_by' => $admin->id,
     ]);
 });
 
-it('reassigning a duplicate never changes duplicate_sequence on any row (D-10 immutability)', function () {
+it('reassigning the owner of a duplicate requires a mandatory note even when a valid new_owner_user_id is submitted', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+
+    Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '9999999999',
+    ]);
+
+    $duplicate = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '9999999999',
+    ]);
+
+    actingAs($admin);
+
+    Livewire::test(EditVoter::class, ['record' => $duplicate->id])
+        ->callAction('reassignDuplicateOwner', [
+            'new_owner_user_id' => $duplicate->registered_by,
+            'notes' => '',
+        ])
+        ->assertHasActionErrors(['notes' => 'required']);
+});
+
+it('reassigning a duplicate never changes duplicate_sequence on any row when the original owner is confirmed as winner (D-10 immutability, no-op ownership)', function () {
     $admin = User::factory()->create();
     $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
 
@@ -208,15 +236,84 @@ it('reassigning a duplicate never changes duplicate_sequence on any row (D-10 im
         'document_number' => '5555555555',
     ]);
 
-    $sequenceBefore = $duplicate->duplicate_sequence;
+    actingAs($admin);
+
+    Livewire::test(EditVoter::class, ['record' => $duplicate->id])
+        ->callAction('reassignDuplicateOwner', [
+            'new_owner_user_id' => $original->registered_by,
+            'notes' => 'Reasignación de prueba para verificar inmutabilidad del sufijo.',
+        ])
+        ->assertHasNoActionErrors();
+
+    expect($duplicate->fresh()->duplicate_sequence)->toBe(1)
+        ->and($original->fresh()->duplicate_sequence)->toBe(0);
+
+    assertDatabaseHas('validation_histories', [
+        'voter_id' => $duplicate->id,
+        'validation_type' => 'duplicate_reassignment',
+        'validated_by' => $admin->id,
+    ]);
+
+    assertDatabaseHas('validation_histories', [
+        'voter_id' => $original->id,
+        'validation_type' => 'duplicate_reassignment',
+        'validated_by' => $admin->id,
+    ]);
+});
+
+it('rejects a new_owner_user_id that does not correspond to any sibling row registered_by', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+
+    Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '1010101010',
+    ]);
+
+    $duplicate = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '1010101010',
+    ]);
+
+    $unrelatedUser = User::factory()->create();
 
     actingAs($admin);
 
     Livewire::test(EditVoter::class, ['record' => $duplicate->id])
         ->callAction('reassignDuplicateOwner', [
-            'notes' => 'Reasignación de prueba para verificar inmutabilidad del sufijo.',
-        ]);
+            'new_owner_user_id' => $unrelatedUser->id,
+            'notes' => 'Intento inválido de reasignación a un usuario ajeno a la cédula.',
+        ])
+        ->assertHasActionErrors(['new_owner_user_id']);
+});
 
-    expect($duplicate->fresh()->duplicate_sequence)->toBe($sequenceBefore)
+it('reassigning ownership from the original (sequence-0) row to the duplicate (sequence-1) row still never changes duplicate_sequence on either row', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+
+    $original = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '1212121212',
+    ]);
+
+    $duplicate = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '1212121212',
+    ]);
+
+    actingAs($admin);
+
+    Livewire::test(EditVoter::class, ['record' => $duplicate->id])
+        ->callAction('reassignDuplicateOwner', [
+            'new_owner_user_id' => $duplicate->registered_by,
+            'notes' => 'La cédula pasa a ser propiedad del segundo líder tras el debate interno.',
+        ])
+        ->assertHasNoActionErrors();
+
+    expect($duplicate->fresh()->duplicate_sequence)->toBe(1)
         ->and($original->fresh()->duplicate_sequence)->toBe(0);
 });
