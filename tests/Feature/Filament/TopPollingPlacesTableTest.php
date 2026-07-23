@@ -56,8 +56,8 @@ test('top polling places table excludes DUPLICATE status voters from apoyos_coun
 
     Livewire::test(TopPollingPlacesTable::class)
         ->assertCanSeeTableRecords([$placeA, $placeB])
-        ->assertTableColumnStateSet('apoyos_count', 2, $placeA)
-        ->assertTableColumnStateSet('apoyos_count', 2, $placeB);
+        ->assertTableColumnStateSet('apoyos_count', 2, $placeA->getKey())
+        ->assertTableColumnStateSet('apoyos_count', 2, $placeB->getKey());
 });
 
 test('top polling places table does not break when a voter has no polling_place_id', function () {
