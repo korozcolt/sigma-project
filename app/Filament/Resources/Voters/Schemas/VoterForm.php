@@ -9,6 +9,8 @@ use App\Models\Campaign;
 use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\User;
+use App\Models\Voter;
+use App\Rules\DocumentNotBelongsToLeaderOrCoordinator;
 use App\Rules\MaxTablesForPollingPlace;
 use App\Services\CampaignContext;
 use Filament\Actions\Action;
@@ -18,6 +20,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -194,6 +197,7 @@ class VoterForm
                             ->required()
                             ->maxLength(255)
                             ->helperText('Puede repetirse; se marcará como duplicado en disputa hasta que un admin lo resuelva')
+                            ->live(onBlur: true)
                             ->suffixAction(
                                 Action::make('consultar_registraduria')
                                     ->icon('heroicon-o-magnifying-glass')
@@ -205,32 +209,30 @@ class VoterForm
                             )
                             ->rule(function (Get $get, $record) {
                                 return [
-                                    Rule::unique('voters', 'document_number')
-                                        ->whereNull('deleted_at')
-                                        ->ignore($record?->id),
-                                    function (string $attribute, $value, $fail) use ($record) {
-                                        $existing = \App\Models\Voter::withTrashed()
+                                    new DocumentNotBelongsToLeaderOrCoordinator($record?->id),
+                                    function (string $attribute, $value, $fail) use ($get, $record) {
+                                        $existing = Voter::withTrashed()
                                             ->where('document_number', $value)
                                             ->when($record?->id, fn ($q) => $q->where('id', '!=', $record->id))
-                                            ->first();
+                                            ->exists();
 
-                                        if (! $existing) {
-                                            return;
+                                        if ($existing && ! $get('confirm_duplicate')) {
+                                            $fail('Esta cédula ya está registrada. Marca "Confirmar registro como duplicado" para continuar.');
                                         }
-
-                                        $currentCampaignId = \App\Services\CampaignContext::currentCampaignId();
-                                        if ($currentCampaignId && $existing->campaign_id === $currentCampaignId) {
-                                            $leader = $existing->user ?? $existing->registeredBy;
-                                            $leaderName = $leader?->name ?? 'otro líder';
-                                            $fail("El votante ya está registrado en esta campaña por {$leaderName}.");
-
-                                            return;
-                                        }
-
-                                        $fail('El votante ya está registrado en otra campaña.');
                                     },
                                 ];
                             }),
+
+                        Toggle::make('confirm_duplicate')
+                            ->label('Confirmar registro como duplicado')
+                            ->dehydrated(false)
+                            ->live()
+                            ->visible(fn (Get $get, $record): bool => filled($get('document_number'))
+                                && Voter::withTrashed()
+                                    ->where('document_number', $get('document_number'))
+                                    ->when($record?->id, fn ($q) => $q->where('id', '!=', $record->id))
+                                    ->exists())
+                            ->helperText('Esta cédula ya existe en el sistema. Al confirmar, este registro se creará como un Apoyo duplicado en disputa (D-02).'),
 
                         Select::make('gremio_id')
                             ->label('Gremio')
