@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Jobs\FinalizeElectionEvent;
 use App\Models\Campaign;
 use App\Models\ElectionEvent;
 use App\Services\CampaignContext;
 use BackedEnum;
-use App\Jobs\FinalizeElectionEvent;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -261,12 +261,12 @@ class ManageElectionEvents extends Page
         if ($event->deactivate()) {
             $userId = Auth::id();
             if ($userId) {
-                FinalizeElectionEvent::dispatchSync($event->id, $userId);
+                FinalizeElectionEvent::dispatch($event->id, $userId);
             }
 
             Notification::make()
                 ->title('Evento desactivado')
-                ->body("El evento '{$event->name}' ha sido desactivado.")
+                ->body("El evento '{$event->name}' ha sido desactivado. El cierre de apoyos sin registro se está procesando en segundo plano.")
                 ->warning()
                 ->send();
 

@@ -17,6 +17,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 
@@ -224,6 +225,12 @@ class DiaD extends Page
                 throw new \Exception('No se pudo guardar el archivo en el almacenamiento');
             }
         } catch (\Exception $e) {
+            Log::error('dia_d.photo_save_failed', [
+                'voter_id' => $voter->id,
+                'election_event_id' => $activeEvent->id,
+                'error' => $e->getMessage(),
+            ]);
+
             // Revertir el cambio de estado del apoyo si falla el upload
             $voter->update(['status' => $previous]);
 
@@ -265,6 +272,11 @@ class DiaD extends Page
 
             throw $e;
         }
+
+        Log::info('dia_d.vote_recorded', [
+            'voter_id' => $voter->id,
+            'election_event_id' => $activeEvent->id,
+        ]);
 
         ValidationHistory::create([
             'voter_id' => $voter->id,
