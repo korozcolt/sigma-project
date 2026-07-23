@@ -111,14 +111,14 @@ class TestHablameSms extends Command
         $voter = Voter::where('phone', $phone)->first();
 
         if (! $voter) {
-            $this->warn('⚠️  Creando votante de prueba...');
+            $this->warn('⚠️  Creando apoyo de prueba...');
             $voter = Voter::factory()->for($campaign)->create([
                 'phone' => $phone,
                 'first_name' => 'Usuario',
                 'last_name' => 'Prueba',
                 'document_number' => '9999999'.rand(10, 99),
             ]);
-            $this->info("✅ Votante creado: {$voter->full_name}");
+            $this->info("✅ Apoyo creado: {$voter->full_name}");
         }
 
         // Crear mensaje de prueba

@@ -22,14 +22,14 @@ class CreateVoterRecordsForUsers extends Command
      *
      * @var string
      */
-    protected $description = 'Crear registros de votantes para users existentes que no tienen uno';
+    protected $description = 'Crear registros de apoyos para users existentes que no tienen uno';
 
     /**
      * Execute the console command.
      */
     public function handle(): int
     {
-        $this->info('Buscando users sin registro de votante...');
+        $this->info('Buscando users sin registro de apoyo...');
 
         // Obtener users que:
         // 1. Tienen document_number y municipality_id

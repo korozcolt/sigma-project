@@ -18,7 +18,7 @@ class SendBirthdayMessages extends Command
                             {--dry-run : Simular envío sin enviar mensajes reales}
                             {--force : Forzar envío ignorando horarios permitidos}';
 
-    protected $description = 'Envía mensajes de cumpleaños a los votantes que cumplen años hoy';
+    protected $description = 'Envía mensajes de cumpleaños a los apoyos que cumplen años hoy';
 
     public function handle(MessageService $messageService): int
     {
@@ -95,12 +95,12 @@ class SendBirthdayMessages extends Command
                 ->get();
 
             if ($voters->isEmpty()) {
-                $this->info("  ℹ️  No hay votantes que cumplan años hoy en {$campaign->name}");
+                $this->info("  ℹ️  No hay apoyos que cumplan años hoy en {$campaign->name}");
 
                 continue;
             }
 
-            $this->info("  🎂 {$voters->count()} votantes cumplen años hoy");
+            $this->info("  🎂 {$voters->count()} apoyos cumplen años hoy");
 
             $sent = 0;
             $skipped = 0;
@@ -112,7 +112,7 @@ class SendBirthdayMessages extends Command
             foreach ($voters as $voter) {
                 // Verificar rate limiting
                 if (! $template->canSendToVoter($voter)) {
-                    $this->warn("     ⚠️  Rate limit alcanzado para votante {$voter->full_name}");
+                    $this->warn("     ⚠️  Rate limit alcanzado para apoyo {$voter->full_name}");
                     $skipped++;
                     $progressBar->advance();
 
