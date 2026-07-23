@@ -45,6 +45,25 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: TBD
 **UI hint**: yes
 
+### Phase 02.1: Apoyos - Reglas Core y Segmentacion (rename cosmetico Votante->Apoyo, exclusion lider-apoyo, duplicados con sufijo, gremio/subcategoria, import masivo CSV) (INSERTED)
+
+**Goal:** Campaign operators work with "Apoyos" (not "Votantes") everywhere in the UI, leaders/coordinators cannot be registered as someone else's Apoyo, duplicate cedulas are tracked with an auditable suffix instead of blocked, Apoyos can be optionally classified by Gremio/Subcategoria, and admins can bulk-import Apoyos via CSV with a partial-success rejection report.
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10 (locked decisions from 02.1-CONTEXT.md; no formal REQ-IDs assigned)
+**Depends on:** Phase 2
+**Plans:** 10 plans
+
+Plans:
+- [ ] 02.1-01-PLAN.md — Wave 0: test scaffolding + Filament import infrastructure migrations
+- [ ] 02.1-02-PLAN.md — Gremio/Subcategoria hierarchical global catalog (D-04, D-05, D-09)
+- [ ] 02.1-03-PLAN.md — Duplicate-cedula schema, VoterStatus::DUPLICATE, VoterTest rewrite, REGLAS_NEGOCIO §2 (D-02, D-10)
+- [ ] 02.1-04-PLAN.md — Leader/coordinator exclusion validation rule (D-08)
+- [ ] 02.1-05-PLAN.md — Rename sweep: Filament admin Pages/Widgets/Resources + lang/es (D-01)
+- [ ] 02.1-06-PLAN.md — Rename sweep: Exports/Console Commands/Enums/public registration (D-01)
+- [ ] 02.1-07-PLAN.md — Rename sweep: Leader/Coordinator/Campaign-admin panels + landing page (D-01)
+- [ ] 02.1-08-PLAN.md — Voter classification/document schema + duplicate-reassignment audit action (D-03, D-10)
+- [ ] 02.1-09-PLAN.md — VoterForm/VotersTable/VoterResource wiring: rename + Gremio/Subcategoria + duplicate confirm UX + exclusion rule + VoterResourceTest rewrite (D-01, D-02, D-04, D-05, D-08)
+- [ ] 02.1-10-PLAN.md — ApoyosImport CSV bulk import, admin-only, partial success + rejection report (D-06, D-07)
+
 ### Phase 3: Outreach & Follow-up Reliability
 **Goal**: Campaign teams can run call, survey, and messaging workflows with traceable outcomes and no stale queue behavior.
 **Depends on**: Phase 2
@@ -69,6 +88,16 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Users can drill from key aggregate metrics into the underlying record list that explains the number.
 **Plans**: TBD
 **UI hint**: yes
+
+### Phase 04.1: Reportes Avanzados de Apoyos (ranking lider-coordinador-puesto votacion, informe rechazos, informe duplicados, export CSV plano, informe jurisdiccion dentro-fuera) (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 4
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 04.1 to break down)
 
 ### Phase 5: Day D Readiness & Trust Safeguards
 **Goal**: Election-day execution is field-ready, auditable, and protected by release-time verification and production visibility.
