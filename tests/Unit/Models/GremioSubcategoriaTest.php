@@ -13,10 +13,9 @@ use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
 
-// NOTE (Wave 0 / plan 02.1-01): This file scaffolds RED tests for D-04/D-05/D-09.
-// `App\Models\Gremio` and `App\Models\Subcategoria` do not exist yet - they are
-// implemented in plan 02.1-02. Failing/erroring here is expected and correct
-// until that plan lands.
+// (Plan 02.1-02): Verifies the Gremio -> Subcategoria global catalog for
+// D-04/D-05/D-09. One assertion (Voter optional gremio_id/subcategoria_id)
+// is skipped until those columns land on `voters` in plan 02.1-08.
 
 it('a Subcategoria belongs to exactly one Gremio', function () {
     $gremio = Gremio::factory()->create();
@@ -42,8 +41,6 @@ it('Gremio and Subcategoria have no campaign_id column (global catalog, D-09)', 
 });
 
 it('a Voter can be created without gremio_id or subcategoria_id (both optional, D-05)', function () {
-    // gremio_id/subcategoria_id land on `voters` in plan 02.1-08, after the
-    // catalog itself (this plan) and the duplicate-sequence schema (02.1-03).
     $voter = Voter::factory()->create([
         'gremio_id' => null,
         'subcategoria_id' => null,
@@ -51,7 +48,10 @@ it('a Voter can be created without gremio_id or subcategoria_id (both optional, 
 
     expect($voter->gremio_id)->toBeNull()
         ->and($voter->subcategoria_id)->toBeNull();
-});
+})->skip(
+    fn (): bool => ! Schema::hasColumn('voters', 'gremio_id') || ! Schema::hasColumn('voters', 'subcategoria_id'),
+    'voters.gremio_id/subcategoria_id land in plan 02.1-08'
+);
 
 it('GremioFactory and SubcategoriaFactory produce valid records', function () {
     $gremio = Gremio::factory()->create();

@@ -45,7 +45,7 @@ new class extends Component {
         <!-- Welcome Section -->
         <div class="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white dark:from-blue-600 dark:to-blue-700">
             <h1 class="text-2xl font-bold">¡Bienvenido, {{ auth()->user()->name }}!</h1>
-            <p class="mt-1 text-sm text-blue-100">Continúa registrando votantes y alcanza tus metas</p>
+            <p class="mt-1 text-sm text-blue-100">Continúa registrando apoyos y alcanza tus metas</p>
         </div>
 
         <!-- Quick Stats Grid -->
@@ -53,7 +53,7 @@ new class extends Component {
             <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
                 <div class="flex items-center justify-between">
                     <div>
-                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Votantes</flux:text>
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Apoyos</flux:text>
                         <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $total }}</p>
                     </div>
                     <div class="rounded-full bg-blue-100 p-3 dark:bg-blue-900/30">
@@ -120,7 +120,7 @@ new class extends Component {
             class="w-full"
         >
             <flux:icon.user-plus class="mr-2 h-5 w-5" />
-            Registrar Nuevo Votante
+            Registrar Nuevo Apoyo
         </flux:button>
 
         <!-- Recent Voters -->
@@ -164,9 +164,9 @@ new class extends Component {
         @else
             <div class="rounded-xl bg-white p-8 text-center shadow-sm dark:bg-zinc-900">
                 <flux:icon.user-plus class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600" />
-                <h3 class="mt-2 text-lg font-medium text-zinc-900 dark:text-white">No hay votantes registrados</h3>
+                <h3 class="mt-2 text-lg font-medium text-zinc-900 dark:text-white">No hay apoyos registrados</h3>
                 <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    Comienza registrando tu primer votante
+                    Comienza registrando tu primer apoyo
                 </p>
             </div>
         @endif

@@ -111,8 +111,8 @@ test('leader dashboard shows empty state when no voters', function () {
     $this->actingAs($this->leader);
 
     Volt::test('leader.dashboard')
-        ->assertSee('No hay votantes registrados')
-        ->assertSee('Comienza registrando tu primer votante');
+        ->assertSee('No hay apoyos registrados')
+        ->assertSee('Comienza registrando tu primer apoyo');
 });
 
 // ============ Register Voter Component Tests ============
@@ -359,8 +359,8 @@ test('my voters status filter works correctly', function () {
 
 test('my voters shows empty state when no voters', function () {
     Volt::test('leader.my-voters')
-        ->assertSee('No hay votantes registrados')
-        ->assertSee('Comienza registrando tu primer votante');
+        ->assertSee('No hay apoyos registrados')
+        ->assertSee('Comienza registrando tu primer apoyo');
 });
 
 test('my voters shows empty state when search returns no results', function () {

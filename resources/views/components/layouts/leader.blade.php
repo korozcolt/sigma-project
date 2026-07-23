@@ -114,7 +114,7 @@
                     ])
                 >
                     <flux:icon.users variant="outline" class="h-5 w-5" />
-                    <span>Mis Votantes</span>
+                    <span>Mis Apoyos</span>
                 </a>
 
                 <a

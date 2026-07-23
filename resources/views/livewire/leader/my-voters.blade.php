@@ -7,7 +7,7 @@ use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use function Livewire\Volt\{state, with, layout};
 
-layout('components.layouts::leader', ['title' => 'Mis Votantes']);
+layout('components.layouts::leader', ['title' => 'Mis Apoyos']);
 
 new class extends Component {
     use WithPagination;
@@ -218,7 +218,7 @@ new class extends Component {
         <div class="flex flex-col gap-3">
             <div class="flex items-center justify-between gap-2">
                 <div class="text-sm text-zinc-500 dark:text-zinc-400">
-                    Exporta tus votantes según el filtro actual
+                    Exporta tus apoyos según el filtro actual
                 </div>
                 <div class="flex items-center gap-2">
                     <flux:button wire:click="exportVoters" variant="outline">
@@ -304,9 +304,9 @@ new class extends Component {
                     </flux:button>
                 @else
                     <flux:icon.user-plus class="mx-auto h-12 w-12 text-zinc-400 dark:text-zinc-600" />
-                    <h3 class="mt-2 text-lg font-medium text-zinc-900 dark:text-white">No hay votantes registrados</h3>
+                    <h3 class="mt-2 text-lg font-medium text-zinc-900 dark:text-white">No hay apoyos registrados</h3>
                     <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                        Comienza registrando tu primer votante
+                        Comienza registrando tu primer apoyo
                     </p>
                     <flux:button
                         href="{{ route('leader.register-voter') }}"
@@ -314,7 +314,7 @@ new class extends Component {
                         variant="primary"
                         class="mt-4"
                     >
-                        Registrar Votante
+                        Registrar Apoyo
                     </flux:button>
                 @endif
             </div>

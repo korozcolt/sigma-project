@@ -12,7 +12,7 @@ use Livewire\Volt\Component;
 use Illuminate\Validation\Rule;
 use function Livewire\Volt\{layout};
 
-layout('components.layouts::leader', ['title' => 'Registrar Votante']);
+layout('components.layouts::leader', ['title' => 'Registrar Apoyo']);
 
 new class extends Component {
     public string $document_number = '';
@@ -184,7 +184,7 @@ new class extends Component {
             }
         }
 
-        // Crear el votante
+        // Crear el apoyo
         Voter::create([
             'campaign_id' => $campaign->id,
             'document_number' => $this->document_number,
@@ -225,7 +225,7 @@ new class extends Component {
             // Ocultar mensaje de éxito después de 2 segundos
             $this->dispatch('voter-registered');
         } else {
-            // Redirigir a "Mis Votantes" después de 1 segundo
+            // Redirigir a "Mis Apoyos" después de 1 segundo
             $this->dispatch('redirect-to-voters');
         }
     }
@@ -245,7 +245,7 @@ new class extends Component {
                         <flux:icon.check-circle class="h-5 w-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                        <p class="font-medium text-green-900 dark:text-green-100">¡Votante registrado!</p>
+                        <p class="font-medium text-green-900 dark:text-green-100">¡Apoyo registrado!</p>
                         <p class="text-sm text-green-700 dark:text-green-300">{{ $lastVoterName }} fue agregado exitosamente</p>
                     </div>
                 </div>
@@ -400,7 +400,7 @@ new class extends Component {
             <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
                 <flux:checkbox
                     wire:model.live="registerAnother"
-                    label="Registrar otro votante después de guardar"
+                    label="Registrar otro apoyo después de guardar"
                 />
             </div>
 
@@ -416,7 +416,7 @@ new class extends Component {
                         @if($registerAnother)
                             Guardar y Registrar Otro
                         @else
-                            Guardar Votante
+                            Guardar Apoyo
                         @endif
                     </span>
                     <span wire:loading>Guardando...</span>
