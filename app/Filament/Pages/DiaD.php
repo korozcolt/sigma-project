@@ -6,6 +6,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\VoterStatus;
 use App\Filament\Widgets\DiaDStatsOverview;
+use App\Filament\Widgets\DiaDTerritorialProgressTable;
 use App\Models\ElectionEvent;
 use App\Models\ValidationHistory;
 use App\Models\Voter;
@@ -356,6 +357,7 @@ class DiaD extends Page
     {
         return [
             DiaDStatsOverview::class,
+            DiaDTerritorialProgressTable::class,
         ];
     }
 
