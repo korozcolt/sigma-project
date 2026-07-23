@@ -52,6 +52,7 @@ Plan: Not started
 | Phase 02.1 P11 | 15 | 2 tasks | 5 files |
 | Phase 04.1 P01 | 20 | 3 tasks | 9 files |
 | Phase 04.1 P05 | 15min | 2 tasks | 3 files |
+| Phase 05.1 P08 | 25min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,7 @@ Recent decisions affecting current work:
 - [Phase 04.1]: [Phase 04.1] Plan 05: All 6 new report widgets registered admin-panel-only (not coordinator/leader panels), leaving cross-panel visibility to future Phase 1/4 role-boundary work
 - [Phase 04.1]: [Phase 04.1] Plan 05: Full regression gate closed the phase — composer test green (829/829), Pint clean, D-06 withoutGlobalScopes exclusivity confirmed exclusive to DuplicatesReportTable/DuplicatesExport across all 5 plans
 - [Phase quick-260723-f26]: forceRefreshFromRegistraduria() duplicates only Layer 3 (2captcha) of openRegistraduriaBrowser, leaving the existing Redis->DB->2captcha cache flow on the primary button completely untouched; the new secondary suffixAction is gated by requiresConfirmation() since it always costs a paid lookup with no cache short-circuit
+- [Phase 05.1]: Plan 08 (DAYD-03, DAYD-04): DB-level unique constraint on vote_records(voter_id, election_event_id) with a pre-migration dedup guard closes the concurrent duplicate-vote race; markDidNotVote() now blocks when a VoteRecord already exists for the active event; new DiaDTerritorialProgressTable widget adds per-municipality participation breakdown alongside the existing campaign-level DiaDStatsOverview
 
 ### Roadmap Evolution
 
@@ -104,6 +106,6 @@ yet.
 
 ## Session Continuity
 
-Last session: 2026-07-23T19:10:00.000Z
-Stopped at: Phase 05.1 fully planned (9 plans, 2 waves, plan-checker passed after 1 revision round for import-style + shared-file dependency fixes). Ready for /gsd:execute-phase 05.1.
+Last session: 2026-07-23T19:56:30.000Z
+Stopped at: Completed 05.1-08-PLAN.md — DB-level unique constraint + did-not-vote conflict guard (DAYD-03) and per-municipality Day D progress widget (DAYD-04). Other plans in Phase 05.1 (01-07, 09) execute independently in parallel worktrees.
 Resume file: None

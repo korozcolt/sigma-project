@@ -140,7 +140,7 @@ Plans:
 - [ ] 05.1-05-PLAN.md — Outreach: Hablame statusId fix + call-queue isolation/anti-duplicate regression tests (OUTR-01, OUTR-04, OUTR-05)
 - [ ] 05.1-06-PLAN.md — Ownership-scoped Coordinator/Leader dashboards (REPT-03)
 - [ ] 05.1-07-PLAN.md — Follow-up backlog widget + drill-through from aggregate widgets to filtered lists (REPT-02, REPT-04)
-- [ ] 05.1-08-PLAN.md — Day D: DB unique constraint + conflict handling + per-municipality participation breakdown (DAYD-03, DAYD-04)
+- [x] 05.1-08-PLAN.md — Day D: DB unique constraint + conflict handling + per-municipality participation breakdown (DAYD-03, DAYD-04)
 - [ ] 05.1-09-PLAN.md — FinalizeElectionEvent direct job test + real queue dispatch + structured Day D logging (QUAL-01, QUAL-02)
 **UI hint**: yes (REPT-03 dashboard scoping, VOTE-04 profile guidance, PERM-02 error messaging all have user-facing surfaces)
 
@@ -158,4 +158,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1
 | 3. Outreach & Follow-up Reliability | 0/TBD | Substantially covered (~70%, incidental work) — see 05.1-CONTEXT.md | - |
 | 4. Trusted Reporting & Control Surfaces | 5/5 | Substantially covered (~55%, via 04.1) — see 05.1-CONTEXT.md | 2026-07-23 |
 | 5. Day D Readiness & Trust Safeguards | 0/TBD | Substantially covered (~60-65%, incidental work) — see 05.1-CONTEXT.md | - |
-| 05.1. Cross-Phase Hardening & Trust Safeguards Closure (INSERTED) | 0/9 | Planned — ready for execute-phase | - |
+| 05.1. Cross-Phase Hardening & Trust Safeguards Closure (INSERTED) | 1/9 | In progress | - |

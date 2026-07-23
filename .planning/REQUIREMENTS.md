@@ -47,8 +47,8 @@
 
 - [ ] **DAYD-01**: Operator can find the correct voter quickly within the active campaign during election-day operations
 - [ ] **DAYD-02**: Operator can mark vote status with required evidence rules enforced for "voted" outcomes
-- [ ] **DAYD-03**: SIGMA prevents duplicate or conflicting election-day status registration for the same voter and event
-- [ ] **DAYD-04**: Operators can see participation progress by campaign and relevant territory during live election-day activity
+- [x] **DAYD-03**: SIGMA prevents duplicate or conflicting election-day status registration for the same voter and event
+- [x] **DAYD-04**: Operators can see participation progress by campaign and relevant territory during live election-day activity
 - [ ] **DAYD-05**: Election-day actions and evidence are stored with audit-ready metadata tied to campaign, actor, time, and event
 
 ### Quality and Verification
@@ -113,8 +113,8 @@
 | REPT-04 | Phase 4 | Not covered (closing in Phase 05.1) |
 | DAYD-01 | Phase 5 | Done |
 | DAYD-02 | Phase 5 | Done |
-| DAYD-03 | Phase 5 | Partial (closing in Phase 05.1) |
-| DAYD-04 | Phase 5 | Partial (closing in Phase 05.1) |
+| DAYD-03 | Phase 5 | Done (closed in Phase 05.1, plan 08) |
+| DAYD-04 | Phase 5 | Done (closed in Phase 05.1, plan 08) |
 | DAYD-05 | Phase 5 | Done |
 | QUAL-01 | Phase 5 | Partial (closing in Phase 05.1) |
 | QUAL-02 | Phase 5 | Not covered (closing in Phase 05.1 — biggest Phase 5 gap) |
