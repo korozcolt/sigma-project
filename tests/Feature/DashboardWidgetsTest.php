@@ -2,9 +2,15 @@
 
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
+use App\Filament\Widgets\ApoyosLideresCoordinadoresTable;
 use App\Filament\Widgets\CampaignStatsOverview;
+use App\Filament\Widgets\DuplicatesReportTable;
+use App\Filament\Widgets\JurisdictionReportTable;
+use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\TerritorialDistributionChart;
+use App\Filament\Widgets\TopCoordinatorsTable;
 use App\Filament\Widgets\TopLeadersTable;
+use App\Filament\Widgets\TopPollingPlacesTable;
 use App\Filament\Widgets\ValidationProgressChart;
 use App\Models\Campaign;
 use App\Models\Department;
@@ -20,6 +26,7 @@ uses()->group('dashboard-widgets');
 
 beforeEach(function () {
     Role::firstOrCreate(['name' => UserRole::SUPER_ADMIN->value, 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => UserRole::COORDINATOR->value, 'guard_name' => 'web']);
     $user = User::factory()->create();
     $user->assignRole(UserRole::SUPER_ADMIN->value);
     $this->actingAs($user);
@@ -283,6 +290,15 @@ test('all widgets render correctly without errors', function () {
     Livewire::test(TerritorialDistributionChart::class)->assertOk();
     Livewire::test(TopLeadersTable::class)->assertOk();
     Livewire::test(ValidationProgressChart::class)->assertOk();
+});
+
+test('all 6 new report widgets render correctly without errors when wired into the panel (04.1-05)', function () {
+    Livewire::test(TopCoordinatorsTable::class)->assertOk();
+    Livewire::test(TopPollingPlacesTable::class)->assertOk();
+    Livewire::test(RejectionsReportTable::class)->assertOk();
+    Livewire::test(DuplicatesReportTable::class)->assertOk();
+    Livewire::test(JurisdictionReportTable::class)->assertOk();
+    Livewire::test(ApoyosLideresCoordinadoresTable::class)->assertOk();
 });
 
 test('widgets have correct sort order', function () {
