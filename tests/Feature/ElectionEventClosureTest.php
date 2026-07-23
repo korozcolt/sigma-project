@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\VoterStatus;
+use App\Filament\Pages\ManageElectionEvents;
 use App\Jobs\FinalizeElectionEvent;
 use App\Models\Campaign;
 use App\Models\ElectionEvent;
@@ -8,6 +9,11 @@ use App\Models\User;
 use App\Models\ValidationHistory;
 use App\Models\Voter;
 use App\Models\VoteRecord;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Session;
+use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 
 test('FinalizeElectionEvent marks unvoted eligible voters as did_not_vote', function () {
     $campaign = Campaign::factory()->create();
@@ -75,4 +81,47 @@ test('vote_records DB constraint rejects a duplicate voter+event pair', function
         'recorded_by' => $admin->id,
         'voted_at' => now(),
     ]))->toThrow(\Illuminate\Database\QueryException::class);
+});
+
+test('deactivateEvent dispatches FinalizeElectionEvent onto the real queue', function () {
+    Queue::fake();
+
+    $campaign = Campaign::factory()->create();
+    Role::firstOrCreate(['name' => 'admin_campaign', 'guard_name' => 'web']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin_campaign');
+
+    $event = ElectionEvent::factory()->create([
+        'campaign_id' => $campaign->id,
+        'is_active' => true,
+        'date' => now(),
+    ]);
+
+    $this->actingAs($admin);
+    Session::put('campaign_context.campaign_id', $campaign->id);
+    Session::put('campaign_context.mode', 'single');
+
+    Livewire::test(ManageElectionEvents::class)
+        ->call('deactivateEvent', $event->id);
+
+    Queue::assertPushed(FinalizeElectionEvent::class, function (FinalizeElectionEvent $job) use ($event, $admin) {
+        return $job->electionEventId === $event->id && $job->validatedByUserId === $admin->id;
+    });
+});
+
+test('FinalizeElectionEvent failed hook logs the error', function () {
+    $campaign = Campaign::factory()->create();
+    $admin = User::factory()->create();
+    $event = ElectionEvent::factory()->create(['campaign_id' => $campaign->id]);
+
+    Log::shouldReceive('error')
+        ->once()
+        ->with('election_event.finalize.failed', Mockery::on(function (array $context) use ($event, $admin) {
+            return $context['election_event_id'] === $event->id
+                && $context['validated_by_user_id'] === $admin->id
+                && $context['error'] === 'boom';
+        }));
+
+    $job = new FinalizeElectionEvent($event->id, $admin->id);
+    $job->failed(new \Exception('boom'));
 });
