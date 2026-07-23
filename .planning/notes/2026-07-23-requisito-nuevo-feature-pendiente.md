@@ -1,0 +1,6 @@
+---
+date: "2026-07-23 12:22"
+promoted: false
+---
+
+Requisito nuevo para la feature pendiente de OTP (Fase 1 - Campaign Safety & Role Boundaries, aún no construida, service ya integrado como HablameSmsService): el contenido del mensaje SMS de OTP debe ser parametrizable/configurable por el cliente, no un texto fijo hardcodeado. Debe vivir en la configuración de la campaña (Campaign settings) para que cada campaña pueda definir su propio texto de mensaje (ej. con placeholder para el código, tipo "{codigo}" o similar). Contexto: se descubrió durante una prueba real de envío de SMS vía Hablame (2026-07-23) que el sender ID alfanumérico "SIGMA" configurado en HABLAME_FROM no está realmente activo -- Hablame usó un shortcode numérico genérico (893181) en su lugar, y el operador (Movistar) confirmó recepción a nivel de red (messageStatus=2, operatorDeliveryAt) pero el mensaje nunca llegó al dispositivo del usuario de prueba. Esto sugiere que Hablame requiere registrar un sender ID aprobado o contratar SMS "certified"/transaccional para que los OTP lleguen de forma confiable -- resolver esto es un prerequisito antes de construir la feature de OTP, no solo la parametrización del mensaje.

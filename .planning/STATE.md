@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-stopped_at: "Quick task 260723-f26: Tasks 1-2 (force-refresh method + secondary button, TDD) implemented, tested, committed. Task 3 (manual E2E with real cedulas 1102812122/1102815878 against local Flask registraduria-service) is a pending human checkpoint - see SUMMARY.md"
-last_updated: "2026-07-23T16:12:44.000Z"
+stopped_at: "Quick task 260723-f26 closed (code + E2E attempt done, blocked externally on Registraduría's decommissioned election subdomain). Main line reverts to Phase 04.1 — fully executed, ready for /gsd:verify-work."
+last_updated: "2026-07-23T17:20:00.000Z"
 progress:
   total_phases: 7
   completed_phases: 2
@@ -81,9 +81,9 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- When planning Phase 1 (Campaign Safety & Role Boundaries), fold in client-requested security items: OTP verification for leader registration via Hablame SMS (service already integrated as HablameSmsService) and a Super Admin kill switch / maintenance mode toggle (build on Laravel's native maintenance mode, managed from a Filament action, with automatic bypass for the super admin role).
-- **AWAITING MANUAL CHECKPOINT — Quick task 260723-f26**: code + tests complete (Tasks 1-2, commits `890f917`/`58b341d`/`4c39459`) — `HasRegistraduriaPolling::forceRefreshFromRegistraduria()` and the secondary discreet "Actualizar datos desde Registraduría" suffixAction on `document_number` in `VoterForm.php` are implemented, unit/feature-tested (4/4 passing, mocked `RegistraduriaService`), and Pint-clean. **Blocked on:** Task 3 — a manual E2E test against the real Registraduría using the 2 real test cédulas the user provided (`1102812122`, `1102815878`), which requires starting the local Flask `registraduria-service` and solving live CAPTCHAs — cannot be automated. Full manual steps documented in `.planning/quick/260723-f26-agregar-boton-secundario-de-actualizar-d/260723-f26-SUMMARY.md` under "CHECKPOINT: Task 3".
+- When planning Phase 1 (Campaign Safety & Role Boundaries), fold in client-requested security items: OTP verification for leader registration via Hablame SMS (service already integrated as HablameSmsService) and a Super Admin kill switch / maintenance mode toggle (build on Laravel's native maintenance mode, managed from a Filament action, with automatic bypass for the super admin role). **New sub-requirements surfaced 2026-07-23** (see `.planning/notes/2026-07-23-requisito-nuevo-feature-pendiente.md`): (1) OTP message text must be parameterizable per campaign, stored in Campaign settings, not hardcoded; (2) prerequisite — Hablame's `HABLAME_FROM=SIGMA` alphanumeric sender ID is not actually active (a live test send used a generic shortcode `893181` instead and never reached the test device despite operator-level delivery confirmation); before OTP ships, need to resolve this with Hablame (register an approved sender ID or use their certified/transactional SMS product), or OTP codes may silently fail to reach users.
 - Separately (not urgent per user): production `sigma-registraduria` container on `korserver` (Dokploy) still runs the OLD hardcoded-2captcha-key code — needs a Dokploy redeploy to pick up commit `ac1dd5a` (env-var-only fix) + the new `TWO_CAPTCHA_KEY` env var the user already set in Dokploy. Project isn't in production use yet, so user said this can happen whenever.
+- **Registraduría election-lookup endpoints currently decommissioned** (found 2026-07-23 during quick task 260723-f26's E2E attempt): both `eleccionescolombia.registraduria.gov.co` and `apiweb-eleccionescolombia.infovotantes.com` have no DNS record at all (confirmed via authoritative NOERROR/ANSWER:0 responses, not a local network issue) — likely temporary election-season infrastructure taken down between election cycles. The whole Registraduría lookup feature (both the existing primary button and the new secondary refresh button) will fail with a network error until Registraduría reactivates it. Not fixable on our end — revisit if/when an election cycle makes those subdomains live again.
 
 ### Blockers/Concerns
 
@@ -99,9 +99,10 @@ yet.
 | 260508-w9c | Integrar consulta de puesto de votación (Registraduría) | 2026-05-08 | 029345a | [260508-w9c-integrar-consulta-de-puesto-de-votacion-](.planning/quick/260508-w9c-integrar-consulta-de-puesto-de-votacion-/) |
 | 260508-wze | Registraduría headless proxy screenshots modal SIGMA VPS | 2026-05-09 | 030e091 | [260508-wze-registraduria-headless-proxy-screenshots](.planning/quick/260508-wze-registraduria-headless-proxy-screenshots/) |
 | 260514-mng | Birthday webhook automation — BirthdayWebhookService + DispatchBirthdayWebhooks command | 2026-05-14 | 12262d1 | [260514-mng-implementar-automatizaci-n-de-webhook-de](.planning/quick/260514-mng-implementar-automatizaci-n-de-webhook-de/) |
+| 260723-f26 | Botón secundario "Actualizar datos desde Registraduría" + intento de E2E | 2026-07-23 | bb45b56 | [260723-f26-agregar-boton-secundario-de-actualizar-d](.planning/quick/260723-f26-agregar-boton-secundario-de-actualizar-d/) |
 
 ## Session Continuity
 
-Last session: 2026-07-23T16:12:44.000Z
-Stopped at: Quick task 260723-f26: Tasks 1-2 (force-refresh method + secondary button, TDD) implemented, tested, committed. Task 3 (manual E2E with real cedulas 1102812122/1102815878 against local Flask registraduria-service) is a pending human checkpoint - see SUMMARY.md
+Last session: 2026-07-23T17:20:00.000Z
+Stopped at: Quick task 260723-f26 closed out (code done, E2E blocked externally on Registraduría). Main line: Phase 04.1 fully executed, ready for /gsd:verify-work.
 Resume file: None
