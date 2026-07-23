@@ -19,7 +19,7 @@ Este documento describe las reglas de negocio vigentes y los cambios recientes p
 - `voters.document_number` YA NO es único global. Se permite registrar más de un Apoyo con la misma cédula.
 - Cada fila tiene `duplicate_sequence` (entero, empieza en 0). La constraint única real es compuesta: `(document_number, duplicate_sequence)`.
 - El primer registro de una cédula queda `duplicate_sequence = 0` con su estado normal. Cada registro posterior de la misma cédula recibe el siguiente `duplicate_sequence` disponible y el estado `VoterStatus::DUPLICATE` ("Duplicado en Disputa"), sin importar si es la misma campaña u otra.
-- Un admin de campaña o super admin puede reasignar el dueño de un duplicado; la reasignación requiere nota obligatoria y queda auditada en `validation_histories` (`validation_type = 'duplicate_reassignment'`). El `duplicate_sequence` de cada fila es inmutable — nunca se renumera.
+- Un admin de campaña o super admin puede reasignar el dueño de un duplicado: selecciona cuál de los líderes/coordinadores que registraron una fila con esa cédula debe quedar como dueño legítimo. La fila elegida pasa a `PENDING_REVIEW` y conserva/recibe el `registered_by` del líder seleccionado; las demás filas con la misma cédula quedan explícitamente en `DUPLICATE`. La reasignación requiere nota obligatoria y cada fila afectada queda auditada individualmente en `validation_histories` (`validation_type = 'duplicate_reassignment'`). El `duplicate_sequence` de cada fila es inmutable — nunca se renumera, ni siquiera al transferir la propiedad.
 
 **Implicaciones para pruebas:**
 - Probar que un segundo registro con la misma cédula se crea exitosamente con `duplicate_sequence` incrementado y estado `DUPLICATE`.
