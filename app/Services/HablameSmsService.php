@@ -158,6 +158,83 @@ class HablameSmsService
     }
 
     /**
+     * Enviar SMS sin un Message/Voter asociado (ej. OTP transaccional).
+     * priority:true según fix confirmado por soporte de Hablame 2026-07-23 —
+     * solo usar para mensajes transaccionales (OTP), no para SMS masivos regulares.
+     */
+    public function sendRaw(string $phone, string $text, bool $priority = false): array
+    {
+        $formattedPhone = $this->formatPhoneNumber($phone);
+
+        if (! $formattedPhone) {
+            throw new \Exception("Número de teléfono inválido: {$phone}");
+        }
+
+        if ($this->sandboxMode) {
+            return $this->sandboxResponse($formattedPhone, $text);
+        }
+
+        if (! $this->apiKey) {
+            throw new \Exception('Hablame API Key no configurada. Verificar HABLAME_API_KEY en .env');
+        }
+
+        $messagePayload = ['to' => $formattedPhone, 'text' => $text];
+
+        if ($priority) {
+            $messagePayload['priority'] = true;
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'X-Hablame-Key' => $this->apiKey,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ])
+                ->timeout(30)
+                ->post("{$this->apiUrl}/sms/v5/send", [
+                    'messages' => [$messagePayload],
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $payload = $data['payLoad'] ?? [];
+                $firstMessage = ($payload['messages'] ?? [])[0] ?? [];
+                $statusId = $firstMessage['statusId'] ?? 0;
+
+                Log::info('Hablame SMS Raw Send', [
+                    'to' => $formattedPhone,
+                    'priority' => $priority,
+                    'statusId' => $statusId,
+                ]);
+
+                return [
+                    'success' => in_array($statusId, [1, 102, 106], true),
+                    'batch_id' => $payload['batch_id'] ?? ($firstMessage['id'] ?? null),
+                    'status_id' => $statusId,
+                ];
+            }
+
+            Log::error('Hablame SMS Raw Send Error', [
+                'to' => $formattedPhone,
+                'status' => $response->status(),
+                'error' => $response->json(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->json()['statusMessage'] ?? 'Error desconocido',
+            ];
+        } catch (\Exception $e) {
+            Log::error('Hablame SMS Raw Send Exception', [
+                'to' => $formattedPhone,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Obtener información de la cuenta
      */
     public function getAccountInfo(): array

@@ -209,6 +209,81 @@ test('still classifies a genuinely unknown statusId as failed', function () {
         ->and($result['sent'])->toBe(0);
 });
 
+test('sendRaw returns success in sandbox mode without a real HTTP call', function () {
+    $service = app(HablameSmsService::class);
+
+    $result = $service->sendRaw('3001234567', 'Tu código es 123456', priority: true);
+
+    expect($result['success'])->toBeTrue();
+});
+
+test('sendRaw posts a priority true message when priority is requested', function () {
+    Config::set('services.hablame.sandbox_mode', false);
+    Config::set('services.hablame.api_key', 'test_api_key');
+
+    Http::fake([
+        '*/sms/v5/send' => Http::response([
+            'payLoad' => [
+                'batch_id' => 'test_batch_raw_priority',
+                'messages' => [
+                    ['statusId' => 102, 'price' => 0.034, 'to' => '3001234567'],
+                ],
+            ],
+            'statusCode' => 201,
+            'statusMessage' => 'Message sent successfully',
+        ], 201),
+    ]);
+
+    $service = app(HablameSmsService::class);
+    $result = $service->sendRaw('3001234567', 'Tu código es 123456', priority: true);
+
+    expect($result['success'])->toBeTrue();
+
+    Http::assertSent(function ($request) {
+        $body = $request->data();
+        $message = $body['messages'][0] ?? [];
+
+        return ($message['priority'] ?? false) === true
+            && ($message['text'] ?? '') === 'Tu código es 123456';
+    });
+});
+
+test('sendRaw does not include a priority key when priority is false', function () {
+    Config::set('services.hablame.sandbox_mode', false);
+    Config::set('services.hablame.api_key', 'test_api_key');
+
+    Http::fake([
+        '*/sms/v5/send' => Http::response([
+            'payLoad' => [
+                'batch_id' => 'test_batch_raw_regular',
+                'messages' => [
+                    ['statusId' => 102, 'price' => 0.034, 'to' => '3001234567'],
+                ],
+            ],
+            'statusCode' => 201,
+            'statusMessage' => 'Message sent successfully',
+        ], 201),
+    ]);
+
+    $service = app(HablameSmsService::class);
+    $result = $service->sendRaw('3001234567', 'Mensaje regular');
+
+    expect($result['success'])->toBeTrue();
+
+    Http::assertSent(function ($request) {
+        $body = $request->data();
+        $message = $body['messages'][0] ?? [];
+
+        return ! array_key_exists('priority', $message);
+    });
+});
+
+test('sendRaw throws for an invalid phone number', function () {
+    $service = app(HablameSmsService::class);
+
+    $service->sendRaw('12345', 'Texto');
+})->throws(\Exception::class, 'Número de teléfono inválido: 12345');
+
 test('can get real account info', function () {
     Config::set('services.hablame.sandbox_mode', false);
     Config::set('services.hablame.api_key', 'test_api_key');
