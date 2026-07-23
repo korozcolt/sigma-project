@@ -3,6 +3,8 @@
 use App\Enums\UserRole;
 use App\Models\Neighborhood;
 use App\Models\User;
+use App\Services\CampaignContext;
+use App\Services\OtpVerificationService;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
@@ -20,6 +22,15 @@ new class extends Component {
     #[Validate('required|string|min:8')]
     public string $password = '';
 
+    #[Validate('required|string|min:10')]
+    public string $phone = '';
+
+    public bool $otpSent = false;
+
+    public bool $otpVerified = false;
+
+    public string $otp_code = '';
+
     #[Validate('nullable|exists:neighborhoods,id')]
     public ?int $neighborhood_id = null;
 
@@ -31,6 +42,39 @@ new class extends Component {
         if (auth()->user()->hasRole(UserRole::COORDINATOR->value)) {
             $this->coordinator_user_id = auth()->id();
         }
+    }
+
+    private function resolveActiveCampaign()
+    {
+        return $this->getCoordinatorUser()?->campaigns()->first() ?? CampaignContext::currentCampaign();
+    }
+
+    public function sendOtp(): void
+    {
+        $this->validateOnly('phone');
+
+        $campaign = $this->resolveActiveCampaign();
+
+        app(OtpVerificationService::class)->generate($this->phone, $campaign);
+
+        $this->otpSent = true;
+
+        session()->flash('otp_sent', 'Código enviado por SMS');
+    }
+
+    public function verifyOtp(): void
+    {
+        $campaign = $this->resolveActiveCampaign();
+
+        $verified = app(OtpVerificationService::class)->verify($this->phone, $campaign, $this->otp_code);
+
+        if ($verified) {
+            $this->otpVerified = true;
+
+            return;
+        }
+
+        $this->addError('otp_code', 'Código incorrecto o expirado.');
     }
 
     public function getNeighborhoodsProperty()
@@ -70,6 +114,12 @@ new class extends Component {
 
     public function save(): void
     {
+        if (! $this->otpVerified) {
+            $this->addError('otp_code', 'Debes verificar el teléfono del líder antes de continuar.');
+
+            return;
+        }
+
         if (auth()->user()->hasRole(UserRole::COORDINATOR->value)) {
             $this->coordinator_user_id = auth()->id();
         }
@@ -91,6 +141,7 @@ new class extends Component {
             'name' => $this->name,
             'email' => $this->email,
             'password' => Hash::make($this->password),
+            'phone' => $this->phone,
             'municipality_id' => $coordinatorUser->municipality_id,
             'coordinator_user_id' => $coordinatorUser->id,
             'neighborhood_id' => $this->neighborhood_id,
@@ -181,6 +232,51 @@ new class extends Component {
             </div>
         </div>
 
+        <!-- Verificación de Teléfono -->
+        <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
+            <flux:heading size="lg" class="mb-4">Verificación de Teléfono</flux:heading>
+
+            @if (session('otp_sent'))
+                <flux:text class="mb-4 text-green-700 dark:text-green-400">{{ session('otp_sent') }}</flux:text>
+            @endif
+
+            <div class="space-y-4">
+                <flux:input
+                    wire:model.blur="phone"
+                    label="Teléfono *"
+                    type="tel"
+                    placeholder="3001234567"
+                    :disabled="$otpVerified"
+                />
+
+                @if (! $otpSent)
+                    <flux:button type="button" variant="primary" wire:click="sendOtp">
+                        Enviar código
+                    </flux:button>
+                @endif
+
+                @if ($otpSent && ! $otpVerified)
+                    <flux:input
+                        wire:model="otp_code"
+                        label="Código de verificación *"
+                        type="text"
+                        placeholder="123456"
+                    />
+
+                    <flux:button type="button" variant="primary" wire:click="verifyOtp">
+                        Verificar
+                    </flux:button>
+                @endif
+
+                @if ($otpVerified)
+                    <div class="flex items-center gap-2">
+                        <flux:icon.check-circle class="h-5 w-5 text-green-600" />
+                        <flux:text class="font-medium text-green-700 dark:text-green-400">Teléfono verificado</flux:text>
+                    </div>
+                @endif
+            </div>
+        </div>
+
         <!-- Ubicación -->
         <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900">
             <flux:heading size="lg" class="mb-4">Ubicación</flux:heading>
@@ -230,6 +326,7 @@ new class extends Component {
                 type="submit"
                 variant="primary"
                 class="flex-1"
+                :disabled="! $otpVerified"
             >
                 Crear Líder
             </flux:button>
