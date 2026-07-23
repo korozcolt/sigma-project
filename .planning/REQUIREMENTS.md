@@ -39,9 +39,9 @@
 ### Reporting and Control
 
 - [ ] **REPT-01**: Dashboards, widgets, filters, and exports show counts that reconcile to campaign-scoped source records
-- [ ] **REPT-02**: Decision-makers can see campaign health indicators for voter progress, validation progress, follow-up backlog, and Day D readiness
+- [x] **REPT-02**: Decision-makers can see campaign health indicators for voter progress, validation progress, follow-up backlog, and Day D readiness
 - [x] **REPT-03**: Coordinators and leaders can view territorial progress and owned workload relevant to their scope
-- [ ] **REPT-04**: Key operational metrics support drill-through from aggregate count to underlying record list
+- [x] **REPT-04**: Key operational metrics support drill-through from aggregate count to underlying record list
 
 ### Election Day
 
@@ -108,9 +108,9 @@
 | OUTR-04 | Phase 3 | Partial (closing in Phase 05.1 — live bug confirmed 2026-07-23) |
 | OUTR-05 | Phase 3 | Partial (closing in Phase 05.1) |
 | REPT-01 | Phase 4 | Done |
-| REPT-02 | Phase 4 | Partial (closing in Phase 05.1) |
+| REPT-02 | Phase 4 | Done (closed in Phase 05.1, plan 07) |
 | REPT-03 | Phase 4 | Partial (closing in Phase 05.1 — biggest Phase 4 gap) |
-| REPT-04 | Phase 4 | Not covered (closing in Phase 05.1) |
+| REPT-04 | Phase 4 | Done (closed in Phase 05.1, plan 07) |
 | DAYD-01 | Phase 5 | Done |
 | DAYD-02 | Phase 5 | Done |
 | DAYD-03 | Phase 5 | Done (closed in Phase 05.1, plan 08) |

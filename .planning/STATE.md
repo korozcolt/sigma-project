@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Executing Phase 05.1
-stopped_at: "Wave 1 complete: 05.1-01, 05.1-04, 05.1-05, 05.1-06, 05.1-08 all done. Starting Wave 2 (05.1-02, 05.1-03, 05.1-07, 05.1-09)."
-last_updated: "2026-07-23T20:25:00.000Z"
+status: Ready to execute
+stopped_at: Completed 05.1-02-PLAN.md — OTP-via-Hablame-SMS for coordinator-creates-leader flow
+last_updated: "2026-07-23T20:45:17.145Z"
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 25
-  completed_plans: 21
+  completed_plans: 22
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 05.1 (cross-phase-hardening-closure) — EXECUTING
-Plan: 5 of 9 complete (Wave 1 done, starting Wave 2)
+Plan: 7 of 9 complete (Wave 1 done, starting Wave 2)
 
 ## Performance Metrics
 
@@ -57,6 +57,8 @@ Plan: 5 of 9 complete (Wave 1 done, starting Wave 2)
 | Phase 05.1 P06 | 55min | 3 tasks | 5 files |
 | Phase 05.1 P04 | 70 | 3 tasks | 7 files |
 | Phase 05.1 P01 | 25min | 3 tasks | 12 files |
+| Phase 05.1 P07 | 25min | 2 tasks | 5 files |
+| Phase 05.1 P02 | 45 | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -88,6 +90,8 @@ Recent decisions affecting current work:
 - [Phase 05.1]: [Phase 05.1] Plan 01: TerritorialOwnershipTable registered admin-panel-only (PERM-03), consistent with existing admin-only report widget precedent
 - [Phase 05.1]: [Phase 05.1] Plan 01: CAMP-05 audit test added without touching VoterResource/SurveyResource/CampaignResource — confirmed as latent risk, not an active leak
 - [Phase 05.1]: [Phase 05.1] Plan 01: CampaignContext::setCampaignId() mutates process-lifetime static properties; tests calling it must reset via reflection in afterEach() to avoid leaking a campaign override into unrelated test files
+- [Phase 05.1]: [Phase 05.1] Plan 07: FollowUpBacklogOverview registered admin-panel-only, right after CampaignStatsOverview; drill-through URLs use tableFilters[filter][values] (not [value]) since VotersTable's status/registered_by filters both use ->multiple()
+- [Phase 05.1]: [Phase 05.1] Plan 02: OTP verification for coordinator-creates-leader gated on phone via HablameSmsService::sendRaw() with priority:true; message template configurable per-campaign via Campaign.settings.otp_message_template
 
 ### Roadmap Evolution
 
@@ -120,6 +124,6 @@ yet.
 
 ## Session Continuity
 
-Last session: 2026-07-23T20:25:00.000Z
-Stopped at: Wave 1 of Phase 05.1 complete (5/9 plans). Starting Wave 2 (05.1-02, 05.1-03, 05.1-07, 05.1-09).
+Last session: 2026-07-23T20:45:17.142Z
+Stopped at: Completed 05.1-02-PLAN.md — OTP-via-Hablame-SMS for coordinator-creates-leader flow
 Resume file: None
