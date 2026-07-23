@@ -34,7 +34,7 @@ class CreateVoterRecordsForUsers extends Command
         // Obtener users que:
         // 1. Tienen document_number y municipality_id
         // 2. Están asignados a al menos una campaña
-        // 3. NO tienen registro de votante (o forzar si --force)
+        // 3. NO tienen registro de apoyo (o forzar si --force)
         $query = User::query()
             ->whereNotNull('document_number')
             ->whereNotNull('municipality_id')
@@ -63,7 +63,7 @@ class CreateVoterRecordsForUsers extends Command
 
         foreach ($users as $user) {
             try {
-                // Si ya tiene votante y no es --force, skip
+                // Si ya tiene apoyo y no es --force, skip
                 if ($user->voter && ! $this->option('force')) {
                     $skipped++;
                     $bar->advance();
@@ -104,7 +104,7 @@ class CreateVoterRecordsForUsers extends Command
                 $firstName = $nameParts[0];
                 $lastName = $nameParts[1] ?? '';
 
-                // Crear registro de votante
+                // Crear registro de apoyo
                 Voter::create([
                     'user_id' => $user->id,
                     'campaign_id' => $campaign->id,

@@ -147,7 +147,7 @@ new class extends Component {
         $columns = $this->getSelectedColumns();
         $labels = $this->columnLabels();
 
-        $filename = 'mis-votantes-filtrados-' . now()->format('Ymd-His') . '.csv';
+        $filename = 'mis-apoyos-filtrados-' . now()->format('Ymd-His') . '.csv';
 
         return response()->streamDownload(function () use ($query, $columns, $labels) {
             $handle = fopen('php://output', 'w');
@@ -176,7 +176,7 @@ new class extends Component {
         $columns = $this->getSelectedColumns();
         $labels = $this->columnLabels();
 
-        $filename = 'mis-votantes-todos-' . now()->format('Ymd-His') . '.csv';
+        $filename = 'mis-apoyos-todos-' . now()->format('Ymd-His') . '.csv';
 
         return response()->streamDownload(function () use ($query, $columns, $labels) {
             $handle = fopen('php://output', 'w');

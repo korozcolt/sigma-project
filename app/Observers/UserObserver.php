@@ -15,7 +15,7 @@ class UserObserver
      */
     public function created(User $user): void
     {
-        // Solo crear votante si el user tiene documento y datos territoriales
+        // Solo crear apoyo si el user tiene documento y datos territoriales
         if (! $user->document_number || ! $user->municipality_id) {
             return;
         }
@@ -24,7 +24,7 @@ class UserObserver
         $campaign = $user->campaigns()->first();
 
         if (! $campaign) {
-            Log::info('User creado sin campaña asignada, no se crea registro de votante', [
+            Log::info('User creado sin campaña asignada, no se crea registro de apoyo', [
                 'user_id' => $user->id,
             ]);
 
@@ -36,7 +36,7 @@ class UserObserver
         $firstName = $nameParts[0];
         $lastName = $nameParts[1] ?? '';
 
-        // Crear registro de votante
+        // Crear registro de apoyo
         Voter::create([
             'user_id' => $user->id,
             'campaign_id' => $campaign->id,
@@ -53,7 +53,7 @@ class UserObserver
             'status' => VoterStatus::CONFIRMED,
         ]);
 
-        Log::info('Registro de votante auto-creado para user', [
+        Log::info('Registro de apoyo auto-creado para user', [
             'user_id' => $user->id,
             'campaign_id' => $campaign->id,
         ]);

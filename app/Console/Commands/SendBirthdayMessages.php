@@ -87,7 +87,7 @@ class SendBirthdayMessages extends Command
                 $this->warn('  🚀 Horarios ignorados (modo forced)');
             }
 
-            // Obtener votantes que cumplen años hoy
+            // Obtener apoyos que cumplen años hoy
             $voters = Voter::where('campaign_id', $campaign->id)
                 ->whereMonth('birth_date', today()->month)
                 ->whereDay('birth_date', today()->day)
