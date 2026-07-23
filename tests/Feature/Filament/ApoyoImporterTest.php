@@ -5,10 +5,12 @@ declare(strict_types=1);
 use App\Enums\UserRole;
 use App\Filament\Imports\ApoyoImporter;
 use App\Filament\Resources\Voters\Pages\ListVoters;
+use App\Models\Campaign;
 use App\Models\Municipality;
 use App\Models\Neighborhood;
 use App\Models\User;
 use App\Models\Voter;
+use Filament\Actions\Imports\Models\Import;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
@@ -17,11 +19,6 @@ use Spatie\Permission\Models\Role;
 use function Pest\Laravel\actingAs;
 
 uses(RefreshDatabase::class);
-
-// NOTE (Wave 0 / plan 02.1-01): This file scaffolds RED tests for D-06/D-07.
-// `App\Filament\Imports\ApoyoImporter` and the `import` header action on
-// ListVoters do not exist yet - they are implemented in plan 02.1-10.
-// Failing/erroring here is expected and correct until that plan lands.
 
 beforeEach(function () {
     collect(UserRole::values())->each(function ($role) {
@@ -62,12 +59,11 @@ test('reviewer cannot see the import action on the voters list page', function (
 test('importing a CSV with a mix of valid and invalid rows creates only the valid Apoyos and produces a downloadable failed-rows report', function () {
     $admin = User::factory()->create();
     $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+    $campaign = Campaign::factory()->create();
+    $admin->campaigns()->attach($campaign, ['assigned_at' => now()]);
     $municipality = Municipality::factory()->create();
     $neighborhood = Neighborhood::factory()->create(['municipality_id' => $municipality->id]);
 
-    // Referencing the importer directly documents the expected column contract
-    // (App\Filament\Imports\ApoyoImporter) and forces this test to error until
-    // plan 02.1-10 creates it.
     expect(ApoyoImporter::getColumns())->not->toBeEmpty();
 
     $csv = UploadedFile::fake()->createWithContent('apoyos.csv', implode("\n", [
@@ -79,10 +75,20 @@ test('importing a CSV with a mix of valid and invalid rows creates only the vali
     actingAs($admin);
 
     Livewire::test(ListVoters::class)
-        ->callAction('import', data: ['file' => $csv]);
+        ->callAction('import', data: [
+            'file' => $csv,
+            'municipality_id' => $municipality->id,
+        ]);
 
     expect(Voter::where('document_number', '1010101010')->exists())->toBeTrue()
         ->and(Voter::where('first_name', 'SinCedula')->exists())->toBeFalse();
+
+    $import = Import::query()->latest('id')->first();
+
+    expect($import)->not->toBeNull()
+        ->and($import->total_rows)->toBe(2)
+        ->and($import->getFailedRowsCount())->toBe(1)
+        ->and($import->failedRows()->count())->toBe(1);
 });
 
 test('importing a CSV row whose cedula belongs to an existing leader is rejected with a clear reason', function () {
@@ -106,9 +112,109 @@ test('importing a CSV row whose cedula belongs to an existing leader is rejected
     actingAs($admin);
 
     Livewire::test(ListVoters::class)
-        ->callAction('import', data: ['file' => $csv]);
+        ->callAction('import', data: [
+            'file' => $csv,
+            'municipality_id' => $municipality->id,
+        ]);
 
-    expect(Voter::where('document_number', '2020202020')
-        ->where('registered_by', '!=', $leader->id)
-        ->exists())->toBeFalse();
+    expect(Voter::where('document_number', '2020202020')->exists())->toBeFalse();
+
+    $import = Import::query()->latest('id')->first();
+    $failedRow = $import->failedRows()->first();
+
+    expect($import->getFailedRowsCount())->toBe(1)
+        ->and($failedRow)->not->toBeNull()
+        ->and($failedRow->validation_error)->toContain('líder/coordinador');
+});
+
+test('importing a CSV row missing a required column is rejected and appears in the failed-rows report', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+
+    $municipality = Municipality::factory()->create();
+    $neighborhood = Neighborhood::factory()->create(['municipality_id' => $municipality->id]);
+
+    $csv = UploadedFile::fake()->createWithContent('apoyos.csv', implode("\n", [
+        'cedula,nombre1,apellido1,fecha_nacimiento,telefono,barrio,direccion,lugar_expedicion_cedula,subcategoria,gremio,placa',
+        '3030303030,Sin,Telefono,,,'.$neighborhood->name.',,,,,',
+    ]));
+
+    actingAs($admin);
+
+    Livewire::test(ListVoters::class)
+        ->callAction('import', data: [
+            'file' => $csv,
+            'municipality_id' => $municipality->id,
+        ]);
+
+    expect(Voter::where('document_number', '3030303030')->exists())->toBeFalse();
+
+    $import = Import::query()->latest('id')->first();
+
+    expect($import->getFailedRowsCount())->toBe(1);
+});
+
+test('a row with a valid, never-before-seen cedula creates a new Voter with duplicate_sequence 0', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+    $campaign = Campaign::factory()->create();
+    $admin->campaigns()->attach($campaign, ['assigned_at' => now()]);
+
+    $municipality = Municipality::factory()->create();
+    $neighborhood = Neighborhood::factory()->create(['municipality_id' => $municipality->id]);
+
+    $csv = UploadedFile::fake()->createWithContent('apoyos.csv', implode("\n", [
+        'cedula,nombre1,apellido1,fecha_nacimiento,telefono,barrio,direccion,lugar_expedicion_cedula,subcategoria,gremio,placa',
+        '4040404040,Nueva,Persona,,3007778888,'.$neighborhood->name.',,,,,',
+    ]));
+
+    actingAs($admin);
+
+    Livewire::test(ListVoters::class)
+        ->callAction('import', data: [
+            'file' => $csv,
+            'municipality_id' => $municipality->id,
+        ]);
+
+    $voter = Voter::where('document_number', '4040404040')->first();
+
+    expect($voter)->not->toBeNull()
+        ->and($voter->duplicate_sequence)->toBe(0)
+        ->and($voter->municipality_id)->toBe($municipality->id)
+        ->and($voter->registered_by)->toBe($admin->id);
+});
+
+test('a row whose cedula already exists creates a duplicate Voter with incremented sequence and DUPLICATE status', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::ADMIN_CAMPAIGN->value);
+    $campaign = Campaign::factory()->create();
+    $admin->campaigns()->attach($campaign, ['assigned_at' => now()]);
+
+    $municipality = Municipality::factory()->create();
+    $neighborhood = Neighborhood::factory()->create(['municipality_id' => $municipality->id]);
+
+    Voter::factory()->create([
+        'document_number' => '5050505050',
+        'municipality_id' => $municipality->id,
+    ]);
+
+    $csv = UploadedFile::fake()->createWithContent('apoyos.csv', implode("\n", [
+        'cedula,nombre1,apellido1,fecha_nacimiento,telefono,barrio,direccion,lugar_expedicion_cedula,subcategoria,gremio,placa',
+        '5050505050,Duplicado,Apoyo,,3009990000,'.$neighborhood->name.',,,,,',
+    ]));
+
+    actingAs($admin);
+
+    Livewire::test(ListVoters::class)
+        ->callAction('import', data: [
+            'file' => $csv,
+            'municipality_id' => $municipality->id,
+        ]);
+
+    $duplicateVoter = Voter::where('document_number', '5050505050')
+        ->where('duplicate_sequence', '>', 0)
+        ->first();
+
+    expect($duplicateVoter)->not->toBeNull()
+        ->and($duplicateVoter->status->value)->toBe('duplicate');
 });
