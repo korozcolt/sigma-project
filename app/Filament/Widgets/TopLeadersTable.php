@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Exports\TopLeadersExport;
+use App\Filament\Resources\Voters\VoterResource;
 use App\Models\User;
 use App\Services\CampaignContext;
 use Filament\Actions\Action;
@@ -107,6 +108,11 @@ class TopLeadersTable extends TableWidget
                     ->icon('heroicon-o-arrow-down-tray')
                     ->action(fn () => (new TopLeadersExport($activeCampaign?->id))->download('ranking-lideres.xlsx')),
             ])
+            ->recordUrl(fn (User $record) => VoterResource::getUrl('index', [
+                'tableFilters' => [
+                    'registered_by' => ['values' => [$record->id]],
+                ],
+            ]))
             ->paginated(false);
     }
 }
