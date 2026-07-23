@@ -22,6 +22,7 @@ Campaign teams can run critical voter and field operations from one place with t
 - ✓ Election-day execution exists with vote records, evidence capture, and audit-oriented traceability - existing
 - ✓ Administrative panels, leader/coordinator panels, widgets, exports, and operational dashboards exist - existing
 - ✓ Apoyos (renamed from Votantes in the UI) support duplicate-cédula tracking with an auditable sufijo, leader/coordinator exclusion from being registered as someone else's Apoyo, global Gremio/Subcategoría classification, and admin-only CSV bulk import - validated in Phase 02.1
+- ✓ Advanced Apoyo reporting exists: leader/coordinator/polling-place rankings (excluding duplicate-status apoyos), coordinator coverage as team rollup, rejections report, duplicates report (intentional cross-campaign exception), combined flat CSV export, and jurisdiction dentro/fuera report - validated in Phase 04.1
 
 ### Active
 
@@ -69,6 +70,8 @@ Real users think in tasks rather than modules. They need to load voters, validat
 | Use dashboards and reporting as operational control surfaces | SIGMA should act as a campaign command center, not just a record system | - Pending |
 | Capture production failures as planning inputs | Real breakages like the call queue widget error reveal where operator trust is weakest | - Pending |
 | "Reasignar dueño de duplicado" performs a real ownership transfer (registered_by), not just a status-flag clear | Client's original written requirement said "reasignar la propiedad de la cédula al otro Líder" — literal ownership transfer, confirmed during Phase 02.1's gap closure (plan 02.1-11) after initial narrower reading was flagged by verification | Implemented in Phase 02.1 |
+| Coordinator coverage report shows no numeric "meta" (quota/goal) field | No quota/goal field exists anywhere in the schema; client confirmed during Phase 04.1 discuss-phase that leader-assignment coverage visibility (leaders count, apoyos/leader, zero-apoyo leaders) satisfies the original "meta vs. real" framing without adding new schema | Implemented in Phase 04.1 |
+| Duplicates report is the one intentional exception to strict campaign isolation | A duplicate cédula spanning two different campaigns IS the case that must be visible; every other widget/export in Phase 04.1 remains strictly campaign-scoped | Implemented in Phase 04.1 |
 
 ## Evolution
 
@@ -88,4 +91,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-23 after Phase 02.1 completion*
+*Last updated: 2026-07-23 after Phase 04.1 completion*
