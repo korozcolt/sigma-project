@@ -50,7 +50,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Goal:** Campaign operators work with "Apoyos" (not "Votantes") everywhere in the UI, leaders/coordinators cannot be registered as someone else's Apoyo, duplicate cedulas are tracked with an auditable suffix instead of blocked, Apoyos can be optionally classified by Gremio/Subcategoria, and admins can bulk-import Apoyos via CSV with a partial-success rejection report.
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10 (locked decisions from 02.1-CONTEXT.md; no formal REQ-IDs assigned)
 **Depends on:** Phase 2
-**Plans:** 9/10 plans executed
+**Plans:** 10/10 plans complete
 
 Plans:
 - [x] 02.1-01-PLAN.md — Wave 0: test scaffolding + Filament import infrastructure migrations
@@ -62,7 +62,7 @@ Plans:
 - [x] 02.1-07-PLAN.md — Rename sweep: Leader/Coordinator/Campaign-admin panels + landing page (D-01)
 - [x] 02.1-08-PLAN.md — Voter classification/document schema + duplicate-reassignment audit action (D-03, D-10)
 - [x] 02.1-09-PLAN.md — VoterForm/VotersTable/VoterResource wiring: rename + Gremio/Subcategoria + duplicate confirm UX + exclusion rule + VoterResourceTest rewrite (D-01, D-02, D-04, D-05, D-08)
-- [ ] 02.1-10-PLAN.md — ApoyosImport CSV bulk import, admin-only, partial success + rejection report (D-06, D-07)
+- [x] 02.1-10-PLAN.md — ApoyosImport CSV bulk import, admin-only, partial success + rejection report (D-06, D-07)
 
 ### Phase 3: Outreach & Follow-up Reliability
 **Goal**: Campaign teams can run call, survey, and messaging workflows with traceable outcomes and no stale queue behavior.
