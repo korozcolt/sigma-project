@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 05.1-02-PLAN.md — OTP-via-Hablame-SMS for coordinator-creates-leader flow
-last_updated: "2026-07-23T20:46:35.842Z"
+stopped_at: Completed 05.1-09-PLAN.md — FinalizeElectionEvent direct job test + real queue dispatch + Day D logging (QUAL-01, QUAL-02)
+last_updated: "2026-07-24T02:21:12.368Z"
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 25
-  completed_plans: 22
+  completed_plans: 24
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 05.1 (cross-phase-hardening-closure) — EXECUTING
-Plan: 7 of 9 complete (Wave 1 done, starting Wave 2)
+Plan: 8 of 9 complete (Wave 1 done, starting Wave 2)
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Plan: 7 of 9 complete (Wave 1 done, starting Wave 2)
 | Phase 05.1 P01 | 25min | 3 tasks | 12 files |
 | Phase 05.1 P07 | 25min | 2 tasks | 5 files |
 | Phase 05.1 P02 | 45 | 3 tasks | 9 files |
+| Phase 05.1 P09 | 15min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,7 @@ Recent decisions affecting current work:
 - [Phase 05.1]: [Phase 05.1] Plan 01: CampaignContext::setCampaignId() mutates process-lifetime static properties; tests calling it must reset via reflection in afterEach() to avoid leaking a campaign override into unrelated test files
 - [Phase 05.1]: [Phase 05.1] Plan 07: FollowUpBacklogOverview registered admin-panel-only, right after CampaignStatsOverview; drill-through URLs use tableFilters[filter][values] (not [value]) since VotersTable's status/registered_by filters both use ->multiple()
 - [Phase 05.1]: [Phase 05.1] Plan 02: OTP verification for coordinator-creates-leader gated on phone via HablameSmsService::sendRaw() with priority:true; message template configurable per-campaign via Campaign.settings.otp_message_template
+- [Phase 05.1]: Plan 09: FinalizeElectionEvent now runs on the real queue (dispatch(), not dispatchSync()) with a failed() hook and structured Log:: calls; ElectionEventClosureTest dispatches the real job (dispatchSync in tests is correct — it invokes handle() through the container) plus a DB-level vote_records duplicate-prevention test, closing QUAL-01/QUAL-02
 
 ### Roadmap Evolution
 
@@ -124,6 +126,6 @@ yet.
 
 ## Session Continuity
 
-Last session: 2026-07-23T20:45:17.142Z
-Stopped at: Completed 05.1-02-PLAN.md — OTP-via-Hablame-SMS for coordinator-creates-leader flow
+Last session: 2026-07-24T02:21:12.367Z
+Stopped at: Completed 05.1-09-PLAN.md — FinalizeElectionEvent direct job test + real queue dispatch + Day D logging (QUAL-01, QUAL-02)
 Resume file: None
