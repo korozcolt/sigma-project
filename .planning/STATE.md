@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
-status: verifying
-stopped_at: Phase 7 context gathered
-last_updated: "2026-07-24T13:05:36.208Z"
-last_activity: 2026-07-24
+status: Phase 07 complete — ready for verification
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-07-24T13:29:13.738Z"
 progress:
   total_phases: 6
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 17
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
+  percent: 33
 ---
 
 # Project State
@@ -25,12 +24,12 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 
 ## Current Position
 
-Phase: 7 of 11 (source flag schema & resolution audit trail)
-Plan: Not started
-Status: Phase 6 complete, ready for verification. Next: Phase 7 (Source-Flag Schema & Audit Trail) — no dependency on Phase 6, can start immediately.
+Phase: 7 of 11 (source flag schema & resolution audit trail) — COMPLETE
+Plan: 1 of 1 complete
+Status: Phase 7 complete, ready for verification. Next: Phase 8 (Resilient PollingPlaceResolver Service) depends on Phases 6 + 7, both now done.
 Last activity: 2026-07-24
 
-Progress: [██░░░░░░░░] 17%
+Progress: [███░░░░░░░] 33%
 
 ## v1.1 Phase Map
 
@@ -65,9 +64,18 @@ Phase 06 Plan 01 decisions:
 - ISO-8859-1 -> UTF-8 conversion done per-line with `mb_convert_encoding` during the streaming read (simpler than a one-time `iconv` pre-pass).
 - Fixture CSV (`tests/fixtures/census/national-sample.csv`) marked `-text` in `.gitattributes` so the repo's `text=auto eol=lf` rule never strips its required CRLF terminators on checkout.
 
+Phase 07 Plan 01 decisions:
+
+- No default value set on `voters.polling_place_source` — no existing voter has ever had a source, so nullable with no backfill is correct (per 07-CONTEXT.md discretion).
+- `resolved_by` on `polling_place_resolutions` is nullable + `nullOnDelete` (D-05) — the one place this schema diverges from `ValidationHistory.validated_by`, tolerating Phase 11's headless reconciliation writes.
+- `polling_place_id` + `table_number` on `polling_place_resolutions` are value snapshots (nullable, `nullOnDelete`) capturing which specific place a resolution produced, not just the source label (D-06).
+- `resolved_via` is a plain required string (D-08), not a backed enum, matching `ValidationHistory.validation_type`'s precedent — new values addable without a migration.
+
 ### Blockers/Concerns
 
 - **`gsd-tools.cjs` root-resolution bug when a git worktree owns its own `.planning/`:** `findProjectRoot()` (in `lib/core.cjs`) walks up from `cwd` and, upon finding an *ancestor* directory that also has `.planning/` plus a `.git` heuristic match, redirects `cwd` there — even when the original `cwd` already has its own valid, independent `.planning/`. In this session's worktree (`worktree-agent-ae9f012d50fef4e54`, which owns its own `.planning/`), every `gsd-tools state|roadmap|requirements` subcommand silently redirected reads/writes to the **main checkout's** `.planning/` instead of the worktree's. This was caught before real damage (the only accidental write to the main repo's `STATE.md` was reverted), but it means **`gsd-tools` CLI commands cannot be trusted to target a worktree's own `.planning/` in this repo layout** — STATE.md/ROADMAP.md/REQUIREMENTS.md updates for Phase 06 Plan 01 were made by hand-editing the worktree copies directly instead. Worth a fix in `gsd-tools` (short-circuit `findProjectRoot` when `startDir` itself already has `.planning/`) or at minimum a documented workaround for future phases executed in this worktree.
+- **Same `gsd-tools` root-resolution bug recurred during Phase 07 Plan 01 execution** (worktree `agent-ae0adbb8ac28629ba`, also stale — see below): `state advance-plan`/`update-progress` partially wrote to this worktree's own STATE.md (with an incorrect recalculation, e.g. `total_plans` dropped from 2 to 1), while `state record-metric`/`record-session` silently redirected to and modified the **main checkout's** `.planning/STATE.md` instead — mixed per-command routing, not consistently one or the other. The main checkout's accidental write was caught and reverted to its exact prior (dirty, uncommitted) content before this session ended. All STATE.md/ROADMAP.md/REQUIREMENTS.md updates for this plan were redone by hand-editing the worktree copies directly. This bug is confirmed to still be present and should be fixed in `gsd-tools` before the next phase relies on its CLI for state mutation inside a worktree.
+- **This worktree (`agent-ae0adbb8ac28629ba`) was also stale at session start**, same class of issue as Phase 06: checked out at commit `78c1f69` (pre-dating Phase 6/7 entirely), missing `vendor/`, `.env`, and the `.planning/phases/07-*` directory. Resolved the same way: `git merge --ff-only` to main's HEAD (a fast-forward descendant), then `composer install` and copying `.env` from the main checkout. Worth checking whether stale/locked worktrees can be refreshed automatically before an execute-phase agent is spawned into one.
 
 - **System-actor decision for reconciliation's audit trail (RECON-03) must be made before Phase 11 is planned in detail** — either a seeded `system`/bot user passed as the `validated_by`-equivalent, or a nullable FK + `resolution_type='auto_reconciliation'`. Flagged in research (Pitfall #3). Not yet decided.
 - **Interactive cascade ordering (live-first vs cost-last):** the requirement says "live first, fall back to snapshot," but the existing interactive path is deliberately cost-*last* (live = paid). Confirm interactive ordering with the client during Phase 8 planning; reconciliation (Phase 11) is unambiguously live-first.
@@ -93,6 +101,6 @@ Tracked in Blockers/Concerns above.
 
 ## Session Continuity
 
-Last session: 2026-07-24T13:05:36.205Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-source-flag-schema-resolution-audit-trail/07-CONTEXT.md
+Last session: 2026-07-24T13:29:13.735Z
+Stopped at: Completed 07-01-PLAN.md
+Resume file: None
