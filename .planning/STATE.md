@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
-status: Phase 6 complete — ready for verification
-stopped_at: Phase 06 Plan 01 executed (national_census_records + census:import-national)
-last_updated: "2026-07-24T12:42:00.000Z"
-last_activity: 2026-07-24 — Phase 6 Plan 01 executed (CENSO-02, CENSO-03 delivered)
+status: verifying
+stopped_at: "Phase 06 Plan 01 executed and verified (national_census_records + census:import-national); Phase 6 complete"
+last_updated: "2026-07-24T12:53:10.842Z"
+last_activity: 2026-07-24
 progress:
   total_phases: 6
   completed_phases: 1
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 
 ## Current Position
 
-Phase: 6 of 11 (National Census Snapshot Import) — COMPLETE (1/1 plans)
-Plan: 06-01 executed — census:import-national + national_census_records delivered
+Phase: 7 of 11 (source flag schema & resolution audit trail)
+Plan: Not started
 Status: Phase 6 complete, ready for verification. Next: Phase 7 (Source-Flag Schema & Audit Trail) — no dependency on Phase 6, can start immediately.
-Last activity: 2026-07-24 — Phase 6 Plan 01 executed (CENSO-02, CENSO-03 delivered)
+Last activity: 2026-07-24
 
 Progress: [██░░░░░░░░] 17%
 
