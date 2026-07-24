@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to execute
-stopped_at: Completed 05.1-03-PLAN.md — Super Admin maintenance kill switch (KILLSWITCH-CLIENT-REQUEST)
-last_updated: "2026-07-24T02:20:50.239Z"
+status: Ready to plan
+stopped_at: "Phase 05.1 complete: all 9 plans done (05.1-03 kill switch and 05.1-09 Day D observability both closed out their human-verify checkpoints)."
+last_updated: "2026-07-24T02:25:00.000Z"
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 25
-  completed_plans: 24
+  completed_plans: 25
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 
 ## Current Position
 
-Phase: 05.1 (cross-phase-hardening-closure) — EXECUTING
-Plan: 8 of 9 complete (Wave 2: 05.1-02, 05.1-03, 05.1-07 done; 05.1-09 remaining)
+Phase: 05.1 (cross-phase-hardening-closure) — COMPLETE
+Plan: 9 of 9 complete
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Plan: 8 of 9 complete (Wave 2: 05.1-02, 05.1-03, 05.1-07 done; 05.1-09 remaining
 | Phase 05.1 P07 | 25min | 2 tasks | 5 files |
 | Phase 05.1 P02 | 45 | 3 tasks | 9 files |
 | Phase 05.1 P03 | 20min | 3 tasks | 3 files |
+| Phase 05.1 P09 | 15min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,7 @@ Recent decisions affecting current work:
 - [Phase 05.1]: [Phase 05.1] Plan 07: FollowUpBacklogOverview registered admin-panel-only, right after CampaignStatsOverview; drill-through URLs use tableFilters[filter][values] (not [value]) since VotersTable's status/registered_by filters both use ->multiple()
 - [Phase 05.1]: [Phase 05.1] Plan 02: OTP verification for coordinator-creates-leader gated on phone via HablameSmsService::sendRaw() with priority:true; message template configurable per-campaign via Campaign.settings.otp_message_template
 - [Phase 05.1-03]: Super Admin maintenance kill switch uses Laravel's documented --secret bypass (not render-null, which doesn't apply to this Laravel version); activating admin is auto-redirected through their own bypass secret (checkpoint-discovered fix) so they never get locked out of their own activation
+- [Phase 05.1]: Plan 09: FinalizeElectionEvent now runs on the real queue (dispatch(), not dispatchSync()) with a failed() hook and structured Log:: calls; ElectionEventClosureTest dispatches the real job (dispatchSync in tests is correct — it invokes handle() through the container) plus a DB-level vote_records duplicate-prevention test, closing QUAL-01/QUAL-02
 
 ### Roadmap Evolution
 
@@ -126,6 +128,6 @@ yet.
 
 ## Session Continuity
 
-Last session: 2026-07-24T02:20:50.236Z
-Stopped at: Completed 05.1-03-PLAN.md — Super Admin maintenance kill switch (KILLSWITCH-CLIENT-REQUEST)
+Last session: 2026-07-24T02:25:00.000Z
+Stopped at: Phase 05.1 complete — all 9 plans done, both checkpoints (05.1-03, 05.1-09) verified live by the user.
 Resume file: None

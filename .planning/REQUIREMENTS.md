@@ -53,8 +53,8 @@
 
 ### Quality and Verification
 
-- [ ] **QUAL-01**: The highest-risk workflows are protected by automated tests for campaign isolation, permissions, import/export behavior, reporting consistency, and Day D evidence integrity
-- [ ] **QUAL-02**: Trust-critical operational failures are observable through logs, monitoring, or queue/error visibility before users have to report them manually
+- [x] **QUAL-01**: The highest-risk workflows are protected by automated tests for campaign isolation, permissions, import/export behavior, reporting consistency, and Day D evidence integrity
+- [x] **QUAL-02**: Trust-critical operational failures are observable through logs, monitoring, or queue/error visibility before users have to report them manually
 
 ## v2 Requirements
 
@@ -116,14 +116,14 @@
 | DAYD-03 | Phase 5 | Done (closed in Phase 05.1, plan 08) |
 | DAYD-04 | Phase 5 | Done (closed in Phase 05.1, plan 08) |
 | DAYD-05 | Phase 5 | Done |
-| QUAL-01 | Phase 5 | Partial (closing in Phase 05.1) |
-| QUAL-02 | Phase 5 | Not covered (closing in Phase 05.1 — biggest Phase 5 gap) |
+| QUAL-01 | Phase 5 | Done (closed in Phase 05.1, plan 09) |
+| QUAL-02 | Phase 5 | Done (closed in Phase 05.1, plan 09) |
 
 **Coverage:**
 - v1 requirements: 30 total
 - Mapped to phases: 30
 - Unmapped: 0
-- Done: 15 | Partial: 13 | Not covered: 2
+- Done: 17 | Partial: 12 | Not covered: 1
 
 ---
 *Requirements defined: 2026-03-25*
