@@ -62,29 +62,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CENSO-01 | TBD | Pending |
-| CENSO-02 | TBD | Pending |
-| CENSO-03 | TBD | Pending |
-| SRC-01 | TBD | Pending |
-| SRC-02 | TBD | Pending |
-| SRC-03 | TBD | Pending |
-| SRC-04 | TBD | Pending |
-| SRC-05 | TBD | Pending |
-| LIVE-01 | TBD | Pending |
-| LIVE-02 | TBD | Pending |
-| LIVE-03 | TBD | Pending |
-| RECON-01 | TBD | Pending |
-| RECON-02 | TBD | Pending |
-| RECON-03 | TBD | Pending |
-| RECON-04 | TBD | Pending |
-| RECON-05 | TBD | Pending |
-| RECON-06 | TBD | Pending |
+| CENSO-01 | Phase 8 | Pending |
+| CENSO-02 | Phase 6 | Pending |
+| CENSO-03 | Phase 6 | Pending |
+| SRC-01 | Phase 10 | Pending |
+| SRC-02 | Phase 8 | Pending |
+| SRC-03 | Phase 7 | Pending |
+| SRC-04 | Phase 10 | Pending |
+| SRC-05 | Phase 10 | Pending |
+| LIVE-01 | Phase 8 | Pending |
+| LIVE-02 | Phase 9 | Pending |
+| LIVE-03 | Phase 8 | Pending |
+| RECON-01 | Phase 11 | Pending |
+| RECON-02 | Phase 11 | Pending |
+| RECON-03 | Phase 11 | Pending |
+| RECON-04 | Phase 11 | Pending |
+| RECON-05 | Phase 11 | Pending |
+| RECON-06 | Phase 11 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17 ⚠️ (roadmap not yet created)
+- Mapped to phases: 17 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-24*
-*Last updated: 2026-07-24 after v1.1 requirements definition*
+*Last updated: 2026-07-24 after v1.1 roadmap creation (all 17 requirements mapped to Phases 6-11)*
