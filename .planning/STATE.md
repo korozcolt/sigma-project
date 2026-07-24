@@ -1,14 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: "Consulta de Puesto de Votación Resiliente"
-status: Roadmap created — ready to plan Phase 6
-last_updated: "2026-07-24T04:00:00.000Z"
+milestone_name: Consulta de Puesto de Votación Resiliente
+status: planning
+stopped_at: Phase 6 context gathered
+last_updated: "2026-07-24T12:11:44.599Z"
+last_activity: 2026-07-24 — v1.1 roadmap created; 17/17 requirements mapped to Phases 6-11
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -51,6 +54,7 @@ Reset for v1.1. Historical v1.0 velocity data archived in `.planning/milestones/
 Full v1.0 decision log archived in `.planning/PROJECT.md` Key Decisions table and `.planning/milestones/v1.0-ROADMAP.md`. Cleared here for the next milestone.
 
 v1.1 roadmap decisions:
+
 - CENSO-01 (resolve-from-snapshot-on-outage) mapped to the resolver phase (8), not the import phase — the observable "resolves from snapshot when live is down" only becomes TRUE once the cascade exists.
 - SRC-01 (visibly shows source) mapped to the operator-controls phase (10), not the resolver — the criterion becomes TRUE when the badge renders to a human.
 - Live-source spike (LIVE-02) is a standalone non-blocking Phase 9 so the deterministic snapshot/flag/resolver/reconcile core is never gated on the captcha unknown.
@@ -81,6 +85,6 @@ Tracked in Blockers/Concerns above.
 
 ## Session Continuity
 
-Last session: 2026-07-24T04:00:00.000Z
-Stopped at: v1.1 roadmap created (Phases 6-11, 17/17 requirements mapped). Next: `/gsd:plan-phase 6`.
-Resume file: None
+Last session: 2026-07-24T12:11:44.588Z
+Stopped at: Phase 6 context gathered
+Resume file: .planning/phases/06-national-census-snapshot-import/06-CONTEXT.md
