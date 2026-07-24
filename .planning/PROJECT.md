@@ -4,7 +4,7 @@
 
 SIGMA is a brownfield political operations platform for running campaign management from a single system. It centralizes campaign setup, territorial organization, voter operations, validation, communications, reporting, and election-day execution with role-based access and campaign-level data isolation.
 
-Today the platform already covers core electoral workflows across multiple Filament panels, but the next milestone is focused on making those workflows feel operationally trustworthy end to end. The product direction is to consolidate SIGMA as the command center a campaign can depend on daily, not just a collection of modules.
+As of v1.0 (shipped 2026-07-24), the platform's core electoral workflows across all Filament panels have been hardened end to end for operational trust: campaign isolation, role/permission clarity, the Apoyo (voter) lifecycle, outreach, reporting, and Day D execution are all verified against their v1 requirements. The product direction remains to consolidate SIGMA as the command center a campaign can depend on daily, not just a collection of modules.
 
 ## Core Value
 
@@ -35,7 +35,7 @@ Campaign teams can run critical voter and field operations from one place with t
 
 ### Active
 
-*(none — the milestone's hardening scope is fully validated as of Phase 05.1; consider `/gsd:complete-milestone` if v1.0 is ready to close)*
+*(none yet — v1.0 shipped 2026-07-24; run `/gsd:new-milestone` to scope the next milestone's Active requirements)*
 
 ### Out of Scope
 
@@ -93,5 +93,13 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope - reasons still valid?
 4. Update Context with current state
 
+## Current State
+
+**Shipped: v1.0 MVP Hardening (2026-07-24).** All 30 v1 requirements Done. See `.planning/milestones/v1.0-ROADMAP.md` and `.planning/milestones/v1.0-REQUIREMENTS.md` for the full archived record, and `.planning/MILESTONES.md` for the shipped summary.
+
+## Next Milestone Goals
+
+Not yet defined — run `/gsd:new-milestone` to scope v1.1 (or v2.0, depending on direction).
+
 ---
-*Last updated: 2026-07-24 after Phase 05.1 completion (all v1.0 milestone requirements closed)*
+*Last updated: 2026-07-24 after v1.0 milestone completion*
