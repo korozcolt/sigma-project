@@ -1,9 +1,9 @@
 ---
 gsd_state_version: 1.0
-milestone: none
-milestone_name: null
-status: Planning next milestone
-last_updated: "2026-07-24T03:00:00.000Z"
+milestone: v1.1
+milestone_name: "Consulta de Puesto de Votación Resiliente"
+status: Defining requirements
+last_updated: "2026-07-24T03:15:00.000Z"
 progress:
   total_phases: 0
   completed_phases: 0
@@ -18,11 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-24)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Planning next milestone (v1.0 shipped 2026-07-24 — see `.planning/MILESTONES.md`)
+**Current focus:** Milestone v1.1 — Consulta de Puesto de Votación Resiliente
 
 ## Current Position
 
-Milestone v1.0 (MVP Hardening) shipped 2026-07-24. No active phase — next milestone not yet scoped. Run `/gsd:new-milestone` to start.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-24 — Milestone v1.1 started
 
 ## Performance Metrics
 

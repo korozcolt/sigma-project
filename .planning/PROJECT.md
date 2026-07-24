@@ -35,7 +35,11 @@ Campaign teams can run critical voter and field operations from one place with t
 
 ### Active
 
-*(none yet — v1.0 shipped 2026-07-24; run `/gsd:new-milestone` to scope the next milestone's Active requirements)*
+- [ ] Feasibility of `wsp.registraduria.gov.co` as a live polling-place lookup source is validated (or ruled out)
+- [ ] Local census snapshot (`censo_decoded_202310210734.csv`) is imported into a cédula-indexed, queryable table enriched with full location data
+- [ ] Voter polling-place lookup falls back to the local census snapshot when the live Registraduría source is unavailable
+- [ ] The data source (live vs. local snapshot) behind a voter's polling-place result is visible and auditable
+- [ ] Voters resolved via local snapshot are automatically re-verified against the live source once it's reachable, via a scheduled job
 
 ### Out of Scope
 
@@ -97,9 +101,20 @@ This document evolves at phase transitions and milestone boundaries.
 
 **Shipped: v1.0 MVP Hardening (2026-07-24).** All 30 v1 requirements Done. See `.planning/milestones/v1.0-ROADMAP.md` and `.planning/milestones/v1.0-REQUIREMENTS.md` for the full archived record, and `.planning/MILESTONES.md` for the shipped summary.
 
+## Current Milestone: v1.1 Consulta de Puesto de Votación Resiliente
+
+**Goal:** When live Registraduría lookup is unavailable, SIGMA still resolves a cédula's polling place using a local census snapshot, clearly marks the data's origin, and automatically reconciles against the live source once it's reachable again.
+
+**Target features:**
+- Feasibility spike: validate whether `wsp.registraduria.gov.co` (reCAPTCHA Enterprise) is viable as the live source, replacing or complementing the two confirmed-dead domains currently hardcoded in `registraduria-service/app.py`
+- Import `censo_decoded_202310210734.csv` into a cédula-indexed table, enriched via join against the existing `polling_places` table (already seeded from `divipole-nacional.json`)
+- Fallback lookup logic: attempt live Registraduría first, fall back to the local census snapshot on failure/unavailability
+- Explicit data-source flag (live vs. local-snapshot-fallback) visible on the voter's polling-place result
+- Scheduled reconciliation job that retries live lookup for snapshot-flagged voters and updates them when Registraduría responds again
+
 ## Next Milestone Goals
 
-Not yet defined — run `/gsd:new-milestone` to scope v1.1 (or v2.0, depending on direction).
+Not yet defined beyond v1.1.
 
 ---
-*Last updated: 2026-07-24 after v1.0 milestone completion*
+*Last updated: 2026-07-24 after starting v1.1 milestone*
