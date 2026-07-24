@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PollingPlaceSource;
 use App\Enums\VoterStatus;
 use App\Models\Concerns\HasCampaignContext;
 use App\Services\VoterDuplicateAssignmentService;
@@ -32,6 +33,8 @@ class Voter extends Model
         'neighborhood_id',
         'polling_place_id',
         'polling_table_number',
+        'polling_place_source',
+        'polling_place_resolved_at',
         'address',
         'detailed_address',
         'registered_by',
@@ -52,6 +55,8 @@ class Voter extends Model
         return [
             'birth_date' => 'date',
             'status' => VoterStatus::class,
+            'polling_place_source' => PollingPlaceSource::class,
+            'polling_place_resolved_at' => 'datetime',
             'census_validated_at' => 'datetime',
             'call_verified_at' => 'datetime',
             'confirmed_at' => 'datetime',
@@ -118,6 +123,11 @@ class Voter extends Model
     public function validationHistories(): HasMany
     {
         return $this->hasMany(ValidationHistory::class);
+    }
+
+    public function pollingPlaceResolutions(): HasMany
+    {
+        return $this->hasMany(PollingPlaceResolution::class);
     }
 
     public function surveyResponses(): HasMany
