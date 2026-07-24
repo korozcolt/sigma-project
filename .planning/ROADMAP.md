@@ -12,11 +12,11 @@ This roadmap hardens SIGMA along the actual campaign operations spine: first mak
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Campaign Safety & Role Boundaries** - Make campaign scoping, role visibility, and ownership cues safe by default.
-- [ ] **Phase 2: Voter Spine Hardening** - Stabilize the voter lifecycle from creation through validation, assignment, and readiness state.
-- [ ] **Phase 3: Outreach & Follow-up Reliability** - Make call, survey, and messaging workflows traceable and resistant to stale state.
-- [ ] **Phase 4: Trusted Reporting & Control Surfaces** - Turn dashboards, filters, and exports into reliable campaign decision tools.
-- [ ] **Phase 5: Day D Readiness & Trust Safeguards** - Make election-day execution auditable, field-ready, and protected by verification.
+- [x] **Phase 1: Campaign Safety & Role Boundaries** - Make campaign scoping, role visibility, and ownership cues safe by default.
+- [x] **Phase 2: Voter Spine Hardening** - Stabilize the voter lifecycle from creation through validation, assignment, and readiness state.
+- [x] **Phase 3: Outreach & Follow-up Reliability** - Make call, survey, and messaging workflows traceable and resistant to stale state.
+- [x] **Phase 4: Trusted Reporting & Control Surfaces** - Turn dashboards, filters, and exports into reliable campaign decision tools.
+- [x] **Phase 5: Day D Readiness & Trust Safeguards** - Make election-day execution auditable, field-ready, and protected by verification.
 
 ## Phase Details
 
@@ -130,7 +130,7 @@ Plans:
   6. Coordinator and Leader dashboards show workload/territory scoped to that user's own team, not campaign-wide totals (REPT-03); dashboards show a follow-up backlog indicator (REPT-02); at least the highest-value widgets support drill-through from aggregate to filtered record list (REPT-04).
   7. `vote_records` has a DB-level uniqueness constraint on `(voter_id, election_event_id)` and a defined voted/did-not-vote conflict rule (DAYD-03); Day D participation stats break down by territory, not just campaign totals (DAYD-04).
   8. `FinalizeElectionEvent` has a direct test (dispatching the real job, not reimplementing its query) and DB-level duplicate prevention is tested (QUAL-01); the Day D path has structured logging and the finalize job runs queued (not `dispatchSync`) with failure visibility (QUAL-02).
-**Plans:** 9/9 plans executed
+**Plans:** 9/9 plans complete
 
 Plans:
 - [x] 05.1-01-PLAN.md — Auth/permissions hardening: reason-specific denial messages + consolidated ownership view + CAMP-05 audit (PERM-02, PERM-03, CAMP-05)
@@ -149,13 +149,13 @@ Plans:
 **Execution Order:**
 Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 5.1
 
-**Audit note (2026-07-23):** A full codebase audit found Phases 1-5's roadmap status below stale — see `.planning/phases/05.1-cross-phase-hardening-closure/05.1-CONTEXT.md` for the complete per-requirement coverage table. Actual coverage: Phase 1 ~70%, Phase 2 ~65%, Phase 3 ~70%, Phase 4 ~55%, Phase 5 ~60-65%. Phase 05.1 closes the real remaining gaps across all five.
+**Audit note (2026-07-23):** A full codebase audit found Phases 1-5's roadmap status stale — see `.planning/phases/05.1-cross-phase-hardening-closure/05.1-CONTEXT.md` for the complete per-requirement coverage table. Most of Phases 1-5 were already built via inserted phases 02.1/04.1 plus incidental work; Phase 05.1 (2026-07-24) closed the remaining real gaps. All 30 v1 requirements are now Done — see `.planning/REQUIREMENTS.md`.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Campaign Safety & Role Boundaries | 0/TBD | Substantially covered (~70%, via 02.1 + incidental work) — see 05.1-CONTEXT.md | - |
-| 2. Voter Spine Hardening | 0/TBD | Substantially covered (~65%, via 02.1 + incidental work) — see 05.1-CONTEXT.md | - |
-| 3. Outreach & Follow-up Reliability | 0/TBD | Substantially covered (~70%, incidental work) — see 05.1-CONTEXT.md | - |
-| 4. Trusted Reporting & Control Surfaces | 5/5 | Substantially covered (~55%, via 04.1) — see 05.1-CONTEXT.md | 2026-07-23 |
-| 5. Day D Readiness & Trust Safeguards | 0/TBD | Substantially covered (~60-65%, incidental work) — see 05.1-CONTEXT.md | - |
+| 1. Campaign Safety & Role Boundaries | 0/TBD | Complete (via 02.1 + incidental work + 05.1 gap closure) | 2026-07-24 |
+| 2. Voter Spine Hardening | 0/TBD | Complete (via 02.1 + incidental work + 05.1 gap closure) | 2026-07-24 |
+| 3. Outreach & Follow-up Reliability | 0/TBD | Complete (via incidental work + 05.1 gap closure) | 2026-07-24 |
+| 4. Trusted Reporting & Control Surfaces | 5/5 | Complete (via 04.1 + 05.1 gap closure) | 2026-07-24 |
+| 5. Day D Readiness & Trust Safeguards | 0/TBD | Complete (via incidental work + 05.1 gap closure) | 2026-07-24 |
 | 05.1. Cross-Phase Hardening & Trust Safeguards Closure (INSERTED) | 9/9 | Complete | 2026-07-24 |

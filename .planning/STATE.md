@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: "Phase 05.1 complete: all 9 plans done (05.1-03 kill switch and 05.1-09 Day D observability both closed out their human-verify checkpoints)."
-last_updated: "2026-07-24T02:25:00.000Z"
+status: Milestone complete
+stopped_at: Phase 05.1 complete — all 9 plans done, both checkpoints (05.1-03, 05.1-09) verified live by the user.
+last_updated: "2026-07-24T02:37:23.824Z"
 progress:
   total_phases: 8
   completed_phases: 3
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 
 ## Current Position
 
-Phase: 05.1 (cross-phase-hardening-closure) — COMPLETE
-Plan: 9 of 9 complete
+Phase: 05.1 (cross-phase-hardening-closure) — COMPLETE (9/9 plans, verified 22/22 must-haves)
+Plan: All complete — milestone v1.0 requirements fully closed (30/30 in REQUIREMENTS.md)
 
 ## Performance Metrics
 

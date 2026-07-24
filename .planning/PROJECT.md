@@ -23,16 +23,19 @@ Campaign teams can run critical voter and field operations from one place with t
 - ✓ Administrative panels, leader/coordinator panels, widgets, exports, and operational dashboards exist - existing
 - ✓ Apoyos (renamed from Votantes in the UI) support duplicate-cédula tracking with an auditable sufijo, leader/coordinator exclusion from being registered as someone else's Apoyo, global Gremio/Subcategoría classification, and admin-only CSV bulk import - validated in Phase 02.1
 - ✓ Advanced Apoyo reporting exists: leader/coordinator/polling-place rankings (excluding duplicate-status apoyos), coordinator coverage as team rollup, rejections report, duplicates report (intentional cross-campaign exception), combined flat CSV export, and jurisdiction dentro/fuera report - validated in Phase 04.1
+- ✓ Campaign-safe behavior is enforced by default across critical workflows (campaign scoping, permissions, imports/exports, reporting, jobs) - validated in Phases 1-5 (built via 02.1/04.1 + incidental work) and closed out in Phase 05.1 (CAMP-05, PERM-02/03 gaps)
+- ✓ End-to-end voter operations chain is hardened: campaign context, territorial assignment, creation/import, census validation (now UI-wired with clear result+source), follow-up segmentation (contact-state filter), and Day D readiness - validated in Phases 1-5 + Phase 05.1 (VOTE-03/04/06 gaps)
+- ✓ Operator friction reduced: voter profile shows current stage, what's missing, and next recommended action - validated in Phase 05.1 (VOTE-04)
+- ✓ Outreach reliability: campaign-safe call queue (regression-tested), traceable call outcomes, linked survey responses, auditable SMS status (Hablame statusId classification bug fixed), anti-duplicate follow-up (regression-tested) - validated in Phases 1-5 + Phase 05.1 (OUTR-01/04/05 gaps)
+- ✓ Operational dashboards are reliable for decision-making: counts reconcile to campaign-scoped data, follow-up backlog visible, coordinator/leader dashboards scoped to their own team/territory (not campaign-wide), drill-through from aggregate to filtered record list - validated in Phase 4/04.1 + Phase 05.1 (REPT-02/03/04 gaps, REPT-03 was the single biggest gap found)
+- ✓ Role and permission behavior is stable and explains itself: authorization denials name the specific reason (campaign scope, role, or territorial ownership) instead of a generic 403 - validated in Phase 05.1 (PERM-02)
+- ✓ Day D flows are field-ready: live voter lookup, evidence-gated vote marking (photo+GPS), DB-level duplicate-vote prevention with a defined conflict rule, per-territory participation breakdown - validated in Phase 5 + Phase 05.1 (DAYD-03/04 gaps)
+- ✓ Highest-risk workflows are test-protected and operationally observable: `FinalizeElectionEvent` has a direct job test and DB-level duplicate-prevention test, the Day D closure path runs on the real queue with structured logging and `failed_jobs` visibility instead of `dispatchSync` - validated in Phase 05.1 (QUAL-01/02, QUAL-02 was the single biggest gap found)
+- ✓ Leader-account creation requires OTP verification via Hablame SMS with a per-campaign-configurable message; a Super Admin can toggle Laravel's native maintenance mode with automatic self-bypass - client-requested items, validated in Phase 05.1 (live-tested checkpoints; the kill switch's initial self-lockout bug was found and fixed during checkpoint verification)
 
 ### Active
 
-- [ ] Harden the end-to-end voter operations chain from campaign context and territorial assignment through voter creation/import, census validation, follow-up, communication flows, and Day D readiness
-- [ ] Enforce campaign-safe behavior by default across critical workflows so non-super-admin users cannot view, edit, import, export, validate, message, or report across campaigns
-- [ ] Reduce operator friction by making stage, missing data, next actions, and responsible role obvious throughout voter workflows
-- [ ] Make operational dashboards, widget counts, filters, and exports reliable enough for campaign decision-making
-- [ ] Stabilize role and permission behavior so each role has a predictable experience without hidden visibility or access surprises
-- [ ] Strengthen Day D flows so live voter lookup, vote marking, evidence capture, duplication protection, and participation visibility are field-ready
-- [ ] Protect the highest-risk operational workflows with tests around campaign isolation, imports/exports, validation integrity, permissions, reporting consistency, and Day D evidence/status rules
+*(none — the milestone's hardening scope is fully validated as of Phase 05.1; consider `/gsd:complete-milestone` if v1.0 is ready to close)*
 
 ### Out of Scope
 
@@ -64,11 +67,11 @@ Real users think in tasks rather than modules. They need to load voters, validat
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Focus the next milestone on the voter operations spine | It is the business-critical chain connecting campaign structure, validation, communications, reporting, and Day D execution | - Pending |
-| Harden before expanding scope | Existing capabilities already cover most core modules, but trust depends on smooth end-to-end operation | - Pending |
-| Treat multi-campaign safety as a default product behavior | Role boundaries and campaign scoping must be invisible and reliable for normal users | - Pending |
-| Use dashboards and reporting as operational control surfaces | SIGMA should act as a campaign command center, not just a record system | - Pending |
-| Capture production failures as planning inputs | Real breakages like the call queue widget error reveal where operator trust is weakest | - Pending |
+| Focus the next milestone on the voter operations spine | It is the business-critical chain connecting campaign structure, validation, communications, reporting, and Day D execution | Implemented across Phases 1-5 + 05.1 |
+| Harden before expanding scope | Existing capabilities already cover most core modules, but trust depends on smooth end-to-end operation | Implemented — Phase 05.1 closed the remaining gaps instead of adding new modules |
+| Treat multi-campaign safety as a default product behavior | Role boundaries and campaign scoping must be invisible and reliable for normal users | Implemented — Phase 05.1 closed CAMP-05/PERM-02/03 |
+| Use dashboards and reporting as operational control surfaces | SIGMA should act as a campaign command center, not just a record system | Implemented — Phase 05.1 closed REPT-02/03/04 (ownership-scoped dashboards, backlog, drill-through) |
+| Capture production failures as planning inputs | Real breakages like the call queue widget error reveal where operator trust is weakest | Implemented — the same audit-then-close pattern found and fixed a live Hablame SMS bug and a kill-switch self-lockout bug during Phase 05.1 |
 | "Reasignar dueño de duplicado" performs a real ownership transfer (registered_by), not just a status-flag clear | Client's original written requirement said "reasignar la propiedad de la cédula al otro Líder" — literal ownership transfer, confirmed during Phase 02.1's gap closure (plan 02.1-11) after initial narrower reading was flagged by verification | Implemented in Phase 02.1 |
 | Coordinator coverage report shows no numeric "meta" (quota/goal) field | No quota/goal field exists anywhere in the schema; client confirmed during Phase 04.1 discuss-phase that leader-assignment coverage visibility (leaders count, apoyos/leader, zero-apoyo leaders) satisfies the original "meta vs. real" framing without adding new schema | Implemented in Phase 04.1 |
 | Duplicates report is the one intentional exception to strict campaign isolation | A duplicate cédula spanning two different campaigns IS the case that must be visible; every other widget/export in Phase 04.1 remains strictly campaign-scoped | Implemented in Phase 04.1 |
@@ -91,4 +94,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-23 after Phase 04.1 completion*
+*Last updated: 2026-07-24 after Phase 05.1 completion (all v1.0 milestone requirements closed)*
