@@ -62,7 +62,8 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
   2. Every change to a voter's polling-place source writes an audit row recording actor, previous → new source, and timestamp.
   3. The audit trail tolerates a headless/system actor (nullable resolver actor, `ValidationHistory`-shaped) so automated changes are recorded too.
   4. A voter's full source-change history is retrievable via an Eloquent relation.
-**Plans**: TBD
+**Plans**: 0/1 plans complete
+- [ ] 07-01-PLAN.md — polling_place_source/polling_place_resolved_at on voters + polling_place_resolutions audit table, PollingPlaceSource enum, PollingPlaceResolution model/factory, Voter relation wiring, feature test
 
 ### Phase 8: Resilient PollingPlaceResolver Service
 **Goal**: A single service expresses the fallback cascade exactly once, resolving polling places without ever blocking on a dead live source or silently downgrading fresher data.
@@ -116,7 +117,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10 → 11. Phases 6 and
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 6. National Census Snapshot Import | v1.1 | 1/1 | Complete   | 2026-07-24 |
-| 7. Source-Flag Schema & Audit Trail | v1.1 | 0/TBD | Not started | - |
+| 7. Source-Flag Schema & Audit Trail | v1.1 | 0/1 | Not started | - |
 | 8. Resilient PollingPlaceResolver Service | v1.1 | 0/TBD | Not started | - |
 | 9. Live-Source Feasibility Spike | v1.1 | 0/TBD | Not started | - |
 | 10. Operator Provenance & Fallback Controls | v1.1 | 0/TBD | Not started | - |
