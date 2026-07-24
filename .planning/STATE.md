@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
-status: planning
-stopped_at: Phase 6 context gathered
-last_updated: "2026-07-24T12:11:44.599Z"
-last_activity: 2026-07-24 — v1.1 roadmap created; 17/17 requirements mapped to Phases 6-11
+status: Phase 6 complete — ready for verification
+stopped_at: Phase 06 Plan 01 executed (national_census_records + census:import-national)
+last_updated: "2026-07-24T12:42:00.000Z"
+last_activity: 2026-07-24 — Phase 6 Plan 01 executed (CENSO-02, CENSO-03 delivered)
 progress:
   total_phases: 6
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
+  percent: 17
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 
 ## Current Position
 
-Phase: 6 of 11 (National Census Snapshot Import) — first v1.1 phase
-Plan: —
-Status: Roadmap created — ready to plan Phase 6
-Last activity: 2026-07-24 — v1.1 roadmap created; 17/17 requirements mapped to Phases 6-11
+Phase: 6 of 11 (National Census Snapshot Import) — COMPLETE (1/1 plans)
+Plan: 06-01 executed — census:import-national + national_census_records delivered
+Status: Phase 6 complete, ready for verification. Next: Phase 7 (Source-Flag Schema & Audit Trail) — no dependency on Phase 6, can start immediately.
+Last activity: 2026-07-24 — Phase 6 Plan 01 executed (CENSO-02, CENSO-03 delivered)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 17%
 
 ## v1.1 Phase Map
 
@@ -59,7 +59,15 @@ v1.1 roadmap decisions:
 - SRC-01 (visibly shows source) mapped to the operator-controls phase (10), not the resolver — the criterion becomes TRUE when the badge renders to a human.
 - Live-source spike (LIVE-02) is a standalone non-blocking Phase 9 so the deterministic snapshot/flag/resolver/reconcile core is never gated on the captcha unknown.
 
+Phase 06 Plan 01 decisions:
+
+- Divipol codes on `national_census_records` stored as `unsignedSmallInteger` (not `string`) to match `polling_places`' join-key column types exactly, per the plan's explicit refinement over ARCHITECTURE.md's original suggestion.
+- ISO-8859-1 -> UTF-8 conversion done per-line with `mb_convert_encoding` during the streaming read (simpler than a one-time `iconv` pre-pass).
+- Fixture CSV (`tests/fixtures/census/national-sample.csv`) marked `-text` in `.gitattributes` so the repo's `text=auto eol=lf` rule never strips its required CRLF terminators on checkout.
+
 ### Blockers/Concerns
+
+- **`gsd-tools.cjs` root-resolution bug when a git worktree owns its own `.planning/`:** `findProjectRoot()` (in `lib/core.cjs`) walks up from `cwd` and, upon finding an *ancestor* directory that also has `.planning/` plus a `.git` heuristic match, redirects `cwd` there — even when the original `cwd` already has its own valid, independent `.planning/`. In this session's worktree (`worktree-agent-ae9f012d50fef4e54`, which owns its own `.planning/`), every `gsd-tools state|roadmap|requirements` subcommand silently redirected reads/writes to the **main checkout's** `.planning/` instead of the worktree's. This was caught before real damage (the only accidental write to the main repo's `STATE.md` was reverted), but it means **`gsd-tools` CLI commands cannot be trusted to target a worktree's own `.planning/` in this repo layout** — STATE.md/ROADMAP.md/REQUIREMENTS.md updates for Phase 06 Plan 01 were made by hand-editing the worktree copies directly instead. Worth a fix in `gsd-tools` (short-circuit `findProjectRoot` when `startDir` itself already has `.planning/`) or at minimum a documented workaround for future phases executed in this worktree.
 
 - **System-actor decision for reconciliation's audit trail (RECON-03) must be made before Phase 11 is planned in detail** — either a seeded `system`/bot user passed as the `validated_by`-equivalent, or a nullable FK + `resolution_type='auto_reconciliation'`. Flagged in research (Pitfall #3). Not yet decided.
 - **Interactive cascade ordering (live-first vs cost-last):** the requirement says "live first, fall back to snapshot," but the existing interactive path is deliberately cost-*last* (live = paid). Confirm interactive ordering with the client during Phase 8 planning; reconciliation (Phase 11) is unambiguously live-first.
@@ -85,6 +93,6 @@ Tracked in Blockers/Concerns above.
 
 ## Session Continuity
 
-Last session: 2026-07-24T12:11:44.588Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-national-census-snapshot-import/06-CONTEXT.md
+Last session: 2026-07-24T12:42:00.000Z
+Stopped at: Phase 06 Plan 01 executed and verified (national_census_records + census:import-national); Phase 6 complete
+Resume file: .planning/phases/06-national-census-snapshot-import/06-01-SUMMARY.md

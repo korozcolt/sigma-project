@@ -10,8 +10,8 @@ Requirements for the "Consulta de Puesto de Votación Resiliente" milestone. Eac
 ### Censo Nacional (Snapshot Import)
 
 - [ ] **CENSO-01**: Operator/system can resolve a voter's polling place from a national census snapshot when the live Registraduría source is unavailable
-- [ ] **CENSO-02**: The national census snapshot is imported into an indexed, cédula-queryable table enriched with full department/municipality names and address (not just divipol codes)
-- [ ] **CENSO-03**: Snapshot import validates its divipol codes against the current `polling_places` reference data and reports the unmatched percentage before go-live
+- [x] **CENSO-02**: The national census snapshot is imported into an indexed, cédula-queryable table enriched with full department/municipality names and address (not just divipol codes)
+- [x] **CENSO-03**: Snapshot import validates its divipol codes against the current `polling_places` reference data and reports the unmatched percentage before go-live
 
 ### Procedencia y Auditoría (Source Provenance & Audit)
 
@@ -63,8 +63,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | CENSO-01 | Phase 8 | Pending |
-| CENSO-02 | Phase 6 | Pending |
-| CENSO-03 | Phase 6 | Pending |
+| CENSO-02 | Phase 6 | Done |
+| CENSO-03 | Phase 6 | Done |
 | SRC-01 | Phase 10 | Pending |
 | SRC-02 | Phase 8 | Pending |
 | SRC-03 | Phase 7 | Pending |
