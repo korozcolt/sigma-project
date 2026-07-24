@@ -50,7 +50,8 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
   3. Accented, Latin-1-encoded names (e.g., "LA PEÑATA") import without UTF-8 corruption.
   4. The import validates every snapshot divipol code against the current `polling_places` seed and reports the unmatched percentage before go-live.
   5. Re-running the import is idempotent (no duplicate cédula rows).
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 06-01-PLAN.md — national_census_records migration + model + factory, census:import-national streaming importer (divipol join, Latin-1 decode, unmatched-% report, idempotent upsert), and its Pest feature test
 
 ### Phase 7: Source-Flag Schema & Resolution Audit Trail
 **Goal**: A voter's polling-place source is a first-class persisted, queryable attribute, and every change to it is captured in an append-only audit history.
@@ -114,7 +115,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10 → 11. Phases 6 and
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 6. National Census Snapshot Import | v1.1 | 0/TBD | Not started | - |
+| 6. National Census Snapshot Import | v1.1 | 0/1 | Not started | - |
 | 7. Source-Flag Schema & Audit Trail | v1.1 | 0/TBD | Not started | - |
 | 8. Resilient PollingPlaceResolver Service | v1.1 | 0/TBD | Not started | - |
 | 9. Live-Source Feasibility Spike | v1.1 | 0/TBD | Not started | - |
