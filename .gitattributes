@@ -1,5 +1,7 @@
 * text=auto eol=lf
 
+tests/fixtures/census/national-sample.csv -text
+
 *.blade.php diff=html
 *.css diff=css
 *.html diff=html
