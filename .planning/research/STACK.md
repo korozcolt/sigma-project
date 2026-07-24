@@ -1,211 +1,160 @@
 # Stack Research
 
-**Domain:** Political campaign operations platforms for voter operations, territorial coordination, communications, reporting trust, and election-day execution
-**Researched:** 2026-03-25
-**Confidence:** HIGH for core stack, MEDIUM for provider-specific integrations
+**Domain:** Registraduría polling-place lookup resiliency (captcha-solving for a live source + large census-snapshot fallback + scheduled reconciliation) inside an existing Laravel 12 / Filament 4 app
+**Researched:** 2026-07-24
+**Confidence:** MEDIUM-HIGH — CSV import and scheduling are HIGH (established, verified against the repo); reCAPTCHA Enterprise feasibility is the one genuine unknown and is honestly MEDIUM (provider *supports* it, but token *acceptance* by `wsp.registraduria.gov.co` cannot be confirmed without a live spike)
 
-## Recommendation Summary
+## TL;DR for the roadmap
 
-SIGMA should remain a Laravel modular monolith. The existing Laravel 12 + Filament 4 + Livewire 3 stack is already a strong fit for multi-panel operator software, role-aware workflows, fast CRUD iteration, and election operations where business rules matter more than frontend novelty. Do not spend this milestone rewriting the control plane in React/Next.js or splitting services just to look more "modern."
+Almost nothing new needs to be *installed*. All three capabilities are served by infrastructure already in the codebase:
 
-The production-grade 2026 version of this stack is: PostgreSQL 17 with PostGIS for the system of record, Redis for queues/cache/session/broadcasting, Horizon for operational queue control, S3-compatible object storage for evidence and imports, Reverb for realtime coordination, Pulse plus Telescope plus production monitoring for observability, and Scout with Meilisearch only where voter search or geo-aware operator lookup actually needs it.
-
-For integrations, use an adapter layer and outbox pattern inside Laravel. That means Twilio Voice/Messaging for telephony and SMS-first communications, optional WhatsApp only where provider approval and campaign compliance are workable, SES or Postmark for staff/system email, and provider webhooks stored immutably for delivery and audit evidence. For reporting, start with PostgreSQL read models and projection tables. Add ClickHouse only if event volume or multi-campaign analytics genuinely outgrow Postgres.
-
-## Where The Existing Stack Is Already Correct
-
-- **Laravel 12 is still a safe base for this milestone:** Laravel 12 receives security fixes until **February 24, 2027**, so hardening work does not need to stop for an immediate framework rewrite. Laravel 13 was released on **March 17, 2026**, but its biggest additions are AI-native features and new APIs, not must-have fixes for SIGMA's current trust problems.
-- **Filament remains the right operator UI framework:** SIGMA is a role-heavy internal operations product, not a consumer marketing site. Filament's server-driven tables, forms, actions, widgets, and multi-panel model are aligned with campaign admin, coordinator, leader, and Day D workflows.
-- **Livewire remains the right interaction model:** For voter queues, validation review, follow-up worklists, and election-day lookup/marking, Livewire keeps workflow logic close to Laravel policies, validation, and transactions. That is an advantage here, not a limitation.
-- **Tailwind 4 + Vite is already current:** The repo already uses Tailwind 4 and the Vite plugin, which matches current Tailwind guidance.
+- **Captcha (live source):** keep the existing Python microservice (Flask + Playwright + 2captcha) and the existing `RegistraduriaService.php` HTTP wrapper. The only change is a captcha-*type* change (Enterprise instead of v2) plus a new target URL/sitekey — a code change to `registraduria-service/app.py`, not a new dependency. 2captcha already supports Enterprise via a single extra `enterprise=1` parameter on the same `userrecaptcha`/`grecaptcha` method.
+- **CSV fallback import:** use MySQL-native `LOAD DATA LOCAL INFILE` into a staging table, then an `INSERT … SELECT` join against the already-seeded `polling_places` table. No import package. Encoding handled once with PHP's built-in `mbstring`/`iconv`. This is a one-off/occasional artisan command, not a user-facing upload.
+- **Reconciliation job:** Laravel's built-in scheduler (`Schedule::command()` in `routes/console.php`, already used twice in this repo) + a `ShouldQueue` job following the exact `FinalizeElectionEvent` pattern (`handle()`, dotted `Log::` events, `chunkById`, `failed()` hook). No new queue system.
 
 ## Recommended Stack
 
 ### Core Technologies
 
-| Technology | Version | Purpose | Why Recommended | Confidence |
-|------------|---------|---------|-----------------|------------|
-| Laravel | `12.x` now, plan `13.x` after hardening baseline | Application framework and control plane | Keep 12 during this milestone because it is supported through 2027 and the product risk is workflow trust, not framework capability. Plan 13 only once hardening work is stable or if AI/search features become a roadmap item. | HIGH |
-| PHP | `8.3` minimum target for infra, `8.4` acceptable | Runtime | Laravel 13 requires PHP 8.3+, and even if SIGMA stays on Laravel 12 through this milestone, standardizing infrastructure on 8.3+ avoids a second platform jump later. | HIGH |
-| Filament | `4.x` now, `5.x` only with planned Livewire upgrade | Multi-panel operator UI | Filament is a strong fit for admin dashboards, review queues, exports, widgets, and task-oriented operations. Stay on 4.x while hardening unless a deliberate Livewire 4 migration is funded. | HIGH |
-| Livewire | `3.x` now, `4.x` with Filament 5 | Server-driven interactivity | Livewire is the right choice for policy-heavy workflow screens. Move to 4.x only when the Filament 5 upgrade is scheduled, not as a side quest inside the hardening milestone. | HIGH |
-| PostgreSQL | `17.x` | Primary transactional database | PostgreSQL is the right 2026 system of record for strict data integrity, concurrency, materialized reporting patterns, and optional defense-in-depth with row-level security on the highest-risk tables and service-account queries. | HIGH |
-| PostGIS | `3.5.x` | Geospatial territory and polling-place logic | Territorial coordination is native to this product. PostGIS keeps geospatial truth in the database instead of pushing campaign geography into ad hoc external map logic. | HIGH |
-| Redis | `7.x` | Cache, session, queue, broadcast backend | Database-backed queues and cache are fine for local development but the wrong production default for election operations. Redis is the standard backend for fast queueing, cache invalidation, and realtime fanout in Laravel apps. | HIGH |
-| S3-compatible object storage | Current GA service | Evidence photos, import files, exports, callback payloads | Day D evidence, import artifacts, and export archives should live in durable object storage, not local disk on app servers. | HIGH |
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| 2captcha reCAPTCHA Enterprise API | current (service, no version) | Solve the `wsp.registraduria.gov.co/censo/consulta/` "reCAPTCHA Enterprise" checkbox to automate the live lookup | Already the campaign's captcha vendor; Enterprise support is a documented, one-parameter delta (`enterprise=1`) on the exact `userrecaptcha` flow `app.py` already uses. No new account, no new SDK. $1–$2.99 / 1,000 solves. |
+| MySQL `LOAD DATA LOCAL INFILE` | MySQL 8 (bundled with app's `sigma_sincelejo` DB) | Bulk-load the 216,528-row census snapshot | Fastest possible path (single statement, C-level loader) and lowest PHP memory for an 18 MB file. Orders of magnitude faster than row-by-row Eloquent. Native — nothing to install. |
+| PHP `mbstring` / `iconv` | bundled with PHP 8.4 | One-shot ISO-8859-1 → UTF-8 conversion of the census file before load | Built into PHP; `mb_convert_encoding($line, 'UTF-8', 'ISO-8859-1')` (or the `iconv` CLI on the whole file) is the standard, zero-dependency fix for the "Malformed UTF-8" error this file will otherwise throw. |
+| Laravel Scheduler (`Illuminate\Support\Facades\Schedule`) | Laravel 12 (installed) | Recurring reconciliation trigger | Already the repo's scheduling mechanism — see `routes/console.php` (`Schedule::command('messages:send-birthdays')->dailyAt('09:00')`). Laravel 12 defines schedules in `routes/console.php`, not a Kernel. |
+| Laravel Queue + `ShouldQueue` job | Laravel 12 (installed, in production use) | Run the reconciliation work off the request cycle, matching `FinalizeElectionEvent` | The established background-job pattern in this codebase (real queue, structured logs, `failed()` hook, `chunkById`). Reuse it verbatim. |
 
-### Supporting Libraries And Platform Capabilities
+### Supporting Libraries
 
-| Library / Capability | Version | Purpose | When to Use | Confidence |
-|----------------------|---------|---------|-------------|------------|
-| `laravel/horizon` | latest Laravel-compatible | Queue supervision, retries, throughput, failed-job operations | Add immediately when moving SIGMA from `database` queues to Redis. This is baseline hardening for imports, message fanout, validation jobs, and projection refresh. | HIGH |
-| `laravel/pulse` | latest Laravel-compatible | App-level performance and usage metrics | Add immediately for queue latency, slow endpoints, slow jobs, and active-user visibility. Pulse is the right first-party dashboard for operational health. | HIGH |
-| `laravel/telescope` | latest Laravel-compatible | Local and staging deep debugging | Use in non-production environments for request, query, notification, and job debugging. Keep it out of production unless tightly controlled. | HIGH |
-| Laravel Nightwatch or existing approved APM | current GA | Production monitoring and issue workflow | Use when SIGMA needs production-grade exception, request, job, and query correlation. Choose Nightwatch if managed Laravel-native observability is acceptable for data policy; otherwise keep an approved APM already accepted by the organization. | MEDIUM |
-| `laravel/reverb` | latest Laravel-compatible | Realtime updates for queues, dashboards, and Day D counters | Add when coordinator dashboards, call queues, or election-day participation views need near-live updates without polling every surface. | HIGH |
-| `laravel/sanctum` | latest Laravel-compatible | First-party SPA/mobile/API auth | Use for first-party clients and internal APIs. This is the correct auth layer if SIGMA exposes mobile or partner-facing endpoints later. | HIGH |
-| `laravel/fortify` | `1.x` | Auth flows, password reset, 2FA foundation | Keep it. Fortify is already installed and is still the right fit for first-party authentication. Extend with MFA/passkeys if exposure broadens. | HIGH |
-| `laravel/pennant` | latest Laravel-compatible | Feature flags and rollout control | Add before changing core voter, reporting, or Day D behavior in production. Pennant is the safe way to roll out high-risk workflow changes incrementally by campaign or role. | HIGH |
-| `laravel/scout` | latest Laravel-compatible | Unified app search abstraction | Use Scout as the boundary so SIGMA can start with the database engine and move specific search workloads to Meilisearch later without rewriting calling code. | HIGH |
-| Meilisearch | `1.x` current stable | Fuzzy, prefix, faceted, multi-tenant, and geo-aware operator search | Add when voter/person lookup, assignment lookup, or territory search outgrow PostgreSQL full-text or when typo tolerance and geo search materially improve operator speed. Do not add it just because "search feels modern." | HIGH |
-| ClickHouse | current stable cloud/self-managed release | High-volume event analytics and pre-aggregated multi-campaign reporting | Add only if Postgres read models stop meeting latency or retention goals. This is not the default reporting store for the next milestone. | MEDIUM |
-| `larastan/larastan` | `3.x` | Type-aware static analysis for Laravel | Add in dev now. The current app already has a production failure caused by a relation-vs-builder type mismatch; Larastan is the right tool to catch that class of bug earlier. | HIGH |
-| Pest + Browser / Playwright | already present | Workflow and browser verification | Keep and expand. This stack is already in the repo and should become the enforcement layer for campaign isolation, widgets, exports, imports, and Day D flows. | HIGH |
-| `maatwebsite/excel` staging pipeline | `3.1.x` already present | CSV/XLSX import-export | Keep the package, but only behind staging tables, preview/validation, and audited commit steps. Never let operator uploads write directly into live voter truth. | HIGH |
+| Library | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| Playwright (Python) | already installed in `registraduria-service` | Drive the `wsp` page, inject the solved Enterprise token into `g-recaptcha-response`, submit the consulta form | Already present. Enterprise checkbox flow is the *same* browser-automation shape as the current v2 flow — solve token, inject, submit. No upgrade needed for the captcha-type change itself. |
+| Guzzle (via Laravel `Http` facade) | bundled with Laravel 12 | `RegistraduriaService.php` ↔ Python service HTTP calls | Already the transport (`Http::timeout()->post('/lookup')`, `->get('/result/{id}')`). No change. |
+| `league/csv` (`CharsetConverter`) | ^9.16 | *Optional* alternative to hand-rolled `mbstring` streaming if you want a tested CSV reader with built-in charset conversion | Only if you prefer a library over `fgetcsv` + `mb_convert_encoding`. Not required — the native path is enough for a semicolon-delimited, known-schema file. Adds one Composer dependency. |
 
-### Integration Categories
-
-| Category | Recommended Approach | Why | Confidence |
-|----------|----------------------|-----|------------|
-| Telephony and call-center workflow | Twilio Programmable Voice with webhook-driven call state, optional TaskRouter/Flex only if a full agent desktop is required | SIGMA already has call-center workflows. Keep those inside Laravel/Filament if the need is outbound calling, callback queues, and disposition capture. Use Flex only if supervisor tooling, skills-based routing, and omnichannel agent UX become a product in themselves. | MEDIUM |
-| SMS outreach | Twilio Messaging or an equivalent approved regional provider behind a Laravel adapter | SMS remains the safest baseline campaign channel because it is simpler to operationalize than WhatsApp and integrates cleanly with outbox, retries, suppression, and delivery callbacks. | MEDIUM |
-| WhatsApp outreach | Optional channel, never the only channel; keep behind the same message-intent and suppression model as SMS | WhatsApp can be useful, but onboarding, approval, and campaign-category restrictions vary. Do not design SIGMA's communications model around the assumption that every campaign can use it. | MEDIUM |
-| Staff and system email | AWS SES or Postmark | Use email for staff alerts, export notifications, password flows, and exception reports. Do not make email the main voter-operations channel in this milestone. | MEDIUM |
-| Evidence/media storage | S3-compatible object storage plus immutable metadata rows in Postgres | Evidence files need durable storage, signed access, retention control, and traceable metadata tied to campaign, actor, and operation. | HIGH |
-| Mapping and territory rendering | PostGIS as source of truth, map provider only as rendering/geocoding layer | Do not let external map APIs become the authoritative territory model. SIGMA should own shapes, assignments, and spatial joins in Postgres. | HIGH |
-| Decision support / AI | Only after data hardening; prefer Laravel 13 + PostgreSQL `pgvector` or Meilisearch hybrid search when actually funded | Decision support is valuable, but it depends on trusted data. Do not add LLM features before voter state, assignments, reporting definitions, and communication ledgers are reliable. | MEDIUM |
-
-## Development Tools
+### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| Larastan | Static analysis for Eloquent, relations, builders, policies, and query contracts | Add to CI early. This is directly relevant to the existing `HasMany` vs `Builder` production bug class. |
-| Pest | Domain, integration, and feature tests | Keep as the default PHP test runner. Focus new coverage on campaign isolation, exports, jobs, and projection correctness. |
-| Pest Browser / Playwright | Role-aware browser workflows and Day D UI verification | Already present. Use it for admin/coordinator/leader parity, queue widgets, and critical Day D flows. |
-| Laravel Pint | Code style and low-noise diffs | Keep in CI so refactors around policy and domain boundaries stay readable. |
-| Laravel Pail | Tail and filter logs during active debugging | Keep for local/staging troubleshooting, especially around queues and provider callbacks. |
+| `php artisan make:command` | Create the import command and the reconciliation command | Both new commands live in `app/Console/Commands/` (auto-registered in Laravel 12). Always `--no-interaction`. |
+| `php artisan make:job` | Create the reconciliation job | Model it on `app/Jobs/FinalizeElectionEvent.php` — same `ShouldQueue` + `failed()` + dotted-log conventions. |
+| `iconv` (CLI) | One-time bulk transcode of the census file | `iconv -f ISO-8859-1 -t UTF-8 in.csv > out.csv` — simplest if you convert the file once at import rather than per-line in PHP. |
 
 ## Installation
 
 ```bash
-# Baseline hardening
-composer require laravel/horizon laravel/pulse laravel/reverb laravel/pennant laravel/scout laravel/sanctum
-composer require --dev larastan/larastan
+# Core: NOTHING new is required. All three capabilities use installed infrastructure.
 
-# Optional search
-composer require meilisearch/meilisearch-php http-interop/http-factory-guzzle
+# OPTIONAL — only if you choose the league/csv reader over native fgetcsv+mbstring:
+composer require league/csv
 
-# Optional high-concurrency runtime
-composer require laravel/octane
-
-# Realtime client support when using Reverb
-npm install laravel-echo pusher-js
+# Verify MySQL LOCAL INFILE is enabled (needed once, both client and server side):
+#   SHOW GLOBAL VARIABLES LIKE 'local_infile';   -> should be ON
+#   PDO must set PDO::MYSQL_ATTR_LOCAL_INFILE => true on the connection
 ```
+
+## The reCAPTCHA Enterprise feasibility question (do NOT hand-wave this)
+
+This is the single highest-risk unknown in the milestone. Honest assessment:
+
+**What is confirmed (HIGH):**
+- 2captcha, Anti-Captcha, and CapMonster Cloud all publicly document reCAPTCHA **Enterprise** support, not just v2/v3.
+- For 2captcha specifically, Enterprise is **the same method you already use** with **one extra parameter**: `enterprise=1`. You interact with the API "the same way it is done when solving v2 or v3." So the existing 2captcha integration in `app.py` is ~90% reusable.
+- Pricing is $1–$2.99 / 1,000 solves — same order of magnitude as the v2 flow, marginally higher at the top end.
+
+**What changes vs the current v2 flow (MEDIUM — must be coded/spiked):**
+1. **New sitekey.** The current hardcoded `6Lc9DmgrAAAAAJAjWVhjDy1KSgqzqJikY5z7I9SV` is for the dead domain. You must extract the Enterprise sitekey from `wsp.registraduria.gov.co/censo/consulta/` (in the page's `grecaptcha.enterprise.render`/`execute` call or the `data-sitekey` attribute).
+2. **`enterprise=1` param** added to the 2captcha task.
+3. **Possible `action` and `data-s` params.** Enterprise deployments frequently pass an `action` (from `grecaptcha.enterprise.execute(..., {action: '...'})`) and sometimes a `data-s` string. If `wsp` uses them, they must be scraped from the page and forwarded to 2captcha, or the returned token will be rejected.
+4. **Token injection target.** The token goes into the form's `g-recaptcha-response` field and is submitted with the consulta POST — *not* used as a Bearer header like the old `infovotantes` API flow. This is a meaningfully different Playwright step than the current implementation.
+
+**The real risk (be explicit):** reCAPTCHA Enterprise is **risk-score-based on the server side**. Even a validly-solved token can be *rejected* by the site's backend `createAssessment` call if the overall request looks bot-like (IP reputation, headers, behavioral signals). A solver returning a token is **necessary but not sufficient** — acceptance is decided by Registraduría's server, which we don't control.
+
+**Mitigating signal (encouraging):** the UI shows a **visible "No soy un robot" checkbox** labeled "reCAPTCHA Enterprise." A visible checkbox challenge is the **v2-style Enterprise variant**, which is the *more* solvable case — the token carries an explicit human-challenge result rather than relying purely on an invisible v3 score. This is a good omen but not a guarantee.
+
+**Verdict:** MEDIUM feasibility. The provider capability exists and integration effort is small (one param + new sitekey + injection change). Whether `wsp` *accepts* solved tokens end-to-end can only be answered by the feasibility spike that is already the first target feature of this milestone. **Recommend: time-box a spike that solves + submits one real cédula through `wsp` before committing to the live-source path.** The census-snapshot fallback is what makes this risk acceptable — the milestone still delivers value if the live source proves unsolvable.
+
+## CSV import approach (216K rows, ISO-8859-1, semicolon-delimited)
+
+**Recommended: staging table + `LOAD DATA LOCAL INFILE` + SQL join enrichment.**
+
+1. **Convert encoding once.** The file is ISO-8859-1/CRLF. Transcode to UTF-8 up front — either `iconv -f ISO-8859-1 -t UTF-8` on the file, or stream line-by-line with `mb_convert_encoding($line, 'UTF-8', 'ISO-8859-1')`. Do this *before* MySQL sees it to avoid "Malformed UTF-8" corruption on names like "CHOCHO"/accented municipality names.
+2. **`LOAD DATA LOCAL INFILE`** the UTF-8 file into a raw staging table matching the CSV's 13 columns (`divipol;codificado;cedula;dpto;cero;cero;mcpio;ref1;zona;ref2;puesto;nombre;mesa`), `FIELDS TERMINATED BY ';'`, `IGNORE 1 LINES`. This loads all 216K rows in seconds.
+3. **Enrich via `INSERT … SELECT` join** against the already-seeded `polling_places` table (keyed on `dane_department_code`/`dane_municipality_code`/`zone_code`/`place_code` = census `dpto`/`mcpio`/`zona`/`puesto`). This reconstructs the department/municipality names + address the census file lacks — no new reference data needed (per milestone context).
+4. **Index on `cedula`.** The final lookup table is cédula-keyed; put a B-tree index (unique if cédula is unique in the snapshot, otherwise plain) on the `cedula` column, stored as `BIGINT UNSIGNED`. At 216K rows this is trivial for MySQL — sub-millisecond point lookups.
+
+**Why not chunked Eloquent / LazyCollection?** It works and is more flexible for validation, but it's ~10–50× slower and heavier for a fixed-schema 216K-row snapshot you control. Use it only if you need per-row PHP validation you can't express in SQL. Given the enrichment is a clean 4-column join, SQL wins.
+
+**Why not `maatwebsite/excel`?** It's installed and correct for *user-facing* Filament/admin CSV uploads (the existing Apoyo bulk import), but it's memory-heavy and slow for a 216K-row server-side snapshot load. Wrong tool for this job — keep it for the admin upload feature it already serves.
+
+**Wrap the import in an artisan command** (`php artisan make:command ImportCensusSnapshot`) so it's repeatable and can be re-run when a newer census dump arrives.
+
+## Reconciliation job (matches FinalizeElectionEvent)
+
+- **Trigger:** add one line to `routes/console.php`, e.g. `Schedule::command('census:reconcile-live')->hourly()->withoutOverlapping();` — same style as the existing `birthday:dispatch-webhooks` entry (which already uses `->withoutOverlapping()`).
+- **Command dispatches a queued job** (or the command *is* thin and dispatches per-batch jobs). The job:
+  - `implements ShouldQueue`
+  - Queries voters whose polling place is currently flagged `source = 'local-snapshot-fallback'`, `chunkById(500, …)` (exact `FinalizeElectionEvent` pattern).
+  - For each, calls `RegistraduriaService::startLookup()` / `getResult()` (the live path). On success, updates the record and flips the source flag to `live`.
+  - Structured dotted logs: `Log::info('census.reconcile.started', […])`, `…completed`, `…skipped_*`.
+  - `failed(\Throwable $e)` hook logging `census.reconcile.failed` — mirrors `FinalizeElectionEvent::failed()`.
+- **`withoutOverlapping()`** is important: if the live source is slow/flaky, an hourly run must not stack on a still-running previous run.
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| Laravel modular monolith | Node/TypeScript microservices + React admin | Only if SIGMA becomes a multi-product platform with independently scaled teams and public APIs as the primary surface. That is not the current problem. |
-| Filament + Livewire panels | React/Next.js admin rewrite | Use only if the operator UX becomes heavily custom, offline-first, or front-end-platform-centric. For SIGMA's current workflow-heavy surfaces, rewrite cost exceeds value. |
-| PostgreSQL + PostGIS | MySQL-only stack | Use only if the organization is already irreversibly standardized on MySQL and does not need strong geospatial operations. For territorial campaign software, PostgreSQL is the better fit. |
-| Redis + Horizon | Database queue/cache/session | Keep database drivers for local/dev simplicity only. Production election operations should not depend on them. |
-| Scout + database engine first, Meilisearch second | OpenSearch/Elasticsearch first | Use OpenSearch only if SIGMA eventually needs cross-index analytics, huge document-style search, or organization-wide search infrastructure already exists. For operator lookup and queue search, it is usually overkill. |
-| Postgres projections first, ClickHouse later | Immediate BI warehouse | Use a warehouse first only if SIGMA already has dedicated analytics engineering capacity and reporting workloads are clearly beyond Postgres. |
-| Custom SIGMA call UI + Twilio Voice | Twilio Flex from day one | Use Flex only if call-center operations outgrow the existing embedded workflow and need skills routing, supervisor tooling, QA, and a dedicated agent desktop. |
+| 2captcha Enterprise (`enterprise=1`) | CapMonster Cloud or Anti-Captcha Enterprise | If the spike shows 2captcha's Enterprise success rate against `wsp` is too low. CapMonster documents Enterprise support and a similar REST API; it's the natural second try. Keep the swap behind the existing `RegistraduriaService` seam so the Laravel side doesn't care which solver wins. |
+| `LOAD DATA LOCAL INFILE` + SQL join | LazyCollection chunked upsert | If you later need per-row PHP validation/transform that's awkward in SQL, or if `local_infile` cannot be enabled in the target environment. |
+| Native `mbstring`/`iconv` conversion | `league/csv` `CharsetConverter` | If you want a tested reader abstraction and don't mind one added Composer dep. |
+| Laravel Scheduler + `ShouldQueue` job | (none) | This is the house pattern; do not introduce anything else. |
 
-## What NOT To Use
+## What NOT to Use / Add
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| React/Next.js rewrite of existing operator panels | Duplicates policy, validation, table/query logic, and slows the hardening milestone without solving campaign isolation or reporting trust. | Keep Laravel + Filament + Livewire and move logic out of widgets/resources into tested application/domain services. |
-| Full per-campaign databases as the default tenancy model | Heavy brownfield migration cost, harder reporting, harder cross-campaign super-admin support, more ops overhead, and little value if campaign isolation is already modeled in one app. | Shared PostgreSQL with strict `campaign_id` discipline, policy enforcement, queue context propagation, and selective RLS where it materially reduces risk. |
-| Production `database` queues/cache/session | Too slow and too fragile for import pipelines, message fanout, realtime dashboards, and Day D pressure. | Redis + Horizon. |
-| Passport as the default auth stack | OAuth server complexity is unnecessary for a first-party internal ops product. | Fortify + Sanctum. Add Passport only if SIGMA must become a third-party OAuth provider. |
-| Elasticsearch/OpenSearch as the first search investment | More infrastructure and tuning than this product likely needs during hardening. | PostgreSQL full-text via Scout first, Meilisearch for fuzzy/geo search when justified. |
-| Octane as the first performance move | Brownfield Livewire apps often contain hidden state assumptions; Octane magnifies them. | Fix query shape, add Redis/Horizon, add projections, profile with Pulse, then consider Octane on proven hot paths. |
-| Filament plugin sprawl for core workflow logic | Critical campaign behavior becomes dependent on third-party maintenance quality and upgrade timing. | Keep core queueing, reporting, scoping, and Day D logic in app code. Use plugins only for peripheral capabilities. |
-| WhatsApp-only communication strategy | Channel approval, policy, and regional deliverability constraints vary too much for a campaign platform to bet everything on it. | Model a channel-agnostic message ledger with SMS as baseline and WhatsApp as optional. |
+| A new job/queue system (external cron runner, separate worker stack, etc.) | Laravel queue + scheduler are already in production use (`FinalizeElectionEvent`, `messages:send-birthdays`, `birthday:dispatch-webhooks`) | Reuse `Schedule::command()` + `ShouldQueue` verbatim |
+| A new scraping framework (Puppeteer node service, Selenium, Scrapy) | Playwright is already installed and working in `registraduria-service` | Extend the existing `app.py` Playwright flow for the Enterprise checkbox + form-submit |
+| `maatwebsite/excel` for the census load | Memory-heavy / slow for a 216K-row server-side snapshot | `LOAD DATA LOCAL INFILE` (keep maatwebsite for user-facing admin uploads) |
+| A brand-new captcha vendor account | 2captcha already integrated; Enterprise is a one-param delta | Add `enterprise=1` to the existing 2captcha call |
+| `utf8_decode()` / `utf8_encode()` (deprecated in PHP 8.2+) | Removed/deprecated, silently mangles non-Latin-1 bytes | `mb_convert_encoding(…, 'UTF-8', 'ISO-8859-1')` or `iconv` |
+| Rewriting `RegistraduriaService.php`'s HTTP contract | The async `/lookup` + `/result/{id}` polling contract still fits; only the Python side's target changes | Keep the Laravel wrapper; change the Python service internals |
 
-## Stack Patterns By Variant
+## Stack Patterns by Variant
 
-**If the next milestone is strictly hardening the current app:**
-- Stay on `Laravel 12 + Filament 4 + Livewire 3`.
-- Move production to `PostgreSQL 17 + Redis + Horizon + object storage`.
-- Add `Pulse`, `Telescope`, `Pennant`, and `Larastan`.
-- Use `Scout` with the database engine first.
-- Because this solves real trust and scale issues without turning the roadmap into an upgrade project.
+**If the Enterprise spike SUCCEEDS (token accepted by `wsp` end-to-end):**
+- Live source = updated `registraduria-service/app.py` targeting `wsp.registraduria.gov.co/censo/consulta/` with the new sitekey + `enterprise=1`.
+- Census snapshot = fallback only, surfaced when the live call fails/times out.
+- Reconciliation job actively re-verifies snapshot-served voters against the now-working live source.
 
-**If the team schedules a post-hardening platform uplift in 2026:**
-- Move to `Laravel 13 + Filament 5 + Livewire 4 + PHP 8.3+`.
-- Evaluate Laravel 13 AI and semantic search features only after reporting and audit semantics are stable.
-- Because Filament 5 is mainly the Livewire 4 transition, and Laravel 13 is a good follow-on platform step once the workflow layer is calm.
-
-**If call-center workflows remain embedded inside SIGMA:**
-- Use Twilio Voice, webhook callbacks, queue tables, and Reverb-powered supervisor views.
-- Keep agent worklists and dispositions in Filament/Livewire.
-- Because the campaign workflow context already lives in SIGMA.
-
-**If call-center operations become a standalone supervisor-heavy function:**
-- Introduce Twilio Flex.
-- Keep SIGMA as the source of voter context, assignments, permissions, and outcome ingestion.
-- Because Flex is justified when contact-center mechanics become more complex than the surrounding campaign workflow.
-
-**If reporting needs stay operational and campaign-scoped:**
-- Use Postgres projections, materialized views, read replicas, and export snapshots.
-- Because this is the simplest trustworthy architecture for near-term dashboard and export parity.
-
-**If SIGMA starts processing very high event volume across many campaigns:**
-- Add ClickHouse for event analytics and pre-aggregated reporting.
-- Keep Postgres as the system of record.
-- Because ClickHouse is excellent for large-scale analytics, but not the right first transactional store.
+**If the Enterprise spike FAILS (tokens consistently rejected):**
+- Census snapshot becomes the *primary* source, not just fallback.
+- Reconciliation job still ships but is effectively dormant / retries on a long interval in case Registraduría's posture changes.
+- The data-source flag (`live` vs `local-snapshot`) still matters for auditability — it just skews to `local-snapshot`.
+- Milestone still delivers: the fallback + provenance + scheduled retry are the resilient core; the live source is the upside.
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
 |-----------|-----------------|-------|
-| `laravel/framework@12.x` | PHP `8.2` to `8.5` | Released **2025-02-24**. Security fixes until **2027-02-24**. Safe for this milestone. |
-| `laravel/framework@13.x` | PHP `8.3` to `8.5` | Released **2026-03-17**. Good target for the next uplift window, not required for current hardening. |
-| `filament/filament@4.x` | PHP `8.2+`, Laravel `11.28+`, Tailwind `4.1+` | Current repo already uses Filament 4. Bug fixes until **2027-01-15**, security fixes until **2028-01-15**. |
-| `filament/filament@5.x` | Livewire `4.0+` | Current stable Filament line as of **2026-03-25**. Upgrade only with a deliberate Livewire migration. |
-| `livewire/livewire@4.x` | Laravel `10+`, PHP `8.1+` | Required by Filament 5. Do not partially migrate. |
-| `tailwindcss@4.x` | Vite via `@tailwindcss/vite` | Already matches current Tailwind guidance and the repo's existing setup. |
-
-## Recommendation By Priority
-
-### Add Now
-
-- PostgreSQL 17 + PostGIS as production source of truth.
-- Redis + Horizon for queue, cache, session, and broadcast backends.
-- Pulse, Telescope, Pennant, and Larastan.
-- S3-compatible object storage for evidence and artifacts.
-- Scout as the stable search abstraction.
-
-### Add When The Problem Is Real
-
-- Meilisearch for typo-tolerant or geo-aware voter lookup.
-- Reverb for genuinely realtime dashboards and Day D counters.
-- Twilio Flex for a full contact-center desktop.
-- ClickHouse for high-volume analytics beyond Postgres projections.
-- Laravel 13 + Filament 5 + Livewire 4 as a planned uplift, not an incidental refactor.
+| PHP 8.4.14 | `mb_convert_encoding` / `iconv` | Both bundled; `utf8_encode/decode` deprecated — do not use |
+| Laravel 12 | `Schedule::command()` in `routes/console.php` | Confirmed against this repo's existing usage; no Kernel-based scheduling in L12 |
+| MySQL 8 (`sigma_sincelejo`) | `LOAD DATA LOCAL INFILE` | Requires `local_infile=ON` (server) + `PDO::MYSQL_ATTR_LOCAL_INFILE=true` (client); verify in target env |
+| 2captcha API | existing Python 2captcha flow | Enterprise = same endpoint + `enterprise=1` (+ possibly `action`/`data-s`) |
+| `league/csv` ^9.16 | PHP 8.4 | Only if chosen over native reader |
 
 ## Sources
 
-- Local repo: [composer.json](/Volumes/NAS(MAC)/Data/Herd/sigma-project/composer.json) and [package.json](/Volumes/NAS(MAC)/Data/Herd/sigma-project/package.json) for the current SIGMA stack [HIGH]
-- [Laravel 12 release notes](https://laravel.com/docs/12.x/releases) - Laravel 12 support window and starter-kit direction [HIGH]
-- [Laravel 13 release notes](https://laravel.com/docs/13.x/releases) - Laravel 13 release date, PHP requirement, and AI/search additions [HIGH]
-- [Laravel Horizon docs](https://laravel.com/docs/12.x/horizon) - queue monitoring and management [HIGH]
-- [Laravel Reverb docs](https://laravel.com/docs/12.x/reverb) - realtime WebSocket support [HIGH]
-- [Laravel Pulse docs](https://laravel.com/docs/12.x/pulse) - performance and usage monitoring [HIGH]
-- [Laravel Sanctum docs](https://laravel.com/docs/12.x/sanctum) - first-party SPA/mobile authentication guidance [HIGH]
-- [Laravel Scout docs](https://laravel.com/docs/12.x/scout) - database engine default and external engine options [HIGH]
-- [Laravel Octane docs](https://laravel.com/docs/12.x/octane) - Octane and FrankenPHP deployment pattern [HIGH]
-- [Laravel Pennant docs](https://laravel.com/docs/12.x/pennant) - feature-flag rollout [HIGH]
-- [Laravel Precognition docs](https://laravel.com/docs/12.x/precognition) - live validation capability for operator workflows [HIGH]
-- [Filament docs homepage](https://filamentphp.com/docs) and [Filament v5 blueprint](https://filamentphp.com/insights/danharrin-filament-v5-blueprint) - current stable version and Filament 5 / Livewire 4 relationship [HIGH]
-- [Filament version support policy](https://filamentphp.com/docs/5.x/introduction/version-support-policy) - bug-fix and security windows for Filament 4 and 5 [HIGH]
-- [Filament 4 installation / upgrade guidance](https://filamentphp.com/docs/4.x/introduction/installation) and [Filament 4 upgrade guide](https://filamentphp.com/docs/4.x/upgrade-guide) - Filament 4 requirements [HIGH]
-- [Filament 5 upgrade guide](https://filamentphp.com/docs/5.x/upgrade-guide) - Filament 5 requires Livewire 4 [HIGH]
-- [Livewire 3 quickstart](https://livewire.laravel.com/docs/3.x/quickstart) - current repo's generation and features [HIGH]
-- [Livewire 4 installation](https://livewire.laravel.com/docs/4.x/installation) - Livewire 4 prerequisites and install path [HIGH]
-- [Tailwind CSS with Vite](https://tailwindcss.com/docs/installation/using-vite) - Tailwind 4 + Vite guidance [HIGH]
-- [PostgreSQL row security docs](https://www.postgresql.org/docs/17/ddl-rowsecurity.html) - selective defense-in-depth for high-risk tables [HIGH]
-- [ClickHouse incremental materialized views](https://clickhouse.com/docs/materialized-view/incremental-materialized-view) - real-time analytical projection model [HIGH]
-- [Meilisearch Laravel integration](https://www.meilisearch.com/integrations/laravel) - multi-tenancy, geo search, and official Laravel Scout support [HIGH]
-- [Twilio Flex docs](https://www.twilio.com/docs/flex) - full contact-center platform scope [MEDIUM]
-- [Twilio WhatsApp docs](https://www.twilio.com/docs/whatsapp) - WhatsApp as an optional messaging channel, not a guaranteed default [MEDIUM]
-- [Larastan releases](https://github.com/larastan/larastan/releases) and [Larastan repository](https://github.com/larastan/larastan) - current 3.x line and Laravel support [MEDIUM]
+- [2captcha reCAPTCHA Enterprise solver](https://2captcha.com/p/recaptcha_enterprise) — HIGH: confirms Enterprise support, `enterprise=1` param, optional `action`/`data-s`, $1–2.99/1k pricing, "same as v2/v3" integration
+- [CapMonster Cloud — reCAPTCHA v2/v3/Enterprise](https://capmonster.cloud/en/blog/recaptcha-v2-vs-v3-vs-enterprise/) — MEDIUM: confirms viable alternative solver with Enterprise + REST API
+- [MojoAuth — reCAPTCHA v2/v3/Enterprise differences](https://mojoauth.com/blog/recaptcha-vs-captcha-versions-v2-v3-enterprise) — MEDIUM: Enterprise is server-side risk-score-based (the core acceptance risk)
+- [uCaptcha — Solving reCAPTCHA Enterprise guide](https://ucaptcha.net/blog/recaptcha-enterprise-guide/) — LOW/MEDIUM: Enterprise solving nuances, token-vs-acceptance distinction
+- [Medium — Lightning-Fast Laravel CSV Imports with LOAD DATA INFILE](https://medium.com/@techsolver/lightning-fast-laravel-csv-imports-with-load-data-infile-b403ec8bd532) — MEDIUM: LOAD DATA INFILE in Laravel, `local_infile` requirement
+- [Magecomp — Laravel 12 Import Large CSV](https://magecomp.com/blog/laravel-12-import-large-csv-file-into-database/) — LOW/MEDIUM: chunked-insert baseline for comparison
+- [league/csv CharsetConverter](https://csv.thephpleague.com/9.0/converter/charset/) — HIGH: mbstring-based ISO-8859-1→UTF-8 conversion (optional library path)
+- [PHP manual — mb_convert_encoding](https://www.php.net/manual/en/function.mb-convert-encoding.php) — HIGH: native encoding conversion
+- Repo verification (HIGH): `routes/console.php` (Schedule pattern), `app/Jobs/FinalizeElectionEvent.php` (job pattern), `app/Services/RegistraduriaService.php` (HTTP contract), `.env`/`config/database.php` (MySQL `sigma_sincelejo`), census CSV header + row sample
 
 ---
-*Stack research for: political campaign operations platforms*
-*Researched: 2026-03-25*
+*Stack research for: Registraduría polling-place lookup resiliency (live captcha source + census-snapshot fallback + scheduled reconciliation)*
+*Researched: 2026-07-24*
