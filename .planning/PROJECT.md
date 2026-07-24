@@ -32,11 +32,11 @@ Campaign teams can run critical voter and field operations from one place with t
 - ✓ Day D flows are field-ready: live voter lookup, evidence-gated vote marking (photo+GPS), DB-level duplicate-vote prevention with a defined conflict rule, per-territory participation breakdown - validated in Phase 5 + Phase 05.1 (DAYD-03/04 gaps)
 - ✓ Highest-risk workflows are test-protected and operationally observable: `FinalizeElectionEvent` has a direct job test and DB-level duplicate-prevention test, the Day D closure path runs on the real queue with structured logging and `failed_jobs` visibility instead of `dispatchSync` - validated in Phase 05.1 (QUAL-01/02, QUAL-02 was the single biggest gap found)
 - ✓ Leader-account creation requires OTP verification via Hablame SMS with a per-campaign-configurable message; a Super Admin can toggle Laravel's native maintenance mode with automatic self-bypass - client-requested items, validated in Phase 05.1 (live-tested checkpoints; the kill switch's initial self-lockout bug was found and fixed during checkpoint verification)
+- ✓ The national census snapshot (`censo_decoded_202310210734.csv`, 216,527 rows) is imported into a cédula-indexed `national_census_records` table, isolated from campaign-scoped data, enriched with full department/municipality names and address via the `polling_places` FK, with Latin-1 encoding handled correctly and an unmatched-divipol-code percentage reported on every import - validated in Phase 6 (CENSO-02, CENSO-03)
 
 ### Active
 
 - [ ] Feasibility of `wsp.registraduria.gov.co` as a live polling-place lookup source is validated (or ruled out)
-- [ ] Local census snapshot (`censo_decoded_202310210734.csv`) is imported into a cédula-indexed, queryable table enriched with full location data
 - [ ] Voter polling-place lookup falls back to the local census snapshot when the live Registraduría source is unavailable
 - [ ] The data source (live vs. local snapshot) behind a voter's polling-place result is visible and auditable
 - [ ] Voters resolved via local snapshot are automatically re-verified against the live source once it's reachable, via a scheduled job
@@ -101,6 +101,8 @@ This document evolves at phase transitions and milestone boundaries.
 
 **Shipped: v1.0 MVP Hardening (2026-07-24).** All 30 v1 requirements Done. See `.planning/milestones/v1.0-ROADMAP.md` and `.planning/milestones/v1.0-REQUIREMENTS.md` for the full archived record, and `.planning/MILESTONES.md` for the shipped summary.
 
+**v1.1 in progress:** Phase 6 (National Census Snapshot Import) complete — CENSO-02/CENSO-03 done. Next: Phase 7 (Source-Flag Schema & Resolution Audit Trail).
+
 ## Current Milestone: v1.1 Consulta de Puesto de Votación Resiliente
 
 **Goal:** When live Registraduría lookup is unavailable, SIGMA still resolves a cédula's polling place using a local census snapshot, clearly marks the data's origin, and automatically reconciles against the live source once it's reachable again.
@@ -117,4 +119,4 @@ This document evolves at phase transitions and milestone boundaries.
 Not yet defined beyond v1.1.
 
 ---
-*Last updated: 2026-07-24 after starting v1.1 milestone*
+*Last updated: 2026-07-24 after Phase 6 completion*
