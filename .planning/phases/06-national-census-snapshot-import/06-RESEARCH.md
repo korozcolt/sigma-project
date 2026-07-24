@@ -1,36 +1,32 @@
 # Phase 6: National Census Snapshot Import - Research
 
 **Researched:** 2026-07-24
-**Domain:** Bulk streaming CSV import (216K rows, ISO-8859-1) into a cédula-indexed national reference table with a divipol-code join, inside an existing Laravel 12 / MySQL app
-**Confidence:** HIGH — every mechanic below is verified against the actual repo, the actual CSV, and the actual reference JSON; the divipol join was executed and confirmed against two real rows
+**Domain:** Bulk import of a 216K-row, ISO-8859-1, semicolon-delimited national census CSV into a new cédula-indexed reference table, enriched via a divipol join against the seeded `polling_places`, inside Laravel 12 / PHP 8.4 / Pest 4.
+**Confidence:** HIGH — every recommendation is grounded in the actual repo (verified the CSV bytes, the divipol seed, the seeder/importer precedents, the migration types, and the SQLite test harness).
 
 <user_constraints>
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
 
-**Import Mechanism**
-- **D-01:** Use a streaming `LazyCollection` + chunked `upsert()` inside a new Artisan command (`php artisan census:import-national`) — NOT `LOAD DATA LOCAL INFILE`. Reason: avoids depending on `local_infile` (unconfirmed in target env) and gives idempotent re-runnable behavior by design (upsert) without fallback-detection code.
-- **D-02:** No automatic mechanism-detection/fallback. One fixed mechanism only.
-
-**Unmatched Divipol Codes**
-- **D-03:** A CSV row whose divipol code doesn't match any `polling_places` row is still imported — with `polling_place_id = null` and the raw CSV `nombre`/`mesa` kept as a fallback reference. Never dropped.
-- **D-04:** The import command never aborts based on unmatched percentage. It always completes and reports the unmatched % in output. No configurable abort threshold — a human reviews and decides.
-
-**Duplicate Cédulas Within the Snapshot**
-- **D-05:** If the CSV contains more than one row for the same cédula, the last row read wins (simple upsert semantics). Applies within a single import run.
-
-**Re-import Policy**
-- **D-06:** Re-running the command upserts in place — never truncates/reloads.
-- **D-07:** A cédula present in an older import but absent from a newer one is NEVER deleted. Snapshot is best-effort last-resort data, not authoritative-about-absence. Orphaned rows from older snapshots are an accepted tradeoff.
+- **D-01:** Use a streaming `LazyCollection` + chunked `upsert()` inside a new Artisan command (`php artisan census:import-national`) — NOT `LOAD DATA LOCAL INFILE`. Avoids the unconfirmed `local_infile` server/client dependency; idempotent by design.
+- **D-02:** No mechanism-detection/fallback. One fixed mechanism only.
+- **D-03:** A CSV row whose divipol code doesn't match any `polling_places` row is still imported — `polling_place_id = null`, raw `nombre`/`mesa` kept as fallback. Never dropped.
+- **D-04:** The command never aborts based on the unmatched percentage. It always completes and reports the unmatched % (e.g. "2.3% had no matching polling place"). No configurable abort threshold — a human reviews and decides.
+- **D-05:** Duplicate cédulas within the CSV: last row read wins (simple upsert semantics).
+- **D-06:** Re-running upserts in place — never truncates/reloads.
+- **D-07:** A cédula present in an older import but absent from a newer one is NEVER deleted. Removals are never inferred from absence. Accumulated orphan rows are an accepted tradeoff for this milestone.
 
 ### Claude's Discretion
-- Exact `national_census_records` schema beyond the ARCHITECTURE.md shape (column types, extra indexes). Follow research's recommended shape.
-- Exact chunk size for the `LazyCollection` + `upsert()` loop, and where/how the unmatched-% report is displayed (console table vs written report file).
-- ISO-8859-1 → UTF-8 conversion approach (per-line `mb_convert_encoding` vs one-time `iconv` pre-pass) — pick the simpler to wire into the streaming read.
+
+- Exact `national_census_records` schema beyond ARCHITECTURE.md's shape (column types, indexes beyond the cédula index).
+- Exact chunk size for the `LazyCollection` + `upsert()` loop.
+- Where/how the unmatched-% report is displayed (console table vs written file).
+- ISO-8859-1 → UTF-8 approach (`mb_convert_encoding` per-line vs one-time `iconv` pre-pass) — pick the simpler.
 
 ### Deferred Ideas (OUT OF SCOPE)
-None — discussion stayed within phase scope. The resolver service (Phase 8), source-flag/audit schema (Phase 7), operator UI (Phase 10), live-source spike (Phase 9), and reconciliation job (Phase 11) are explicitly NOT part of this phase.
+
+None deferred within this phase. Explicitly NOT in scope for Phase 6: wiring the snapshot into the voter lookup cascade (`PollingPlaceResolver` — Phase 8), any UI (Phase 10), source-flag/audit schema (Phase 7), reconciliation job (Phase 11), live-source spike (Phase 9).
 </user_constraints>
 
 <phase_requirements>
@@ -38,382 +34,288 @@ None — discussion stayed within phase scope. The resolver service (Phase 8), s
 
 | ID | Description | Research Support |
 |----|-------------|------------------|
-| CENSO-02 | National census snapshot imported into an indexed, cédula-queryable table enriched with full department/municipality names and address (not just divipol codes) | New `national_census_records` table with `document_number` (string) unique index + nullable `polling_place_id` FK resolved at import via the verified divipol join (§Architecture Patterns, §Code Examples). Enrichment (dept/muni names + address) is read through the `polling_places` join, not duplicated onto the row. |
-| CENSO-03 | Snapshot import validates its divipol codes against the current `polling_places` reference data and reports the unmatched percentage before go-live | Import counts rows whose `(dpto,mcpio,zona,puesto)` key misses the pre-loaded `polling_places` map, and prints `unmatched %` at the end (D-04). Verified: the current file joins 100% within Sincelejo; the mechanism is what CENSO-03 requires (§Code Examples, §Common Pitfalls Pitfall 2). |
+| CENSO-02 | National census snapshot imported into an indexed, cédula-queryable table enriched with full department/municipality names and address (not just divipol codes) | New `national_census_records` table (unique-indexed `document_number`); enrichment via `polling_place_id` FK resolved at import from the divipol join → `PollingPlace` carries `address` + `belongsTo` Department/Municipality (the human names). See "Standard Stack", "Architecture Patterns", schema table. |
+| CENSO-03 | Snapshot import validates its divipol codes against the current `polling_places` reference data and reports the unmatched percentage before go-live | In-memory keyed map of `polling_places` (`dd-mm-zz-pp` → id) mirroring `PollingPlaceSeeder`; per-row resolve; count `polling_place_id === null`; report unmatched % on completion (D-04). See "Code Examples", Pitfall 2. |
 </phase_requirements>
 
 ## Summary
 
-This is a **narrow, well-bounded data-engineering phase** with no UI, no queue, no live source, and no cross-service work. The deliverable is exactly four artifacts: a migration (`national_census_records`), a model (`NationalCensusRecord`), an Artisan command (`census:import-national`), and its Pest test. Every mechanic it needs already has a verified precedent in this repo.
+This is a **narrow, well-bounded batch-import phase** with no external service dependencies and no UI. Everything needed is already installed and there are two near-exact precedents in the repo: `PollingPlaceSeeder` (the divipol keyed-map join + `upsert()` batching) and `CensusImporter::importInBatches()` (chunked bulk write). The job is to combine those two patterns into one streaming Artisan command that reads the Latin-1 CSV, resolves each row's `polling_place_id` against an in-memory map of the seeded `polling_places`, and upserts into a new `national_census_records` table keyed uniquely on cédula.
 
-The single most important verified finding: **the divipol join works exactly as ARCHITECTURE.md predicted.** I executed the join against the real reference data — CSV columns `dpto/mcpio/zona/puesto` map 1:1 to `polling_places.(dane_department_code, dane_municipality_code, zone_code, place_code)`, and two sample rows (`28/1/99/9`→CHOCHO, `28/1/99/78`→LA GALLERA) resolve to the correct SUCRE/SINCELEJO polling places with matching names. The resolution technique is the exact keyed-map lookup `PollingPlaceSeeder` already uses.
+The verified facts that shape the plan: the file is **ISO-8859-1 / CRLF / semicolon-delimited, 216,527 data rows** (216,528 lines incl. header); the four join codes are CSV columns `dpto`(idx 3), `mcpio`(idx 6), `zona`(idx 8), `puesto`(idx 10), which map directly to `polling_places.{dane_department_code, dane_municipality_code, zone_code, place_code}` (all `unsignedSmallInteger`); and the seed genuinely covers these codes (rural `zona=99`, Sincelejo `puesto=9`/`30` all present — so most rows will match and the unmatched % reflects real 2023-vs-current drift, not a shape mismatch).
 
-A second finding worth surfacing to the planner: **this "national" snapshot is not national — it is Sincelejo-only.** All 216,527 data rows have `dpto=28, mcpio=1` (SUCRE/SINCELEJO); there are 9 zonas and 30 puestos. The table and command should still be built national-capable (the schema and join have no Sincelejo assumptions), but the CENSO-03 unmatched-% report will only ever exercise Sincelejo codes for this file, and the current file's expected unmatched rate is ~0%. Do not hardcode anything to department 28.
+Two non-obvious correctness issues drive the design and are the highest-value findings here: (1) tests run on **SQLite `:memory:`**, and SQLite raises `"ON CONFLICT DO UPDATE command cannot affect row a second time"` if a single multi-row upsert statement contains two rows with the same conflict key — so duplicate cédulas within a chunk **must be deduped in PHP (keep last) before the upsert**, which also implements D-05 deterministically; and (2) PHP 8.4 deprecates the implicit `escape` argument of `fgetcsv`/`str_getcsv`, so pass `escape: ''` explicitly.
 
-**Primary recommendation:** Build `census:import-national` as a `LazyCollection`-streamed reader that (1) decodes each line ISO-8859-1→UTF-8, (2) resolves `polling_place_id` from an in-memory `polling_places` map keyed `"dd-mm-zz-pp"`, (3) chunks into `upsert()` batches keyed on the unique `document_number`, and (4) tallies matched/unmatched rows to print an unmatched-% report at the end. Mirror `PollingPlaceSeeder`'s map+flush structure and `CensusImporter`'s batching; store `document_number` as a **string** (matching `voters` and `census_records`) so Phase 8's resolver joins cleanly.
+**Primary recommendation:** One Artisan command `census:import-national` = `LazyCollection` stream (skip header, `mb_convert_encoding` per line, `str_getcsv(';', '"', '')`) → `->chunk(1000)` → dedupe chunk by `document_number` (last wins) → resolve `polling_place_id` from a pre-loaded in-memory map → `NationalCensusRecord::upsert(rows, ['document_number'], [...])` → tally & print unmatched %. Ship with a Pest test over a tiny fixture CSV.
 
 ## Standard Stack
-
-Nothing new is installed. Every capability is native to the current stack.
 
 ### Core
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
-| `Illuminate\Support\LazyCollection` | Laravel 12 (installed) | Stream the 216K-row file line-by-line at constant memory | Framework-native; the idiomatic Laravel answer to "iterate a huge file without loading it into RAM" |
-| Eloquent `upsert()` | Laravel 12 (installed) | Idempotent chunked insert-or-update keyed on `document_number` | Already the house idiom for bulk load — `PollingPlaceSeeder::flush()` uses it verbatim. Satisfies D-05/D-06 idempotency by construction |
-| `mb_convert_encoding()` | PHP 8.4 mbstring (bundled) | Per-line ISO-8859-1 → UTF-8 decode of accented names ("LA PEÑATA") | Zero-dependency, the standard fix for the "Malformed UTF-8" this Latin-1 file otherwise throws. Do NOT use deprecated `utf8_decode()` |
-| `Illuminate\Console\Command` | Laravel 12 (installed) | The `census:import-national` command shell + progress/report output | Auto-registered in `app/Console/Commands/` in L12; `ImportColombiaData` is the in-repo precedent (progress bar, `$this->info`) |
+| Laravel Artisan command | Laravel 12 (installed) | `census:import-national` host for the import | Auto-registered from `app/Console/Commands/` in L12; repeatable/re-runnable. Repo already has 6 commands here. |
+| `Illuminate\Support\LazyCollection` | Laravel 12 (installed) | Stream the 216K-row file without loading it into memory | Standard Laravel large-file idiom; the only approach that also runs on the SQLite test DB (LOAD DATA does not). |
+| Eloquent `upsert()` | Laravel 12 (installed) | Idempotent chunked insert-or-update on unique `document_number` | Exactly the idiom `PollingPlaceSeeder::flush()` already uses; gives D-06 idempotency for free. |
+| PHP `mbstring` (`mb_convert_encoding`) | bundled w/ PHP 8.4.23 | ISO-8859-1 → UTF-8 per line | Built-in; the standard fix for the "Malformed UTF-8" corruption this file otherwise causes ("LA PEÑATA"). |
 
 ### Supporting
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| `fgetcsv()` / native line read | PHP 8.4 | Parse semicolon-delimited rows inside the LazyCollection generator | The file is a known fixed 13-column schema — native parsing is enough; no CSV library needed |
-| `iconv` (CLI) | system | Optional one-time whole-file transcode instead of per-line decode | Only if you prefer a pre-pass over inline `mb_convert_encoding`; per-line is simpler to wire into the stream and needs no temp file (recommended) |
+| `iconv` (CLI) | system | One-shot transcode `iconv -f ISO-8859-1 -t UTF-8` | Only if you prefer converting the file once up-front over per-line `mb_convert_encoding`. Per-line is simpler to wire into the stream and is recommended. |
 
 ### Alternatives Considered
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
-| `LazyCollection` + `upsert()` | `LOAD DATA LOCAL INFILE` + SQL join | **Explicitly rejected by D-01/D-02.** Faster but needs `local_infile` enabled (unconfirmed in target env) and does not run on the SQLite `:memory:` test DB — the chosen path is testable and env-independent |
-| Native `fgetcsv` + `mb_convert_encoding` | `league/csv` `CharsetConverter` | A tested reader with built-in charset conversion, but adds a Composer dependency for a fixed-schema file that native code handles. Not worth it here |
-| `maatwebsite/excel` | — | Installed but memory-heavy/slow for a 216K-row server-side load; keep it for the user-facing Apoyo admin uploads it already serves |
+| `LazyCollection` + `upsert()` | `LOAD DATA LOCAL INFILE` + staging table | Faster on MySQL, but requires `local_infile` (unconfirmed in target env), can't run on the SQLite test DB, and adds fallback-detection complexity. **Ruled out by D-01/D-02.** |
+| Native `str_getcsv` + `mbstring` | `league/csv` `CharsetConverter` | Tested reader with built-in charset conversion, but adds a Composer dependency for a fixed-schema known file. Not worth it. |
+| `maatwebsite/excel` | — | Installed, but memory-heavy/slow for a 216K server-side load. Keep it for user-facing admin uploads only. |
 
-**Installation:** None. `composer require` is not needed for this phase.
+**Installation:**
+```bash
+# Nothing to install. All dependencies are bundled/already present.
+php artisan make:command ImportNationalCensus --no-interaction   # -> app/Console/Commands, signature: census:import-national
+php artisan make:model NationalCensusRecord -mf --no-interaction # model + migration + factory
+```
 
-**Version verification:** No new packages, so no registry check required. Confirmed installed: Laravel `v12`, PHP `8.4.14`, mbstring enabled (`mb_convert_encoding` available).
+**Version verification:** `php -v` → PHP 8.4.23 (mbstring/iconv bundled). Laravel 12 + Eloquent `upsert()` confirmed in use (`PollingPlaceSeeder::flush()`). No registry packages to verify — no new dependencies.
 
 ## Architecture Patterns
 
-### Recommended Project Structure
+### Recommended Structure (files this phase adds)
 ```
-app/
-├── Console/Commands/
-│   └── ImportNationalCensus.php      # signature: census:import-national {file?} {--chunk=1000}
-└── Models/
-    └── NationalCensusRecord.php      # national reference model, NO campaign scope
-database/
-├── migrations/
-│   └── 2026_07_24_000000_create_national_census_records_table.php
-└── factories/
-    └── NationalCensusRecordFactory.php
-tests/
-└── Feature/
-    └── ImportNationalCensusTest.php  # small fixture CSV → assert count, FK resolution, encoding, idempotency
-database/external-data/
-└── censo_decoded_202310210734.csv    # source (already present, do not modify)
+app/Console/Commands/ImportNationalCensus.php   # census:import-national — stream + resolve + upsert + report
+app/Models/NationalCensusRecord.php             # model; belongsTo PollingPlace; NO HasCampaignContext
+database/migrations/XXXX_create_national_census_records_table.php
+database/factories/NationalCensusRecordFactory.php
+tests/Feature/ImportNationalCensusTest.php      # fixture-CSV import test
+tests/fixtures/census/national-sample.csv       # tiny ISO-8859-1 fixture (accent + dup cédula + unmatched row)
 ```
 
-### Pattern 1: In-memory divipol map + streamed chunked upsert (the whole command)
-**What:** Pre-load `polling_places` into a PHP array keyed by `"dd-mm-zz-pp"`, then stream the CSV, resolve each row's `polling_place_id` from the map, and flush in chunked `upsert()` batches. This is `PollingPlaceSeeder`'s `keyBy`+`flush` structure applied to a streamed source instead of a decoded JSON array.
-**When to use:** This is THE pattern for the phase.
-**Why the map fits in memory:** the full national `divipole-nacional.json` is only 13,755 places; the Sincelejo subset this file joins against is ~270. A keyed array of a few thousand small rows is trivial RAM.
+### `national_census_records` schema (verified against the join target)
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | bigint PK | |
+| `document_number` | string, **unique**, indexed | CSV `cedula` (idx 2). The lookup key. **Unique constraint is required** — it is the `upsert` conflict target for D-05/D-06. String to match existing `CensusRecord.document_number` / voter cédula convention. |
+| `polling_place_id` | `foreignId`, **nullable**, `nullOnDelete` | Resolved at import via divipol join (D-03 allows null). |
+| `dane_department_code` | `unsignedSmallInteger` | CSV `dpto` (idx 3). **Use smallint, not string** — matches `polling_places` column types so the join/re-join is type-clean. |
+| `dane_municipality_code` | `unsignedSmallInteger` | CSV `mcpio` (idx 6). |
+| `zone_code` | `unsignedSmallInteger` | CSV `zona` (idx 8). |
+| `place_code` | `unsignedSmallInteger` | CSV `puesto` (idx 10). |
+| `polling_station_name` | string, nullable | CSV `nombre` (idx 11) — fallback when FK is null. |
+| `table_number` | string, nullable | CSV `mesa` (idx 12). |
+| `imported_at` | timestamp | Snapshot provenance / which run. |
 
+- **No `campaign_id`, no `HasCampaignContext` trait, no `timestamps()`** — this is static national reference data, a sibling of `polling_places`, not campaign-scoped operational data (Pitfall 5). This is also the campaign-isolation guarantee for CENSO-02.
+- **Refinement vs ARCHITECTURE.md:** it suggested `string` for the raw divipol columns "for traceability." Store them as `unsignedSmallInteger` instead so they match `polling_places` exactly (that migration uses `unsignedSmallInteger` for all four codes) — avoids a string-vs-int join mismatch if the map is ever bypassed for a SQL re-join. Cast CSV values with `(int)`, exactly as `PollingPlaceSeeder` does.
+
+### Pattern 1: In-memory keyed-map divipol resolution (mirror `PollingPlaceSeeder`)
+**What:** Pre-load all `polling_places` (13,755 seeded rows) into an array keyed by `"{dd}-{mm}-{zz}-{pp}"` → `id`. Resolve each CSV row against the map in O(1). No per-row DB query (avoids 216K N+1 queries).
+**When:** Once at command start, before the stream loop.
 ```php
-// Source: PollingPlaceSeeder.php (keyed-map + upsert precedent) + Laravel LazyCollection docs
-use App\Models\NationalCensusRecord;
-use App\Models\PollingPlace;
-use Illuminate\Support\LazyCollection;
-
-// 1. Build the divipol → polling_place_id map once (small, national-capable)
+// Mirrors PollingPlaceSeeder's keyBy map technique.
 $placeMap = PollingPlace::query()
     ->get(['id', 'dane_department_code', 'dane_municipality_code', 'zone_code', 'place_code'])
-    ->keyBy(fn (PollingPlace $p): string => "{$p->dane_department_code}-{$p->dane_municipality_code}-{$p->zone_code}-{$p->place_code}")
+    ->keyBy(fn (PollingPlace $p) => "{$p->dane_department_code}-{$p->dane_municipality_code}-{$p->zone_code}-{$p->place_code}")
     ->map->id;
+// per row:
+$key = ((int) $dpto).'-'.((int) $mcpio).'-'.((int) $zona).'-'.((int) $puesto);
+$pollingPlaceId = $placeMap[$key] ?? null;   // null => counts toward unmatched % (D-03/D-04)
+```
 
-$matched = 0;
-$unmatched = 0;
-$now = now();
-
-// 2. Stream the file at constant memory; decode Latin-1 per line
+### Pattern 2: Streaming Latin-1 read + chunked, deduped upsert
+**What:** `LazyCollection` generator over the file handle; skip header; transcode each line; parse with explicit escape; chunk; dedupe by cédula (last wins); upsert.
+```php
+// Source pattern: PollingPlaceSeeder::flush() upsert + CensusImporter::importInBatches() chunking.
 LazyCollection::make(function () use ($path) {
-    $handle = fopen($path, 'r');
-    fgetcsv($handle, 0, ';'); // skip header
-    while (($row = fgetcsv($handle, 0, ';')) !== false) {
-        yield $row;
+    $handle = fopen($path, 'rb');
+    fgets($handle); // skip header row
+    while (($line = fgets($handle)) !== false) {
+        yield mb_convert_encoding($line, 'UTF-8', 'ISO-8859-1');
     }
     fclose($handle);
 })
-    ->chunk(1000)
-    ->each(function (LazyCollection $chunk) use ($placeMap, &$matched, &$unmatched, $now): void {
-        $batch = [];
-        foreach ($chunk as $row) {
-            // columns: 0 divipol,1 codificado,2 cedula,3 dpto,4 cero,5 cero,6 mcpio,7 ref1,8 zona,9 ref2,10 puesto,11 nombre,12 mesa
-            $dpto = (int) $row[3];
-            $mcpio = (int) $row[6];
-            $zona = (int) $row[8];
-            $puesto = (int) $row[10];
-            $pollingPlaceId = $placeMap["{$dpto}-{$mcpio}-{$zona}-{$puesto}"] ?? null;
-            $pollingPlaceId === null ? $unmatched++ : $matched++;
-
-            $batch[] = [
-                'document_number' => trim($row[2]),
-                'polling_place_id' => $pollingPlaceId,
-                'dane_department_code' => $dpto,
-                'dane_municipality_code' => $mcpio,
-                'zone_code' => $zona,
-                'place_code' => $puesto,
-                'polling_station_name' => mb_convert_encoding(trim($row[11]), 'UTF-8', 'ISO-8859-1'),
-                'table_number' => trim($row[12]),
-                'imported_at' => $now,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-        }
-
-        // 3. Idempotent flush keyed on the unique document_number (D-05 last-row-wins, D-06 upsert-in-place)
-        NationalCensusRecord::query()->upsert(
-            $batch,
-            ['document_number'],
-            ['polling_place_id', 'dane_department_code', 'dane_municipality_code', 'zone_code', 'place_code', 'polling_station_name', 'table_number', 'imported_at', 'updated_at'],
-        );
-    });
-
-// 4. CENSO-03 report (D-04: always completes, never aborts)
-$total = $matched + $unmatched;
-$pct = $total > 0 ? round($unmatched / $total * 100, 2) : 0.0;
-$this->info("Importadas: {$total} | con puesto: {$matched} | sin puesto: {$unmatched} ({$pct}% sin coincidencia divipol)");
-```
-
-### Pattern 2: National reference model (no campaign scope)
-**What:** `NationalCensusRecord` is a plain Eloquent model — no `HasCampaignContext` trait, no `campaign_id`, sibling to `PollingPlace`.
-**Why:** See Pitfall 1 — adding campaign scope is the isolation-leak failure class. The model belongs to the "national reference data" category (`polling_places`, `departments`, `municipalities`), not the campaign-operational category (`census_records`, `voters`).
-
-```php
-// Source: PollingPlace.php (sibling reference model shape)
-class NationalCensusRecord extends Model
-{
-    use HasFactory;
-
-    protected $fillable = [
-        'document_number', 'polling_place_id',
-        'dane_department_code', 'dane_municipality_code', 'zone_code', 'place_code',
-        'polling_station_name', 'table_number', 'imported_at',
-    ];
-
-    protected function casts(): array
-    {
-        return ['imported_at' => 'datetime'];
+->map(fn (string $line) => str_getcsv(rtrim($line, "\r\n"), ';', '"', '')) // PHP 8.4: explicit escape ''
+->chunk(1000)
+->each(function ($chunk) use ($placeMap, &$total, &$unmatched) {
+    $rows = [];
+    foreach ($chunk as $c) {
+        // $c[2]=cedula, [3]=dpto, [6]=mcpio, [8]=zona, [10]=puesto, [11]=nombre, [12]=mesa
+        $key = ((int) $c[3]).'-'.((int) $c[6]).'-'.((int) $c[8]).'-'.((int) $c[10]);
+        $pid = $placeMap[$key] ?? null;
+        if ($pid === null) { $unmatched++; }
+        $total++;
+        $rows[$c[2]] = [ // keyed by cedula => within-chunk dedupe, LAST WINS (D-05)
+            'document_number' => $c[2],
+            'polling_place_id' => $pid,
+            'dane_department_code' => (int) $c[3],
+            'dane_municipality_code' => (int) $c[6],
+            'zone_code' => (int) $c[8],
+            'place_code' => (int) $c[10],
+            'polling_station_name' => $c[11] ?: null,
+            'table_number' => $c[12] ?: null,
+            'imported_at' => now(),
+        ];
     }
-
-    public function pollingPlace(): BelongsTo
-    {
-        return $this->belongsTo(PollingPlace::class);
-    }
-}
+    NationalCensusRecord::upsert(
+        array_values($rows),
+        ['document_number'],
+        ['polling_place_id', 'dane_department_code', 'dane_municipality_code',
+         'zone_code', 'place_code', 'polling_station_name', 'table_number', 'imported_at'],
+    );
+});
 ```
-
-### Recommended schema (`national_census_records`)
-Follows the ARCHITECTURE.md shape with types verified against the CSV data profile.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `id()` | PK |
-| `document_number` | `string`, **`->unique()`** | The `cedula` column. **String, not BIGINT** — matches `voters.document_number` and `census_records.document_number` (both `string`) so Phase 8's resolver joins without type/format friction. The unique index IS the required cédula index and the upsert conflict target |
-| `polling_place_id` | `foreignId()->nullable()->constrained()->nullOnDelete()` | Resolved at import; nullable per D-03 |
-| `dane_department_code` | `unsignedSmallInteger` | Raw divipol kept for traceability + re-join if `polling_places` re-seeded. Matches `polling_places` column type. Max seen: 28 |
-| `dane_municipality_code` | `unsignedSmallInteger` | Matches `polling_places`. Max seen: 1 |
-| `zone_code` | `unsignedSmallInteger` | Matches `polling_places`. Max seen: 99 |
-| `place_code` | `unsignedSmallInteger` | Matches `polling_places`. Max seen: 98 |
-| `polling_station_name` | `string`, nullable | The CSV `nombre` — fallback reference when FK is null (D-03) |
-| `table_number` | `string`, nullable | The CSV `mesa`. Max seen: 50 |
-| `imported_at` | `timestamp`, nullable | Snapshot provenance (which run) |
-| timestamps | `timestamps()` | Optional; harmless. `census_records` keeps them |
-
-Indexes: the `document_number` unique index is the only required one (it serves both the cédula lookup and the upsert conflict key). No `campaign_id`, no campaign-context trait.
 
 ### Anti-Patterns to Avoid
-- **Adding `campaign_id` to this table** — it is national reference data; a `campaign_id` here is the isolation-leak vector (Pitfall 1). Do not add it, do not add `HasCampaignContext`.
-- **`LOAD DATA LOCAL INFILE`** — rejected by D-01, and it does not run against the SQLite `:memory:` test DB, so the command would be untestable.
-- **Storing `document_number` as BIGINT** — max value fits unsigned INT today (2,000,015,490), but string matches the rest of the codebase and avoids leading-zero and join-type mismatches with `voters.document_number` in Phase 8.
-- **`PollingPlace::firstOrCreate()` per row** — never create polling places from this import (Pitfall table-bloat). Resolve against the existing seed only; miss → null.
-- **One giant `insert()` of 216K rows** — memory blow-up; stream + chunk.
+- **Per-row `PollingPlace::where(...)->first()`** inside the loop → 216K queries. Use the pre-loaded map.
+- **`firstOrCreate` on `polling_places` from the import** → spawns near-duplicate places (Pitfall 9 in milestone research). This import only *reads* `polling_places`; it never creates them. Unmatched rows get `null`, not a new place.
+- **Adding `campaign_id` / `HasCampaignContext`** to the snapshot table → campaign-isolation leak (Pitfall 5). Keep it national + read-only.
+- **`utf8_decode()` / `utf8_encode()`** → deprecated in PHP 8.2+, mangles bytes. Use `mb_convert_encoding`.
+- **Truncating before load** → violates D-06/D-07. Upsert only; never delete.
 
 ## Don't Hand-Roll
 
 | Problem | Don't Build | Use Instead | Why |
 |---------|-------------|-------------|-----|
-| Streaming a huge file at constant memory | Manual `fopen`/`feof` loop with your own buffering | `LazyCollection::make(generator)->chunk()` | Framework-native, lazy, composes with `->chunk()->each()` cleanly |
-| Idempotent bulk insert-or-update | Per-row `updateOrCreate` (216K queries) or manual "SELECT then INSERT/UPDATE" | `upsert($rows, ['document_number'], [...])` | One statement per chunk; DB-level conflict handling gives D-05/D-06 for free |
-| ISO-8859-1 → UTF-8 conversion | Byte-level `str_replace` of accented chars, or `utf8_decode()` | `mb_convert_encoding($s, 'UTF-8', 'ISO-8859-1')` | Correct for the whole Latin-1 range; `utf8_decode` is deprecated in PHP 8.2+ |
-| Divipol code → polling_place_id lookup | Per-row DB query against `polling_places` | Pre-loaded keyed-array map (`keyBy` "dd-mm-zz-pp") | 216K DB round-trips → one query; identical to `PollingPlaceSeeder` |
-| Command scaffolding / progress output | Hand-rolled arg parsing | `php artisan make:command` + `$this->output->createProgressBar()` | In-repo precedent: `ImportColombiaData` |
+| Idempotent bulk insert-or-update | Manual "SELECT then INSERT/UPDATE" per cédula | Eloquent `upsert(rows, ['document_number'], [...])` | One statement per chunk; handles D-05/D-06 natively. Repo precedent: `PollingPlaceSeeder::flush()`. |
+| Divipol → `polling_place_id` lookup | Bespoke join SQL or repeated queries | In-memory keyed map (Pattern 1) | Mirrors `PollingPlaceSeeder`; O(1) per row; already proven at this scale. |
+| Latin-1 → UTF-8 | Byte-level `str_replace` hacks / `utf8_encode` | `mb_convert_encoding($line, 'UTF-8', 'ISO-8859-1')` | Standard, correct, bundled. |
+| Streaming a big file | `file()` / `file_get_contents` (loads all into memory) | `LazyCollection` over `fgets` | Constant memory; the 512M test limit and prod both stay safe. |
+| Human names for a cédula | Denormalize dept/muni names into the snapshot | `polling_place_id` FK → `PollingPlace` → `belongsTo` Department/Municipality + `address` | Names/address already live on the seeded reference data; the FK is the enrichment (CENSO-02). Only keep `polling_station_name` as the null-FK fallback. |
 
-**Key insight:** Every piece of this phase already exists somewhere in the repo. The command is essentially `PollingPlaceSeeder` (keyed map + chunked upsert) reading a streamed Latin-1 CSV instead of a decoded JSON blob, wrapped in an `ImportColombiaData`-style command shell.
+**Key insight:** This phase is a *composition* of two existing repo patterns, not new invention. Deviating from the `PollingPlaceSeeder` + `CensusImporter` shapes is the main risk.
 
 ## Runtime State Inventory
 
-> This is an ADD phase (new table/model/command), not a rename/refactor. No existing runtime state is being renamed. Included for completeness because the phase writes bulk data.
-
-| Category | Items Found | Action Required |
-|----------|-------------|------------------|
-| Stored data | New `national_census_records` table created by this phase; no existing datastore key/collection is renamed | Migration only |
-| Live service config | None — no external service touched (no n8n, Datadog, Registraduría, queue) | None — verified: phase is migration + model + command + test |
-| OS-registered state | None — the command is run manually/ad-hoc; NOT scheduled in `routes/console.php` (scheduling belongs to Phase 11's reconciliation job, not this import) | None |
-| Secrets/env vars | None. `LOAD DATA` was rejected, so no `local_infile`/`PDO::MYSQL_ATTR_LOCAL_INFILE` env or connection flag is needed | None |
-| Build artifacts | None — no package rename, no compiled artifact | None |
+> Not applicable. This is a greenfield additive phase (new table + new command + new model), not a rename/refactor/data-migration of existing runtime state. No stored strings are being renamed; no live service config, OS-registered state, secrets/env vars, or build artifacts are affected. Verified: no existing `NationalCensusRecord` model or `national_census_records` migration exists (`app/Models/` has only `CensusRecord.php`). The only data touched is the new table populated from a local CSV.
 
 ## Common Pitfalls
 
-### Pitfall 1: The snapshot table becomes a campaign-isolation leak (milestone Pitfall 2)
-**What goes wrong:** Someone adds `campaign_id` or the `HasCampaignContext` trait "to be safe," or a later phase writes campaign-scoped data derived from a snapshot read without asserting the correct `campaign_id`.
-**Why it happens:** The word "census" pattern-matches to the campaign-scoped `census_records` table.
-**How to avoid:** Keep `national_census_records` strictly read-only reference data — no `campaign_id`, no campaign trait, no writes from campaign flows. This phase only *populates* it from the CSV; it never reads voter/campaign data. (The write-path isolation test belongs to Phase 8's resolver, not here.)
-**Warning signs:** A `campaign_id` column on the migration; importing `HasCampaignContext`.
+### Pitfall 1: SQLite chokes on duplicate cédulas within one upsert statement
+**What goes wrong:** A chunk containing two rows with the same cédula produces a multi-row `INSERT ... ON CONFLICT(document_number) DO UPDATE`. SQLite (the test DB, `:memory:`) errors: `ON CONFLICT DO UPDATE command cannot affect row a second time`. MySQL tolerates it (last wins) but the test suite would fail.
+**Why it happens:** `upsert()` emits one statement for the whole chunk; SQLite forbids updating the same row twice in a single statement.
+**How to avoid:** Dedupe each chunk in PHP before upserting — build the batch array **keyed by `document_number`** so the last occurrence overwrites earlier ones (this is exactly D-05 "last row wins"), then `array_values()` it. Cross-chunk duplicates are fine (separate statements, later chunk wins naturally).
+**Warning signs:** Test passes on MySQL, fails on SQLite with the "affect row a second time" message; or a fixture with a dup cédula blows up.
 
-### Pitfall 2: Divipol drift / silent join misses (milestone Pitfall 9) — this is exactly what CENSO-03 guards
-**What goes wrong:** A CSV divipol code doesn't match any `polling_places` row (code reissued, puesto relocated), the join silently returns null, and nobody knows coverage before go-live.
-**Why it happens:** Blind import with no matched/unmatched accounting.
-**How to avoid:** The command MUST tally matched vs unmatched and print the unmatched % (D-04). This is not optional polish — it IS CENSO-03. **Verified for the current file:** both sampled rows joined, and the file is 100% within Sincelejo divipol space, so the expected unmatched rate is ~0%. The mechanism must still exist and report, because a future national file will have real misses.
-**Warning signs:** A row written with `polling_place_id = null` and no corresponding increment to the unmatched counter; the command finishing without printing a coverage line.
+### Pitfall 2: Divipol drift / unmatched codes (CENSO-03's whole reason to exist)
+**What goes wrong:** 2023 snapshot codes that no longer match the current `polling_places` seed resolve to `polling_place_id = null`. Verified the seed *does* cover the relevant codes (rural `zona=99`, `98`, `90` and Sincelejo `puesto` values are present), so this is genuine drift, not a systematic mismatch — but some percentage will miss.
+**Why it happens:** Municipalities merged, codes reissued, puestos relocated between 2023 and today.
+**How to avoid:** This is a feature, not a bug to hide (D-03/D-04): import the row with `null` FK, keep raw `nombre`/`mesa`, and **report the unmatched %** at the end so a human reviews it before go-live. Never abort. Cast both sides to `(int)` before keying the map (the JSON seed has mixed int/string code types; the seeder already `(int)`-casts — match that).
+**Warning signs:** A surprisingly high unmatched % (would indicate a column-index or int-cast bug, not real drift) — sanity-check against the sample rows which are known to match.
 
-### Pitfall 3: UTF-8 corruption on accented names (success criterion #3)
-**What goes wrong:** Names like "LA PEÑATA" import as "LA PE�ATA" or throw "Malformed UTF-8".
-**Why it happens:** The file is ISO-8859-1 (verified: `charset=iso-8859-1`) but PHP/MySQL assume UTF-8.
-**How to avoid:** `mb_convert_encoding($value, 'UTF-8', 'ISO-8859-1')` on the `nombre` field (and any text field) as it is read. Assert this explicitly in the test with a fixture row containing `Ñ`.
-**Warning signs:** Replacement characters (`�`) in `polling_station_name`; a test that only uses ASCII names (won't catch it).
+### Pitfall 3: Encoding corruption on accented names
+**What goes wrong:** Reading the file as UTF-8 corrupts "LA PEÑATA", "SAN MARTÍN", etc. ("Malformed UTF-8").
+**Why it happens:** File is ISO-8859-1/CRLF (verified via `file`).
+**How to avoid:** `mb_convert_encoding($line, 'UTF-8', 'ISO-8859-1')` per line before parsing. The `;` delimiter is ASCII, so converting the whole line before `str_getcsv` is safe. `rtrim($line, "\r\n")` to drop the CRLF.
+**Warning signs:** Mojibake in `polling_station_name`; test asserting `PEÑATA` fails.
 
-### Pitfall 4: Non-idempotent re-import (success criterion #5)
-**What goes wrong:** Re-running the command duplicates cédula rows or truncates good data.
-**Why it happens:** Using `insert()` instead of `upsert()`, or adding a `--fresh`/truncate option.
-**How to avoid:** `upsert()` keyed on the unique `document_number` (D-06). Do NOT add a truncate/`--fresh` flag (D-07 — never delete rows absent from a newer file). The unique index on `document_number` is what makes upsert idempotent.
-**Warning signs:** Row count doubling on a second run; a `->delete()` or `truncate()` anywhere in the command.
+### Pitfall 4: PHP 8.4 CSV escape deprecation
+**What goes wrong:** `str_getcsv`/`fgetcsv` without an explicit `escape` argument raise a deprecation in PHP 8.4.23 and can mis-handle backslashes.
+**How to avoid:** Pass `escape: ''` explicitly: `str_getcsv($line, ';', '"', '')`.
+**Warning signs:** Deprecation notices in test output; fields containing `\` parsed oddly.
 
-### Pitfall 5: SQLite test DB vs upsert conflict target
-**What goes wrong:** `upsert()` needs the unique index to exist to know the conflict target; on SQLite (the test DB) a missing/miswritten unique index makes upsert insert duplicates instead of updating.
-**Why it happens:** Tests run on `sqlite :memory:` (verified in `phpunit.xml`), which is a different engine than prod MySQL.
-**How to avoid:** Ensure the migration declares `document_number` unique. Write the idempotency test to run the import twice and assert the row count is unchanged and a changed field was updated — this catches a wrong conflict key on both engines.
-**Warning signs:** Idempotency test passes on MySQL but the second run duplicates on SQLite (or vice-versa).
+### Pitfall 5: Snapshot table becomes a campaign-isolation leak
+**What goes wrong:** Adding a `campaign_id` or the `HasCampaignContext` trait, or writing to `polling_places`/campaign tables from this import, splices national data into campaign scope (SIGMA has had a real cross-campaign leak before).
+**How to avoid:** `national_census_records` is national, read-only reference data — no `campaign_id`, no trait, no writes to campaign-scoped tables. This phase never touches `voters`/`census_records`. Test asserts the table has no `campaign_id` column.
+**Warning signs:** A `campaign_id` column on the migration; any write to a campaign-scoped model from the command.
 
 ## Code Examples
 
-### Verify the divipol join actually resolves (executed during research — HIGH confidence)
-```
-CSV row:  280019909010,00;280019909;1100696116;28;0;0;1;;99;0;9;CHOCHO;10
-          → dpto=28 mcpio=1 zona=99 puesto=9
-polling_places / divipole-nacional.json key 28-1-99-9
-          → { departamento: SUCRE, municipio: SINCELEJO, puesto: "CHOCHO", direccion: "IE SAN ISIDRO DE CHOCO" }  ✅
-
-CSV row:  ...;28;0;0;1;;99;;78;LA GALLERA;5  → 28-1-99-78
-          → { SUCRE, SINCELEJO, "LA GALLERA", "I.E LA GALLERA" }  ✅
-```
-Column order confirmed against the header: `divipol;codificado;cedula;dpto;cero;cero;mcpio;ref1;zona;ref2;puesto;nombre;mesa`. The join key is columns index `3,6,8,10` (`dpto,mcpio,zona,puesto`).
-
-### Command test skeleton (Pest, in-repo command-test style)
+### Unmatched-% report (console output — CENSO-03)
 ```php
-// Source: tests/Feature/DispatchBirthdayWebhooksTest.php ($this->artisan(...) pattern) + RefreshDatabase
-use App\Models\NationalCensusRecord;
-use App\Models\PollingPlace;
-
-it('imports the snapshot, resolves polling_place_id, and reports unmatched %', function () {
-    $place = PollingPlace::factory()->create([
-        'dane_department_code' => 28, 'dane_municipality_code' => 1,
-        'zone_code' => 99, 'place_code' => 9,
-    ]);
-
-    // fixture CSV: one matching row (28/1/99/9) + one unmatched row + one accented name (Ñ)
-    $this->artisan('census:import-national', ['file' => base_path('tests/Fixtures/censo_sample.csv')])
-        ->assertSuccessful();
-
-    expect(NationalCensusRecord::where('document_number', '1100696116')->first()->polling_place_id)
-        ->toBe($place->id);
-    expect(NationalCensusRecord::whereNull('polling_place_id')->count())->toBe(1); // D-03
-    expect(NationalCensusRecord::where('polling_station_name', 'LA PEÑATA')->exists())->toBeTrue(); // encoding
-});
-
-it('is idempotent on re-run', function () {
-    // run twice → same row count, updated fields (D-06)
-});
+// After the stream completes:
+$pct = $total > 0 ? round($unmatched / $total * 100, 2) : 0.0;
+$this->info("Importadas: {$total} filas.");
+$this->warn("Sin puesto de votación coincidente: {$unmatched} ({$pct}%).");
+// Non-aborting (D-04): always returns success; human reviews the %.
+return self::SUCCESS;
 ```
-The fixture CSV must be authored **saved as ISO-8859-1** (not UTF-8) so the encoding assertion is meaningful.
+
+### Reaching enriched names for a cédula (CENSO-02 acceptance shape)
+```php
+// A lookup returns full names + address via the FK, not just codes:
+$record = NationalCensusRecord::with('pollingPlace.department', 'pollingPlace.municipality')
+    ->where('document_number', $cedula)->first();
+$record->pollingPlace?->municipality?->name;   // e.g. "SINCELEJO"
+$record->pollingPlace?->department?->name;      // e.g. "SUCRE"
+$record->pollingPlace?->address;                // street address
+$record->polling_station_name;                  // fallback when pollingPlace is null (D-03)
+```
 
 ## State of the Art
-
 | Old Approach | Current Approach | When Changed | Impact |
 |--------------|------------------|--------------|--------|
-| `utf8_encode()` / `utf8_decode()` | `mb_convert_encoding(..., 'UTF-8', 'ISO-8859-1')` | Deprecated PHP 8.2 | Must use mbstring; the old functions silently mangle bytes |
-| Kernel-registered scheduled commands | `routes/console.php` `Schedule::` | Laravel 11+ | N/A here (this command is manual/ad-hoc, not scheduled) |
-| `$casts` property | `casts()` method | Laravel 11+ | Use `casts()` for `imported_at` (follow `census_records` era, but method form is current) |
-
-**Deprecated/outdated:** `utf8_decode` (do not use); `LOAD DATA LOCAL INFILE` is not deprecated but is explicitly rejected for this phase by D-01/D-02.
-
-## Open Questions
-
-1. **`document_number` type: string vs BIGINT**
-   - What we know: max cédula is 2,000,015,490 (fits unsigned INT); `voters.document_number` and `census_records.document_number` are both `string`.
-   - What's unclear: nothing blocking — this is a Claude's-discretion schema call.
-   - Recommendation: **string**, for cross-table join consistency with `voters` (Phase 8 resolver joins these). Documented above.
-
-2. **Progress/report output: console vs written file**
-   - What we know: D-04 requires the unmatched % be reported; the mechanism is discretion.
-   - Recommendation: console line (matches `ImportColombiaData`/`PollingPlaceSeeder` output style). A progress bar over 216K rows is optional nicety. No report file needed unless the planner wants an artifact.
-
-3. **"National" file is Sincelejo-only**
-   - What we know: 100% of rows are `dpto=28, mcpio=1`.
-   - What's unclear: whether a truly national file will be supplied later this milestone.
-   - Recommendation: build national-capable (no dept hardcoding); note in the phase summary that CENSO-03's report will show ~0% unmatched for this file, which is correct, not a bug.
+| `utf8_encode()`/`utf8_decode()` | `mb_convert_encoding(...,'UTF-8','ISO-8859-1')` | PHP 8.2 deprecation | Must use mbstring. |
+| Implicit `fgetcsv`/`str_getcsv` escape | Explicit `escape: ''` argument | PHP 8.4 | Pass `''` to silence deprecation + get predictable parsing. |
 
 ## Environment Availability
 
 | Dependency | Required By | Available | Version | Fallback |
 |------------|------------|-----------|---------|----------|
-| PHP mbstring (`mb_convert_encoding`) | ISO-8859-1 decode | ✓ | PHP 8.4.14 | `iconv` CLI pre-pass |
-| Laravel `LazyCollection` / `upsert` | streaming + idempotent load | ✓ | Laravel 12 | — |
-| Source CSV file | the import itself | ✓ | `database/external-data/censo_decoded_202310210734.csv` (216,527 data rows, iso-8859-1) | — |
-| Seeded `polling_places` reference data | divipol→id join + CENSO-03 report | ✓ (seeder exists; `divipole-nacional.json` present, 13,755 rows) | — | Import still runs with all rows null-matched if unseeded (report would show 100% unmatched — a useful signal) |
-| `LOAD DATA LOCAL INFILE` / `local_infile` | NOT USED (D-01) | n/a | — | n/a — deliberately avoided |
+| PHP mbstring (`mb_convert_encoding`) | Latin-1 → UTF-8 | ✓ | bundled w/ 8.4.23 | `iconv` CLI |
+| Census CSV file | The import itself | ✓ | 216,528 lines (verified present) | — |
+| MySQL (prod `sigma_sincelejo`) | Prod import | ✓ (app runs on it) | 8 | — |
+| SQLite `:memory:` | Test run of the command | ✓ | via phpunit.xml | — |
 
 **Missing dependencies with no fallback:** None.
-**Missing dependencies with fallback:** None — all present. Note: the test suite runs on `sqlite :memory:` (verified in `phpunit.xml`), which is exactly why the LazyCollection+upsert path (not `LOAD DATA`) is the correct, testable choice.
+**Note:** No `local_infile`, no external services, no queue, no network — this phase is fully self-contained and testable offline. That is precisely why D-01 (`LazyCollection`) is the right call: it runs identically on SQLite (test) and MySQL (prod).
 
 ## Validation Architecture
 
 ### Test Framework
 | Property | Value |
 |----------|-------|
-| Framework | Pest 4 (PHPUnit 12 under the hood) |
-| Config file | `phpunit.xml` (DB: `sqlite` `:memory:`) |
+| Framework | Pest 4 / PHPUnit 12 |
+| Config file | `phpunit.xml` (DB = SQLite `:memory:`, `QUEUE_CONNECTION=sync`) |
 | Quick run command | `php artisan test --filter=ImportNationalCensus` |
 | Full suite command | `php artisan test` |
 
 ### Phase Requirements → Test Map
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|-------------|
-| CENSO-02 | Import loads rows into cédula-unique `national_census_records`; lookup by `document_number` returns the row; `polling_place_id` resolved via divipol join | unit/feature | `php artisan test --filter=ImportNationalCensus` | ❌ Wave 0 |
-| CENSO-02 | Accented Latin-1 name imports without corruption (`LA PEÑATA`) | feature | same | ❌ Wave 0 |
-| CENSO-02 | Unmatched divipol row is imported with `polling_place_id = null` (D-03), not dropped | feature | same | ❌ Wave 0 |
-| CENSO-03 | Command reports the unmatched percentage and never aborts (D-04) | feature (assert console output / returned counts) | same | ❌ Wave 0 |
-| CENSO-02 (idempotency, success criterion #5) | Re-running the import produces no duplicate cédula rows (D-06) | feature | same | ❌ Wave 0 |
+| CENSO-02 | Import populates cédula-indexed table; enriched names reachable via `polling_place_id` FK | feature | `php artisan test --filter=ImportNationalCensus` | ❌ Wave 0 |
+| CENSO-02 | Accented Latin-1 name imports intact ("LA PEÑATA") | feature | same | ❌ Wave 0 |
+| CENSO-02 | Table has no `campaign_id` (isolation guarantee) | feature | same | ❌ Wave 0 |
+| CENSO-03 | Unmatched divipol row imported with `polling_place_id = null` + reported % | feature | same | ❌ Wave 0 |
+| D-05 | Duplicate cédula in file → last row wins (single DB row) | feature | same | ❌ Wave 0 |
+| D-06 | Re-running import is idempotent (no duplicate cédula rows) | feature | same | ❌ Wave 0 |
 
 ### Sampling Rate
 - **Per task commit:** `php artisan test --filter=ImportNationalCensus`
-- **Per wave merge:** `php artisan test` (full suite)
-- **Phase gate:** Full suite green + `vendor/bin/pint --dirty` clean before `/gsd:verify-work`
+- **Per wave merge:** `php artisan test`
+- **Phase gate:** Full suite green before `/gsd:verify-work`.
 
 ### Wave 0 Gaps
-- [ ] `tests/Feature/ImportNationalCensusTest.php` — covers CENSO-02, CENSO-03 (create)
-- [ ] `tests/Fixtures/censo_sample.csv` — small **ISO-8859-1-encoded** fixture: ≥1 matching row, ≥1 unmatched-divipol row, ≥1 accented name (`Ñ`), ≥1 duplicate cédula (to prove last-row-wins/idempotency)
-- [ ] `database/factories/NationalCensusRecordFactory.php` — for arranging assertions (`PollingPlaceFactory` already exists)
-- [ ] Framework install: none needed — Pest 4 already present
+- [ ] `tests/Feature/ImportNationalCensusTest.php` — covers CENSO-02, CENSO-03, D-05, D-06
+- [ ] `tests/fixtures/census/national-sample.csv` — tiny **ISO-8859-1** fixture: one matching row, one accented name ("LA PEÑATA"), one unmatched-divipol row, one duplicate cédula (to prove last-wins + SQLite dedupe). Must be authored/saved as ISO-8859-1, not UTF-8, or the encoding test is meaningless.
+- [ ] `database/factories/NationalCensusRecordFactory.php` — for seeding lookups in this and later phases.
+- [ ] Test must seed a handful of `PollingPlace` rows (via `PollingPlace::factory()`) whose codes match the fixture's matching row, so FK resolution is exercised.
+
+## Open Questions
+
+1. **Actual production unmatched %** — Can't be known without running against the prod-seeded `polling_places`. Verified the *shape* matches and the sample codes exist in the seed, so it should be low, but the real number is only knowable at import time. That is by design (CENSO-03 reports it; a human judges it). No blocker.
+2. **Is cédula globally unique in the snapshot?** Sample rows are all distinct; D-05 assumes possible dupes and handles them (last wins). The unique constraint + upsert is correct either way. No action needed.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Repo files (authoritative, read directly this session): `database/seeders/PollingPlaceSeeder.php` (keyed-map + chunked `upsert` precedent), `app/Services/CensusImporter.php` (batching precedent), `app/Models/PollingPlace.php` + `database/migrations/2026_01_22_000001_create_polling_places_table.php` (join target + column types), `database/migrations/2025_11_03_170817_create_census_records_table.php` (`document_number` string convention), `app/Console/Commands/ImportColombiaData.php` (command/progress precedent), `routes/console.php`, `phpunit.xml` (sqlite :memory: test DB), `tests/Feature/DispatchBirthdayWebhooksTest.php` (`$this->artisan` test pattern)
-- Source data executed against this session: `database/external-data/censo_decoded_202310210734.csv` (216,527 data rows, `charset=iso-8859-1`, 0 duplicate cédulas, all `dpto=28/mcpio=1`, max cédula 2,000,015,490) and `database/external-data/divipole-nacional.json` (13,755 places; divipol join to CHOCHO/LA GALLERA confirmed)
-- Milestone research: `.planning/research/STACK.md` (§CSV import), `.planning/research/ARCHITECTURE.md` (Decisions 1 & 4), `.planning/research/PITFALLS.md` (Pitfalls 2 & 9)
+- Repo `database/external-data/censo_decoded_202310210734.csv` — `file` confirms ISO-8859 + CRLF; `wc -l` = 216,528; header + column order + accented rows inspected directly.
+- Repo `database/external-data/divipole-nacional.json` — 13,755 rows; verified `zona=99/98/90` and Sincelejo `puesto` codes present; 35 departments; codes stored mixed int/string (seeder `(int)`-casts).
+- Repo `database/seeders/PollingPlaceSeeder.php` — keyed-map join + `upsert()` batching precedent.
+- Repo `app/Services/CensusImporter.php` — chunked bulk-write precedent (`importInBatches`).
+- Repo `database/migrations/2026_01_22_000001_create_polling_places_table.php` + `app/Models/PollingPlace.php` — join target: `unsignedSmallInteger` code columns, unique divipol index, `belongsTo` Department/Municipality, `address`.
+- Repo `phpunit.xml` — test DB is SQLite `:memory:`; `tests/Feature/ElectionEventClosureTest.php` — Pest command/job test style.
+- `.planning/research/{STACK,ARCHITECTURE,PITFALLS}.md` — milestone-level grounding (import approach, Decision 1 & 4, Pitfalls 2 & 9).
 
 ### Secondary (MEDIUM confidence)
-- Laravel 12 `LazyCollection` / `upsert()` semantics — framework docs, consistent with in-repo `PollingPlaceSeeder` usage
-
-### Tertiary (LOW confidence)
-- None. Every claim in this document is verified against the repo or executed against the data.
+- SQLite "ON CONFLICT DO UPDATE command cannot affect row a second time" behavior — well-established SQLite constraint; drives the in-PHP dedupe. Reproducible in the test harness if a dup slips into a chunk.
+- PHP 8.4 `fgetcsv`/`str_getcsv` `escape` deprecation — PHP 8.4 changelog behavior; mitigated by explicit `escape: ''`.
 
 ## Metadata
 
 **Confidence breakdown:**
-- Standard stack: HIGH — all native, all with in-repo precedents
-- Architecture / schema: HIGH — mirrors `polling_places`/`PollingPlaceSeeder`; join executed and confirmed
-- Divipol join correctness: HIGH — ran it against two real rows, both resolved
-- Pitfalls: HIGH — inherited from milestone research + verified data profile (encoding, duplicates, cardinality)
+- Standard stack: HIGH — no new deps; two exact repo precedents.
+- Architecture/schema: HIGH — schema types verified against the live join target; column indices verified against real CSV bytes.
+- Pitfalls: HIGH — SQLite dedupe and encoding are concrete and reproducible; unmatched-% is real-drift (seed coverage verified).
 
 **Research date:** 2026-07-24
-**Valid until:** stable (~30 days) — the source file and reference seed are static; no fast-moving external dependency
+**Valid until:** 2026-08-23 (stable domain; no fast-moving external deps).
