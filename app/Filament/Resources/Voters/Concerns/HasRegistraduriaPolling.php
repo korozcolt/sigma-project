@@ -2,13 +2,16 @@
 
 namespace App\Filament\Resources\Voters\Concerns;
 
+use App\Enums\PollingPlaceSource;
 use App\Models\CensusRecord;
 use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\PollingPlace;
 use App\Services\CampaignContext;
-use App\Services\RegistraduriaService;
+use App\Services\PollingPlaceResolutionResult;
+use App\Services\PollingPlaceResolver;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\On;
 
@@ -18,8 +21,23 @@ trait HasRegistraduriaPolling
 
     public bool $registraduriaOpen = false;
 
+    /** Set by forceRefreshFromRegistraduria() so handleRegistraduriaResult() knows to
+     *  bypass the no-downgrade guard for this one pending result (D-10). */
+    public bool $registraduriaForceOverride = false;
+
     /** Cache TTL for Registraduría results: 30 days (polling places rarely change mid-campaign). */
     private const CACHE_TTL_DAYS = 30;
+
+    /** Save-bound form fields fillPollingPlaceFields() mutates that must be reverted if
+     *  PollingPlaceResolver::persist() blocks the write (SRC-02) — see applyResolvedFields(). */
+    private const GUARDED_IDENTITY_FIELDS = [
+        'polling_place_id',
+        'municipality_id',
+        'department_id',
+        'polling_table_number',
+        'address',
+        'detailed_address',
+    ];
 
     private function registraduriaCacheKey(string $cedula): string
     {
@@ -29,10 +47,12 @@ trait HasRegistraduriaPolling
     /**
      * Called by the suffixAction on the document_number field.
      *
-     * Lookup order (cheapest first):
-     *   1. Redis cache      — 30-day TTL, instant
-     *   2. DB reconstruction — census_records + polling_places, permanent, zero cost
-     *   3. 2captcha request  — last resort, costs money
+     * Lookup order (D-01): cache -> live (if reachable) -> DB reconstruction ->
+     * national snapshot. Live is attempted first when reachable because the operator
+     * explicitly prioritized freshness/reliability over cost; when live is unreachable
+     * (or REGISTRADURIA_LIVE_ENABLED=false), the live browser modal is never opened at
+     * all (LIVE-03) and the cascade falls through to DB reconstruction, then the
+     * national snapshot (CENSO-01).
      */
     public function openRegistraduriaBrowser(string $cedula): void
     {
@@ -46,10 +66,16 @@ trait HasRegistraduriaPolling
             return;
         }
 
-        // Layer 1: Redis cache (30-day TTL)
+        $resolver = app(PollingPlaceResolver::class);
+
+        // Layer 1: Redis cache (30-day TTL), unchanged (D-02). A cache hit is treated as
+        // a LIVE-sourced re-confirmation because this cache key is ONLY EVER warmed by a
+        // genuine live result (handleRegistraduriaResult() below) — the DB-reconstruction
+        // branch further down deliberately never writes to this key (SRC-02 fix: see this
+        // plan's <interfaces> note), so this premise always holds.
         $cached = Cache::get($this->registraduriaCacheKey($cedula));
         if ($cached) {
-            $this->fillPollingPlaceFields($cached);
+            $this->applyResolvedFields(new PollingPlaceResolutionResult(PollingPlaceSource::LIVE, $cached));
             Notification::make()
                 ->title('Puesto de votación (desde caché)')
                 ->body("Puesto: {$cached['puesto_nombre']} — Mesa: {$cached['mesa_numero']}")
@@ -59,43 +85,79 @@ trait HasRegistraduriaPolling
             return;
         }
 
-        // Layer 2: DB reconstruction — no cost, permanent
-        $fromDb = $this->resolveFromDatabase($cedula);
+        // D-01/D-04: attempt live first, but only when reachable and not kill-switched.
+        if ($resolver->isLiveReachable()) {
+            try {
+                $sessionId = $resolver->startLiveLookup($cedula);
+                $this->registraduriaSessionId = $sessionId;
+                $this->registraduriaOpen = true;
+            } catch (\Exception $e) {
+                Notification::make()
+                    ->title('Error al conectar con el servicio')
+                    ->body($e->getMessage())
+                    ->danger()
+                    ->send();
+            }
+
+            return;
+        }
+
+        // D-04: live unreachable/disabled — never open the modal, fall through instead.
+        $fromDb = $resolver->resolveFromCampaignCensus($cedula);
         if ($fromDb) {
-            $this->fillPollingPlaceFields($fromDb);
-            // Re-warm Redis so next lookup is instant
-            Cache::put($this->registraduriaCacheKey($cedula), $fromDb, now()->addDays(self::CACHE_TTL_DAYS));
+            $this->applyResolvedFields($fromDb);
+            // Deliberately NOT caching this tier's result (SRC-02 second-round fix): this
+            // query is already a fast, free DB read, and warming the shared LIVE-only cache
+            // key here would let a later cache hit mislabel this never-live-verified data
+            // as PollingPlaceSource::LIVE, permanently shielding it from correction. Only a
+            // genuine live result (handleRegistraduriaResult()) may write to this cache key.
             Notification::make()
                 ->title('Puesto de votación (desde base de datos)')
-                ->body("Puesto: {$fromDb['puesto_nombre']} — Mesa: {$fromDb['mesa_numero']}")
+                ->body("Puesto: {$fromDb->fields['puesto_nombre']} — Mesa: {$fromDb->fields['mesa_numero']}")
                 ->info()
                 ->send();
 
             return;
         }
 
-        // Layer 3: 2captcha — only if we have no prior data anywhere
-        try {
-            $sessionId = app(RegistraduriaService::class)->startLookup($cedula);
-            $this->registraduriaSessionId = $sessionId;
-            $this->registraduriaOpen = true;
-        } catch (\Exception $e) {
+        // CENSO-01: national snapshot fallback — new this phase.
+        $fromSnapshot = $resolver->resolveFromNationalSnapshot($cedula);
+        if ($fromSnapshot) {
+            $this->applyResolvedFields($fromSnapshot);
             Notification::make()
-                ->title('Error al conectar con el servicio')
-                ->body($e->getMessage())
-                ->danger()
+                ->title('Puesto de votación (snapshot nacional)')
+                ->body("Puesto: {$fromSnapshot->fields['puesto_nombre']} — Mesa: {$fromSnapshot->fields['mesa_numero']}")
+                ->warning()
                 ->send();
+
+            return;
         }
+
+        Notification::make()
+            ->title('Puesto de votación no encontrado')
+            ->body('El servicio en vivo no está disponible y no se encontró información en base de datos ni en el snapshot nacional.')
+            ->warning()
+            ->send();
     }
 
     /**
-     * Force a fresh Registraduría lookup for a cédula, bypassing both the Redis
-     * cache and the DB reconstruction fallback. Used by the secondary "Actualizar
-     * datos" button when an operator explicitly needs to refresh already-resolved
-     * polling-place data (e.g. after a Registraduría data correction).
+     * Force a fresh Registraduría lookup for a cédula, bypassing the Redis cache, DB
+     * reconstruction, AND the national snapshot fallback — always straight to live
+     * (D-10), exactly as before this phase. Also bypasses the no-downgrade guard (D-10).
      *
-     * Always costs a paid 2captcha lookup — do not call this from any automatic
-     * flow, only from an explicit user action with confirmation.
+     * INFERRED DECISION (not explicit in CONTEXT.md — D-05 describes the kill switch only
+     * in terms of the automatic cascade, and D-10 only exempts force-refresh from the
+     * no-downgrade guard, not from the kill switch): this method still respects
+     * REGISTRADURIA_LIVE_ENABLED. Rationale: if live is fully disabled ops-wide, a
+     * force-refresh cannot succeed regardless (there's nothing to bypass to — the whole
+     * point of "straight to live" is that live is the only tier this action touches), so
+     * gating it here is the only behavior that makes sense, not a new restriction on the
+     * operator's override. Revisit if a future phase wants force-refresh to attempt live
+     * even while the switch is off (e.g. for a one-off manual retry during an outage).
+     *
+     * Used by the secondary "Actualizar datos" button when an operator explicitly needs
+     * to refresh already-resolved polling-place data (e.g. after a Registraduría data
+     * correction).
      */
     public function forceRefreshFromRegistraduria(string $cedula): void
     {
@@ -109,10 +171,21 @@ trait HasRegistraduriaPolling
             return;
         }
 
+        if (! config('services.registraduria.live_enabled')) {
+            Notification::make()
+                ->title('Servicio en vivo deshabilitado')
+                ->body('La consulta en vivo a la Registraduría está deshabilitada temporalmente.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
         try {
-            $sessionId = app(RegistraduriaService::class)->startLookup($cedula);
+            $sessionId = app(PollingPlaceResolver::class)->startLiveLookup($cedula);
             $this->registraduriaSessionId = $sessionId;
             $this->registraduriaOpen = true;
+            $this->registraduriaForceOverride = true;
         } catch (\Exception $e) {
             Notification::make()
                 ->title('Error al conectar con el servicio')
@@ -120,57 +193,6 @@ trait HasRegistraduriaPolling
                 ->danger()
                 ->send();
         }
-    }
-
-    /**
-     * Reconstruct Registraduría data from census_records + polling_places.
-     * Used as a zero-cost fallback when Redis cache is cold.
-     *
-     * @return array<string, string>|null
-     */
-    private function resolveFromDatabase(string $cedula): ?array
-    {
-        $census = CensusRecord::query()
-            ->where('document_number', $cedula)
-            ->whereNotNull('polling_station')
-            ->latest('imported_at')
-            ->first();
-
-        if (! $census || blank($census->polling_station)) {
-            return null;
-        }
-
-        $municipality = filled($census->municipality_code)
-            ? Municipality::query()->where('code', $census->municipality_code)->first()
-            : null;
-
-        $pollingPlace = null;
-        if ($municipality) {
-            $pollingPlace = PollingPlace::query()
-                ->where('municipality_id', $municipality->id)
-                ->where('name', $census->polling_station)
-                ->with(['municipality.department', 'department'])
-                ->first();
-        }
-
-        // Need at least municipality to be useful
-        if (! $municipality && ! $pollingPlace) {
-            return null;
-        }
-
-        $department = $pollingPlace?->department
-            ?? $pollingPlace?->municipality?->department
-            ?? $municipality?->department;
-
-        return [
-            'puesto_nombre' => $census->polling_station,
-            'puesto_codigo' => $pollingPlace?->place_code ?? '',
-            'zona_codigo' => $pollingPlace?->zone_code ?? '',
-            'mesa_numero' => (string) ($census->table_number ?? ''),
-            'departamento' => $department?->name ?? '',
-            'municipio' => $municipality?->name ?? $pollingPlace?->municipality?->name ?? '',
-            'direccion' => $pollingPlace?->address ?? '',
-        ];
     }
 
     /**
@@ -184,6 +206,8 @@ trait HasRegistraduriaPolling
     {
         $this->registraduriaOpen = false;
         $this->registraduriaSessionId = '';
+        $isExplicitOverride = $this->registraduriaForceOverride;
+        $this->registraduriaForceOverride = false;
 
         // Normalise: accept either the raw data array or the full {status,data} wrapper
         if (isset($data['data']) && is_array($data['data'])) {
@@ -201,9 +225,12 @@ trait HasRegistraduriaPolling
             return;
         }
 
-        $this->fillPollingPlaceFields($data);
+        $this->applyResolvedFields(new PollingPlaceResolutionResult(PollingPlaceSource::LIVE, $data), $isExplicitOverride);
 
-        // Cache the result so the next lookup for this cedula is instant (no 2captcha cost)
+        // Cache the result so the next lookup for this cedula is instant (no 2captcha cost).
+        // This is the ONLY place in the trait that writes to this cache key — a genuine
+        // live-sourced result — which is what keeps the cache-hit branch's LIVE label
+        // above always true (SRC-02).
         $cedula = $this->data['document_number'] ?? null;
         if ($cedula) {
             Cache::put(
@@ -221,7 +248,56 @@ trait HasRegistraduriaPolling
     }
 
     /**
+     * Fill the Filament form's municipality/department/polling-place fields (unchanged
+     * fillPollingPlaceFields logic below), then persist polling_place_source and
+     * polling_place_resolved_at via the resolver, applying the no-downgrade guard
+     * (SRC-02) unless $isExplicitOverride is true (D-10).
+     *
+     * CRITICAL (SRC-02): fillPollingPlaceFields() unconditionally overwrites the real,
+     * save-bound identity fields in self::GUARDED_IDENTITY_FIELDS. If the resolver's
+     * persist() call then blocks the write (guard triggered — e.g. a live-sourced voter
+     * would be downgraded to db_reconstruction/snapshot), those already-mutated fields
+     * are reverted back to their pre-lookup values here, so a subsequent ordinary Save
+     * can never silently persist the blocked downgrade. Only the source/timestamp are
+     * gated by persist() itself; the visible form fields are gated by this revert.
+     */
+    private function applyResolvedFields(PollingPlaceResolutionResult $result, bool $isExplicitOverride = false): void
+    {
+        $preLookupFields = collect(self::GUARDED_IDENTITY_FIELDS)
+            ->mapWithKeys(fn (string $field): array => [$field => $this->data[$field] ?? null])
+            ->all();
+
+        $this->fillPollingPlaceFields($result->fields);
+
+        $voter = ($this instanceof EditRecord) ? $this->record : null;
+
+        // Prefer the resolver-resolved polling_place_id (DB/snapshot tiers already
+        // queried the exact PollingPlace row); fall back to whatever
+        // fillPollingPlaceFields() just resolved/created for a fresh live result.
+        $pollingPlaceId = $result->pollingPlaceId ?? ($this->data['polling_place_id'] ?? null);
+        $tableNumber = $result->tableNumber ?? ($this->data['polling_table_number'] ?? null);
+
+        $toPersist = new PollingPlaceResolutionResult($result->source, $result->fields, $pollingPlaceId, $tableNumber);
+
+        $applied = app(PollingPlaceResolver::class)->persist($voter, $toPersist, $isExplicitOverride, resolvedVia: 'interactive');
+
+        if ($applied !== null) {
+            $this->data['polling_place_source'] = $applied->source->value;
+            $this->data['polling_place_resolved_at'] = now()->toDateTimeString();
+
+            return;
+        }
+
+        // Guard blocked the write (SRC-02): revert every save-bound identity field
+        // fillPollingPlaceFields() just overwrote, back to its pre-lookup value.
+        foreach ($preLookupFields as $field => $value) {
+            $this->data[$field] = $value;
+        }
+    }
+
+    /**
      * Resolve municipality/department/polling-place and populate the Livewire form data bag.
+     * UNCHANGED from before this phase (D-09) — moved verbatim, no logic altered.
      *
      * @param  array<string, string>  $data
      */

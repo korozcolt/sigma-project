@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Observers\UserObserver;
+use App\Services\PollingPlaceResolver;
+use App\Services\RegistraduriaService;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -14,7 +16,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(PollingPlaceResolver::class, fn ($app) => new PollingPlaceResolver(
+            liveAdapters: [$app->make(RegistraduriaService::class)],
+        ));
     }
 
     /**
