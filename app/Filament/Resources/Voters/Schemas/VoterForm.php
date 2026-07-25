@@ -213,7 +213,12 @@ class VoterForm
                                     ->label('Actualizar datos desde Registraduría')
                                     ->tooltip('Forzar nueva consulta a la Registraduría (ignora la caché)')
                                     ->color('gray')
-                                    ->visible(fn (Get $get): bool => filled($get('polling_place_id')))
+                                    ->visible(fn (Get $get): bool => filled($get('polling_place_id'))
+                                        && (auth()->user()?->hasAnyRole([
+                                            UserRole::ADMIN_CAMPAIGN->value,
+                                            UserRole::COORDINATOR->value,
+                                            UserRole::SUPER_ADMIN->value,
+                                        ]) ?? false))
                                     ->requiresConfirmation()
                                     ->modalHeading('Actualizar datos desde Registraduría')
                                     ->modalDescription('Esto hace una nueva consulta pagada a la Registraduría e ignora los datos ya guardados en caché/base de datos. Úsalo solo si necesitas corregir un puesto de votación desactualizado.')
@@ -398,6 +403,26 @@ class VoterForm
                             ->rule(fn (Get $get) => filled($get('polling_place_id'))
                                 ? new MaxTablesForPollingPlace((int) $get('polling_place_id'))
                                 : null),
+
+                        Placeholder::make('polling_place_source_display')
+                            ->label('Fuente del Puesto de Votación')
+                            ->columnSpanFull()
+                            ->content(function (?Voter $record): HtmlString {
+                                if (! $record || ! $record->polling_place_source) {
+                                    return new HtmlString('<span class="text-sm text-gray-500">Sin resolver</span>');
+                                }
+
+                                $source = $record->polling_place_source;
+                                $resolvedAt = $record->polling_place_resolved_at?->format('d/m/Y H:i') ?? 'N/D';
+
+                                return new HtmlString(sprintf(
+                                    '<x-filament::badge color="%s" icon="%s">%s</x-filament::badge> <span class="text-sm text-gray-500 ml-2">Actualizado: %s</span>',
+                                    e($source->getColor()),
+                                    e($source->getIcon()),
+                                    e($source->getLabel()),
+                                    e($resolvedAt)
+                                ));
+                            }),
 
                         TextInput::make('address')
                             ->label('Dirección')
