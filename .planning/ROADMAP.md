@@ -34,7 +34,7 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
 - [x] **Phase 6: National Census Snapshot Import** — Load the 216K-row census snapshot into a cédula-indexed, location-enriched reference table with import-quality validation (completed 2026-07-24)
 - [x] **Phase 7: Source-Flag Schema & Resolution Audit Trail** — Make a voter's polling-place source a persisted, queryable attribute with an append-only change history (completed 2026-07-24)
 - [x] **Phase 8: Resilient PollingPlaceResolver Service** — Extract the fallback cascade into one service that never blocks on a dead live source or silently downgrades fresher data (completed 2026-07-25)
-- [ ] **Phase 9: Live-Source Feasibility Spike** — Time-boxed, non-blocking spike to validate (or rule out) `wsp.registraduria.gov.co` reCAPTCHA Enterprise as a live-source adapter
+- [x] **Phase 9: Live-Source Feasibility Spike** — Time-boxed, non-blocking spike to validate (or rule out) `wsp.registraduria.gov.co` reCAPTCHA Enterprise as a live-source adapter (completed 2026-07-25 — Verdict: GO)
 - [ ] **Phase 10: Operator Provenance & Fallback Controls** — Show result origin, allow on-demand re-check, and let operators triage voters still on fallback data
 - [ ] **Phase 11: Scheduled Reconciliation Job** — Unattended, campaign-safe, bounded, un-freezable job that upgrades fallback-sourced voters when the live source recovers
 
@@ -124,7 +124,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10 → 11. Phases 6 and
 | 6. National Census Snapshot Import | v1.1 | 1/1 | Complete   | 2026-07-24 |
 | 7. Source-Flag Schema & Audit Trail | v1.1 | 1/1 | Complete   | 2026-07-24 |
 | 8. Resilient PollingPlaceResolver Service | v1.1 | 3/3 | Complete   | 2026-07-25 |
-| 9. Live-Source Feasibility Spike | v1.1 | 0/2 | Not started | - |
+| 9. Live-Source Feasibility Spike | v1.1 | 2/2 | Complete   | 2026-07-25 |
 | 10. Operator Provenance & Fallback Controls | v1.1 | 0/TBD | Not started | - |
 | 11. Scheduled Reconciliation Job | v1.1 | 0/TBD | Not started | - |
 
