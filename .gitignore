@@ -29,6 +29,7 @@ output/playwright-report
 .playwright-mcp/
 registraduria-*.png
 registraduria-service/__pycache__/
+registraduria-service/service.log
 
 # GSD worktrees
 .claude/worktrees/
