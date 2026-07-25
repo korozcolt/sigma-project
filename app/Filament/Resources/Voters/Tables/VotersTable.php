@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Voters\Tables;
 
+use App\Enums\PollingPlaceSource;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Models\Voter;
@@ -96,6 +97,12 @@ class VotersTable
                     })
                     ->sortable(),
 
+                TextColumn::make('polling_place_source')
+                    ->label('Fuente del Puesto de Votación')
+                    ->badge()
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('campaign.name')
                     ->label('Campaña')
                     ->searchable()
@@ -126,6 +133,12 @@ class VotersTable
 
                 TextColumn::make('census_validated_at')
                     ->label('Validado Censo')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('polling_place_resolved_at')
+                    ->label('Actualizado el')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -166,6 +179,12 @@ class VotersTable
                 SelectFilter::make('status')
                     ->label('Estado')
                     ->options(VoterStatus::class)
+                    ->multiple()
+                    ->preload(),
+
+                SelectFilter::make('polling_place_source')
+                    ->label('Fuente del Puesto de Votación')
+                    ->options(PollingPlaceSource::class)
                     ->multiple()
                     ->preload(),
 
