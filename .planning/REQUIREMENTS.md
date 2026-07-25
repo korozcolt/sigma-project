@@ -23,9 +23,9 @@ Requirements for the "Consulta de Puesto de Votación Resiliente" milestone. Eac
 
 ### Fuente en Vivo Resiliente (Live Source Resiliency)
 
-- [ ] **LIVE-01**: The live Registraduría lookup architecture supports multiple interchangeable source adapters tried in priority order, so a new source can be added without redesigning the resolver
+- [x] **LIVE-01**: The live Registraduría lookup architecture supports multiple interchangeable source adapters tried in priority order, so a new source can be added without redesigning the resolver
 - [ ] **LIVE-02**: Feasibility of `wsp.registraduria.gov.co` (reCAPTCHA Enterprise) as an additional live-source adapter is validated end-to-end before the system relies on it
-- [ ] **LIVE-03**: The voter polling-place lookup workflow never blocks waiting on a live source that is unavailable
+- [x] **LIVE-03**: The voter polling-place lookup workflow never blocks waiting on a live source that is unavailable
 
 ### Reconciliación Programada (Scheduled Reconciliation)
 
@@ -70,9 +70,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SRC-03 | Phase 7 | Done |
 | SRC-04 | Phase 10 | Pending |
 | SRC-05 | Phase 10 | Pending |
-| LIVE-01 | Phase 8 | Pending |
+| LIVE-01 | Phase 8 | Complete |
 | LIVE-02 | Phase 9 | Pending |
-| LIVE-03 | Phase 8 | Pending |
+| LIVE-03 | Phase 8 | Complete |
 | RECON-01 | Phase 11 | Pending |
 | RECON-02 | Phase 11 | Pending |
 | RECON-03 | Phase 11 | Pending |

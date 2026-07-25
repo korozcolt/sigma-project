@@ -74,8 +74,8 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
   2. The resolver never overwrites a live-verified result with an older snapshot result — source precedence (live > db_reconstruction > snapshot) is enforced, never auto-downgraded. (SRC-02)
   3. The lookup workflow returns promptly and never hangs waiting on an unreachable live source; the automated path gives up on a `waiting_captcha` step rather than blocking. (LIVE-03)
   4. Live sources are tried in priority order via interchangeable adapters, so a new source (e.g., wsp) can be added without redesigning the resolver, and the cascade is shared by both interactive and headless callers. (LIVE-01)
-**Plans**: 0/3 plans complete
-- [ ] 08-01-PLAN.md — LiveSourceAdapter interface, RegistraduriaService reachability probe + kill switch, PollingPlaceResolutionResult VO
+**Plans**: 1/3 plans complete
+- [x] 08-01-PLAN.md — LiveSourceAdapter interface, RegistraduriaService reachability probe + kill switch, PollingPlaceResolutionResult VO
 - [ ] 08-02-PLAN.md — PollingPlaceResolver core: campaign-DB/national-snapshot tiers, no-downgrade guard + audit-transition persistence, bounded automated live attempt
 - [ ] 08-03-PLAN.md — Bind resolver in AppServiceProvider, refactor HasRegistraduriaPolling to delegate, new interactive-cascade test coverage
 

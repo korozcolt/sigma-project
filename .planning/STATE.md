@@ -2,16 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
-status: verifying
-stopped_at: Phase 8 context gathered
-last_updated: "2026-07-24T13:48:57.440Z"
-last_activity: 2026-07-24
+status: Executing Phase 08
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-07-25T12:21:44.658Z"
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 2
-  completed_plans: 2
-  percent: 33
+  total_plans: 5
+  completed_plans: 3
 ---
 
 # Project State
@@ -21,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-24)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Milestone v1.1 — Consulta de Puesto de Votación Resiliente (Phases 6-11)
+**Current focus:** Phase 08 — resilient-pollingplaceresolver-service
 
 ## Current Position
 
-Phase: 8 of 11 (resilient pollingplaceresolver service)
-Plan: Not started
-Status: Phase 7 complete, ready for verification. Next: Phase 8 (Resilient PollingPlaceResolver Service) depends on Phases 6 + 7, both now done.
-Last activity: 2026-07-24
-
-Progress: [███░░░░░░░] 33%
+Phase: 08 (resilient-pollingplaceresolver-service) — EXECUTING
+Plan: 2 of 3
 
 ## v1.1 Phase Map
 
@@ -46,6 +40,10 @@ Progress: [███░░░░░░░] 33%
 ## Performance Metrics
 
 Reset for v1.1. Historical v1.0 velocity data archived in `.planning/milestones/v1.0-ROADMAP.md` and phase SUMMARY.md files under `.planning/phases/`.
+
+| Phase-Plan | Duration | Tasks | Files |
+|------------|----------|-------|-------|
+| 08-01 | 15min | 2 | 8 |
 
 ## Accumulated Context
 
@@ -71,6 +69,7 @@ Phase 07 Plan 01 decisions:
 - `resolved_by` on `polling_place_resolutions` is nullable + `nullOnDelete` (D-05) — the one place this schema diverges from `ValidationHistory.validated_by`, tolerating Phase 11's headless reconciliation writes.
 - `polling_place_id` + `table_number` on `polling_place_resolutions` are value snapshots (nullable, `nullOnDelete`) capturing which specific place a resolution produced, not just the source label (D-06).
 - `resolved_via` is a plain required string (D-08), not a backed enum, matching `ValidationHistory.validation_type`'s precedent — new values addable without a migration.
+- [Phase 08]: isReachable() uses withoutRedirecting() before checking redirect() — Guzzle's default redirect-following would otherwise chase a self-referential Location header into a false negative (auto-fixed, Rule 1)
 
 ### Blockers/Concerns
 
@@ -102,6 +101,6 @@ Tracked in Blockers/Concerns above.
 
 ## Session Continuity
 
-Last session: 2026-07-24T13:48:57.432Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-resilient-pollingplaceresolver-service/08-CONTEXT.md
+Last session: 2026-07-25T12:21:44.655Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None
