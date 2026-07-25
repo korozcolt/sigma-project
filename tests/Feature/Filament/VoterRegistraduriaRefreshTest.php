@@ -325,3 +325,54 @@ it('never mislabels a DB-reconstruction result as LIVE on a later lookup via a s
 
     expect($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::DB_RECONSTRUCTION);
 });
+
+// ============ D-06: role gate on the "actualizar_registraduria" (force-refresh) suffixAction ============
+
+it('shows the "actualizar_registraduria" action for admin_campaign, coordinator, and super_admin roles', function (string $role) {
+    $voter = createEditableVoter();
+    $pollingPlace = PollingPlace::factory()->create(['municipality_id' => $voter->municipality_id]);
+    $voter->update(['polling_place_id' => $pollingPlace->id]);
+
+    $user = User::factory()->create();
+    $user->assignRole($role);
+    actingAs($user);
+
+    Livewire::test(EditVoter::class, ['record' => $voter->id])
+        ->assertFormComponentActionVisible('document_number', 'actualizar_registraduria');
+})->with([
+    UserRole::ADMIN_CAMPAIGN->value,
+    UserRole::COORDINATOR->value,
+    UserRole::SUPER_ADMIN->value,
+]);
+
+it('hides the "actualizar_registraduria" action for leader and reviewer roles even when a polling place is resolved', function (string $role) {
+    $voter = createEditableVoter();
+    $pollingPlace = PollingPlace::factory()->create(['municipality_id' => $voter->municipality_id]);
+    $voter->update(['polling_place_id' => $pollingPlace->id]);
+
+    $user = User::factory()->create();
+    $user->assignRole($role);
+    actingAs($user);
+
+    Livewire::test(EditVoter::class, ['record' => $voter->id])
+        ->assertFormComponentActionHidden('document_number', 'actualizar_registraduria');
+})->with([
+    UserRole::LEADER->value,
+    UserRole::REVIEWER->value,
+]);
+
+// ============ D-01/SRC-04: the original "consultar_registraduria" manual re-check stays available to every role ============
+
+it('keeps the "consultar_registraduria" lookup action visible for leader and reviewer roles regardless of the D-06 role gate', function (string $role) {
+    $voter = createEditableVoter();
+
+    $user = User::factory()->create();
+    $user->assignRole($role);
+    actingAs($user);
+
+    Livewire::test(EditVoter::class, ['record' => $voter->id])
+        ->assertFormComponentActionVisible('document_number', 'consultar_registraduria');
+})->with([
+    UserRole::LEADER->value,
+    UserRole::REVIEWER->value,
+]);
