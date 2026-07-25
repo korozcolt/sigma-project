@@ -6,6 +6,7 @@ use App\Filament\Widgets\ApoyosLideresCoordinadoresTable;
 use App\Filament\Widgets\BirthdayWidget;
 use App\Filament\Widgets\CampaignStatsOverview;
 use App\Filament\Widgets\DuplicatesReportTable;
+use App\Filament\Widgets\FallbackSourceOverview;
 use App\Filament\Widgets\FollowUpBacklogOverview;
 use App\Filament\Widgets\JurisdictionReportTable;
 use App\Filament\Widgets\RejectionsReportTable;
@@ -72,6 +73,7 @@ class AdminPanelProvider extends PanelProvider
                 AccountWidget::class,
                 CampaignStatsOverview::class,    // KPIs principales — fila 1
                 FollowUpBacklogOverview::class,  // Rezago de seguimiento/validación (REPT-02)
+                FallbackSourceOverview::class,   // Conteo de apoyos en fuente de respaldo/fallback (SRC-05)
                 ValidationProgressChart::class,  // Tendencia 30d — fila 2 izq
                 TerritorialDistributionChart::class, // Mapa — fila 2 der
                 TopLeadersTable::class,          // Ranking líderes (D-01 fix) — fila 3 completa
