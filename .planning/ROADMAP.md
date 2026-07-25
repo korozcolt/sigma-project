@@ -76,7 +76,7 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
   4. Live sources are tried in priority order via interchangeable adapters, so a new source (e.g., wsp) can be added without redesigning the resolver, and the cascade is shared by both interactive and headless callers. (LIVE-01)
 **Plans**: 1/3 plans complete
 - [x] 08-01-PLAN.md — LiveSourceAdapter interface, RegistraduriaService reachability probe + kill switch, PollingPlaceResolutionResult VO
-- [ ] 08-02-PLAN.md — PollingPlaceResolver core: campaign-DB/national-snapshot tiers, no-downgrade guard + audit-transition persistence, bounded automated live attempt
+- [x] 08-02-PLAN.md — PollingPlaceResolver core: campaign-DB/national-snapshot tiers, no-downgrade guard + audit-transition persistence, bounded automated live attempt
 - [ ] 08-03-PLAN.md — Bind resolver in AppServiceProvider, refactor HasRegistraduriaPolling to delegate, new interactive-cascade test coverage
 
 ### Phase 9: Live-Source Feasibility Spike

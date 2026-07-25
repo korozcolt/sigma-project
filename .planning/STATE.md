@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
-status: Executing Phase 08
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-07-25T12:21:44.658Z"
+status: Ready to execute
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-07-25T12:27:45.029Z"
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 ## Current Position
 
 Phase: 08 (resilient-pollingplaceresolver-service) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## v1.1 Phase Map
 
@@ -44,6 +44,7 @@ Reset for v1.1. Historical v1.0 velocity data archived in `.planning/milestones/
 | Phase-Plan | Duration | Tasks | Files |
 |------------|----------|-------|-------|
 | 08-01 | 15min | 2 | 8 |
+| Phase 08 P02 | 12min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Phase 07 Plan 01 decisions:
 - `polling_place_id` + `table_number` on `polling_place_resolutions` are value snapshots (nullable, `nullOnDelete`) capturing which specific place a resolution produced, not just the source label (D-06).
 - `resolved_via` is a plain required string (D-08), not a backed enum, matching `ValidationHistory.validation_type`'s precedent — new values addable without a migration.
 - [Phase 08]: isReachable() uses withoutRedirecting() before checking redirect() — Guzzle's default redirect-following would otherwise chase a self-referential Location header into a false negative (auto-fixed, Rule 1)
+- [Phase 08]: persist() treats voter===null as a pure pass-through (no persistence, no audit row) — supports Filament CreateVoter flow before first save
+- [Phase 08]: resolveOrCreatePollingPlace() duplicates HasRegistraduriaPolling's firstOrCreate enrichment for the headless resolveAutomated() path — Plan 08-03 will refactor the interactive trait to call the resolver instead of duplicating a third time
 
 ### Blockers/Concerns
 
@@ -101,6 +104,6 @@ Tracked in Blockers/Concerns above.
 
 ## Session Continuity
 
-Last session: 2026-07-25T12:21:44.655Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-07-25T12:27:45.027Z
+Stopped at: Completed 08-02-PLAN.md
 Resume file: None

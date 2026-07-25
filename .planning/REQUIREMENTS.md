@@ -9,14 +9,14 @@ Requirements for the "Consulta de Puesto de Votación Resiliente" milestone. Eac
 
 ### Censo Nacional (Snapshot Import)
 
-- [ ] **CENSO-01**: Operator/system can resolve a voter's polling place from a national census snapshot when the live Registraduría source is unavailable
+- [x] **CENSO-01**: Operator/system can resolve a voter's polling place from a national census snapshot when the live Registraduría source is unavailable
 - [x] **CENSO-02**: The national census snapshot is imported into an indexed, cédula-queryable table enriched with full department/municipality names and address (not just divipol codes)
 - [x] **CENSO-03**: Snapshot import validates its divipol codes against the current `polling_places` reference data and reports the unmatched percentage before go-live
 
 ### Procedencia y Auditoría (Source Provenance & Audit)
 
 - [ ] **SRC-01**: Every polling-place result visibly shows whether it came from a live source, database reconstruction, local snapshot, or manual entry
-- [ ] **SRC-02**: A voter's polling-place source is never silently downgraded — a live-verified result is never overwritten by an older snapshot result
+- [x] **SRC-02**: A voter's polling-place source is never silently downgraded — a live-verified result is never overwritten by an older snapshot result
 - [x] **SRC-03**: Every change to a voter's polling-place source is recorded in an auditable history (actor, previous → new source, timestamp)
 - [ ] **SRC-04**: Operator can manually trigger a re-check of a voter's polling place at any time
 - [ ] **SRC-05**: Operator can filter/view which voters currently have a fallback-sourced (non-live) polling place
@@ -62,11 +62,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CENSO-01 | Phase 8 | Pending |
+| CENSO-01 | Phase 8 | Complete |
 | CENSO-02 | Phase 6 | Done |
 | CENSO-03 | Phase 6 | Done |
 | SRC-01 | Phase 10 | Pending |
-| SRC-02 | Phase 8 | Pending |
+| SRC-02 | Phase 8 | Complete |
 | SRC-03 | Phase 7 | Done |
 | SRC-04 | Phase 10 | Pending |
 | SRC-05 | Phase 10 | Pending |
