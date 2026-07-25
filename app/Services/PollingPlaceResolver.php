@@ -11,6 +11,7 @@ use App\Models\NationalCensusRecord;
 use App\Models\PollingPlace;
 use App\Models\PollingPlaceResolution;
 use App\Models\Voter;
+use Illuminate\Support\Sleep;
 
 class PollingPlaceResolver
 {
@@ -177,5 +178,106 @@ class PollingPlaceResolver
         }
 
         return $result;
+    }
+
+    /**
+     * Poll a started live session up to 5 times with short backoff, giving up
+     * immediately (not after exhausting polls) if the status is waiting_captcha —
+     * that status means a human needs to interact, which the automated path can
+     * never do (D-07). Total wall-clock stays well under 10s (D-08).
+     *
+     * @return array<string,string>|null Raw fields on success, null on any give-up.
+     */
+    private function attemptLiveAutomated(LiveSourceAdapter $adapter, string $cedula): ?array
+    {
+        if (! $adapter->isReachable()) {
+            return null;
+        }
+
+        try {
+            $sessionId = $adapter->startLookup($cedula);
+        } catch (\Exception) {
+            return null;
+        }
+
+        $backoffMs = [200, 400, 800, 1200, 1600];
+
+        foreach ($backoffMs as $i => $delayMs) {
+            $result = $adapter->getResult($sessionId);
+
+            if ($result['status'] === 'done') {
+                return $result['data'];
+            }
+
+            if ($result['status'] === 'waiting_captcha' || $result['status'] === 'error') {
+                return null;
+            }
+
+            if ($i < count($backoffMs) - 1) {
+                Sleep::for($delayMs)->milliseconds();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Automated/headless cascade (D-03): live -> national snapshot only. Never blocks
+     * (LIVE-03) — every give-up path returns promptly. Always persists via persist()
+     * with isExplicitOverride=false (the automatic no-downgrade guard always applies here).
+     */
+    public function resolveAutomated(string $cedula, Voter $voter, string $resolvedVia = 'reconciliation'): ?PollingPlaceResolutionResult
+    {
+        foreach ($this->liveAdapters as $adapter) {
+            if ($fields = $this->attemptLiveAutomated($adapter, $cedula)) {
+                $result = new PollingPlaceResolutionResult(
+                    source: PollingPlaceSource::LIVE,
+                    fields: $fields,
+                    pollingPlaceId: $this->resolveOrCreatePollingPlace($fields)?->id,
+                    tableNumber: ltrim($fields['mesa_numero'] ?? '', '0') ?: null,
+                );
+
+                return $this->persist($voter, $result, isExplicitOverride: false, resolvedVia: $resolvedVia);
+            }
+        }
+
+        if ($fromSnapshot = $this->resolveFromNationalSnapshot($cedula)) {
+            return $this->persist($voter, $fromSnapshot, isExplicitOverride: false, resolvedVia: $resolvedVia);
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve-or-create the PollingPlace a fresh live result refers to, mirroring
+     * HasRegistraduriaPolling::fillPollingPlaceFields()'s existing firstOrCreate logic,
+     * so the automated (headless) path needs no Filament form context to do the same
+     * enrichment the interactive path performs (LIVE-01: cascade shared by both callers).
+     */
+    private function resolveOrCreatePollingPlace(array $fields): ?PollingPlace
+    {
+        $municipality = Municipality::query()
+            ->whereRaw('LOWER(name) = ?', [strtolower($fields['municipio'] ?? '')])
+            ->first();
+
+        if (! $municipality) {
+            return null;
+        }
+
+        $placeCode = $fields['puesto_codigo'] ?? substr($fields['puesto_nombre'] ?? '', 0, 2);
+
+        return PollingPlace::firstOrCreate(
+            [
+                'municipality_id' => $municipality->id,
+                'zone_code' => $fields['zona_codigo'] ?? null,
+                'place_code' => $placeCode,
+            ],
+            [
+                'name' => $fields['puesto_nombre'] ?? 'Desconocido',
+                'address' => $fields['direccion'] ?? null,
+                'department_id' => $municipality->department_id,
+                'max_tables' => 0,
+            ]
+        );
     }
 }

@@ -12,6 +12,7 @@ use App\Services\LiveSourceAdapter;
 use App\Services\PollingPlaceResolutionResult;
 use App\Services\PollingPlaceResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Sleep;
 
 uses(RefreshDatabase::class);
 
@@ -320,4 +321,209 @@ test('persist is a pass-through returning the given result and writing no audit 
 
     expect($return)->toBe($result)
         ->and(PollingPlaceResolution::count())->toBe(0);
+});
+
+// Test 13
+test('resolveAutomated gives up immediately without sleeping on waiting_captcha and falls back to snapshot', function () {
+    Sleep::fake();
+
+    NationalCensusRecord::factory()->create([
+        'document_number' => '1000000013',
+        'polling_place_id' => $this->pollingPlace->id,
+    ]);
+
+    $calls = 0;
+
+    $adapter = new class($calls) implements LiveSourceAdapter
+    {
+        public function __construct(private int &$calls) {}
+
+        public function startLookup(string $cedula): string
+        {
+            return 'session-captcha';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            $this->calls++;
+
+            return ['status' => 'waiting_captcha', 'data' => null, 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = new PollingPlaceResolver([$adapter]);
+
+    $result = $resolver->resolveAutomated('1000000013', $voter);
+
+    expect($calls)->toBe(1)
+        ->and($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::SNAPSHOT);
+
+    Sleep::assertNeverSlept();
+});
+
+// Test 14
+test('resolveAutomated polls 5 times, sleeps 4 times, then falls back to snapshot when always pending', function () {
+    Sleep::fake();
+
+    NationalCensusRecord::factory()->create([
+        'document_number' => '1000000014',
+        'polling_place_id' => $this->pollingPlace->id,
+    ]);
+
+    $calls = 0;
+
+    $adapter = new class($calls) implements LiveSourceAdapter
+    {
+        public function __construct(private int &$calls) {}
+
+        public function startLookup(string $cedula): string
+        {
+            return 'session-pending';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            $this->calls++;
+
+            return ['status' => 'pending', 'data' => null, 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = new PollingPlaceResolver([$adapter]);
+
+    $result = $resolver->resolveAutomated('1000000014', $voter);
+
+    expect($calls)->toBe(5)
+        ->and($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::SNAPSHOT);
+
+    Sleep::assertSleptTimes(4);
+});
+
+// Test 15
+test('resolveAutomated returns a LIVE-sourced, persisted result immediately when getResult is done on the first call', function () {
+    Sleep::fake();
+
+    $adapter = new class implements LiveSourceAdapter
+    {
+        public function startLookup(string $cedula): string
+        {
+            return 'session-done';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return [
+                'status' => 'done',
+                'data' => [
+                    'puesto_nombre' => 'IE LA CAMPIÑA',
+                    'puesto_codigo' => '1',
+                    'zona_codigo' => '1',
+                    'mesa_numero' => '05',
+                    'departamento' => 'SUCRE',
+                    'municipio' => 'SINCELEJO',
+                    'direccion' => 'CALLE FALSA 123',
+                ],
+                'error' => null,
+            ];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = new PollingPlaceResolver([$adapter]);
+
+    $result = $resolver->resolveAutomated('1000000015', $voter);
+
+    expect($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::LIVE)
+        ->and($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::LIVE);
+
+    Sleep::assertNeverSlept();
+});
+
+// Test 16
+test('resolveAutomated skips straight to the snapshot tier without calling startLookup when unreachable', function () {
+    NationalCensusRecord::factory()->create([
+        'document_number' => '1000000016',
+        'polling_place_id' => $this->pollingPlace->id,
+    ]);
+
+    $startLookupCalled = false;
+
+    $adapter = new class($startLookupCalled) implements LiveSourceAdapter
+    {
+        public function __construct(private bool &$startLookupCalled) {}
+
+        public function startLookup(string $cedula): string
+        {
+            $this->startLookupCalled = true;
+
+            return 'session-unreachable';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'done', 'data' => [], 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return false;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = new PollingPlaceResolver([$adapter]);
+
+    $result = $resolver->resolveAutomated('1000000016', $voter);
+
+    expect($startLookupCalled)->toBeFalse()
+        ->and($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::SNAPSHOT);
+});
+
+// Test 17
+test('resolveAutomated returns null on a total miss with no exception when live is unreachable and no snapshot exists', function () {
+    $adapter = new class implements LiveSourceAdapter
+    {
+        public function startLookup(string $cedula): string
+        {
+            return 'session-miss';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'done', 'data' => [], 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return false;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = new PollingPlaceResolver([$adapter]);
+
+    $result = $resolver->resolveAutomated('9999999917', $voter);
+
+    expect($result)->toBeNull();
 });
