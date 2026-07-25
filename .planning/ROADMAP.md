@@ -74,7 +74,10 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
   2. The resolver never overwrites a live-verified result with an older snapshot result — source precedence (live > db_reconstruction > snapshot) is enforced, never auto-downgraded. (SRC-02)
   3. The lookup workflow returns promptly and never hangs waiting on an unreachable live source; the automated path gives up on a `waiting_captcha` step rather than blocking. (LIVE-03)
   4. Live sources are tried in priority order via interchangeable adapters, so a new source (e.g., wsp) can be added without redesigning the resolver, and the cascade is shared by both interactive and headless callers. (LIVE-01)
-**Plans**: TBD
+**Plans**: 0/3 plans complete
+- [ ] 08-01-PLAN.md — LiveSourceAdapter interface, RegistraduriaService reachability probe + kill switch, PollingPlaceResolutionResult VO
+- [ ] 08-02-PLAN.md — PollingPlaceResolver core: campaign-DB/national-snapshot tiers, no-downgrade guard + audit-transition persistence, bounded automated live attempt
+- [ ] 08-03-PLAN.md — Bind resolver in AppServiceProvider, refactor HasRegistraduriaPolling to delegate, new interactive-cascade test coverage
 
 ### Phase 9: Live-Source Feasibility Spike
 **Goal**: A time-boxed spike settles whether `wsp.registraduria.gov.co` (reCAPTCHA Enterprise) can serve as a real live-source adapter, end to end — without blocking the deterministic core.
@@ -118,7 +121,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10 → 11. Phases 6 and
 |-------|-----------|----------------|--------|-----------|
 | 6. National Census Snapshot Import | v1.1 | 1/1 | Complete   | 2026-07-24 |
 | 7. Source-Flag Schema & Audit Trail | v1.1 | 1/1 | Complete   | 2026-07-24 |
-| 8. Resilient PollingPlaceResolver Service | v1.1 | 0/TBD | Not started | - |
+| 8. Resilient PollingPlaceResolver Service | v1.1 | 0/3 | Not started | - |
 | 9. Live-Source Feasibility Spike | v1.1 | 0/TBD | Not started | - |
 | 10. Operator Provenance & Fallback Controls | v1.1 | 0/TBD | Not started | - |
 | 11. Scheduled Reconciliation Job | v1.1 | 0/TBD | Not started | - |
