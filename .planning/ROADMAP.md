@@ -89,7 +89,7 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
   3. A documented go/no-go decision for adopting wsp as a live-source adapter is produced, and the milestone still delivers its resilient core (snapshot + provenance + reconciliation) regardless of the spike's outcome.
 **Plans**: 2 plans
 - [x] 09-01-PLAN.md — Rewrite app.py's lookup flow to target wsp.registraduria.gov.co (live sitekey/#token extraction, enterprise-escalation toggle, five-state outcome classifier); verify environment + zero-cost DOM-contract dry run
-- [ ] 09-02-PLAN.md — Execute the live spike (~20-30 2captcha attempts across the 3 known cédulas) and produce 09-SPIKE-RESULTS.md with the outcome taxonomy and go/no-go recommendation
+- [x] 09-02-PLAN.md — Execute the live spike (~20-30 2captcha attempts across the 3 known cédulas) and produce 09-SPIKE-RESULTS.md with the outcome taxonomy and go/no-go recommendation
 
 ### Phase 10: Operator Provenance & Fallback Controls
 **Goal**: Operators can see the origin of every polling-place result, re-check any voter on demand, and triage everyone still on fallback data.
