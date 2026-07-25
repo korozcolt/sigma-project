@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
-status: Ready to plan
-stopped_at: Phase 9 context gathered
-last_updated: "2026-07-25T14:43:48.737Z"
+status: Ready to execute
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-07-25T15:51:33.472Z"
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-24)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 08 — resilient-pollingplaceresolver-service
+**Current focus:** Phase 09 — live-source-feasibility-spike
 
 ## Current Position
 
-Phase: 9
-Plan: Not started
+Phase: 09 (live-source-feasibility-spike) — EXECUTING
+Plan: 2 of 2
 
 ## v1.1 Phase Map
 
@@ -46,6 +46,7 @@ Reset for v1.1. Historical v1.0 velocity data archived in `.planning/milestones/
 | 08-01 | 15min | 2 | 8 |
 | Phase 08 P02 | 12min | 3 tasks | 3 files |
 | Phase 08 P03 | 12min | 2 tasks | 3 files |
+| Phase 09 P01 | 12min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,8 @@ Phase 07 Plan 01 decisions:
 - [Phase 08]: persist() treats voter===null as a pure pass-through (no persistence, no audit row) — supports Filament CreateVoter flow before first save
 - [Phase 08]: resolveOrCreatePollingPlace() duplicates HasRegistraduriaPolling's firstOrCreate enrichment for the headless resolveAutomated() path — Plan 08-03 will refactor the interactive trait to call the resolver instead of duplicating a third time
 - [Phase 08]: forceRefreshFromRegistraduria() still respects REGISTRADURIA_LIVE_ENABLED even though D-10 exempts it from the no-downgrade guard - if live is globally disabled there is nothing to force-refresh to
+- [Phase 09]: Fixed submit_payload enterprise-key assignment style (.update() vs bracket-assign) to satisfy the plan's own acceptance-criteria grep pattern while preserving identical runtime behavior
+- [Phase 09]: Diagnosed a WAF false-negative in the plan's literal zero-cost smoke-test script (bare Playwright page, no UA context) vs app.py's real UA-spoofed context; re-ran smoke test with matching context and confirmed the live DOM contract (sitekey + #token) still matches 09-RESEARCH.md
 
 ### Blockers/Concerns
 
@@ -106,6 +109,6 @@ Tracked in Blockers/Concerns above.
 
 ## Session Continuity
 
-Last session: 2026-07-25T14:43:48.728Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-live-source-feasibility-spike/09-CONTEXT.md
+Last session: 2026-07-25T15:51:33.468Z
+Stopped at: Completed 09-01-PLAN.md
+Resume file: None
