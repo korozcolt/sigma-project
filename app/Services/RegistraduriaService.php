@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class RegistraduriaService
+class RegistraduriaService implements LiveSourceAdapter
 {
     protected string $baseUrl;
 
@@ -67,5 +68,27 @@ class RegistraduriaService
         }
 
         return $response->json();
+    }
+
+    /**
+     * Cheap reachability check against the actual external Registraduría/infovotantes
+     * host, independent of this class's own async startLookup()/getResult() contract.
+     * startLookup() always returns HTTP 200 immediately regardless of whether the real
+     * site is up (it only enqueues a background thread) — it must NEVER be used to
+     * gate a "should we even try live" decision. See 08-RESEARCH.md Pattern 2.
+     */
+    public function isReachable(): bool
+    {
+        if (! config('services.registraduria.live_enabled')) {
+            return false;
+        }
+
+        try {
+            $response = Http::connectTimeout(2)->timeout(3)->withoutRedirecting()->head(config('services.registraduria.probe_url'));
+
+            return $response->successful() || $response->redirect();
+        } catch (ConnectionException) {
+            return false;
+        }
     }
 }

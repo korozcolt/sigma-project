@@ -44,6 +44,8 @@ return [
 
     'registraduria' => [
         'url' => env('REGISTRADURIA_SERVICE_URL', 'http://localhost:5757'),
+        'live_enabled' => env('REGISTRADURIA_LIVE_ENABLED', true),
+        'probe_url' => env('REGISTRADURIA_PROBE_URL', 'https://apiweb-eleccionescolombia.infovotantes.com'),
     ],
 
 ];
