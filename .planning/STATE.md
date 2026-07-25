@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
-status: Ready to execute
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-07-25T12:27:45.029Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-07-25T12:32:33.725Z"
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 
 ## Current Position
 
-Phase: 08 (resilient-pollingplaceresolver-service) — EXECUTING
+Phase: 08 (resilient-pollingplaceresolver-service) — COMPLETE (3/3 plans)
 Plan: 3 of 3
 
 ## v1.1 Phase Map
@@ -45,6 +45,7 @@ Reset for v1.1. Historical v1.0 velocity data archived in `.planning/milestones/
 |------------|----------|-------|-------|
 | 08-01 | 15min | 2 | 8 |
 | Phase 08 P02 | 12min | 3 tasks | 3 files |
+| Phase 08 P03 | 12min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,7 @@ Phase 07 Plan 01 decisions:
 - [Phase 08]: isReachable() uses withoutRedirecting() before checking redirect() — Guzzle's default redirect-following would otherwise chase a self-referential Location header into a false negative (auto-fixed, Rule 1)
 - [Phase 08]: persist() treats voter===null as a pure pass-through (no persistence, no audit row) — supports Filament CreateVoter flow before first save
 - [Phase 08]: resolveOrCreatePollingPlace() duplicates HasRegistraduriaPolling's firstOrCreate enrichment for the headless resolveAutomated() path — Plan 08-03 will refactor the interactive trait to call the resolver instead of duplicating a third time
+- [Phase 08]: forceRefreshFromRegistraduria() still respects REGISTRADURIA_LIVE_ENABLED even though D-10 exempts it from the no-downgrade guard - if live is globally disabled there is nothing to force-refresh to
 
 ### Blockers/Concerns
 
@@ -104,6 +106,6 @@ Tracked in Blockers/Concerns above.
 
 ## Session Continuity
 
-Last session: 2026-07-25T12:27:45.027Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-07-25T12:32:33.723Z
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None
