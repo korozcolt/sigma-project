@@ -49,6 +49,7 @@ Reset for v1.1. Historical v1.0 velocity data archived in `.planning/milestones/
 | Phase 09 P01 | 12min | 2 tasks | 2 files |
 | Phase 09 P02 | 22min | 2 tasks | 1 files |
 | Phase 10 P01 | 10min | 3 tasks | 3 files |
+| Phase 10 P02 | 10min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,7 @@ Phase 07 Plan 01 decisions:
 - [Phase 09]: Fixed submit_payload enterprise-key assignment style (.update() vs bracket-assign) to satisfy the plan's own acceptance-criteria grep pattern while preserving identical runtime behavior
 - [Phase 09]: Diagnosed a WAF false-negative in the plan's literal zero-cost smoke-test script (bare Playwright page, no UA context) vs app.py's real UA-spoofed context; re-ran smoke test with matching context and confirmed the live DOM contract (sitekey + #token) still matches 09-RESEARCH.md
 - [Phase 09]: Ran the full 30-attempt spike budget with no early stop; 29/30 succeeded, enterprise=1 escalation never triggered (0% baseline denial rate); Verdict: GO for wsp.registraduria.gov.co as a live source.
+- [Phase 10 Plan 02]: Added the read-only `polling_place_source_display` Placeholder to VoterForm's Ubicación section (completes SRC-01's third/last surface — table, view, and now edit form) and role-gated the `actualizar_registraduria` suffixAction to admin_campaign/coordinator/super_admin via the same `hasAnyRole()` pattern as EditVoter's `reassignDuplicateOwner` action. Left `consultar_registraduria` untouched and unrestricted for every role, confirming SRC-04 is satisfied by existing UI with no new surface needed (D-01).
 
 Phase 10 Plan 01 decisions:
 
@@ -119,5 +121,5 @@ Tracked in Blockers/Concerns above.
 ## Session Continuity
 
 Last session: 2026-07-25T19:10:10.000Z
-Stopped at: Completed 10-01-PLAN.md (Voters table badge/filter + ViewVoter infolist entries + Pest coverage)
-Resume file: .planning/phases/10-operator-provenance-fallback-controls/10-01-SUMMARY.md
+Stopped at: Completed 10-01-PLAN.md and 10-02-PLAN.md (parallel wave 1, alongside 10-03)
+Resume file: .planning/phases/10-operator-provenance-fallback-controls/10-CONTEXT.md
