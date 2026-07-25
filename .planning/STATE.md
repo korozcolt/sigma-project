@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
-status: Ready to plan
-stopped_at: Phase 10 context gathered
-last_updated: "2026-07-25T18:31:19.465Z"
+status: Executing Phase 10
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-07-25T19:10:10.000Z"
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 11
+  completed_plans: 8
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-24)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 09 — live-source-feasibility-spike
+**Current focus:** Phase 10 — operator-provenance-fallback-controls
 
 ## Current Position
 
-Phase: 10
-Plan: Not started
+Phase: 10 (operator-provenance-fallback-controls) — EXECUTING
+Plan: 1 of 4 complete (10-01 done; 10-02/10-03 running in parallel; 10-04 is the phase-closing human checkpoint)
 
 ## v1.1 Phase Map
 
@@ -48,6 +48,7 @@ Reset for v1.1. Historical v1.0 velocity data archived in `.planning/milestones/
 | Phase 08 P03 | 12min | 2 tasks | 3 files |
 | Phase 09 P01 | 12min | 2 tasks | 2 files |
 | Phase 09 P02 | 22min | 2 tasks | 1 files |
+| Phase 10 P01 | 10min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -81,11 +82,17 @@ Phase 07 Plan 01 decisions:
 - [Phase 09]: Diagnosed a WAF false-negative in the plan's literal zero-cost smoke-test script (bare Playwright page, no UA context) vs app.py's real UA-spoofed context; re-ran smoke test with matching context and confirmed the live DOM contract (sitekey + #token) still matches 09-RESEARCH.md
 - [Phase 09]: Ran the full 30-attempt spike budget with no early stop; 29/30 succeeded, enterprise=1 escalation never triggered (0% baseline denial rate); Verdict: GO for wsp.registraduria.gov.co as a live source.
 
+Phase 10 Plan 01 decisions:
+
+- [Phase 10]: SRC-01 and SRC-05 are NOT marked complete in REQUIREMENTS.md by this plan alone — both requirements are explicitly split across parallel plans in this phase (SRC-01: table/infolist here in 10-01, plus the edit-form surface in 10-02; SRC-05: the table filter here in 10-01, plus the FallbackSourceOverview widget in 10-03), and 10-04 is the phase's human-verification checkpoint. Deferred requirement sign-off to phase completion rather than risk a premature/partial checkmark from a single parallel plan.
+- [Phase 10]: No new color/label mapping code added for `polling_place_source` anywhere — `PollingPlaceSource` already implements `HasColor`/`HasIcon`/`HasLabel`, so `->badge()` alone resolves color/icon/label on both the table `TextColumn` and the infolist `TextEntry`, exactly per plan.
+
 ### Blockers/Concerns
 
 - **`gsd-tools.cjs` root-resolution bug when a git worktree owns its own `.planning/`:** `findProjectRoot()` (in `lib/core.cjs`) walks up from `cwd` and, upon finding an *ancestor* directory that also has `.planning/` plus a `.git` heuristic match, redirects `cwd` there — even when the original `cwd` already has its own valid, independent `.planning/`. In this session's worktree (`worktree-agent-ae9f012d50fef4e54`, which owns its own `.planning/`), every `gsd-tools state|roadmap|requirements` subcommand silently redirected reads/writes to the **main checkout's** `.planning/` instead of the worktree's. This was caught before real damage (the only accidental write to the main repo's `STATE.md` was reverted), but it means **`gsd-tools` CLI commands cannot be trusted to target a worktree's own `.planning/` in this repo layout** — STATE.md/ROADMAP.md/REQUIREMENTS.md updates for Phase 06 Plan 01 were made by hand-editing the worktree copies directly instead. Worth a fix in `gsd-tools` (short-circuit `findProjectRoot` when `startDir` itself already has `.planning/`) or at minimum a documented workaround for future phases executed in this worktree.
 - **Same `gsd-tools` root-resolution bug recurred during Phase 07 Plan 01 execution** (worktree `agent-ae0adbb8ac28629ba`, also stale — see below): `state advance-plan`/`update-progress` partially wrote to this worktree's own STATE.md (with an incorrect recalculation, e.g. `total_plans` dropped from 2 to 1), while `state record-metric`/`record-session` silently redirected to and modified the **main checkout's** `.planning/STATE.md` instead — mixed per-command routing, not consistently one or the other. The main checkout's accidental write was caught and reverted to its exact prior (dirty, uncommitted) content before this session ended. All STATE.md/ROADMAP.md/REQUIREMENTS.md updates for this plan were redone by hand-editing the worktree copies directly. This bug is confirmed to still be present and should be fixed in `gsd-tools` before the next phase relies on its CLI for state mutation inside a worktree.
 - **This worktree (`agent-ae0adbb8ac28629ba`) was also stale at session start**, same class of issue as Phase 06: checked out at commit `78c1f69` (pre-dating Phase 6/7 entirely), missing `vendor/`, `.env`, and the `.planning/phases/07-*` directory. Resolved the same way: `git merge --ff-only` to main's HEAD (a fast-forward descendant), then `composer install` and copying `.env` from the main checkout. Worth checking whether stale/locked worktrees can be refreshed automatically before an execute-phase agent is spawned into one.
+- **Recurred again for Phase 10 Plan 01** in worktree `agent-a5c845faa24c90d58`: checked out at the same stale `78c1f69` commit (missing all of Phases 6-10, `vendor/`, `.env`). Resolved identically via `git merge --ff-only main` + `composer install` + copying `.env`. Given this is now the third consecutive phase hitting this exact issue, this strongly suggests worktrees are not being refreshed/recreated between phases before an execute-phase agent is spawned into them — worth fixing at the orchestrator level rather than continuing to patch per-session. Because the confirmed `findProjectRoot` bug also applies here (this worktree's path is nested under the main checkout, which owns its own `.planning/` as an ancestor directory), all STATE.md/ROADMAP.md updates for 10-01 were hand-edited directly instead of using `gsd-tools`.
 
 - **System-actor decision for reconciliation's audit trail (RECON-03) must be made before Phase 11 is planned in detail** — either a seeded `system`/bot user passed as the `validated_by`-equivalent, or a nullable FK + `resolution_type='auto_reconciliation'`. Flagged in research (Pitfall #3). Not yet decided.
 - **Interactive cascade ordering (live-first vs cost-last):** the requirement says "live first, fall back to snapshot," but the existing interactive path is deliberately cost-*last* (live = paid). Confirm interactive ordering with the client during Phase 8 planning; reconciliation (Phase 11) is unambiguously live-first.
@@ -111,6 +118,6 @@ Tracked in Blockers/Concerns above.
 
 ## Session Continuity
 
-Last session: 2026-07-25T18:31:19.462Z
-Stopped at: Phase 10 context gathered
-Resume file: .planning/phases/10-operator-provenance-fallback-controls/10-CONTEXT.md
+Last session: 2026-07-25T19:10:10.000Z
+Stopped at: Completed 10-01-PLAN.md (Voters table badge/filter + ViewVoter infolist entries + Pest coverage)
+Resume file: .planning/phases/10-operator-provenance-fallback-controls/10-01-SUMMARY.md
