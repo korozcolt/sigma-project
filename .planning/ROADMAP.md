@@ -87,7 +87,9 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
   1. The spike extracts the wsp Enterprise sitekey (+ `action`/`data-s` if present), solves the Enterprise captcha (`enterprise=1` + sitekey), injects the token, and submits one real cédula end-to-end against the live endpoint.
   2. The outcome is classified explicitly as success / denied-by-score / not-found / source-unreachable — a returned token is never treated as a successful lookup.
   3. A documented go/no-go decision for adopting wsp as a live-source adapter is produced, and the milestone still delivers its resilient core (snapshot + provenance + reconciliation) regardless of the spike's outcome.
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 09-01-PLAN.md — Rewrite app.py's lookup flow to target wsp.registraduria.gov.co (live sitekey/#token extraction, enterprise-escalation toggle, five-state outcome classifier); verify environment + zero-cost DOM-contract dry run
+- [ ] 09-02-PLAN.md — Execute the live spike (~20-30 2captcha attempts across the 3 known cédulas) and produce 09-SPIKE-RESULTS.md with the outcome taxonomy and go/no-go recommendation
 
 ### Phase 10: Operator Provenance & Fallback Controls
 **Goal**: Operators can see the origin of every polling-place result, re-check any voter on demand, and triage everyone still on fallback data.
@@ -122,7 +124,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10 → 11. Phases 6 and
 | 6. National Census Snapshot Import | v1.1 | 1/1 | Complete   | 2026-07-24 |
 | 7. Source-Flag Schema & Audit Trail | v1.1 | 1/1 | Complete   | 2026-07-24 |
 | 8. Resilient PollingPlaceResolver Service | v1.1 | 3/3 | Complete   | 2026-07-25 |
-| 9. Live-Source Feasibility Spike | v1.1 | 0/TBD | Not started | - |
+| 9. Live-Source Feasibility Spike | v1.1 | 0/2 | Not started | - |
 | 10. Operator Provenance & Fallback Controls | v1.1 | 0/TBD | Not started | - |
 | 11. Scheduled Reconciliation Job | v1.1 | 0/TBD | Not started | - |
 
