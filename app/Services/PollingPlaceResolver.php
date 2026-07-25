@@ -9,6 +9,8 @@ use App\Models\CensusRecord;
 use App\Models\Municipality;
 use App\Models\NationalCensusRecord;
 use App\Models\PollingPlace;
+use App\Models\PollingPlaceResolution;
+use App\Models\Voter;
 
 class PollingPlaceResolver
 {
@@ -128,5 +130,52 @@ class PollingPlaceResolver
             pollingPlaceId: $pollingPlace->id,
             tableNumber: ltrim($fields['mesa_numero'], '0') ?: null,
         );
+    }
+
+    /**
+     * Persist a resolution result against a voter, enforcing the no-downgrade guard
+     * (SRC-02) unless $isExplicitOverride is true (D-10 — the "Actualizar datos" force
+     * refresh always bypasses the guard). Writes an audit row ONLY on a real source
+     * transition (D-11); a no-op re-confirmation still refreshes polling_place_resolved_at
+     * (D-12). Returns null when the guard blocks the write; otherwise returns $result.
+     *
+     * $voter is null when no Voter record exists yet (e.g. the Filament CreateVoter flow
+     * before the first save) — in that case this is a pure pass-through with no persistence,
+     * since there is no voter_id to attach an audit row to.
+     */
+    public function persist(
+        ?Voter $voter,
+        PollingPlaceResolutionResult $result,
+        bool $isExplicitOverride,
+        string $resolvedVia,
+    ): ?PollingPlaceResolutionResult {
+        if ($voter === null) {
+            return $result;
+        }
+
+        $existingSource = $voter->polling_place_source;
+
+        if (! $isExplicitOverride && $existingSource !== null && $existingSource->outranks($result->source)) {
+            return null;
+        }
+
+        $voter->update([
+            'polling_place_source' => $result->source,
+            'polling_place_resolved_at' => now(),
+        ]);
+
+        if ($existingSource !== $result->source) {
+            PollingPlaceResolution::create([
+                'voter_id' => $voter->id,
+                'previous_source' => $existingSource,
+                'new_source' => $result->source,
+                'polling_place_id' => $result->pollingPlaceId,
+                'table_number' => $result->tableNumber,
+                'resolved_by' => auth()->id(),
+                'resolved_via' => $resolvedVia,
+            ]);
+        }
+
+        return $result;
     }
 }

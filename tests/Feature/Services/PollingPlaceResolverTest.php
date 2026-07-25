@@ -6,7 +6,10 @@ use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\NationalCensusRecord;
 use App\Models\PollingPlace;
+use App\Models\PollingPlaceResolution;
+use App\Models\Voter;
 use App\Services\LiveSourceAdapter;
+use App\Services\PollingPlaceResolutionResult;
 use App\Services\PollingPlaceResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -199,4 +202,122 @@ test('startLiveLookup calls startLookup on the FIRST adapter only, never the sec
     expect($sessionId)->toBe('session-first')
         ->and($firstCalled)->toBeTrue()
         ->and($secondCalled)->toBeFalse();
+});
+
+// Test 7
+test('PollingPlaceSource::outranks reflects precedence correctly, including equal precedence', function () {
+    expect(PollingPlaceSource::LIVE->outranks(PollingPlaceSource::SNAPSHOT))->toBeTrue()
+        ->and(PollingPlaceSource::SNAPSHOT->outranks(PollingPlaceSource::LIVE))->toBeFalse()
+        ->and(PollingPlaceSource::LIVE->outranks(PollingPlaceSource::LIVE))->toBeFalse();
+});
+
+// Test 8
+test('persist blocks an automatic downgrade from LIVE to SNAPSHOT when isExplicitOverride is false', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::LIVE,
+        'polling_place_resolved_at' => now()->subDay(),
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::SNAPSHOT,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $return = $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($return)->toBeNull()
+        ->and($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::LIVE)
+        ->and(PollingPlaceResolution::count())->toBe(0);
+});
+
+// Test 9
+test('persist allows the same downgrade when isExplicitOverride is true', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::LIVE,
+        'polling_place_resolved_at' => now()->subDay(),
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::SNAPSHOT,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $return = $resolver->persist($voter, $result, isExplicitOverride: true, resolvedVia: 'interactive');
+
+    expect($return)->toBe($result)
+        ->and($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::SNAPSHOT)
+        ->and(PollingPlaceResolution::count())->toBe(1);
+});
+
+// Test 10
+test('persist refreshes polling_place_resolved_at but writes no audit row on a no-op transition', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::SNAPSHOT,
+        'polling_place_resolved_at' => now()->subDay(),
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::SNAPSHOT,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $before = $voter->polling_place_resolved_at;
+
+    $return = $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($return)->toBe($result)
+        ->and($voter->fresh()->polling_place_resolved_at->gt($before))->toBeTrue()
+        ->and(PollingPlaceResolution::count())->toBe(0);
+});
+
+// Test 11
+test('persist creates exactly one audit row with previous_source/new_source on a real transition and no headless actor', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'polling_place_resolved_at' => null,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::SNAPSHOT,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $return = $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($return)->toBe($result)
+        ->and(PollingPlaceResolution::count())->toBe(1);
+
+    $audit = PollingPlaceResolution::first();
+
+    expect($audit->previous_source)->toBeNull()
+        ->and($audit->new_source)->toBe(PollingPlaceSource::SNAPSHOT)
+        ->and($audit->resolved_by)->toBeNull();
+});
+
+// Test 12
+test('persist is a pass-through returning the given result and writing no audit row when voter is null', function () {
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::SNAPSHOT,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $return = $resolver->persist(null, $result, isExplicitOverride: false, resolvedVia: 'interactive');
+
+    expect($return)->toBe($result)
+        ->and(PollingPlaceResolution::count())->toBe(0);
 });

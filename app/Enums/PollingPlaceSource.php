@@ -53,4 +53,20 @@ enum PollingPlaceSource: string implements HasColor, HasDescription, HasIcon, Ha
             self::MANUAL => 'El puesto de votación fue asignado manualmente por un operador',
         };
     }
+
+    /** Lower number = more trusted. Used by PollingPlaceResolver's no-downgrade guard (SRC-02). */
+    public function precedence(): int
+    {
+        return match ($this) {
+            self::LIVE => 0,
+            self::DB_RECONSTRUCTION => 1,
+            self::SNAPSHOT => 2,
+            self::MANUAL => 3,
+        };
+    }
+
+    public function outranks(self $other): bool
+    {
+        return $this->precedence() < $other->precedence();
+    }
 }
