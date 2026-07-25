@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\PollingPlaceSource;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Filament\Resources\Voters\Pages\CreateVoter;
@@ -115,6 +116,27 @@ test('can filter voters by municipality', function () {
         ->filterTable('municipality_id', $municipality->id)
         ->assertCanSeeTableRecords([$voterInMunicipality])
         ->assertCanNotSeeTableRecords([$voterNotInMunicipality]);
+});
+
+test('voters table shows the polling place source badge with its Spanish label', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::SNAPSHOT,
+        'polling_place_resolved_at' => now(),
+    ]);
+
+    Livewire::test(ListVoters::class)
+        ->assertCanSeeTableRecords([$voter])
+        ->assertSee(PollingPlaceSource::SNAPSHOT->getLabel());
+});
+
+test('can filter voters by polling place source', function () {
+    $liveVoter = Voter::factory()->create(['polling_place_source' => PollingPlaceSource::LIVE]);
+    $snapshotVoter = Voter::factory()->create(['polling_place_source' => PollingPlaceSource::SNAPSHOT]);
+
+    Livewire::test(ListVoters::class)
+        ->filterTable('polling_place_source', [PollingPlaceSource::SNAPSHOT->value])
+        ->assertCanSeeTableRecords([$snapshotVoter])
+        ->assertCanNotSeeTableRecords([$liveVoter]);
 });
 
 // ============ Tests de Creación ============
@@ -508,6 +530,16 @@ test('view page displays voter information', function () {
         ->assertSee('Pérez')
         ->assertSee('12345678')
         ->assertSee('3001234567');
+});
+
+test('view page displays the polling place source badge with its Spanish label', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::DB_RECONSTRUCTION,
+        'polling_place_resolved_at' => now(),
+    ]);
+
+    Livewire::test(ViewVoter::class, ['record' => $voter->id])
+        ->assertSee(PollingPlaceSource::DB_RECONSTRUCTION->getLabel());
 });
 
 // ============ Tests de Eliminación ============

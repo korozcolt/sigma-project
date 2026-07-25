@@ -47,6 +47,16 @@ class ViewVoter extends ViewRecord
                 ->dateTime('d/m/Y H:i')
                 ->placeholder('Aún no validado contra el censo'),
 
+            Components\TextEntry::make('polling_place_source')
+                ->label('Fuente del Puesto de Votación')
+                ->badge()
+                ->placeholder('Sin resolver'),
+
+            Components\TextEntry::make('polling_place_resolved_at')
+                ->label('Actualizado el')
+                ->dateTime('d/m/Y H:i')
+                ->placeholder('Sin resolver'),
+
             Components\TextEntry::make('last_validation_source')
                 ->label('Fuente de Última Validación')
                 ->state(fn (Voter $record): string => $this->latestValidationSource($record))
