@@ -101,7 +101,7 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
   3. An operator can filter/view the set of voters currently on a fallback-sourced (non-live) polling place. (SRC-05)
 **Plans**: 4 plans
 - [ ] 10-01-PLAN.md — Voters table badge + resolved-at column + source filter (SRC-01, SRC-05), ViewVoter infolist badge/timestamp, Pest coverage
-- [ ] 10-02-PLAN.md — VoterForm read-only source display + role-gated "Actualizar" force-refresh action (SRC-01, D-06), SRC-04 confirmation via untouched "Consultar" action, Pest coverage
+- [x] 10-02-PLAN.md — VoterForm read-only source display + role-gated "Actualizar" force-refresh action (SRC-01, D-06), SRC-04 confirmation via untouched "Consultar" action, Pest coverage
 - [ ] 10-03-PLAN.md — FallbackSourceOverview dashboard widget (SRC-05), registered in AdminPanelProvider, Pest coverage
 - [ ] 10-04-PLAN.md — Human checkpoint: visual verification of badges/filter/role-gate/widget across the running app
 **UI hint**: yes
@@ -129,7 +129,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10 → 11. Phases 6 and
 | 7. Source-Flag Schema & Audit Trail | v1.1 | 1/1 | Complete   | 2026-07-24 |
 | 8. Resilient PollingPlaceResolver Service | v1.1 | 3/3 | Complete   | 2026-07-25 |
 | 9. Live-Source Feasibility Spike | v1.1 | 2/2 | Complete   | 2026-07-25 |
-| 10. Operator Provenance & Fallback Controls | v1.1 | 0/4 | Not started | - |
+| 10. Operator Provenance & Fallback Controls | v1.1 | 1/4 | Executing | - |
 | 11. Scheduled Reconciliation Job | v1.1 | 0/TBD | Not started | - |
 
 ---

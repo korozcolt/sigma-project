@@ -15,10 +15,10 @@ Requirements for the "Consulta de Puesto de Votación Resiliente" milestone. Eac
 
 ### Procedencia y Auditoría (Source Provenance & Audit)
 
-- [ ] **SRC-01**: Every polling-place result visibly shows whether it came from a live source, database reconstruction, local snapshot, or manual entry
+- [x] **SRC-01**: Every polling-place result visibly shows whether it came from a live source, database reconstruction, local snapshot, or manual entry
 - [x] **SRC-02**: A voter's polling-place source is never silently downgraded — a live-verified result is never overwritten by an older snapshot result
 - [x] **SRC-03**: Every change to a voter's polling-place source is recorded in an auditable history (actor, previous → new source, timestamp)
-- [ ] **SRC-04**: Operator can manually trigger a re-check of a voter's polling place at any time
+- [x] **SRC-04**: Operator can manually trigger a re-check of a voter's polling place at any time
 - [ ] **SRC-05**: Operator can filter/view which voters currently have a fallback-sourced (non-live) polling place
 
 ### Fuente en Vivo Resiliente (Live Source Resiliency)
@@ -65,10 +65,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CENSO-01 | Phase 8 | Complete |
 | CENSO-02 | Phase 6 | Done |
 | CENSO-03 | Phase 6 | Done |
-| SRC-01 | Phase 10 | Pending |
+| SRC-01 | Phase 10 | Done |
 | SRC-02 | Phase 8 | Complete |
 | SRC-03 | Phase 7 | Done |
-| SRC-04 | Phase 10 | Pending |
+| SRC-04 | Phase 10 | Done |
 | SRC-05 | Phase 10 | Pending |
 | LIVE-01 | Phase 8 | Complete |
 | LIVE-02 | Phase 9 | Complete |
