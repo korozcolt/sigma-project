@@ -896,3 +896,97 @@ test('resolveAutomated persists a fresh live success into the permanent lookup t
         ->and($lookup->mesa_numero)->toBe('05')
         ->and($lookup->campaign_id)->toBe($voter->campaign_id);
 });
+
+// ============ max_tables derived from mesa_numero (quick task 260726-k80) ============
+
+// Test 27
+test('resolveOrCreatePollingPlace sets max_tables from mesa_numero when creating a NEW PollingPlace via the DIVIPOLE-code branch', function () {
+    $resolver = new PollingPlaceResolver([]);
+
+    $result = $resolver->resolveOrCreatePollingPlace([
+        'puesto_nombre' => 'IE NUEVA CON CODIGO',
+        'puesto_codigo' => '2',
+        'zona_codigo' => '2',
+        'mesa_numero' => '13',
+        'municipio' => $this->municipality->name,
+        'direccion' => 'CALLE NUEVA 1',
+    ]);
+
+    expect($result)->not->toBeNull()
+        ->and($result->max_tables)->toBe(13);
+});
+
+// Test 28
+test('resolveOrCreatePollingPlace sets max_tables from mesa_numero when creating a NEW PollingPlace via the name-match branch', function () {
+    $resolver = new PollingPlaceResolver([]);
+
+    $result = $resolver->resolveOrCreatePollingPlace([
+        'puesto_nombre' => 'IE NUEVA SIN CODIGO',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'mesa_numero' => '13',
+        'municipio' => $this->municipality->name,
+        'direccion' => 'CALLE NUEVA 2',
+    ]);
+
+    expect($result)->not->toBeNull()
+        ->and($result->max_tables)->toBe(13);
+});
+
+// Test 29
+test('resolveOrCreatePollingPlace bumps max_tables up when matching an EXISTING PollingPlace whose current value is lower than the incoming mesa_numero', function () {
+    $this->pollingPlace->update(['max_tables' => 5]);
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $result = $resolver->resolveOrCreatePollingPlace([
+        'puesto_nombre' => $this->pollingPlace->name,
+        'puesto_codigo' => (string) $this->pollingPlace->place_code,
+        'zona_codigo' => (string) $this->pollingPlace->zone_code,
+        'mesa_numero' => '13',
+        'municipio' => $this->municipality->name,
+        'direccion' => $this->pollingPlace->address,
+    ]);
+
+    expect($result)->not->toBeNull()
+        ->and($result->id)->toBe($this->pollingPlace->id)
+        ->and($result->max_tables)->toBe(13)
+        ->and($this->pollingPlace->fresh()->max_tables)->toBe(13);
+});
+
+// Test 30
+test('resolveOrCreatePollingPlace does not downgrade max_tables when matching an EXISTING PollingPlace whose current value already covers the incoming mesa_numero', function () {
+    $this->pollingPlace->update(['max_tables' => 20]);
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $result = $resolver->resolveOrCreatePollingPlace([
+        'puesto_nombre' => $this->pollingPlace->name,
+        'puesto_codigo' => (string) $this->pollingPlace->place_code,
+        'zona_codigo' => (string) $this->pollingPlace->zone_code,
+        'mesa_numero' => '13',
+        'municipio' => $this->municipality->name,
+        'direccion' => $this->pollingPlace->address,
+    ]);
+
+    expect($result)->not->toBeNull()
+        ->and($result->id)->toBe($this->pollingPlace->id)
+        ->and($result->max_tables)->toBe(20)
+        ->and($this->pollingPlace->fresh()->max_tables)->toBe(20);
+});
+
+// Test 31
+test('resolveOrCreatePollingPlace still sets max_tables to 0 for a newly created PollingPlace when no mesa_numero is present', function () {
+    $resolver = new PollingPlaceResolver([]);
+
+    $result = $resolver->resolveOrCreatePollingPlace([
+        'puesto_nombre' => 'IE SIN MESA',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'municipio' => $this->municipality->name,
+        'direccion' => 'CALLE SIN MESA',
+    ]);
+
+    expect($result)->not->toBeNull()
+        ->and($result->max_tables)->toBe(0);
+});
