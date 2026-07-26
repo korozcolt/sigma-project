@@ -6,8 +6,10 @@ use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\Neighborhood;
 use App\Models\PollingPlace;
+use App\Models\RegistraduriaLookup;
 use App\Models\Voter;
 use App\Rules\MaxTablesForPollingPlace;
+use App\Services\PollingPlaceResolver;
 use App\Services\VoterValidationService;
 use Illuminate\Validation\Rule;
 use Livewire\Volt\Component;
@@ -58,6 +60,8 @@ new class extends Component
 
     public bool $censusNotFoundWarning = false;
 
+    public bool $registraduriaVerified = false;
+
     public function mount(): void
     {
         $campaign = auth()->user()->campaigns()->first();
@@ -81,8 +85,23 @@ new class extends Component
     public function updatedDocumentNumber(): void
     {
         $this->censusNotFoundWarning = false;
+        $this->registraduriaVerified = false;
 
         if (! preg_match('/^\d{10}$/', $this->document_number)) {
+            return;
+        }
+
+        $registraduria = app(PollingPlaceResolver::class)->resolveFromPermanentLookup($this->document_number);
+
+        if ($registraduria) {
+            $this->registraduriaVerified = true;
+            $this->polling_place_id = $registraduria->pollingPlaceId;
+            $this->polling_table_number = $registraduria->tableNumber ? (int) $registraduria->tableNumber : null;
+
+            if (filled($registraduria->fields['direccion'] ?? null)) {
+                $this->address = $registraduria->fields['direccion'];
+            }
+
             return;
         }
 
@@ -210,8 +229,16 @@ new class extends Component
             }
         }
 
+        $foundInRegistraduria = RegistraduriaLookup::query()->where('document_number', $this->document_number)->exists();
+
         $foundInCensus = app(VoterValidationService::class)
             ->documentExistsInCensus($campaign->id, $this->document_number);
+
+        $status = match (true) {
+            $foundInRegistraduria => VoterStatus::VERIFIED_REGISTRADURIA,
+            $foundInCensus => VoterStatus::PENDING_REVIEW,
+            default => VoterStatus::CENSUS_NOT_FOUND,
+        };
 
         // Crear el apoyo
         Voter::create([
@@ -229,7 +256,7 @@ new class extends Component
             'address' => $this->address,
             'birth_date' => $this->birth_date,
             'registered_by' => auth()->id(),
-            'status' => $foundInCensus ? VoterStatus::PENDING_REVIEW : VoterStatus::CENSUS_NOT_FOUND,
+            'status' => $status,
         ]);
 
         $this->lastVoterName = $this->first_name.' '.$this->last_name;
@@ -297,7 +324,12 @@ new class extends Component
                         placeholder="1234567890"
                     />
 
-                    @if($censusNotFoundWarning)
+                    @if($registraduriaVerified)
+                        <div class="flex items-start gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                            <flux:icon.check-badge class="mt-0.5 h-4 w-4 shrink-0" />
+                            <span>Verificado por Registraduría — puesto de votación, mesa y dirección autocompletados. Puedes editarlos si es necesario.</span>
+                        </div>
+                    @elseif($censusNotFoundWarning)
                         <div class="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
                             <flux:icon.exclamation-triangle class="mt-0.5 h-4 w-4 shrink-0" />
                             <span>Esta cédula no aparece en el censo actual, revísala.</span>
