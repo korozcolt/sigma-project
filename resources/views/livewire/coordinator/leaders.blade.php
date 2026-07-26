@@ -133,7 +133,7 @@ new class extends Component {
             <div class="flex items-center justify-between">
                 <div>
                     <flux:text class="font-medium text-zinc-700 dark:text-zinc-300">Registro personal</flux:text>
-                    <flux:text size="sm" class="text-zinc-500">Regstrate como líder para aparecer en el listado y gestionar apoyos directamente.</flux:text>
+                    <flux:text size="sm" class="text-zinc-500">Regístrate como líder para aparecer en el listado y gestionar apoyos directamente.</flux:text>
                 </div>
                 <flux:button variant="outline" wire:click="becomeMyOwnLeader" icon="user" size="sm">
                     Ser mi propio líder
