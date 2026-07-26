@@ -12,3 +12,6 @@ Artisan::command('inspire', function () {
 Schedule::command('messages:send-birthdays')->dailyAt('09:00');
 
 Schedule::command('birthday:dispatch-webhooks')->everyMinute()->withoutOverlapping();
+
+// Reintenta la consulta en vivo para votantes resueltos por fuente de respaldo (RECON-01)
+Schedule::command('census:reconcile-live')->hourly()->withoutOverlapping(10);
