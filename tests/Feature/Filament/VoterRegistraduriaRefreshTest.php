@@ -367,6 +367,48 @@ it('never mislabels a DB-reconstruction result as LIVE on a later lookup via a s
     expect($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::DB_RECONSTRUCTION);
 });
 
+// ============ Regression: real live Registraduría results never carry puesto_codigo/
+// zona_codigo (see RegistraduriaService::parseConsultaHtml() docblock) — saving a fresh
+// PollingPlace for such a result used to throw QueryException 1366 "Incorrect integer
+// value: ''" because zone_code/place_code were passed straight through as ''.
+// See .planning/debug/resolved/registraduria-interactive-result-not-parsed.md ============
+
+it('handles the interactive registraduria-result event without throwing when puesto_codigo/zona_codigo are blank (real live response shape)', function () {
+    $voter = createEditableVoter();
+
+    $data = [
+        'puesto_nombre' => 'IE SAN JOSE C I P',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'mesa_numero' => '05',
+        'departamento' => 'SUCRE',
+        'municipio' => $voter->municipality->name,
+        'direccion' => 'CL 22 No. 10A-380',
+    ];
+
+    // Before the fix, this dispatch alone threw QueryException 1366 inside
+    // fillPollingPlaceFields()'s firstOrCreate() — no explicit "Guardar" click needed,
+    // since applyResolvedFields() resolves/creates the PollingPlace immediately when the
+    // interactive result event fires. Also confirms polling_place_source transitions to
+    // LIVE (persist() writes that column directly) and the Livewire form's
+    // polling_place_id is populated with the newly created, codeless PollingPlace.
+    Livewire::test(EditVoter::class, ['record' => $voter->id])
+        ->dispatch('registraduria-result', data: $data)
+        ->assertNotified('Puesto de votación encontrado')
+        ->assertSet('data.polling_place_id', PollingPlace::first()?->id);
+
+    $voter->refresh();
+
+    expect($voter->polling_place_source)->toBe(PollingPlaceSource::LIVE);
+
+    $pollingPlace = PollingPlace::first();
+
+    expect($pollingPlace)->not->toBeNull()
+        ->and($pollingPlace->name)->toBe('IE SAN JOSE C I P')
+        ->and($pollingPlace->zone_code)->toBeNull()
+        ->and($pollingPlace->place_code)->toBeNull();
+});
+
 // ============ D-06: role gate on the "actualizar_registraduria" (force-refresh) suffixAction ============
 
 it('shows the "actualizar_registraduria" action for admin_campaign, coordinator, and super_admin roles', function (string $role) {

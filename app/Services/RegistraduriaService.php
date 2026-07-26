@@ -67,10 +67,30 @@ class RegistraduriaService implements LiveSourceAdapter
             return ['status' => 'error', 'data' => null, 'error' => 'Error comunicándose con el servicio'];
         }
 
-        $payload = $response->json();
+        return self::normalizeResultPayload($response->json());
+    }
 
+    /**
+     * Normalize a raw `/result/{id}` JSON payload from the Python microservice: when the
+     * status is "done" with a non-empty `raw_message_html`, parse it into the 7 structured
+     * fields; otherwise the payload passes through unchanged.
+     *
+     * Shared by getResult() (used by the D-01 live/DB/snapshot cascade) AND
+     * RegistraduriaController::result() (used directly by the browser's Alpine.js polling
+     * loop in registraduria-browser.blade.php) so BOTH consumers of `/result/{id}` receive
+     * identically parsed fields. Before this method existed, the controller proxied the
+     * raw microservice JSON — including unparsed raw_message_html — straight to the
+     * browser, so a successful live lookup still showed "Error desconocido al consultar la
+     * Registraduría" because puesto_nombre was never populated
+     * (see .planning/debug/resolved/registraduria-interactive-result-not-parsed.md).
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public static function normalizeResultPayload(array $payload): array
+    {
         if (($payload['status'] ?? null) === 'done' && ! empty($payload['data']['raw_message_html'] ?? null)) {
-            $payload['data'] = $this->parseConsultaHtml($payload['data']['raw_message_html']);
+            $payload['data'] = self::parseConsultaHtml($payload['data']['raw_message_html']);
         }
 
         return $payload;
@@ -89,7 +109,7 @@ class RegistraduriaService implements LiveSourceAdapter
      *
      * @return array{puesto_nombre: string, puesto_codigo: string, zona_codigo: string, mesa_numero: string, departamento: string, municipio: string, direccion: string}
      */
-    private function parseConsultaHtml(string $html): array
+    private static function parseConsultaHtml(string $html): array
     {
         $fields = [
             'puesto_nombre' => '',

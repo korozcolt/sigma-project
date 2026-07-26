@@ -60,6 +60,41 @@ it('proxies result status from python service', function () {
         ->assertJson(['status' => 'waiting_captcha']);
 });
 
+it('parses raw_message_html into structured fields for the browser polling loop', function () {
+    // Regression test for .planning/debug/resolved/registraduria-interactive-result-not-parsed.md:
+    // the controller used to proxy the raw microservice JSON straight to the browser
+    // (including unparsed raw_message_html), so a real successful live lookup still showed
+    // "Error desconocido al consultar la Registraduría" because puesto_nombre never arrived.
+    $html = file_get_contents(base_path('tests/fixtures/registraduria/consulta-sample.html'));
+
+    Http::fake([
+        '*/result/*' => Http::response([
+            'status' => 'done',
+            'outcome' => 'success',
+            'data' => ['raw_message_html' => $html],
+            'error' => null,
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->get(route('registraduria.result', ['id' => 'abc-123']))
+        ->assertOk();
+
+    $response->assertJson(['status' => 'done']);
+    $data = $response->json('data');
+
+    expect($data)->toHaveKeys([
+        'puesto_nombre', 'puesto_codigo', 'zona_codigo',
+        'mesa_numero', 'departamento', 'municipio', 'direccion',
+    ])
+        ->and($data)->not->toHaveKey('raw_message_html')
+        ->and($data['puesto_nombre'])->not->toBe('')
+        ->and($data['departamento'])->not->toBe('')
+        ->and($data['municipio'])->not->toBe('');
+});
+
 it('returns 404 when result session not found in python service', function () {
     Http::fake([
         '*/result/*' => Http::response(['error' => 'not found'], 404),

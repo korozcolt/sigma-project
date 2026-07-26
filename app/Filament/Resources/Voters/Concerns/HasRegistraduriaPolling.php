@@ -6,7 +6,6 @@ use App\Enums\PollingPlaceSource;
 use App\Models\CensusRecord;
 use App\Models\Department;
 use App\Models\Municipality;
-use App\Models\PollingPlace;
 use App\Services\CampaignContext;
 use App\Services\PollingPlaceResolutionResult;
 use App\Services\PollingPlaceResolver;
@@ -297,7 +296,10 @@ trait HasRegistraduriaPolling
 
     /**
      * Resolve municipality/department/polling-place and populate the Livewire form data bag.
-     * UNCHANGED from before this phase (D-09) — moved verbatim, no logic altered.
+     * PollingPlace resolution itself now delegates to PollingPlaceResolver::resolveOrCreatePollingPlace()
+     * (previously a duplicated, buggy firstOrCreate() here — see
+     * .planning/debug/resolved/registraduria-interactive-result-not-parsed.md); everything
+     * else is unchanged from before D-09.
      *
      * @param  array<string, string>  $data
      */
@@ -313,24 +315,15 @@ trait HasRegistraduriaPolling
                 ->whereRaw('LOWER(name) = ?', [strtolower($data['departamento'] ?? '')])
                 ->first();
 
-        $placeCode = $data['puesto_codigo'] ?? substr($data['puesto_nombre'] ?? '', 0, 2);
-        $pollingPlace = null;
+        // Resolve-or-create the PollingPlace via the shared resolver (not a duplicated
+        // firstOrCreate here) so this interactive path and the automated reconciliation
+        // cascade (PollingPlaceResolver::resolveAutomated()) share identical
+        // matching/creation behaviour for the always-blank puesto_codigo/zona_codigo a
+        // real live Registraduría lookup returns — see
+        // .planning/debug/resolved/registraduria-interactive-result-not-parsed.md.
+        $pollingPlace = app(PollingPlaceResolver::class)->resolveOrCreatePollingPlace($data);
 
         if ($municipality) {
-            $pollingPlace = PollingPlace::firstOrCreate(
-                [
-                    'municipality_id' => $municipality->id,
-                    'zone_code' => $data['zona_codigo'] ?? null,
-                    'place_code' => $placeCode,
-                ],
-                [
-                    'name' => $data['puesto_nombre'] ?? 'Desconocido',
-                    'address' => $data['direccion'] ?? null,
-                    'department_id' => $department?->id,
-                    'max_tables' => 0,
-                ]
-            );
-
             $this->data['municipality_id'] = $municipality->id;
         }
 
