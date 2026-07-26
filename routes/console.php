@@ -15,3 +15,6 @@ Schedule::command('birthday:dispatch-webhooks')->everyMinute()->withoutOverlappi
 
 // Reintenta la consulta en vivo para votantes resueltos por fuente de respaldo (RECON-01)
 Schedule::command('census:reconcile-live')->hourly()->withoutOverlapping(10);
+
+// Revalida en background los apoyos pendientes o no encontrados en el censo local
+Schedule::command('census:reconcile-validation')->hourly()->withoutOverlapping(10);
