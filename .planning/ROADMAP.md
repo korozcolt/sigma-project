@@ -35,7 +35,7 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
 - [x] **Phase 7: Source-Flag Schema & Resolution Audit Trail** — Make a voter's polling-place source a persisted, queryable attribute with an append-only change history (completed 2026-07-24)
 - [x] **Phase 8: Resilient PollingPlaceResolver Service** — Extract the fallback cascade into one service that never blocks on a dead live source or silently downgrades fresher data (completed 2026-07-25)
 - [x] **Phase 9: Live-Source Feasibility Spike** — Time-boxed, non-blocking spike to validate (or rule out) `wsp.registraduria.gov.co` reCAPTCHA Enterprise as a live-source adapter (completed 2026-07-25 — Verdict: GO)
-- [ ] **Phase 10: Operator Provenance & Fallback Controls** — Show result origin, allow on-demand re-check, and let operators triage voters still on fallback data
+- [x] **Phase 10: Operator Provenance & Fallback Controls** — Show result origin, allow on-demand re-check, and let operators triage voters still on fallback data (completed 2026-07-26)
 - [ ] **Phase 11: Scheduled Reconciliation Job** — Unattended, campaign-safe, bounded, un-freezable job that upgrades fallback-sourced voters when the live source recovers
 
 ## Phase Details
@@ -103,7 +103,7 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
 - [x] 10-01-PLAN.md — Voters table badge + resolved-at column + source filter (SRC-01, SRC-05), ViewVoter infolist badge/timestamp, Pest coverage
 - [x] 10-02-PLAN.md — VoterForm read-only source display + role-gated "Actualizar" force-refresh action (SRC-01, D-06), SRC-04 confirmation via untouched "Consultar" action, Pest coverage
 - [x] 10-03-PLAN.md — FallbackSourceOverview dashboard widget (SRC-05), registered in AdminPanelProvider, Pest coverage
-- [ ] 10-04-PLAN.md — Human checkpoint: visual verification of badges/filter/role-gate/widget across the running app
+- [x] 10-04-PLAN.md — Human checkpoint: visual verification of badges/filter/role-gate/widget across the running app (approved 2026-07-26)
 **UI hint**: yes
 
 ### Phase 11: Scheduled Reconciliation Job
@@ -129,7 +129,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10 → 11. Phases 6 and
 | 7. Source-Flag Schema & Audit Trail | v1.1 | 1/1 | Complete   | 2026-07-24 |
 | 8. Resilient PollingPlaceResolver Service | v1.1 | 3/3 | Complete   | 2026-07-25 |
 | 9. Live-Source Feasibility Spike | v1.1 | 2/2 | Complete   | 2026-07-25 |
-| 10. Operator Provenance & Fallback Controls | v1.1 | 3/4 | Executing | - |
+| 10. Operator Provenance & Fallback Controls | v1.1 | 4/4 | Complete   | 2026-07-26 |
 | 11. Scheduled Reconciliation Job | v1.1 | 0/TBD | Not started | - |
 
 ---
