@@ -48,4 +48,10 @@ return [
         'probe_url' => env('REGISTRADURIA_PROBE_URL', 'https://wsp.registraduria.gov.co/censo/consultar/'),
     ],
 
+    'infovotantes' => [
+        'url' => env('INFOVOTANTES_SERVICE_URL', env('REGISTRADURIA_SERVICE_URL', 'http://localhost:5757')),
+        'live_enabled' => env('INFOVOTANTES_LIVE_ENABLED', true),
+        'probe_url' => env('INFOVOTANTES_PROBE_URL', 'https://eleccionescolombia.registraduria.gov.co/identificacion'),
+    ],
+
 ];
