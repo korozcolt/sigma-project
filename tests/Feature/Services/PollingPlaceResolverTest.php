@@ -7,6 +7,7 @@ use App\Models\Municipality;
 use App\Models\NationalCensusRecord;
 use App\Models\PollingPlace;
 use App\Models\PollingPlaceResolution;
+use App\Models\RegistraduriaLookup;
 use App\Models\Voter;
 use App\Services\LiveSourceAdapter;
 use App\Services\PollingPlaceResolutionResult;
@@ -713,4 +714,185 @@ test('resolveOrCreatePollingPlace creates a separate codeless PollingPlace for a
         ->and($second)->not->toBeNull()
         ->and($second->id)->not->toBe($first->id)
         ->and($second->name)->toBe('IE NORMAL SUPERIOR');
+});
+
+// ============ Permanent registraduria_lookups table (quick task 260726-jao) ============
+
+// Test 21
+test('resolveFromPermanentLookup returns null when no matching row exists', function () {
+    $resolver = new PollingPlaceResolver([]);
+
+    expect($resolver->resolveFromPermanentLookup('1000000021'))->toBeNull();
+});
+
+// Test 22
+test('resolveFromPermanentLookup returns a LIVE-sourced result with resolved pollingPlaceId when a matching row exists', function () {
+    RegistraduriaLookup::factory()->create([
+        'document_number' => '1000000022',
+        'puesto_nombre' => $this->pollingPlace->name,
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'mesa_numero' => '05',
+        'departamento' => $this->department->name,
+        'municipio' => $this->municipality->name,
+        'direccion' => $this->pollingPlace->address,
+    ]);
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $result = $resolver->resolveFromPermanentLookup('1000000022');
+
+    expect($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::LIVE)
+        ->and($result->pollingPlaceId)->toBe($this->pollingPlace->id);
+});
+
+// Test 23
+test('persistPermanentLookup creates a new row when none exists for that document_number', function () {
+    $resolver = new PollingPlaceResolver([]);
+
+    expect(RegistraduriaLookup::count())->toBe(0);
+
+    $resolver->persistPermanentLookup('1000000023', [
+        'puesto_nombre' => 'IE LA CAMPIÑA',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'mesa_numero' => '05',
+        'departamento' => 'SUCRE',
+        'municipio' => 'SINCELEJO',
+        'direccion' => 'CALLE FALSA 123',
+    ]);
+
+    expect(RegistraduriaLookup::count())->toBe(1)
+        ->and(RegistraduriaLookup::first()->document_number)->toBe('1000000023');
+});
+
+// Test 24
+test('persistPermanentLookup upserts on a second call for the same cédula without creating a duplicate row', function () {
+    $resolver = new PollingPlaceResolver([]);
+
+    $resolver->persistPermanentLookup('1000000024', [
+        'puesto_nombre' => 'IE ORIGINAL',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'mesa_numero' => '01',
+        'departamento' => 'SUCRE',
+        'municipio' => 'SINCELEJO',
+        'direccion' => 'DIRECCION ORIGINAL',
+    ]);
+
+    $resolver->persistPermanentLookup('1000000024', [
+        'puesto_nombre' => 'IE ACTUALIZADA',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'mesa_numero' => '02',
+        'departamento' => 'SUCRE',
+        'municipio' => 'SINCELEJO',
+        'direccion' => 'DIRECCION ACTUALIZADA',
+    ]);
+
+    expect(RegistraduriaLookup::count())->toBe(1);
+
+    $lookup = RegistraduriaLookup::where('document_number', '1000000024')->first();
+
+    expect($lookup->puesto_nombre)->toBe('IE ACTUALIZADA')
+        ->and($lookup->mesa_numero)->toBe('02');
+});
+
+// Test 25
+test('resolveAutomated returns the permanent-table result without calling startLookup on any live adapter when a matching row already exists', function () {
+    RegistraduriaLookup::factory()->create([
+        'document_number' => '1000000025',
+        'puesto_nombre' => $this->pollingPlace->name,
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'mesa_numero' => '05',
+        'departamento' => $this->department->name,
+        'municipio' => $this->municipality->name,
+        'direccion' => $this->pollingPlace->address,
+    ]);
+
+    $startLookupCalled = false;
+
+    $adapter = new class($startLookupCalled) implements LiveSourceAdapter
+    {
+        public function __construct(private bool &$startLookupCalled) {}
+
+        public function startLookup(string $cedula): string
+        {
+            $this->startLookupCalled = true;
+
+            return 'session-should-not-be-called';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'done', 'data' => [], 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = new PollingPlaceResolver([$adapter]);
+
+    $result = $resolver->resolveAutomated('1000000025', $voter);
+
+    expect($startLookupCalled)->toBeFalse()
+        ->and($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::LIVE)
+        ->and($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::LIVE);
+});
+
+// Test 26
+test('resolveAutomated persists a fresh live success into the permanent lookup table when no row existed beforehand', function () {
+    $adapter = new class implements LiveSourceAdapter
+    {
+        public function startLookup(string $cedula): string
+        {
+            return 'session-fresh-live';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return [
+                'status' => 'done',
+                'data' => [
+                    'puesto_nombre' => 'IE LA CAMPIÑA',
+                    'puesto_codigo' => '',
+                    'zona_codigo' => '',
+                    'mesa_numero' => '05',
+                    'departamento' => 'SUCRE',
+                    'municipio' => 'SINCELEJO',
+                    'direccion' => 'CALLE FALSA 123',
+                ],
+                'error' => null,
+            ];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = new PollingPlaceResolver([$adapter]);
+
+    expect(RegistraduriaLookup::count())->toBe(0);
+
+    $result = $resolver->resolveAutomated('1000000026', $voter);
+
+    expect($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::LIVE);
+
+    $lookup = RegistraduriaLookup::where('document_number', '1000000026')->first();
+
+    expect($lookup)->not->toBeNull()
+        ->and($lookup->puesto_nombre)->toBe('IE LA CAMPIÑA')
+        ->and($lookup->mesa_numero)->toBe('05')
+        ->and($lookup->campaign_id)->toBe($voter->campaign_id);
 });

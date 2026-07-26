@@ -10,6 +10,7 @@ use App\Models\Municipality;
 use App\Models\NationalCensusRecord;
 use App\Models\PollingPlace;
 use App\Models\PollingPlaceResolution;
+use App\Models\RegistraduriaLookup;
 use App\Models\Voter;
 use Illuminate\Support\Sleep;
 
@@ -140,6 +141,59 @@ class PollingPlaceResolver
     }
 
     /**
+     * Resolve from the permanent Registraduría lookup table (persisted results from any
+     * genuine past live lookup — admin interactive flow or headless reconciliation).
+     * Checked before the interactive live modal (replaces the old 30-day cache, D-01 layer 1)
+     * and before the automated cascade's live attempt, so a cédula already resolved once
+     * never re-pays for a live/2captcha lookup. Treated as PollingPlaceSource::LIVE because
+     * every row in this table originated from a genuine live result — more authoritative
+     * than a CensusRecord match, mirroring resolveFromNationalSnapshot()'s shape exactly.
+     */
+    public function resolveFromPermanentLookup(string $cedula): ?PollingPlaceResolutionResult
+    {
+        $lookup = RegistraduriaLookup::query()->where('document_number', $cedula)->first();
+
+        if (! $lookup) {
+            return null;
+        }
+
+        $fields = $lookup->toRegistraduriaFields();
+
+        return new PollingPlaceResolutionResult(
+            source: PollingPlaceSource::LIVE,
+            fields: $fields,
+            pollingPlaceId: $this->resolveOrCreatePollingPlace($fields)?->id,
+            tableNumber: ltrim($fields['mesa_numero'], '0') ?: null,
+        );
+    }
+
+    /**
+     * Upsert a genuine live Registraduría result into the permanent lookup table, keyed by
+     * document_number. Called by every point that produces a real live result (the
+     * interactive admin modal's handleRegistraduriaResult() and this class's own
+     * resolveAutomated()) so the whole system stops re-paying for a cédula already resolved.
+     *
+     * @param  array<string, string>  $fields  Raw Registraduría fields (RegistraduriaService shape)
+     */
+    public function persistPermanentLookup(string $cedula, array $fields, ?int $campaignId = null): void
+    {
+        RegistraduriaLookup::updateOrCreate(
+            ['document_number' => $cedula],
+            [
+                'puesto_nombre' => $fields['puesto_nombre'] ?? null,
+                'puesto_codigo' => $fields['puesto_codigo'] ?? null,
+                'zona_codigo' => $fields['zona_codigo'] ?? null,
+                'mesa_numero' => $fields['mesa_numero'] ?? null,
+                'departamento' => $fields['departamento'] ?? null,
+                'municipio' => $fields['municipio'] ?? null,
+                'direccion' => $fields['direccion'] ?? null,
+                'source' => PollingPlaceSource::LIVE->value,
+                'campaign_id' => $campaignId,
+            ]
+        );
+    }
+
+    /**
      * Persist a resolution result against a voter, enforcing the no-downgrade guard
      * (SRC-02) unless $isExplicitOverride is true (D-10 — the "Actualizar datos" force
      * refresh always bypasses the guard). Writes an audit row ONLY on a real source
@@ -234,8 +288,14 @@ class PollingPlaceResolver
      */
     public function resolveAutomated(string $cedula, Voter $voter, string $resolvedVia = 'reconciliation'): ?PollingPlaceResolutionResult
     {
+        if ($fromPermanentLookup = $this->resolveFromPermanentLookup($cedula)) {
+            return $this->persist($voter, $fromPermanentLookup, isExplicitOverride: false, resolvedVia: $resolvedVia);
+        }
+
         foreach ($this->liveAdapters as $adapter) {
             if ($fields = $this->attemptLiveAutomated($adapter, $cedula)) {
+                $this->persistPermanentLookup($cedula, $fields, $voter->campaign_id);
+
                 $result = new PollingPlaceResolutionResult(
                     source: PollingPlaceSource::LIVE,
                     fields: $fields,
