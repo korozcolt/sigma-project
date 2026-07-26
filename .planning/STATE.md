@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Ready to execute
-stopped_at: Completed 11-03-PLAN.md
-last_updated: "2026-07-26T14:47:35.180Z"
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-07-26T15:09:19.143Z"
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 15
-  completed_plans: 13
+  completed_plans: 14
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 ## Current Position
 
 Phase: 11 (scheduled-reconciliation-job) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 ## v1.1 Phase Map
 
@@ -54,6 +54,7 @@ Reset for v1.1. Historical v1.0 velocity data archived in `.planning/milestones/
 | Phase 10 P04 | 5min | 1 task | 0 files |
 | Phase 11 P01 | 10min | 2 tasks | 5 files |
 | Phase 11 P03 | 16min | 2 tasks | 3 files |
+| Phase 11 P02 | 12min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,8 @@ Phase 10 Plan 03 decisions:
 - [Phase 11]: [Phase 11 Plan 01]: RECON-01 is NOT marked complete in REQUIREMENTS.md by this plan alone, despite being listed in this plan's frontmatter requirements field - this plan only fixes the reachability probe and captures an HTML fixture, both prerequisites; the actual scheduled job (RECON-01's real claim) doesn't exist until later plans in this phase. Deferred requirement sign-off to phase completion, same precedent as Phase 10's split-requirement handling
 - [Phase 11]: [Phase 11 Plan 03]: Added protected $attributes = ['reconciliation_attempts' => 0] to Voter so a freshly created (in-memory) voter reflects the DB default immediately, since Eloquent does not refresh DB-defaulted columns after insert (Rule 1 fix).
 - [Phase 11]: [Phase 11 Plan 03]: RECON-05 intentionally NOT marked complete by this plan alone - it only adds the persisted schema counters, Plan 11-04's job logic realizes the actual terminal/exhaustion-state claim.
+- [Phase 11]: [Phase 11 Plan 02]: parseConsultaHtml() label-to-field map derived from the real captured fixture's actual headers (NUIP, DEPARTAMENTO, MUNICIPIO, PUESTO, DIRECCIÓN, MESA) — no CODIGO PUESTO/ZONA column exists in the real wsp response, so puesto_codigo/zona_codigo stay '' after parsing real data; the map keeps those two labels only for forward compatibility
+- [Phase 11]: [Phase 11 Plan 02]: RECON-01 intentionally NOT marked complete by this plan alone, matching the 11-01/11-03 precedent — the actual scheduled-job claim is realized by Plan 11-04
 
 ### Blockers/Concerns
 
@@ -138,6 +141,6 @@ Tracked in Blockers/Concerns above.
 
 ## Session Continuity
 
-Last session: 2026-07-26T14:47:35.177Z
-Stopped at: Completed 11-03-PLAN.md
+Last session: 2026-07-26T15:09:19.140Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None
