@@ -123,6 +123,24 @@ test('can filter voters by census not found status', function () {
         ->assertCanNotSeeTableRecords([$voterVerified]);
 });
 
+test('voters table renders a voter with the verified-registraduria status without error', function () {
+    $voter = Voter::factory()->create(['status' => VoterStatus::VERIFIED_REGISTRADURIA]);
+
+    Livewire::test(ListVoters::class)
+        ->assertSuccessful()
+        ->assertCanSeeTableRecords([$voter]);
+});
+
+test('can filter voters by verified registraduria status, isolating it from verified census', function () {
+    $voterRegistraduria = Voter::factory()->create(['status' => VoterStatus::VERIFIED_REGISTRADURIA]);
+    $voterCensus = Voter::factory()->create(['status' => VoterStatus::VERIFIED_CENSUS]);
+
+    Livewire::test(ListVoters::class)
+        ->filterTable('status', VoterStatus::VERIFIED_REGISTRADURIA->value)
+        ->assertCanSeeTableRecords([$voterRegistraduria])
+        ->assertCanNotSeeTableRecords([$voterCensus]);
+});
+
 test('can filter voters by municipality', function () {
     $municipality = Municipality::factory()->create();
 

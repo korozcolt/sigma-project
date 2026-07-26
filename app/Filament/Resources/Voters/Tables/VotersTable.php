@@ -91,6 +91,7 @@ class VotersTable
                         VoterStatus::REJECTED_CENSUS => 'danger',
                         VoterStatus::CENSUS_NOT_FOUND => 'warning',
                         VoterStatus::VERIFIED_CENSUS => 'info',
+                        VoterStatus::VERIFIED_REGISTRADURIA => 'success',
                         VoterStatus::CORRECTION_REQUIRED => 'warning',
                         VoterStatus::VERIFIED_CALL => 'success',
                         VoterStatus::CONFIRMED => 'success',
