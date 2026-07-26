@@ -256,17 +256,19 @@ new class extends Component
                     placeholder="1234567890"
                 />
 
-                @if($registraduriaVerified)
-                    <div class="flex items-start gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-300">
-                        <flux:icon.check-badge class="mt-0.5 h-4 w-4 shrink-0" />
-                        <span>Verificado por Registraduría.</span>
-                    </div>
-                @elseif($censusNotFoundWarning)
-                    <div class="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-                        <flux:icon.exclamation-triangle class="mt-0.5 h-4 w-4 shrink-0" />
-                        <span>Esta cédula no aparece en el censo actual, revísala.</span>
-                    </div>
-                @endif
+                <div wire:key="document-status-banner">
+                    @if($registraduriaVerified)
+                        <div class="flex items-start gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                            <flux:icon.check-badge class="mt-0.5 h-4 w-4 shrink-0" />
+                            <span>Verificado por Registraduría.</span>
+                        </div>
+                    @elseif($censusNotFoundWarning)
+                        <div class="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                            <flux:icon.exclamation-triangle class="mt-0.5 h-4 w-4 shrink-0" />
+                            <span>Esta cédula no aparece en el censo actual, revísala.</span>
+                        </div>
+                    @endif
+                </div>
 
                 <flux:input
                     wire:model.blur="email"
