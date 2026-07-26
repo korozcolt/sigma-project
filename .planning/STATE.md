@@ -144,9 +144,10 @@ Tracked in Blockers/Concerns above.
 | 260726-eu3 | Restore infovotantes as a second, coexisting LiveSourceAdapter ahead of wsp | 2026-07-26 | 5d04a99 | [260726-eu3-restore-infovotantes-as-a-coexisting-liv](.planning/quick/260726-eu3-restore-infovotantes-as-a-coexisting-liv/) |
 | 260726-hq8 | Fix Hablame SMS API payload — priority/from moved to payload root, getAccountInfo route corrected | 2026-07-26 | a02ba71 | [260726-hq8-fix-hablame-sms-api-payload-priority-fro](.planning/quick/260726-hq8-fix-hablame-sms-api-payload-priority-fro/) |
 | 260726-i2z | Fix "Regstrate" typo to "Regístrate" in coordinator leaders self-promote panel | 2026-07-26 | dc35092 | [260726-i2z-fix-typo-regstrate-reg-strate-in-coordin](.planning/quick/260726-i2z-fix-typo-regstrate-reg-strate-in-coordin/) |
+| 260726-i6e | Fix seeded "Centro" neighborhood invisible under CampaignContextScope — RoleUsersSeeder now sets is_global=>true via updateOrCreate() | 2026-07-26 | 35401a7 | [260726-i6e-fix-neighborhood-seeded-record-invisible](.planning/quick/260726-i6e-fix-neighborhood-seeded-record-invisible/) |
 
 ## Session Continuity
 
-Last session: 2026-07-26T18:02:21.000Z
-Stopped at: Completed quick task 260726-i2z (fix Regstrate typo to Regístrate in coordinator leaders view)
+Last session: 2026-07-26T18:20:00.000Z
+Stopped at: Completed quick task 260726-i6e (fix seeded Centro neighborhood invisible under CampaignContextScope)
 Resume file: None
