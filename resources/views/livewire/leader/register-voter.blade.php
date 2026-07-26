@@ -9,13 +9,15 @@ use App\Models\PollingPlace;
 use App\Models\Voter;
 use App\Rules\MaxTablesForPollingPlace;
 use App\Services\VoterValidationService;
-use Livewire\Volt\Component;
 use Illuminate\Validation\Rule;
-use function Livewire\Volt\{layout};
+use Livewire\Volt\Component;
+
+use function Livewire\Volt\layout;
 
 layout('components.layouts::leader', ['title' => 'Registrar Apoyo']);
 
-new class extends Component {
+new class extends Component
+{
     public string $document_number = '';
 
     public string $first_name = '';
@@ -45,10 +47,13 @@ new class extends Component {
     public ?int $campaign_id = null;
 
     public bool $departmentLocked = false;
+
     public bool $municipalityLocked = false;
 
     public bool $registerAnother = false;
+
     public bool $showSuccess = false;
+
     public ?string $lastVoterName = null;
 
     public bool $censusNotFoundWarning = false;
@@ -192,6 +197,7 @@ new class extends Component {
 
         if ($campaign->prefersMunicipality() && filled($campaign->municipality_id) && (int) $this->municipality_id !== (int) $campaign->municipality_id) {
             $this->addError('municipality_id', 'El municipio debe coincidir con el de la campaña.');
+
             return;
         }
 
@@ -199,6 +205,7 @@ new class extends Component {
             $municipalityDepartmentId = Municipality::query()->whereKey($this->municipality_id)->value('department_id');
             if ((int) $municipalityDepartmentId !== (int) $campaign->department_id) {
                 $this->addError('municipality_id', 'El municipio debe pertenecer al departamento de la campaña.');
+
                 return;
             }
         }
