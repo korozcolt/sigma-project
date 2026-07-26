@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: Completed 11-04-PLAN.md
-last_updated: "2026-07-26T15:17:31.606Z"
+stopped_at: Completed quick task 260726-eu3 (restore infovotantes as coexisting LiveSourceAdapter)
+last_updated: "2026-07-26T18:00:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -140,9 +140,10 @@ Tracked in Blockers/Concerns above.
 | 260508-wze | Registraduría headless proxy screenshots modal SIGMA VPS | 2026-05-09 | 030e091 | [260508-wze-registraduria-headless-proxy-screenshots](.planning/quick/260508-wze-registraduria-headless-proxy-screenshots/) |
 | 260514-mng | Birthday webhook automation — BirthdayWebhookService + DispatchBirthdayWebhooks command | 2026-05-14 | 12262d1 | [260514-mng-implementar-automatizaci-n-de-webhook-de](.planning/quick/260514-mng-implementar-automatizaci-n-de-webhook-de/) |
 | 260723-f26 | Botón secundario "Actualizar datos desde Registraduría" + intento de E2E | 2026-07-23 | bb45b56 | [260723-f26-agregar-boton-secundario-de-actualizar-d](.planning/quick/260723-f26-agregar-boton-secundario-de-actualizar-d/) |
+| 260726-eu3 | Restore infovotantes as a second, coexisting LiveSourceAdapter ahead of wsp | 2026-07-26 | 5d04a99 | [260726-eu3-restore-infovotantes-as-a-coexisting-liv](.planning/quick/260726-eu3-restore-infovotantes-as-a-coexisting-liv/) |
 
 ## Session Continuity
 
-Last session: 2026-07-26T15:17:31.603Z
-Stopped at: Completed 11-04-PLAN.md
+Last session: 2026-07-26T18:00:00.000Z
+Stopped at: Completed quick task 260726-eu3 (restore infovotantes as coexisting LiveSourceAdapter)
 Resume file: None
