@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: Completed quick task 260726-ifp (local census cross-check on Líder register-voter form + background reconciliation)
-last_updated: "2026-07-26T19:00:00.000Z"
+stopped_at: Completed quick task 260726-jao (permanent registraduria_lookups table replacing the 30-day Registraduría cache, VERIFIED_REGISTRADURIA status, líder/coordinador form cascades)
+last_updated: "2026-07-26T20:00:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -118,6 +118,14 @@ Quick task 260726-ifp decisions:
 - DispatchCensusRevalidation queries both PENDING_REVIEW and CENSUS_NOT_FOUND statuses so the hourly job also catches voters that were never re-checked before this task existed.
 - Testing a Table-level ->headerActions() action requires assertTableActionVisible/Hidden + callTableAction (not the page-level assertActionVisible/callAction used for page ->headerActions() like reassignDuplicateOwner) — confirmed via Filament's TestsActions trait source.
 
+Quick task 260726-jao decisions:
+
+- registraduria_lookups has no TTL/expiration column by design — permanent, survives cache:clear, unlike the 30-day Cache::put mechanism it fully replaces; campaign_id is nullable and purely informational/audit, never scoping reads (cross-campaign global data, matching the prior cache-key precedent).
+- resolveFromPermanentLookup() treats every row as PollingPlaceSource::LIVE — every row originated from a genuine live result, same authority level as a fresh live lookup, more authoritative than CensusRecord.
+- resolveAutomated() checks the permanent table as tier 0, before the live-adapter loop, and persists a fresh live success into it — the headless reconciliation job (Phase 11) now benefits from the same accumulated table as every interactive flow.
+- register-voter.blade.php and create-leader.blade.php both make the green Registraduría banner mutually exclusive with the amber census warning via @if/@elseif; Voter save() status priority is VERIFIED_REGISTRADURIA > PENDING_REVIEW > CENSUS_NOT_FOUND, computed fresh at submit time.
+- Explicitly did NOT implement User/Voter deduplication or anonymous/placeholder identifier schemes for coordinators — out of scope per this task's CONTEXT.md deferred section; document_number on the coordinator form is the leader's real cédula.
+
 ### Blockers/Concerns
 
 - **`gsd-tools.cjs` root-resolution bug when a git worktree owns its own `.planning/`:** `findProjectRoot()` (in `lib/core.cjs`) walks up from `cwd` and, upon finding an *ancestor* directory that also has `.planning/` plus a `.git` heuristic match, redirects `cwd` there — even when the original `cwd` already has its own valid, independent `.planning/`. In this session's worktree (`worktree-agent-ae9f012d50fef4e54`, which owns its own `.planning/`), every `gsd-tools state|roadmap|requirements` subcommand silently redirected reads/writes to the **main checkout's** `.planning/` instead of the worktree's. This was caught before real damage (the only accidental write to the main repo's `STATE.md` was reverted), but it means **`gsd-tools` CLI commands cannot be trusted to target a worktree's own `.planning/` in this repo layout** — STATE.md/ROADMAP.md/REQUIREMENTS.md updates for Phase 06 Plan 01 were made by hand-editing the worktree copies directly instead. Worth a fix in `gsd-tools` (short-circuit `findProjectRoot` when `startDir` itself already has `.planning/`) or at minimum a documented workaround for future phases executed in this worktree.
@@ -153,9 +161,10 @@ Tracked in Blockers/Concerns above.
 | 260726-i2z | Fix "Regstrate" typo to "Regístrate" in coordinator leaders self-promote panel | 2026-07-26 | dc35092 | [260726-i2z-fix-typo-regstrate-reg-strate-in-coordin](.planning/quick/260726-i2z-fix-typo-regstrate-reg-strate-in-coordin/) |
 | 260726-i6e | Fix seeded "Centro" neighborhood invisible under CampaignContextScope — RoleUsersSeeder now sets is_global=>true via updateOrCreate() | 2026-07-26 | 35401a7 | [260726-i6e-fix-neighborhood-seeded-record-invisible](.planning/quick/260726-i6e-fix-neighborhood-seeded-record-invisible/) |
 | 260726-ifp | Local census cross-check on Líder register-voter form (non-blocking blur warning + CENSUS_NOT_FOUND status) with hourly + on-demand background reconciliation | 2026-07-26 | 0952232 | [260726-ifp-cruce-local-contra-censo-al-registrar-ap](.planning/quick/260726-ifp-cruce-local-contra-censo-al-registrar-ap/) |
+| 260726-jao | Permanent registraduria_lookups table replacing the 30-day cache, VERIFIED_REGISTRADURIA status, and Registraduría-first blur cascades on the líder/coordinador forms + headless reconciliation | 2026-07-26 | 3744164 | [260726-jao-tabla-permanente-de-resultados-de-regist](.planning/quick/260726-jao-tabla-permanente-de-resultados-de-regist/) |
 
 ## Session Continuity
 
-Last session: 2026-07-26T19:00:00.000Z
-Stopped at: Completed quick task 260726-ifp (local census cross-check on Líder register-voter form + background reconciliation)
+Last session: 2026-07-26T20:00:00.000Z
+Stopped at: Completed quick task 260726-jao (permanent registraduria_lookups table + VERIFIED_REGISTRADURIA + líder/coordinador form cascades)
 Resume file: None
