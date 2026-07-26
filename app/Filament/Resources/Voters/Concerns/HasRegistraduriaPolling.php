@@ -11,7 +11,6 @@ use App\Services\PollingPlaceResolutionResult;
 use App\Services\PollingPlaceResolver;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\On;
 
 trait HasRegistraduriaPolling
@@ -24,9 +23,6 @@ trait HasRegistraduriaPolling
      *  bypass the no-downgrade guard for this one pending result (D-10). */
     public bool $registraduriaForceOverride = false;
 
-    /** Cache TTL for Registraduría results: 30 days (polling places rarely change mid-campaign). */
-    private const CACHE_TTL_DAYS = 30;
-
     /** Save-bound form fields fillPollingPlaceFields() mutates that must be reverted if
      *  PollingPlaceResolver::persist() blocks the write (SRC-02) — see applyResolvedFields(). */
     private const GUARDED_IDENTITY_FIELDS = [
@@ -38,16 +34,12 @@ trait HasRegistraduriaPolling
         'detailed_address',
     ];
 
-    private function registraduriaCacheKey(string $cedula): string
-    {
-        return "registraduria:cedula:{$cedula}";
-    }
-
     /**
      * Called by the suffixAction on the document_number field.
      *
-     * Lookup order (D-01): cache -> live (if reachable) -> DB reconstruction ->
-     * national snapshot. Live is attempted first when reachable because the operator
+     * Lookup order (D-01): permanent Registraduría lookup table -> live (if reachable) ->
+     * DB reconstruction -> national snapshot. Live is attempted first when reachable
+     * because the operator
      * explicitly prioritized freshness/reliability over cost; when live is unreachable
      * (or REGISTRADURIA_LIVE_ENABLED=false), the live browser modal is never opened at
      * all (LIVE-03) and the cascade falls through to DB reconstruction, then the
@@ -67,17 +59,16 @@ trait HasRegistraduriaPolling
 
         $resolver = app(PollingPlaceResolver::class);
 
-        // Layer 1: Redis cache (30-day TTL), unchanged (D-02). A cache hit is treated as
-        // a LIVE-sourced re-confirmation because this cache key is ONLY EVER warmed by a
-        // genuine live result (handleRegistraduriaResult() below) — the DB-reconstruction
-        // branch further down deliberately never writes to this key (SRC-02 fix: see this
-        // plan's <interfaces> note), so this premise always holds.
-        $cached = Cache::get($this->registraduriaCacheKey($cedula));
-        if ($cached) {
-            $this->applyResolvedFields(new PollingPlaceResolutionResult(PollingPlaceSource::LIVE, $cached));
+        // Layer 1: permanent Registraduría lookup table (replaces the old 30-day Redis-backed
+        // cache — same invariant holds: only ever written by a genuine live result, either here
+        // via handleRegistraduriaResult() or headlessly via PollingPlaceResolver::resolveAutomated(),
+        // so a hit is always safely LIVE-sourced.
+        $permanentResult = $resolver->resolveFromPermanentLookup($cedula);
+        if ($permanentResult) {
+            $this->applyResolvedFields($permanentResult);
             Notification::make()
-                ->title('Puesto de votación (desde caché)')
-                ->body("Puesto: {$cached['puesto_nombre']} — Mesa: {$cached['mesa_numero']}")
+                ->title('Puesto de votación (ya verificado por Registraduría)')
+                ->body("Puesto: {$permanentResult->fields['puesto_nombre']} — Mesa: {$permanentResult->fields['mesa_numero']}")
                 ->success()
                 ->send();
 
@@ -226,17 +217,14 @@ trait HasRegistraduriaPolling
 
         $this->applyResolvedFields(new PollingPlaceResolutionResult(PollingPlaceSource::LIVE, $data), $isExplicitOverride);
 
-        // Cache the result so the next lookup for this cedula is instant (no 2captcha cost).
-        // This is the ONLY place in the trait that writes to this cache key — a genuine
-        // live-sourced result — which is what keeps the cache-hit branch's LIVE label
-        // above always true (SRC-02).
+        // Persist the result to the permanent Registraduría lookup table so the next lookup
+        // for this cédula is instant (no 2captcha cost) — replaces the old 30-day cache write.
+        // This is the ONLY interactive-flow place that writes here — a genuine live-sourced
+        // result — which is what keeps openRegistraduriaBrowser()'s permanent-table branch
+        // above always safely LIVE-sourced.
         $cedula = $this->data['document_number'] ?? null;
         if ($cedula) {
-            Cache::put(
-                $this->registraduriaCacheKey($cedula),
-                $data,
-                now()->addDays(self::CACHE_TTL_DAYS)
-            );
+            app(PollingPlaceResolver::class)->persistPermanentLookup($cedula, $data, CampaignContext::currentCampaignId());
         }
 
         Notification::make()

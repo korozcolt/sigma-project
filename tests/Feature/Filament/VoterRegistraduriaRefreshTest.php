@@ -8,12 +8,12 @@ use App\Models\Municipality;
 use App\Models\NationalCensusRecord;
 use App\Models\PollingPlace;
 use App\Models\PollingPlaceResolution;
+use App\Models\RegistraduriaLookup;
 use App\Models\User;
 use App\Models\Voter;
 use App\Services\InfovotantesService;
 use App\Services\RegistraduriaService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Session;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -61,16 +61,14 @@ it('forces a fresh 2captcha lookup even when the Redis cache is warm and a Censu
     $cedula = '1102812122';
     $voter = createEditableVoter(['document_number' => $cedula]);
 
-    // Layer 1 (Redis) warm
-    Cache::put("registraduria:cedula:{$cedula}", [
+    // Layer 1 (permanent Registraduría lookup table) warm
+    RegistraduriaLookup::factory()->create([
+        'document_number' => $cedula,
         'puesto_nombre' => 'CACHED PLACE',
-        'puesto_codigo' => '01',
-        'zona_codigo' => '01',
-        'mesa_numero' => '001',
         'departamento' => 'SUCRE',
         'municipio' => $voter->municipality->name,
         'direccion' => 'Calle Falsa 123',
-    ], now()->addDays(30));
+    ]);
 
     // Layer 2 (DB reconstruction) also would succeed
     CensusRecord::factory()->create([
@@ -170,6 +168,39 @@ it('opens the live modal instead of resolving from DB when live is reachable, ev
         ->assertSet('registraduriaSessionId', 'session-live-first');
 
     expect($voter->fresh()->polling_place_source)->toBeNull();
+});
+
+it('resolves from the permanent Registraduría lookup table without opening the live modal when the cédula was already verified', function () {
+    $cedula = '1102816099';
+    $voter = createEditableVoter(['document_number' => $cedula]);
+
+    RegistraduriaLookup::factory()->create([
+        'document_number' => $cedula,
+        'puesto_nombre' => 'IE LA CAMPIÑA',
+        'departamento' => 'SUCRE',
+        'municipio' => $voter->municipality->name,
+        'mesa_numero' => '05',
+        'direccion' => 'Calle Falsa 123',
+    ]);
+
+    // Neither live adapter should be touched — the permanent-table hit short-circuits
+    // openRegistraduriaBrowser() before isLiveReachable()/startLiveLookup() are ever called.
+    $this->mock(InfovotantesService::class, function ($mock) {
+        $mock->shouldNotReceive('isReachable');
+        $mock->shouldNotReceive('startLookup');
+    });
+
+    $this->mock(RegistraduriaService::class, function ($mock) {
+        $mock->shouldNotReceive('isReachable');
+        $mock->shouldNotReceive('startLookup');
+    });
+
+    Livewire::test(EditVoter::class, ['record' => $voter->id])
+        ->call('openRegistraduriaBrowser', $cedula)
+        ->assertSet('registraduriaOpen', false)
+        ->assertNotified('Puesto de votación (ya verificado por Registraduría)');
+
+    expect($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::LIVE);
 });
 
 it('resolves from DB reconstruction without opening the modal when live is unreachable and a matching CensusRecord exists', function () {
@@ -358,7 +389,7 @@ it('never mislabels a DB-reconstruction result as LIVE on a later lookup via a s
         ->assertNotified('Puesto de votación (desde base de datos)');
 
     expect($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::DB_RECONSTRUCTION)
-        ->and(Cache::get("registraduria:cedula:{$cedula}"))->toBeNull();
+        ->and(RegistraduriaLookup::where('document_number', $cedula)->exists())->toBeFalse();
 
     Livewire::test(EditVoter::class, ['record' => $voter->id])
         ->call('openRegistraduriaBrowser', $cedula)
