@@ -105,6 +105,24 @@ test('can filter voters by status', function () {
         ->assertCanNotSeeTableRecords([$voterConfirmed]);
 });
 
+test('voters table renders a voter with the census-not-found status without error', function () {
+    $voter = Voter::factory()->create(['status' => VoterStatus::CENSUS_NOT_FOUND]);
+
+    Livewire::test(ListVoters::class)
+        ->assertSuccessful()
+        ->assertCanSeeTableRecords([$voter]);
+});
+
+test('can filter voters by census not found status', function () {
+    $voterNotFound = Voter::factory()->create(['status' => VoterStatus::CENSUS_NOT_FOUND]);
+    $voterVerified = Voter::factory()->create(['status' => VoterStatus::VERIFIED_CENSUS]);
+
+    Livewire::test(ListVoters::class)
+        ->filterTable('status', VoterStatus::CENSUS_NOT_FOUND->value)
+        ->assertCanSeeTableRecords([$voterNotFound])
+        ->assertCanNotSeeTableRecords([$voterVerified]);
+});
+
 test('can filter voters by municipality', function () {
     $municipality = Municipality::factory()->create();
 

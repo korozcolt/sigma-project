@@ -11,6 +11,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
 {
     case PENDING_REVIEW = 'pending_review';
     case REJECTED_CENSUS = 'rejected_census';
+    case CENSUS_NOT_FOUND = 'census_not_found';
     case VERIFIED_CENSUS = 'verified_census';
     case CORRECTION_REQUIRED = 'correction_required';
     case VERIFIED_CALL = 'verified_call';
@@ -24,6 +25,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
         return match ($this) {
             self::PENDING_REVIEW => 'Pendiente de Revisión',
             self::REJECTED_CENSUS => 'Rechazado en Censo',
+            self::CENSUS_NOT_FOUND => 'No Encontrado en Censo',
             self::VERIFIED_CENSUS => 'Verificado en Censo',
             self::CORRECTION_REQUIRED => 'Requiere Corrección',
             self::VERIFIED_CALL => 'Verificado por Llamada',
@@ -39,6 +41,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
         return match ($this) {
             self::PENDING_REVIEW => 'gray',
             self::REJECTED_CENSUS => 'danger',
+            self::CENSUS_NOT_FOUND => 'warning',
             self::VERIFIED_CENSUS => 'info',
             self::CORRECTION_REQUIRED => 'warning',
             self::VERIFIED_CALL => 'success',
@@ -54,6 +57,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
         return match ($this) {
             self::PENDING_REVIEW => 'heroicon-m-clock',
             self::REJECTED_CENSUS => 'heroicon-m-x-circle',
+            self::CENSUS_NOT_FOUND => 'heroicon-m-question-mark-circle',
             self::VERIFIED_CENSUS => 'heroicon-m-check-badge',
             self::CORRECTION_REQUIRED => 'heroicon-m-exclamation-triangle',
             self::VERIFIED_CALL => 'heroicon-m-phone',
@@ -69,6 +73,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
         return match ($this) {
             self::PENDING_REVIEW => 'El apoyo está pendiente de revisión inicial',
             self::REJECTED_CENSUS => 'El apoyo fue rechazado al validar contra el censo electoral',
+            self::CENSUS_NOT_FOUND => 'El apoyo no se encontró en el censo electoral local al momento de registrarlo; requiere revisión o reconciliación en segundo plano.',
             self::VERIFIED_CENSUS => 'El apoyo fue verificado exitosamente en el censo electoral',
             self::CORRECTION_REQUIRED => 'Los datos del apoyo requieren corrección antes de continuar',
             self::VERIFIED_CALL => 'El apoyo fue verificado mediante llamada telefónica',

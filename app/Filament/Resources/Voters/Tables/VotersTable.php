@@ -87,6 +87,7 @@ class VotersTable
                     ->color(fn (VoterStatus $state): string => match ($state) {
                         VoterStatus::PENDING_REVIEW => 'gray',
                         VoterStatus::REJECTED_CENSUS => 'danger',
+                        VoterStatus::CENSUS_NOT_FOUND => 'warning',
                         VoterStatus::VERIFIED_CENSUS => 'info',
                         VoterStatus::CORRECTION_REQUIRED => 'warning',
                         VoterStatus::VERIFIED_CALL => 'success',
