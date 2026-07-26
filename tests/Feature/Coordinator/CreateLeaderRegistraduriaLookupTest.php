@@ -63,6 +63,27 @@ test('blurring a document_number found in neither source shows only the amber wa
         ->assertSee('Esta cédula no aparece en el censo actual, revísala.');
 });
 
+// NOTE: This is a regression/safety-net guard for the wire:key fix (260726-kg8) on the
+// document-status banner. Livewire::test()'s ->set() calls mutate server-side component
+// state directly and never execute the browser's morphdom algorithm, so this test cannot
+// reproduce the actual DOM-morph value bleed a real browser blur triggers. Final
+// confirmation requires a real browser session (see 260726-kg8 plan notes).
+test('email and password stay independent after a Registraduría-verified document blur (regression guard; does not exercise real browser DOM morphing — see 260726-kg8 plan notes for the manual browser verification this requires)', function () {
+    RegistraduriaLookup::factory()->create(['document_number' => '1102812125']);
+
+    $this->actingAs($this->coordinator);
+
+    $component = Volt::test('coordinator.create-leader')
+        ->set('document_number', '1102812125')
+        ->assertSet('registraduriaVerified', true);
+
+    $component
+        ->set('email', 'independent@example.com')
+        ->set('password', 'distinctPassword123')
+        ->assertSet('email', 'independent@example.com')
+        ->assertSet('password', 'distinctPassword123');
+});
+
 // ============ Save-time validation tests (full OTP flow) ============
 
 function submitCreateLeaderThroughOtp(string $documentNumber = '1102812199')

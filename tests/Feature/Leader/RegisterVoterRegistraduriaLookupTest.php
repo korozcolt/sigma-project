@@ -157,3 +157,25 @@ test('saving a cédula found in neither source still persists CENSUS_NOT_FOUND',
     expect($voter)->not->toBeNull()
         ->and($voter->status)->toBe(VoterStatus::CENSUS_NOT_FOUND);
 });
+
+// NOTE: This is a regression/safety-net guard for the wire:key fix (260726-kg8) on the
+// document-status banner. Livewire::test()'s ->set() calls mutate server-side component
+// state directly and never execute the browser's morphdom algorithm, so this test cannot
+// reproduce the actual DOM-morph value bleed a real browser blur triggers. Final
+// confirmation requires a real browser session (see 260726-kg8 plan notes).
+test('first_name, last_name, and birth_date stay independent after a Registraduría-verified document blur (regression guard; does not exercise real browser DOM morphing — see 260726-kg8 plan notes for the manual browser verification this requires)', function () {
+    createVerifiedRegistraduriaLookup('1234567896', $this->municipality);
+
+    $this->actingAs($this->leader);
+
+    $component = Volt::test('leader.register-voter')
+        ->set('document_number', '1234567896')
+        ->assertSet('registraduriaVerified', true);
+
+    $component
+        ->set('first_name', 'Ana Maria')
+        ->set('last_name', 'Restrepo Gomez')
+        ->assertSet('first_name', 'Ana Maria')
+        ->assertSet('last_name', 'Restrepo Gomez')
+        ->assertSet('birth_date', null);
+});
