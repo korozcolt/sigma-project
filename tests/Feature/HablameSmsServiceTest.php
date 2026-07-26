@@ -116,8 +116,12 @@ test('can send SMS via real API', function () {
         ->and($result['cost'])->toBe(0.034);
 
     Http::assertSent(function ($request) {
+        $body = $request->data();
+
         return $request->hasHeader('X-Hablame-Key', 'test_api_key')
-            && $request->url() === config('services.hablame.api_url').'/sms/v5/send';
+            && $request->url() === config('services.hablame.api_url').'/sms/v5/send'
+            && ($body['from'] ?? null) === config('services.hablame.from')
+            && ! array_key_exists('priority', $body);
     });
 });
 
@@ -243,7 +247,8 @@ test('sendRaw posts a priority true message when priority is requested', functio
         $body = $request->data();
         $message = $body['messages'][0] ?? [];
 
-        return ($message['priority'] ?? false) === true
+        return ($body['priority'] ?? false) === true
+            && ($body['from'] ?? null) === config('services.hablame.from')
             && ($message['text'] ?? '') === 'Tu código es 123456';
     });
 });
@@ -274,7 +279,9 @@ test('sendRaw does not include a priority key when priority is false', function 
         $body = $request->data();
         $message = $body['messages'][0] ?? [];
 
-        return ! array_key_exists('priority', $message);
+        return ! array_key_exists('priority', $body)
+            && ($body['from'] ?? null) === config('services.hablame.from')
+            && ! array_key_exists('priority', $message);
     });
 });
 
@@ -289,7 +296,7 @@ test('can get real account info', function () {
     Config::set('services.hablame.api_key', 'test_api_key');
 
     Http::fake([
-        '*/v5/account/info' => Http::response([
+        '*/account/v5/info' => Http::response([
             'statusCode' => 200,
             'statusMessage' => 'OK',
             'payLoad' => [

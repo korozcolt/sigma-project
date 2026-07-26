@@ -110,7 +110,7 @@ test('generate sends the otp via HablameSmsService::sendRaw with priority true u
         $body = $request->data();
         $message = $body['messages'][0] ?? [];
 
-        return ($message['priority'] ?? false) === true
+        return ($body['priority'] ?? false) === true
             && ($message['text'] ?? '') === "Codigo SIGMA: {$otp->code}";
     });
 });

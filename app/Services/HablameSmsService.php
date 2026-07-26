@@ -55,6 +55,7 @@ class HablameSmsService
             ])
                 ->timeout(30)
                 ->post("{$this->apiUrl}/sms/v5/send", [
+                    'from' => $this->from,
                     'messages' => [
                         [
                             'to' => $phone,
@@ -180,9 +181,16 @@ class HablameSmsService
 
         $messagePayload = ['to' => $formattedPhone, 'text' => $text];
 
+        $requestBody = [
+            'from' => $this->from,
+            'messages' => [$messagePayload],
+        ];
+
         if ($priority) {
-            $messagePayload['priority'] = true;
+            $requestBody['priority'] = true;
         }
+
+        Log::info('Hablame SMS Raw Send Payload', ['body' => $requestBody]);
 
         try {
             $response = Http::withHeaders([
@@ -191,9 +199,7 @@ class HablameSmsService
                 'Accept' => 'application/json',
             ])
                 ->timeout(30)
-                ->post("{$this->apiUrl}/sms/v5/send", [
-                    'messages' => [$messagePayload],
-                ]);
+                ->post("{$this->apiUrl}/sms/v5/send", $requestBody);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -258,7 +264,7 @@ class HablameSmsService
                 'X-Hablame-Key' => $this->apiKey,
             ])
                 ->timeout(10)
-                ->get("{$this->apiUrl}/v5/account/info");
+                ->get("{$this->apiUrl}/account/v5/info");
 
             if ($response->successful()) {
                 $data = $response->json();
