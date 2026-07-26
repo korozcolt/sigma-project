@@ -148,7 +148,7 @@ test('isLiveReachable returns true when at least one adapter is reachable, false
 });
 
 // Test 6
-test('startLiveLookup calls startLookup on the FIRST adapter only, never the second', function () {
+test('startLiveLookup calls startLookup on the first REACHABLE adapter, never a later one, when the first is reachable', function () {
     $firstCalled = false;
     $secondCalled = false;
 
@@ -203,6 +203,90 @@ test('startLiveLookup calls startLookup on the FIRST adapter only, never the sec
     expect($sessionId)->toBe('session-first')
         ->and($firstCalled)->toBeTrue()
         ->and($secondCalled)->toBeFalse();
+});
+
+// Test 6b
+test('startLiveLookup skips an unreachable first adapter and uses the next reachable one', function () {
+    $firstCalled = false;
+    $secondCalled = false;
+
+    $first = new class($firstCalled) implements LiveSourceAdapter
+    {
+        public function __construct(private bool &$called) {}
+
+        public function startLookup(string $cedula): string
+        {
+            $this->called = true;
+
+            return 'session-first';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'done', 'data' => [], 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return false;
+        }
+    };
+
+    $second = new class($secondCalled) implements LiveSourceAdapter
+    {
+        public function __construct(private bool &$called) {}
+
+        public function startLookup(string $cedula): string
+        {
+            $this->called = true;
+
+            return 'session-second';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'done', 'data' => [], 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $resolver = new PollingPlaceResolver([$first, $second]);
+
+    $sessionId = $resolver->startLiveLookup('1000000005');
+
+    expect($sessionId)->toBe('session-second')
+        ->and($firstCalled)->toBeFalse()
+        ->and($secondCalled)->toBeTrue();
+});
+
+// Test 6c
+test('startLiveLookup throws when no configured adapter is reachable', function () {
+    $unreachable = new class implements LiveSourceAdapter
+    {
+        public function startLookup(string $cedula): string
+        {
+            return 'session-unreachable';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'error', 'data' => null, 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return false;
+        }
+    };
+
+    $resolver = new PollingPlaceResolver([$unreachable]);
+
+    expect(fn () => $resolver->startLiveLookup('1000000005'))
+        ->toThrow(\RuntimeException::class, 'No live source adapters configured.');
 });
 
 // Test 7

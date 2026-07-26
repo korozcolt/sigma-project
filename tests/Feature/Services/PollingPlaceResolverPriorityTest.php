@@ -101,6 +101,47 @@ test('resolveAutomated falls back to wsp when infovotantes is unreachable, witho
     Http::assertSent(fn ($request) => str_ends_with($request->url(), '/lookup'));
 });
 
+test('startLiveLookup skips an unreachable first adapter (infovotantes) and uses the next reachable one (wsp)', function () {
+    config([
+        'services.infovotantes.live_enabled' => true,
+        'services.registraduria.live_enabled' => true,
+    ]);
+
+    Http::fake([
+        config('services.infovotantes.probe_url').'*' => Http::failedConnection(),
+        config('services.registraduria.probe_url').'*' => Http::response('', 200),
+        '*/lookup' => Http::response(['session_id' => 'wsp-session'], 200),
+    ]);
+
+    $resolver = app(PollingPlaceResolver::class);
+
+    $sessionId = $resolver->startLiveLookup('1102812122');
+
+    expect($sessionId)->toBe('wsp-session');
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/lookup/infovotantes'));
+});
+
+test('startLiveLookup uses the first adapter (infovotantes) when it is reachable, preserving priority order', function () {
+    config([
+        'services.infovotantes.live_enabled' => true,
+        'services.registraduria.live_enabled' => true,
+    ]);
+
+    Http::fake([
+        config('services.infovotantes.probe_url').'*' => Http::response('', 200),
+        '*/lookup/infovotantes' => Http::response(['session_id' => 'info-session'], 200),
+    ]);
+
+    $resolver = app(PollingPlaceResolver::class);
+
+    $sessionId = $resolver->startLiveLookup('1102812122');
+
+    expect($sessionId)->toBe('info-session');
+
+    Http::assertNotSent(fn ($request) => str_ends_with($request->url(), '/lookup') && ! str_contains($request->url(), '/lookup/infovotantes'));
+});
+
 test('AppServiceProvider registers InfovotantesService ahead of RegistraduriaService in liveAdapters', function () {
     $resolver = app(PollingPlaceResolver::class);
 

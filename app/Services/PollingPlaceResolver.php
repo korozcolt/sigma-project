@@ -32,11 +32,17 @@ class PollingPlaceResolver
         return false;
     }
 
-    /** Starts a lookup on the first configured adapter (LIVE-01 priority order). */
+    /**
+     * Starts a lookup on the first reachable adapter, in priority order (LIVE-01).
+     * Skips unreachable adapters rather than blindly using the first one, so priority
+     * order only applies among adapters that are actually up.
+     */
     public function startLiveLookup(string $cedula): string
     {
         foreach ($this->liveAdapters as $adapter) {
-            return $adapter->startLookup($cedula);
+            if ($adapter->isReachable()) {
+                return $adapter->startLookup($cedula);
+            }
         }
 
         throw new \RuntimeException('No live source adapters configured.');

@@ -79,9 +79,10 @@ it('forces a fresh 2captcha lookup even when the Redis cache is warm and a Censu
         'municipality_code' => $voter->municipality->code,
     ]);
 
-    // startLiveLookup() always uses the FIRST configured adapter (InfovotantesService,
-    // per this quick task's priority reorder) unconditionally, regardless of reachability.
+    // startLiveLookup() uses the first REACHABLE configured adapter (InfovotantesService,
+    // per this quick task's priority reorder) — mock it as reachable so it's the one invoked.
     $this->mock(InfovotantesService::class, function ($mock) use ($cedula) {
+        $mock->shouldReceive('isReachable')->andReturn(true);
         $mock->shouldReceive('startLookup')
             ->once()
             ->with($cedula)
@@ -124,8 +125,10 @@ it('shows the secondary refresh action once a polling place is resolved and invo
     ]);
     $voter->update(['polling_place_id' => $pollingPlace->id]);
 
-    // startLiveLookup() always uses the FIRST configured adapter (InfovotantesService).
+    // startLiveLookup() uses the first REACHABLE configured adapter (InfovotantesService)
+    // — mock it as reachable so it's the one invoked.
     $this->mock(InfovotantesService::class, function ($mock) use ($cedula) {
+        $mock->shouldReceive('isReachable')->andReturn(true);
         $mock->shouldReceive('startLookup')
             ->once()
             ->with($cedula)
@@ -150,8 +153,9 @@ it('opens the live modal instead of resolving from DB when live is reachable, ev
         'municipality_code' => $voter->municipality->code,
     ]);
 
-    // isLiveReachable() checks every adapter; startLiveLookup() always uses the FIRST
-    // (InfovotantesService) unconditionally — mock that adapter as the one actually invoked.
+    // isLiveReachable() checks every adapter; startLiveLookup() uses the first REACHABLE
+    // adapter (InfovotantesService here, since it's mocked reachable) — mock that adapter
+    // as the one actually invoked.
     $this->mock(InfovotantesService::class, function ($mock) use ($cedula) {
         $mock->shouldReceive('isReachable')->andReturn(true);
         $mock->shouldReceive('startLookup')
@@ -295,8 +299,10 @@ it('forceRefreshFromRegistraduria still calls startLookup on an already-LIVE vot
 
     config(['services.registraduria.live_enabled' => true]);
 
-    // startLiveLookup() always uses the FIRST configured adapter (InfovotantesService).
+    // startLiveLookup() uses the first REACHABLE configured adapter (InfovotantesService)
+    // — mock it as reachable so it's the one invoked.
     $this->mock(InfovotantesService::class, function ($mock) use ($cedula) {
+        $mock->shouldReceive('isReachable')->andReturn(true);
         $mock->shouldReceive('startLookup')
             ->once()
             ->with($cedula)
