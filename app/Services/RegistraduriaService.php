@@ -84,7 +84,7 @@ class RegistraduriaService implements LiveSourceAdapter
         }
 
         try {
-            $response = Http::connectTimeout(2)->timeout(3)->withoutRedirecting()->head(config('services.registraduria.probe_url'));
+            $response = Http::connectTimeout(2)->timeout(3)->withoutRedirecting()->get(config('services.registraduria.probe_url'));
 
             return $response->successful() || $response->redirect();
         } catch (ConnectionException) {

@@ -27,6 +27,20 @@ it('returns true when the probe responds successfully', function () {
     expect($service->isReachable())->toBeTrue();
 });
 
+it('sends a GET request (not HEAD) to the configured probe URL', function () {
+    config(['services.registraduria.live_enabled' => true]);
+
+    Http::fake([
+        config('services.registraduria.probe_url').'*' => Http::response('', 200),
+    ]);
+
+    $service = new RegistraduriaService;
+
+    $service->isReachable();
+
+    Http::assertSent(fn ($request) => $request->method() === 'GET');
+});
+
 it('returns true when the probe responds with a redirect', function () {
     config(['services.registraduria.live_enabled' => true]);
 
