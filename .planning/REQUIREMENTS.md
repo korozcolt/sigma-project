@@ -19,7 +19,7 @@ Requirements for the "Consulta de Puesto de Votación Resiliente" milestone. Eac
 - [x] **SRC-02**: A voter's polling-place source is never silently downgraded — a live-verified result is never overwritten by an older snapshot result
 - [x] **SRC-03**: Every change to a voter's polling-place source is recorded in an auditable history (actor, previous → new source, timestamp)
 - [x] **SRC-04**: Operator can manually trigger a re-check of a voter's polling place at any time
-- [ ] **SRC-05**: Operator can filter/view which voters currently have a fallback-sourced (non-live) polling place
+- [x] **SRC-05**: Operator can filter/view which voters currently have a fallback-sourced (non-live) polling place
 
 ### Fuente en Vivo Resiliente (Live Source Resiliency)
 
@@ -69,7 +69,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SRC-02 | Phase 8 | Complete |
 | SRC-03 | Phase 7 | Done |
 | SRC-04 | Phase 10 | Done |
-| SRC-05 | Phase 10 | Pending |
+| SRC-05 | Phase 10 | Done |
 | LIVE-01 | Phase 8 | Complete |
 | LIVE-02 | Phase 9 | Complete |
 | LIVE-03 | Phase 8 | Complete |
