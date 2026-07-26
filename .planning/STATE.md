@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: Completed quick task 260726-i2z (fix Regstrate typo to Regístrate in coordinator leaders view)
-last_updated: "2026-07-26T18:02:21.000Z"
+stopped_at: Completed quick task 260726-ifp (local census cross-check on Líder register-voter form + background reconciliation)
+last_updated: "2026-07-26T19:00:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -111,6 +111,13 @@ Phase 10 Plan 03 decisions:
 - [Phase 11]: [Phase 11 Plan 02]: RECON-01 intentionally NOT marked complete by this plan alone, matching the 11-01/11-03 precedent — the actual scheduled-job claim is realized by Plan 11-04
 - [Phase 11]: [Phase 11 Plan 04]: SNAPSHOT-sourced resolveAutomated() fallthrough is treated as a FAILED attempt (never success) per D-08; no ambient CampaignContext filtering added to the job query since CampaignContextScope no-ops without an authenticated user (RECON-02 confirmed by regression test); dispatchSync() used deliberately so withoutOverlapping(10 minutes) bounds real processing time
 
+Quick task 260726-ifp decisions:
+
+- CENSUS_NOT_FOUND colored 'warning' (not 'danger') to stay visually distinct from REJECTED_CENSUS — a soft, reviewable flag, not a hard rejection.
+- register-voter.blade.php's save() recomputes documentExistsInCensus() fresh rather than trusting the blur-set censusNotFoundWarning property, so a paste-then-submit flow that never fires the blur hook still gets the correct status.
+- DispatchCensusRevalidation queries both PENDING_REVIEW and CENSUS_NOT_FOUND statuses so the hourly job also catches voters that were never re-checked before this task existed.
+- Testing a Table-level ->headerActions() action requires assertTableActionVisible/Hidden + callTableAction (not the page-level assertActionVisible/callAction used for page ->headerActions() like reassignDuplicateOwner) — confirmed via Filament's TestsActions trait source.
+
 ### Blockers/Concerns
 
 - **`gsd-tools.cjs` root-resolution bug when a git worktree owns its own `.planning/`:** `findProjectRoot()` (in `lib/core.cjs`) walks up from `cwd` and, upon finding an *ancestor* directory that also has `.planning/` plus a `.git` heuristic match, redirects `cwd` there — even when the original `cwd` already has its own valid, independent `.planning/`. In this session's worktree (`worktree-agent-ae9f012d50fef4e54`, which owns its own `.planning/`), every `gsd-tools state|roadmap|requirements` subcommand silently redirected reads/writes to the **main checkout's** `.planning/` instead of the worktree's. This was caught before real damage (the only accidental write to the main repo's `STATE.md` was reverted), but it means **`gsd-tools` CLI commands cannot be trusted to target a worktree's own `.planning/` in this repo layout** — STATE.md/ROADMAP.md/REQUIREMENTS.md updates for Phase 06 Plan 01 were made by hand-editing the worktree copies directly instead. Worth a fix in `gsd-tools` (short-circuit `findProjectRoot` when `startDir` itself already has `.planning/`) or at minimum a documented workaround for future phases executed in this worktree.
@@ -145,9 +152,10 @@ Tracked in Blockers/Concerns above.
 | 260726-hq8 | Fix Hablame SMS API payload — priority/from moved to payload root, getAccountInfo route corrected | 2026-07-26 | a02ba71 | [260726-hq8-fix-hablame-sms-api-payload-priority-fro](.planning/quick/260726-hq8-fix-hablame-sms-api-payload-priority-fro/) |
 | 260726-i2z | Fix "Regstrate" typo to "Regístrate" in coordinator leaders self-promote panel | 2026-07-26 | dc35092 | [260726-i2z-fix-typo-regstrate-reg-strate-in-coordin](.planning/quick/260726-i2z-fix-typo-regstrate-reg-strate-in-coordin/) |
 | 260726-i6e | Fix seeded "Centro" neighborhood invisible under CampaignContextScope — RoleUsersSeeder now sets is_global=>true via updateOrCreate() | 2026-07-26 | 35401a7 | [260726-i6e-fix-neighborhood-seeded-record-invisible](.planning/quick/260726-i6e-fix-neighborhood-seeded-record-invisible/) |
+| 260726-ifp | Local census cross-check on Líder register-voter form (non-blocking blur warning + CENSUS_NOT_FOUND status) with hourly + on-demand background reconciliation | 2026-07-26 | 0952232 | [260726-ifp-cruce-local-contra-censo-al-registrar-ap](.planning/quick/260726-ifp-cruce-local-contra-censo-al-registrar-ap/) |
 
 ## Session Continuity
 
-Last session: 2026-07-26T18:20:00.000Z
-Stopped at: Completed quick task 260726-i6e (fix seeded Centro neighborhood invisible under CampaignContextScope)
+Last session: 2026-07-26T19:00:00.000Z
+Stopped at: Completed quick task 260726-ifp (local census cross-check on Líder register-voter form + background reconciliation)
 Resume file: None
