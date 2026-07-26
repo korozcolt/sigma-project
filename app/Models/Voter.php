@@ -18,6 +18,10 @@ class Voter extends Model
     /** @use HasFactory<\Database\Factories\VoterFactory> */
     use HasCampaignContext, HasFactory, SoftDeletes;
 
+    protected $attributes = [
+        'reconciliation_attempts' => 0,
+    ];
+
     protected $fillable = [
         'campaign_id',
         'user_id',
@@ -35,6 +39,8 @@ class Voter extends Model
         'polling_table_number',
         'polling_place_source',
         'polling_place_resolved_at',
+        'reconciliation_attempts',
+        'reconciliation_exhausted_at',
         'address',
         'detailed_address',
         'registered_by',
@@ -57,6 +63,8 @@ class Voter extends Model
             'status' => VoterStatus::class,
             'polling_place_source' => PollingPlaceSource::class,
             'polling_place_resolved_at' => 'datetime',
+            'reconciliation_attempts' => 'integer',
+            'reconciliation_exhausted_at' => 'datetime',
             'census_validated_at' => 'datetime',
             'call_verified_at' => 'datetime',
             'confirmed_at' => 'datetime',
