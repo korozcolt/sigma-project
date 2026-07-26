@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Voters\Tables;
 use App\Enums\PollingPlaceSource;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
+use App\Jobs\DispatchCensusRevalidation;
+use App\Models\User;
 use App\Models\Voter;
 use App\Services\CampaignContext;
 use App\Services\VoterValidationService;
@@ -237,6 +239,36 @@ class VotersTable
                     }),
 
                 TrashedFilter::make(),
+            ])
+            ->headerActions([
+                Action::make('revalidateLeaderVoters')
+                    ->label('Revalidar apoyos de un líder')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('info')
+                    ->visible(fn (): bool => auth()->user()?->hasAnyRole([
+                        UserRole::SUPER_ADMIN->value,
+                        UserRole::ADMIN_CAMPAIGN->value,
+                        UserRole::REVIEWER->value,
+                    ]) ?? false)
+                    ->form([
+                        Select::make('leader_id')
+                            ->label('Líder')
+                            ->options(fn (): array => User::query()
+                                ->role(UserRole::LEADER->value)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->action(function (array $data): void {
+                        DispatchCensusRevalidation::dispatch((int) $data['leader_id']);
+
+                        Notification::make()
+                            ->title('Revalidación en background iniciada')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->recordActions([
                 ViewAction::make(),
