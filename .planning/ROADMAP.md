@@ -119,7 +119,7 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
 **Plans**: 4 plans
 - [x] 11-01-PLAN.md — Fix isReachable() GET-verb/URL bug (D-01) + capture one real untruncated wsp success HTML sample (D-02 prerequisite)
 - [ ] 11-02-PLAN.md — DOMDocument/DOMXPath parser turning the captured HTML into RegistraduriaService's structured fields (D-02/D-03), tested against the real fixture
-- [ ] 11-03-PLAN.md — voters.reconciliation_attempts/reconciliation_exhausted_at migration + Voter model wiring (D-09)
+- [x] 11-03-PLAN.md — voters.reconciliation_attempts/reconciliation_exhausted_at migration + Voter model wiring (D-09)
 - [ ] 11-04-PLAN.md — ReconcileFallbackPollingPlaces job + census:reconcile-live command/schedule entry (D-04 through D-08, D-10), full RECON-01..06 Pest coverage
 
 ## Progress
@@ -134,7 +134,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10 → 11. Phases 6 and
 | 8. Resilient PollingPlaceResolver Service | v1.1 | 3/3 | Complete   | 2026-07-25 |
 | 9. Live-Source Feasibility Spike | v1.1 | 2/2 | Complete   | 2026-07-25 |
 | 10. Operator Provenance & Fallback Controls | v1.1 | 4/4 | Complete   | 2026-07-26 |
-| 11. Scheduled Reconciliation Job | v1.1 | 1/4 | In Progress|  |
+| 11. Scheduled Reconciliation Job | v1.1 | 2/4 | In Progress|  |
 
 ---
 

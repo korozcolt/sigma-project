@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Ready to execute
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-07-26T14:17:30.004Z"
+stopped_at: Completed 11-03-PLAN.md
+last_updated: "2026-07-26T14:47:35.180Z"
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 15
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 ## Current Position
 
 Phase: 11 (scheduled-reconciliation-job) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 
 ## v1.1 Phase Map
 
@@ -53,6 +53,7 @@ Reset for v1.1. Historical v1.0 velocity data archived in `.planning/milestones/
 | Phase 10 P03 | 10min | 2 tasks | 3 files |
 | Phase 10 P04 | 5min | 1 task | 0 files |
 | Phase 11 P01 | 10min | 2 tasks | 5 files |
+| Phase 11 P03 | 16min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,8 @@ Phase 10 Plan 03 decisions:
 - [Phase 11]: [Phase 11 Plan 01]: isReachable() switched from HEAD to GET against the corrected wsp.registraduria.gov.co/censo/consultar/ probe URL (HEAD returns HTTP 500 on the real endpoint every time; GET returns 200) - fixes the reachability gap that previously made the live tier permanently unreachable
 - [Phase 11]: [Phase 11 Plan 01]: Captured a real, untruncated wsp #consulta success HTML fixture (tests/fixtures/registraduria/consulta-sample.html, 962 bytes) via one real 2captcha-budgeted live attempt (cedula 1102812122, succeeded first try) - reveals the full table structure (NUIP, DEPARTAMENTO, MUNICIPIO, PUESTO, DIRECCIÓN, MESA) for Plan 11-02's HTML parser
 - [Phase 11]: [Phase 11 Plan 01]: RECON-01 is NOT marked complete in REQUIREMENTS.md by this plan alone, despite being listed in this plan's frontmatter requirements field - this plan only fixes the reachability probe and captures an HTML fixture, both prerequisites; the actual scheduled job (RECON-01's real claim) doesn't exist until later plans in this phase. Deferred requirement sign-off to phase completion, same precedent as Phase 10's split-requirement handling
+- [Phase 11]: [Phase 11 Plan 03]: Added protected $attributes = ['reconciliation_attempts' => 0] to Voter so a freshly created (in-memory) voter reflects the DB default immediately, since Eloquent does not refresh DB-defaulted columns after insert (Rule 1 fix).
+- [Phase 11]: [Phase 11 Plan 03]: RECON-05 intentionally NOT marked complete by this plan alone - it only adds the persisted schema counters, Plan 11-04's job logic realizes the actual terminal/exhaustion-state claim.
 
 ### Blockers/Concerns
 
@@ -135,6 +138,6 @@ Tracked in Blockers/Concerns above.
 
 ## Session Continuity
 
-Last session: 2026-07-26T14:16:53.123Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-07-26T14:47:35.177Z
+Stopped at: Completed 11-03-PLAN.md
 Resume file: None
