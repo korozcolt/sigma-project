@@ -169,9 +169,15 @@ Tracked in Blockers/Concerns above.
 | 260726-ifp | Local census cross-check on Líder register-voter form (non-blocking blur warning + CENSUS_NOT_FOUND status) with hourly + on-demand background reconciliation | 2026-07-26 | 0952232 | [260726-ifp-cruce-local-contra-censo-al-registrar-ap](.planning/quick/260726-ifp-cruce-local-contra-censo-al-registrar-ap/) |
 | 260726-jao | Permanent registraduria_lookups table replacing the 30-day cache, VERIFIED_REGISTRADURIA status, and Registraduría-first blur cascades on the líder/coordinador forms + headless reconciliation | 2026-07-26 | 3744164 | [260726-jao-tabla-permanente-de-resultados-de-regist](.planning/quick/260726-jao-tabla-permanente-de-resultados-de-regist/) |
 | 260726-k80 | Fix PollingPlaceResolver hardcoded max_tables=0 rejecting Registraduría-autofilled mesa numbers; corrected local PollingPlace id=2 to max_tables=13 | 2026-07-26 | dd46fb9 | [260726-k80-fix-pollingplaceresolver-hardcoded-max-t](.planning/quick/260726-k80-fix-pollingplaceresolver-hardcoded-max-t/) |
+| 260726-kg8 | Fix Livewire DOM-morph field-value bleed — wire:key wrapper on the Registraduría/census banner (líder + coordinador forms) | 2026-07-26 | 167ccc8 | [260726-kg8-fix-livewire-dom-morph-field-value-bleed](.planning/quick/260726-kg8-fix-livewire-dom-morph-field-value-bleed/) |
+
+Quick task 260726-kg8 decisions:
+
+- Static, non-interpolated `wire:key="document-status-banner"` chosen for the conditional Registraduría/census banner wrapper on both register-voter.blade.php and create-leader.blade.php — each Volt component instance renders the banner at most once, so no per-row identity or interpolation is needed, and no key collision risk exists between the two separate component instances.
+- New regression tests exercise Livewire::test()->set() sibling-field assignments only, with an explicit code comment and self-documenting test name noting they cannot reproduce the actual browser morphdom bug — real confirmation requires a manual/Playwright browser session (type + Tab), not yet performed as part of this quick task's automated scope.
 
 ## Session Continuity
 
-Last session: 2026-07-26T20:20:00.000Z
-Stopped at: Completed quick task 260726-k80 (PollingPlaceResolver max_tables derived from mesa_numero, local data corrected)
+Last session: 2026-07-26T20:47:30.000Z
+Stopped at: Completed quick task 260726-kg8 (wire:key fix for Livewire DOM-morph field-value bleed on register-voter/create-leader banners; manual browser verification still pending)
 Resume file: None
