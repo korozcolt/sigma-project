@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: Completed quick task 260726-eu3 (restore infovotantes as coexisting LiveSourceAdapter)
-last_updated: "2026-07-26T18:00:00.000Z"
+stopped_at: Completed quick task 260726-hq8 (fix Hablame SMS API payload priority/from root-level placement)
+last_updated: "2026-07-26T17:55:45.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -142,9 +142,10 @@ Tracked in Blockers/Concerns above.
 | 260723-f26 | Botón secundario "Actualizar datos desde Registraduría" + intento de E2E | 2026-07-23 | bb45b56 | [260723-f26-agregar-boton-secundario-de-actualizar-d](.planning/quick/260723-f26-agregar-boton-secundario-de-actualizar-d/) |
 | 260726-eu3 | Restore infovotantes as a coexisting live-source adapter alongside wsp (infovotantes first, wsp fallback) | 2026-07-26 | 7df3840 | [260726-eu3-restore-infovotantes-as-a-coexisting-liv](.planning/quick/260726-eu3-restore-infovotantes-as-a-coexisting-liv/) |
 | 260726-eu3 | Restore infovotantes as a second, coexisting LiveSourceAdapter ahead of wsp | 2026-07-26 | 5d04a99 | [260726-eu3-restore-infovotantes-as-a-coexisting-liv](.planning/quick/260726-eu3-restore-infovotantes-as-a-coexisting-liv/) |
+| 260726-hq8 | Fix Hablame SMS API payload — priority/from moved to payload root, getAccountInfo route corrected | 2026-07-26 | a02ba71 | [260726-hq8-fix-hablame-sms-api-payload-priority-fro](.planning/quick/260726-hq8-fix-hablame-sms-api-payload-priority-fro/) |
 
 ## Session Continuity
 
-Last session: 2026-07-26T18:00:00.000Z
-Stopped at: Completed quick task 260726-eu3 (restore infovotantes as coexisting LiveSourceAdapter)
+Last session: 2026-07-26T17:55:45.000Z
+Stopped at: Completed quick task 260726-hq8 (fix Hablame SMS API payload priority/from root-level placement)
 Resume file: None
