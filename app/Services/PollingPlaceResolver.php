@@ -255,12 +255,20 @@ class PollingPlaceResolver
     }
 
     /**
-     * Resolve-or-create the PollingPlace a fresh live result refers to, mirroring
-     * HasRegistraduriaPolling::fillPollingPlaceFields()'s existing firstOrCreate logic,
-     * so the automated (headless) path needs no Filament form context to do the same
-     * enrichment the interactive path performs (LIVE-01: cascade shared by both callers).
+     * Resolve-or-create the PollingPlace a fresh live result refers to. Shared by both
+     * the automated/headless cascade (resolveAutomated(), used by ReconcileFallbackPollingPlaces)
+     * and the interactive Filament modal (HasRegistraduriaPolling::fillPollingPlaceFields())
+     * so both callers get identical matching/creation behaviour (LIVE-01).
+     *
+     * Real live Registraduría lookups never expose a "CODIGO PUESTO"/"ZONA" column
+     * (see RegistraduriaService::parseConsultaHtml() docblock), so puesto_codigo/zona_codigo
+     * are blank ('') for EVERY live-sourced result in practice — this is not an edge case.
+     * When blank, match/create by (municipality_id, name) instead of by DIVIPOLE codes —
+     * inserting '' into the NOT NULL-turned-nullable unsignedSmallInteger zone_code/place_code
+     * columns previously threw a QueryException (MySQL 1366 "Incorrect integer value").
+     * See .planning/debug/resolved/registraduria-interactive-result-not-parsed.md.
      */
-    private function resolveOrCreatePollingPlace(array $fields): ?PollingPlace
+    public function resolveOrCreatePollingPlace(array $fields): ?PollingPlace
     {
         $municipality = Municipality::query()
             ->whereRaw('LOWER(name) = ?', [strtolower($fields['municipio'] ?? '')])
@@ -270,20 +278,42 @@ class PollingPlaceResolver
             return null;
         }
 
-        $placeCode = $fields['puesto_codigo'] ?? substr($fields['puesto_nombre'] ?? '', 0, 2);
+        $name = $fields['puesto_nombre'] ?? '';
+        $zoneCode = filled($fields['zona_codigo'] ?? null) ? $fields['zona_codigo'] : null;
+        $placeCode = filled($fields['puesto_codigo'] ?? null) ? $fields['puesto_codigo'] : null;
 
-        return PollingPlace::firstOrCreate(
-            [
+        if ($zoneCode !== null && $placeCode !== null) {
+            return PollingPlace::firstOrCreate(
+                [
+                    'municipality_id' => $municipality->id,
+                    'zone_code' => $zoneCode,
+                    'place_code' => $placeCode,
+                ],
+                [
+                    'name' => $name ?: 'Desconocido',
+                    'address' => $fields['direccion'] ?? null,
+                    'department_id' => $municipality->department_id,
+                    'max_tables' => 0,
+                ]
+            );
+        }
+
+        if (blank($name)) {
+            return null;
+        }
+
+        return PollingPlace::query()
+            ->where('municipality_id', $municipality->id)
+            ->whereRaw('LOWER(name) = ?', [strtolower($name)])
+            ->first()
+            ?? PollingPlace::create([
                 'municipality_id' => $municipality->id,
-                'zone_code' => $fields['zona_codigo'] ?? null,
-                'place_code' => $placeCode,
-            ],
-            [
-                'name' => $fields['puesto_nombre'] ?? 'Desconocido',
+                'zone_code' => null,
+                'place_code' => null,
+                'name' => $name,
                 'address' => $fields['direccion'] ?? null,
                 'department_id' => $municipality->department_id,
                 'max_tables' => 0,
-            ]
-        );
+            ]);
     }
 }

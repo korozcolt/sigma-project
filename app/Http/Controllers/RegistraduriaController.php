@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Services\RegistraduriaService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
@@ -56,7 +57,11 @@ class RegistraduriaController extends Controller
                 return response()->json(['error' => 'Error comunicándose con el servicio.'], 502);
             }
 
-            return response()->json($response->json());
+            // The browser's Alpine.js polling loop (registraduria-browser.blade.php) hits
+            // this route directly rather than RegistraduriaService::getResult(), so the
+            // structured-field parsing must happen here too — otherwise a successful live
+            // lookup arrives with unparsed raw_message_html and the form fields stay empty.
+            return response()->json(RegistraduriaService::normalizeResultPayload($response->json()));
         } catch (\Exception $e) {
             return response()->json(['error' => 'Servicio no disponible.'], 503);
         }

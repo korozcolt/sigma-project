@@ -611,3 +611,106 @@ test('resolveAutomated returns null on a total miss with no exception when live 
 
     expect($result)->toBeNull();
 });
+
+// ============ Regression: blank puesto_codigo/zona_codigo from a REAL live Registraduría
+// response (RegistraduriaService::parseConsultaHtml() never gets a CODIGO PUESTO/ZONA
+// column, so these are always '' in practice — see
+// .planning/debug/resolved/registraduria-interactive-result-not-parsed.md) ============
+
+// Test 18
+test('resolveAutomated creates a codeless PollingPlace (null zone_code/place_code) without throwing when the live adapter returns blank puesto_codigo/zona_codigo', function () {
+    $adapter = new class implements LiveSourceAdapter
+    {
+        public function startLookup(string $cedula): string
+        {
+            return 'session-blank-codes';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return [
+                'status' => 'done',
+                'data' => [
+                    'puesto_nombre' => 'IE SAN JOSE C I P',
+                    'puesto_codigo' => '',
+                    'zona_codigo' => '',
+                    'mesa_numero' => '05',
+                    'departamento' => 'SUCRE',
+                    'municipio' => 'SINCELEJO',
+                    'direccion' => 'CL 22 No. 10A-380',
+                ],
+                'error' => null,
+            ];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null, 'municipality_id' => $this->municipality->id]);
+    $resolver = new PollingPlaceResolver([$adapter]);
+
+    $result = $resolver->resolveAutomated('1000000018', $voter);
+
+    expect($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::LIVE)
+        ->and($result->pollingPlaceId)->not->toBeNull();
+
+    $created = PollingPlace::find($result->pollingPlaceId);
+
+    expect($created)->not->toBeNull()
+        ->and($created->name)->toBe('IE SAN JOSE C I P')
+        ->and($created->zone_code)->toBeNull()
+        ->and($created->place_code)->toBeNull()
+        ->and($created->municipality_id)->toBe($this->municipality->id);
+});
+
+// Test 19
+test('resolveOrCreatePollingPlace matches an existing codeless PollingPlace by name instead of creating a duplicate', function () {
+    $resolver = new PollingPlaceResolver([]);
+
+    $fields = [
+        'puesto_nombre' => 'IE SAN JOSE C I P',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'mesa_numero' => '05',
+        'departamento' => 'SUCRE',
+        'municipio' => $this->municipality->name,
+        'direccion' => 'CL 22 No. 10A-380',
+    ];
+
+    $first = $resolver->resolveOrCreatePollingPlace($fields);
+    $second = $resolver->resolveOrCreatePollingPlace($fields);
+
+    expect($first)->not->toBeNull()
+        ->and($second)->not->toBeNull()
+        ->and($second->id)->toBe($first->id);
+});
+
+// Test 20
+test('resolveOrCreatePollingPlace creates a separate codeless PollingPlace for a different-named puesto in the same municipality', function () {
+    $resolver = new PollingPlaceResolver([]);
+
+    $first = $resolver->resolveOrCreatePollingPlace([
+        'puesto_nombre' => 'IE SAN JOSE C I P',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'municipio' => $this->municipality->name,
+        'direccion' => 'CL 22 No. 10A-380',
+    ]);
+
+    $second = $resolver->resolveOrCreatePollingPlace([
+        'puesto_nombre' => 'IE NORMAL SUPERIOR',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'municipio' => $this->municipality->name,
+        'direccion' => 'CALLE 30 No. 5-10',
+    ]);
+
+    expect($first)->not->toBeNull()
+        ->and($second)->not->toBeNull()
+        ->and($second->id)->not->toBe($first->id)
+        ->and($second->name)->toBe('IE NORMAL SUPERIOR');
+});
