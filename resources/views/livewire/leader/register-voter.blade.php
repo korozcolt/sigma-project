@@ -8,6 +8,7 @@ use App\Models\Neighborhood;
 use App\Models\PollingPlace;
 use App\Models\Voter;
 use App\Rules\MaxTablesForPollingPlace;
+use App\Services\VoterValidationService;
 use Livewire\Volt\Component;
 use Illuminate\Validation\Rule;
 use function Livewire\Volt\{layout};
@@ -50,6 +51,8 @@ new class extends Component {
     public bool $showSuccess = false;
     public ?string $lastVoterName = null;
 
+    public bool $censusNotFoundWarning = false;
+
     public function mount(): void
     {
         $campaign = auth()->user()->campaigns()->first();
@@ -68,6 +71,22 @@ new class extends Component {
             $this->municipality_id = auth()->user()->municipality_id;
             $this->department_id = Municipality::query()->whereKey($this->municipality_id)->value('department_id');
         }
+    }
+
+    public function updatedDocumentNumber(): void
+    {
+        $this->censusNotFoundWarning = false;
+
+        if (! preg_match('/^\d{10}$/', $this->document_number)) {
+            return;
+        }
+
+        if (! $this->campaign_id) {
+            return;
+        }
+
+        $this->censusNotFoundWarning = ! app(VoterValidationService::class)
+            ->documentExistsInCensus($this->campaign_id, $this->document_number);
     }
 
     public function getDepartmentsProperty()
@@ -184,6 +203,9 @@ new class extends Component {
             }
         }
 
+        $foundInCensus = app(VoterValidationService::class)
+            ->documentExistsInCensus($campaign->id, $this->document_number);
+
         // Crear el apoyo
         Voter::create([
             'campaign_id' => $campaign->id,
@@ -200,7 +222,7 @@ new class extends Component {
             'address' => $this->address,
             'birth_date' => $this->birth_date,
             'registered_by' => auth()->id(),
-            'status' => VoterStatus::PENDING_REVIEW,
+            'status' => $foundInCensus ? VoterStatus::PENDING_REVIEW : VoterStatus::CENSUS_NOT_FOUND,
         ]);
 
         $this->lastVoterName = $this->first_name.' '.$this->last_name;
@@ -267,6 +289,13 @@ new class extends Component {
                         pattern="[0-9]*"
                         placeholder="1234567890"
                     />
+
+                    @if($censusNotFoundWarning)
+                        <div class="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                            <flux:icon.exclamation-triangle class="mt-0.5 h-4 w-4 shrink-0" />
+                            <span>Esta cédula no aparece en el censo actual, revísala.</span>
+                        </div>
+                    @endif
 
                     <flux:input
                         wire:model.blur="first_name"
