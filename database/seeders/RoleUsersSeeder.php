@@ -61,8 +61,9 @@ class RoleUsersSeeder extends Seeder
             ['code' => 'SIN']
         );
 
-        $neighborhood = Neighborhood::firstOrCreate(
-            ['name' => 'Centro', 'municipality_id' => $municipality->id]
+        $neighborhood = Neighborhood::updateOrCreate(
+            ['name' => 'Centro', 'municipality_id' => $municipality->id],
+            ['is_global' => true, 'campaign_id' => null]
         );
 
         // 1. Super Admin
