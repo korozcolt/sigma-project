@@ -1,10 +1,23 @@
 <?php
 
+use App\Enums\UserRole;
 use App\Models\Campaign;
 use App\Models\Municipality;
 use App\Models\Neighborhood;
+use App\Models\User;
+use App\Services\CampaignContext;
+use Spatie\Permission\Models\Role;
 
 use function Pest\Laravel\assertDatabaseHas;
+
+afterEach(function () {
+    $reflection = new ReflectionClass(CampaignContext::class);
+    foreach (['overrideCampaignId', 'overrideMode'] as $property) {
+        $prop = $reflection->getProperty($property);
+        $prop->setAccessible(true);
+        $prop->setValue(null, null);
+    }
+});
 
 it('can create a global neighborhood', function () {
     $municipality = Municipality::factory()->create();
@@ -200,6 +213,42 @@ it('can delete a neighborhood', function () {
     $neighborhood->delete();
 
     expect(Neighborhood::find($id))->toBeNull();
+});
+
+it('keeps a global neighborhood visible under CampaignContextScope for any campaign, matching the RECORD-SEEDED CENTRO bug', function () {
+    Role::firstOrCreate(['name' => UserRole::SUPER_ADMIN->value, 'guard_name' => 'web']);
+    $admin = User::factory()->create();
+    $admin->assignRole(UserRole::SUPER_ADMIN->value);
+    $this->actingAs($admin);
+
+    $municipality = Municipality::factory()->create();
+    $campaignA = Campaign::factory()->create();
+    $campaignB = Campaign::factory()->create();
+
+    // Neutralize the ambient campaign context before creating: CampaignContext::enforceCampaignId()
+    // overwrites campaign_id on create whenever currentCampaignId() resolves to a campaign, even for
+    // a super admin with no explicit override set (it falls back to the first campaign by id), which
+    // would clobber the factory's explicit campaign_id => null / campaign_id => $campaignA->id below.
+    CampaignContext::setCampaignId(null);
+
+    $global = Neighborhood::factory()->global()->create([
+        'municipality_id' => $municipality->id,
+        'name' => 'Centro',
+    ]);
+
+    $campaignSpecific = Neighborhood::factory()->forCampaign($campaignA->id)->create([
+        'municipality_id' => $municipality->id,
+        'name' => 'Barrio A',
+    ]);
+
+    CampaignContext::setCampaignId($campaignA->id);
+    $visibleFromA = Neighborhood::query()->where('municipality_id', $municipality->id)->pluck('id');
+    expect($visibleFromA)->toContain($global->id);
+
+    CampaignContext::setCampaignId($campaignB->id);
+    $visibleFromB = Neighborhood::query()->where('municipality_id', $municipality->id)->pluck('id');
+    expect($visibleFromB)->toContain($global->id);
+    expect($visibleFromB)->not->toContain($campaignSpecific->id);
 });
 
 it('is_global defaults to false in database', function () {
