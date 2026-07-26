@@ -116,7 +116,11 @@ This is a **brownfield completion** of the 3-tier fallback cascade already in `H
   3. The job is rate-limited and bounded from day one (per-run cap + circuit breaker + per-record backoff) so a prolonged outage cannot drain the captcha budget or self-flood. (RECON-04)
   4. A voter whose live source can never be resolved (or needs human captcha interaction the job can't complete) reaches a terminal/exhaustion state instead of being retried forever. (RECON-05)
   5. A stuck or expired scheduler lock cannot silently freeze reconciliation — `withoutOverlapping()` carries an explicit expiry sized to the job's real max runtime. (RECON-06)
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 11-01-PLAN.md — Fix isReachable() GET-verb/URL bug (D-01) + capture one real untruncated wsp success HTML sample (D-02 prerequisite)
+- [ ] 11-02-PLAN.md — DOMDocument/DOMXPath parser turning the captured HTML into RegistraduriaService's structured fields (D-02/D-03), tested against the real fixture
+- [ ] 11-03-PLAN.md — voters.reconciliation_attempts/reconciliation_exhausted_at migration + Voter model wiring (D-09)
+- [ ] 11-04-PLAN.md — ReconcileFallbackPollingPlaces job + census:reconcile-live command/schedule entry (D-04 through D-08, D-10), full RECON-01..06 Pest coverage
 
 ## Progress
 
