@@ -35,12 +35,13 @@ Campaign teams can run critical voter and field operations from one place with t
 - ✓ The national census snapshot (`censo_decoded_202310210734.csv`, 216,527 rows) is imported into a cédula-indexed `national_census_records` table, isolated from campaign-scoped data, enriched with full department/municipality names and address via the `polling_places` FK, with Latin-1 encoding handled correctly and an unmatched-divipol-code percentage reported on every import - validated in Phase 6 (CENSO-02, CENSO-03)
 - ✓ A voter's polling-place source (live / db_reconstruction / snapshot / manual) is a persisted, indexed, queryable attribute, and every change to it is captured in an append-only audit trail (actor, previous → new source, timestamp) that tolerates a nullable/headless actor for automated reconciliation writes - validated in Phase 7 (SRC-03)
 - ✓ Voter polling-place lookup falls back through a single `PollingPlaceResolver` cascade (campaign DB → national snapshot → bounded live attempt) without ever blocking on a dead live source, never silently downgrades a live-verified result to a staler one (precedence/no-downgrade guard), and the live-source architecture supports multiple interchangeable adapters without a resolver redesign - validated in Phase 8 (CENSO-01, SRC-02, LIVE-01, LIVE-03)
-- ✓ Feasibility of `wsp.registraduria.gov.co` (reCAPTCHA checkbox, possibly Enterprise-registered on Google's backend) as a live polling-place lookup source is validated end-to-end with a documented go/no-go decision - **Verdict: GO** (29/30 real 2captcha-solved attempts across 3 known cédulas succeeded; the plain non-Enterprise checkbox solve was sufficient, the `enterprise=1` escalation path exists but was never needed) - validated in Phase 9 (LIVE-02); no production wiring performed, per phase scope
+- ✓ Feasibility of `wsp.registraduria.gov.co` (reCAPTCHA checkbox, possibly Enterprise-registered on Google's backend) as a live polling-place lookup source is validated end-to-end with a documented go/no-go decision - **Verdict: GO** (29/30 real 2captcha-solved attempts across 3 known cédulas succeeded; the plain non-Enterprise checkbox solve was sufficient, the `enterprise=1` escalation path exists but was never needed) - validated in Phase 9 (LIVE-02); production wiring (reachability probe fix + HTML-to-structured-fields parser) completed in Phase 11
 - ✓ The data source behind every polling-place result (live / database reconstruction / local snapshot / manual) is visibly shown to the operator on the voters table, view page, and edit form via a color-coded badge, an operator can filter/triage voters currently on fallback-sourced data (table filter + a campaign-scoped dashboard widget), and the pre-existing manual re-check action remains available to every role while the paid, cache-bypassing "Actualizar datos" force-refresh is now restricted to admin/coordinator/super-admin roles - validated in Phase 10 (SRC-01, SRC-04, SRC-05), confirmed by human visual verification of all surfaces in the running app
+- ✓ An hourly, unattended, bounded (50 voters/run, ~500/day cap) scheduled job automatically re-attempts live lookup for fallback-sourced voters and upgrades them to `live` when the source succeeds, recording an auditable `resolved_via='reconciliation'` reason on every real transition; the job resolves each voter's campaign from the voter record with no ambient session dependency; a voter reaches a permanent exhaustion state after 5 consecutive failed live attempts (a snapshot fallthrough counts as failure, never success); and a stuck run cannot freeze reconciliation indefinitely (`withoutOverlapping(10)` minutes) - validated in Phase 11 (RECON-01 through RECON-06)
 
 ### Active
 
-- [ ] Voters resolved via local snapshot are automatically re-verified against the live source once it's reachable, via a scheduled job
+None — all v1.1 requirements validated. Ready for `/gsd:complete-milestone`.
 
 ### Out of Scope
 
@@ -102,7 +103,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 **Shipped: v1.0 MVP Hardening (2026-07-24).** All 30 v1 requirements Done. See `.planning/milestones/v1.0-ROADMAP.md` and `.planning/milestones/v1.0-REQUIREMENTS.md` for the full archived record, and `.planning/MILESTONES.md` for the shipped summary.
 
-**v1.1 in progress:** Phases 6-10 complete — CENSO-01/02/03, SRC-01/02/03/04/05, LIVE-01/02/03 done. Phase 9 concluded with a **GO** verdict for `wsp.registraduria.gov.co` (29/30 real attempts succeeded); production wiring for that live source still not performed (deferred, out of this milestone's scope). Phase 10 closed the operator-visibility loop: source badges on all three voter surfaces, triage filter + dashboard widget, and role-gated force-refresh — human-verified end to end in the running app. Next: Phase 11 (Scheduled Reconciliation Job).
+**v1.1 complete (2026-07-26):** All 6 phases (6-11) done — all 17 v1.1 requirements validated. The resilient polling-place resolution cascade (campaign DB → national snapshot → bounded live attempt), operator provenance/triage UI, and the hourly automated reconciliation job are all live in the codebase. Ready for `/gsd:complete-milestone`.
 
 ## Current Milestone: v1.1 Consulta de Puesto de Votación Resiliente
 
@@ -120,4 +121,4 @@ This document evolves at phase transitions and milestone boundaries.
 Not yet defined beyond v1.1.
 
 ---
-*Last updated: 2026-07-26 after Phase 10 completion*
+*Last updated: 2026-07-26 after Phase 11 completion (v1.1 milestone complete)*
