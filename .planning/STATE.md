@@ -126,6 +126,12 @@ Quick task 260726-jao decisions:
 - register-voter.blade.php and create-leader.blade.php both make the green Registraduría banner mutually exclusive with the amber census warning via @if/@elseif; Voter save() status priority is VERIFIED_REGISTRADURIA > PENDING_REVIEW > CENSUS_NOT_FOUND, computed fresh at submit time.
 - Explicitly did NOT implement User/Voter deduplication or anonymous/placeholder identifier schemes for coordinators — out of scope per this task's CONTEXT.md deferred section; document_number on the coordinator form is the leader's real cédula.
 
+Quick task 260726-k80 decisions:
+
+- resolveOrCreatePollingPlace()'s max_tables bump on an existing match is strictly upward-only (never downgraded), mirroring the project's established no-downgrade pattern for polling_place_source (SRC-02).
+- No mesa_numero present in $fields preserves the exact legacy behavior (max_tables = 0 on create) — zero behavior change for that path, locked in by a dedicated regression test.
+- Local dev DB data fix (PollingPlace id=2 "IE SAN JOSE C I P" max_tables 0 -> 13) applied for real via php artisan tinker, not just described, per explicit task constraint.
+
 ### Blockers/Concerns
 
 - **`gsd-tools.cjs` root-resolution bug when a git worktree owns its own `.planning/`:** `findProjectRoot()` (in `lib/core.cjs`) walks up from `cwd` and, upon finding an *ancestor* directory that also has `.planning/` plus a `.git` heuristic match, redirects `cwd` there — even when the original `cwd` already has its own valid, independent `.planning/`. In this session's worktree (`worktree-agent-ae9f012d50fef4e54`, which owns its own `.planning/`), every `gsd-tools state|roadmap|requirements` subcommand silently redirected reads/writes to the **main checkout's** `.planning/` instead of the worktree's. This was caught before real damage (the only accidental write to the main repo's `STATE.md` was reverted), but it means **`gsd-tools` CLI commands cannot be trusted to target a worktree's own `.planning/` in this repo layout** — STATE.md/ROADMAP.md/REQUIREMENTS.md updates for Phase 06 Plan 01 were made by hand-editing the worktree copies directly instead. Worth a fix in `gsd-tools` (short-circuit `findProjectRoot` when `startDir` itself already has `.planning/`) or at minimum a documented workaround for future phases executed in this worktree.
@@ -162,9 +168,10 @@ Tracked in Blockers/Concerns above.
 | 260726-i6e | Fix seeded "Centro" neighborhood invisible under CampaignContextScope — RoleUsersSeeder now sets is_global=>true via updateOrCreate() | 2026-07-26 | 35401a7 | [260726-i6e-fix-neighborhood-seeded-record-invisible](.planning/quick/260726-i6e-fix-neighborhood-seeded-record-invisible/) |
 | 260726-ifp | Local census cross-check on Líder register-voter form (non-blocking blur warning + CENSUS_NOT_FOUND status) with hourly + on-demand background reconciliation | 2026-07-26 | 0952232 | [260726-ifp-cruce-local-contra-censo-al-registrar-ap](.planning/quick/260726-ifp-cruce-local-contra-censo-al-registrar-ap/) |
 | 260726-jao | Permanent registraduria_lookups table replacing the 30-day cache, VERIFIED_REGISTRADURIA status, and Registraduría-first blur cascades on the líder/coordinador forms + headless reconciliation | 2026-07-26 | 3744164 | [260726-jao-tabla-permanente-de-resultados-de-regist](.planning/quick/260726-jao-tabla-permanente-de-resultados-de-regist/) |
+| 260726-k80 | Fix PollingPlaceResolver hardcoded max_tables=0 rejecting Registraduría-autofilled mesa numbers; corrected local PollingPlace id=2 to max_tables=13 | 2026-07-26 | dd46fb9 | [260726-k80-fix-pollingplaceresolver-hardcoded-max-t](.planning/quick/260726-k80-fix-pollingplaceresolver-hardcoded-max-t/) |
 
 ## Session Continuity
 
-Last session: 2026-07-26T20:00:00.000Z
-Stopped at: Completed quick task 260726-jao (permanent registraduria_lookups table + VERIFIED_REGISTRADURIA + líder/coordinador form cascades)
+Last session: 2026-07-26T20:20:00.000Z
+Stopped at: Completed quick task 260726-k80 (PollingPlaceResolver max_tables derived from mesa_numero, local data corrected)
 Resume file: None
