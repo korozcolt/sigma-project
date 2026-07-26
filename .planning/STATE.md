@@ -140,6 +140,7 @@ Tracked in Blockers/Concerns above.
 | 260508-wze | Registraduría headless proxy screenshots modal SIGMA VPS | 2026-05-09 | 030e091 | [260508-wze-registraduria-headless-proxy-screenshots](.planning/quick/260508-wze-registraduria-headless-proxy-screenshots/) |
 | 260514-mng | Birthday webhook automation — BirthdayWebhookService + DispatchBirthdayWebhooks command | 2026-05-14 | 12262d1 | [260514-mng-implementar-automatizaci-n-de-webhook-de](.planning/quick/260514-mng-implementar-automatizaci-n-de-webhook-de/) |
 | 260723-f26 | Botón secundario "Actualizar datos desde Registraduría" + intento de E2E | 2026-07-23 | bb45b56 | [260723-f26-agregar-boton-secundario-de-actualizar-d](.planning/quick/260723-f26-agregar-boton-secundario-de-actualizar-d/) |
+| 260726-eu3 | Restore infovotantes as a coexisting live-source adapter alongside wsp (infovotantes first, wsp fallback) | 2026-07-26 | 7df3840 | [260726-eu3-restore-infovotantes-as-a-coexisting-liv](.planning/quick/260726-eu3-restore-infovotantes-as-a-coexisting-liv/) |
 | 260726-eu3 | Restore infovotantes as a second, coexisting LiveSourceAdapter ahead of wsp | 2026-07-26 | 5d04a99 | [260726-eu3-restore-infovotantes-as-a-coexisting-liv](.planning/quick/260726-eu3-restore-infovotantes-as-a-coexisting-liv/) |
 
 ## Session Continuity
