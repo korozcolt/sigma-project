@@ -29,12 +29,12 @@ Requirements for the "Consulta de Puesto de Votación Resiliente" milestone. Eac
 
 ### Reconciliación Programada (Scheduled Reconciliation)
 
-- [ ] **RECON-01**: A scheduled job automatically re-attempts live lookup for voters currently on fallback-sourced data and upgrades them when successful
-- [ ] **RECON-02**: The reconciliation job respects campaign isolation — it resolves each voter's own campaign from the voter record, never from ambient/interactive session context
-- [ ] **RECON-03**: The reconciliation job records an auditable actor/reason for every automatic update, even though it runs unattended
-- [ ] **RECON-04**: The reconciliation job is rate-limited and bounded so a prolonged live-source outage cannot exhaust the captcha-solving budget or self-flood
-- [ ] **RECON-05**: A voter whose live source can never be resolved (or requires human captcha interaction the job can't complete) eventually reaches a terminal state instead of being retried forever
-- [ ] **RECON-06**: The scheduled job cannot be silently frozen indefinitely by a stuck/expired lock left by a previous failed or hung run
+- [x] **RECON-01**: A scheduled job automatically re-attempts live lookup for voters currently on fallback-sourced data and upgrades them when successful
+- [x] **RECON-02**: The reconciliation job respects campaign isolation — it resolves each voter's own campaign from the voter record, never from ambient/interactive session context
+- [x] **RECON-03**: The reconciliation job records an auditable actor/reason for every automatic update, even though it runs unattended
+- [x] **RECON-04**: The reconciliation job is rate-limited and bounded so a prolonged live-source outage cannot exhaust the captcha-solving budget or self-flood
+- [x] **RECON-05**: A voter whose live source can never be resolved (or requires human captcha interaction the job can't complete) eventually reaches a terminal state instead of being retried forever
+- [x] **RECON-06**: The scheduled job cannot be silently frozen indefinitely by a stuck/expired lock left by a previous failed or hung run
 
 ## v2 Requirements
 
@@ -73,12 +73,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LIVE-01 | Phase 8 | Complete |
 | LIVE-02 | Phase 9 | Complete |
 | LIVE-03 | Phase 8 | Complete |
-| RECON-01 | Phase 11 | Pending |
-| RECON-02 | Phase 11 | Pending |
-| RECON-03 | Phase 11 | Pending |
-| RECON-04 | Phase 11 | Pending |
-| RECON-05 | Phase 11 | Pending |
-| RECON-06 | Phase 11 | Pending |
+| RECON-01 | Phase 11 | Complete |
+| RECON-02 | Phase 11 | Complete |
+| RECON-03 | Phase 11 | Complete |
+| RECON-04 | Phase 11 | Complete |
+| RECON-05 | Phase 11 | Complete |
+| RECON-06 | Phase 11 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 17 total
