@@ -45,6 +45,7 @@ test('sendOtp then verifyOtp with correct code allows save to create the leader 
         ->set('email', 'juan@example.com')
         ->set('password', 'password123')
         ->set('phone', '3001234567')
+        ->set('document_number', '1102812122')
         ->call('sendOtp')
         ->assertSet('otpSent', true);
 
@@ -61,6 +62,7 @@ test('sendOtp then verifyOtp with correct code allows save to create the leader 
 
     expect($leader)->not->toBeNull()
         ->and($leader->phone)->toBe('3001234567')
+        ->and($leader->document_number)->toBe('1102812122')
         ->and($leader->hasRole(UserRole::LEADER->value))->toBeTrue();
 });
 

@@ -2,9 +2,11 @@
 
 use App\Enums\UserRole;
 use App\Models\Neighborhood;
+use App\Models\RegistraduriaLookup;
 use App\Models\User;
 use App\Services\CampaignContext;
 use App\Services\OtpVerificationService;
+use App\Services\VoterValidationService;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
@@ -27,11 +29,18 @@ new class extends Component
     #[Validate('required|string|min:10')]
     public string $phone = '';
 
+    #[Validate('required|string|max:50|unique:users,document_number')]
+    public string $document_number = '';
+
     public bool $otpSent = false;
 
     public bool $otpVerified = false;
 
     public string $otp_code = '';
+
+    public bool $registraduriaVerified = false;
+
+    public bool $censusNotFoundWarning = false;
 
     #[Validate('nullable|exists:neighborhoods,id')]
     public ?int $neighborhood_id = null;
@@ -44,6 +53,31 @@ new class extends Component
         if (auth()->user()->hasRole(UserRole::COORDINATOR->value)) {
             $this->coordinator_user_id = auth()->id();
         }
+    }
+
+    public function updatedDocumentNumber(): void
+    {
+        $this->registraduriaVerified = false;
+        $this->censusNotFoundWarning = false;
+
+        if (blank($this->document_number)) {
+            return;
+        }
+
+        if (RegistraduriaLookup::query()->where('document_number', $this->document_number)->exists()) {
+            $this->registraduriaVerified = true;
+
+            return;
+        }
+
+        $campaign = $this->resolveActiveCampaign();
+
+        if (! $campaign) {
+            return;
+        }
+
+        $this->censusNotFoundWarning = ! app(VoterValidationService::class)
+            ->documentExistsInCensus($campaign->id, $this->document_number);
     }
 
     private function resolveActiveCampaign()
@@ -144,6 +178,7 @@ new class extends Component
             'email' => $this->email,
             'password' => Hash::make($this->password),
             'phone' => $this->phone,
+            'document_number' => $this->document_number,
             'municipality_id' => $coordinatorUser->municipality_id,
             'coordinator_user_id' => $coordinatorUser->id,
             'neighborhood_id' => $this->neighborhood_id,
@@ -211,6 +246,27 @@ new class extends Component
                     placeholder="Juan Carlos Pérez"
                     autocomplete="name"
                 />
+
+                <flux:input
+                    wire:model.blur="document_number"
+                    label="Número de Documento *"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="1234567890"
+                />
+
+                @if($registraduriaVerified)
+                    <div class="flex items-start gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                        <flux:icon.check-badge class="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>Verificado por Registraduría.</span>
+                    </div>
+                @elseif($censusNotFoundWarning)
+                    <div class="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                        <flux:icon.exclamation-triangle class="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>Esta cédula no aparece en el censo actual, revísala.</span>
+                    </div>
+                @endif
 
                 <flux:input
                     wire:model.blur="email"
