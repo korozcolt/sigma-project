@@ -38,6 +38,17 @@ it('can create a voter', function () {
     ]);
 });
 
+it('defaults reconciliation fields to zero/null and casts reconciliation_exhausted_at to a datetime', function () {
+    $voter = Voter::factory()->create();
+
+    expect($voter->reconciliation_attempts)->toBe(0)
+        ->and($voter->reconciliation_exhausted_at)->toBeNull();
+
+    $voter->update(['reconciliation_exhausted_at' => now()]);
+
+    expect($voter->fresh()->reconciliation_exhausted_at)->toBeInstanceOf(\Illuminate\Support\Carbon::class);
+});
+
 it('requires campaign_id, document_number, first_name, last_name, phone, municipality_id and registered_by', function () {
     expect(fn () => Voter::create([]))->toThrow(Exception::class);
 });
