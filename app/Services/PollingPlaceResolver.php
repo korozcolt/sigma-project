@@ -342,38 +342,60 @@ class PollingPlaceResolver
         $zoneCode = filled($fields['zona_codigo'] ?? null) ? $fields['zona_codigo'] : null;
         $placeCode = filled($fields['puesto_codigo'] ?? null) ? $fields['puesto_codigo'] : null;
 
+        $mesaNumero = (int) ($fields['mesa_numero'] ?? 0);
+        $maxTablesFromMesa = $mesaNumero > 0 ? $mesaNumero : null;
+
         if ($zoneCode !== null && $placeCode !== null) {
-            return PollingPlace::firstOrCreate(
-                [
-                    'municipality_id' => $municipality->id,
-                    'zone_code' => $zoneCode,
-                    'place_code' => $placeCode,
-                ],
-                [
-                    'name' => $name ?: 'Desconocido',
-                    'address' => $fields['direccion'] ?? null,
-                    'department_id' => $municipality->department_id,
-                    'max_tables' => 0,
-                ]
-            );
+            $pollingPlace = PollingPlace::query()
+                ->where('municipality_id', $municipality->id)
+                ->where('zone_code', $zoneCode)
+                ->where('place_code', $placeCode)
+                ->first();
+
+            if ($pollingPlace) {
+                if ($maxTablesFromMesa !== null && $maxTablesFromMesa > $pollingPlace->max_tables) {
+                    $pollingPlace->update(['max_tables' => $maxTablesFromMesa]);
+                }
+
+                return $pollingPlace;
+            }
+
+            return PollingPlace::create([
+                'municipality_id' => $municipality->id,
+                'zone_code' => $zoneCode,
+                'place_code' => $placeCode,
+                'name' => $name ?: 'Desconocido',
+                'address' => $fields['direccion'] ?? null,
+                'department_id' => $municipality->department_id,
+                'max_tables' => $maxTablesFromMesa ?? 0,
+            ]);
         }
 
         if (blank($name)) {
             return null;
         }
 
-        return PollingPlace::query()
+        $pollingPlace = PollingPlace::query()
             ->where('municipality_id', $municipality->id)
             ->whereRaw('LOWER(name) = ?', [strtolower($name)])
-            ->first()
-            ?? PollingPlace::create([
-                'municipality_id' => $municipality->id,
-                'zone_code' => null,
-                'place_code' => null,
-                'name' => $name,
-                'address' => $fields['direccion'] ?? null,
-                'department_id' => $municipality->department_id,
-                'max_tables' => 0,
-            ]);
+            ->first();
+
+        if ($pollingPlace) {
+            if ($maxTablesFromMesa !== null && $maxTablesFromMesa > $pollingPlace->max_tables) {
+                $pollingPlace->update(['max_tables' => $maxTablesFromMesa]);
+            }
+
+            return $pollingPlace;
+        }
+
+        return PollingPlace::create([
+            'municipality_id' => $municipality->id,
+            'zone_code' => null,
+            'place_code' => null,
+            'name' => $name,
+            'address' => $fields['direccion'] ?? null,
+            'department_id' => $municipality->department_id,
+            'max_tables' => $maxTablesFromMesa ?? 0,
+        ]);
     }
 }
