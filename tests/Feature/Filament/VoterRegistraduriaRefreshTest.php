@@ -10,6 +10,7 @@ use App\Models\PollingPlace;
 use App\Models\PollingPlaceResolution;
 use App\Models\User;
 use App\Models\Voter;
+use App\Services\InfovotantesService;
 use App\Services\RegistraduriaService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -78,7 +79,9 @@ it('forces a fresh 2captcha lookup even when the Redis cache is warm and a Censu
         'municipality_code' => $voter->municipality->code,
     ]);
 
-    $this->mock(RegistraduriaService::class, function ($mock) use ($cedula) {
+    // startLiveLookup() always uses the FIRST configured adapter (InfovotantesService,
+    // per this quick task's priority reorder) unconditionally, regardless of reachability.
+    $this->mock(InfovotantesService::class, function ($mock) use ($cedula) {
         $mock->shouldReceive('startLookup')
             ->once()
             ->with($cedula)
@@ -121,7 +124,8 @@ it('shows the secondary refresh action once a polling place is resolved and invo
     ]);
     $voter->update(['polling_place_id' => $pollingPlace->id]);
 
-    $this->mock(RegistraduriaService::class, function ($mock) use ($cedula) {
+    // startLiveLookup() always uses the FIRST configured adapter (InfovotantesService).
+    $this->mock(InfovotantesService::class, function ($mock) use ($cedula) {
         $mock->shouldReceive('startLookup')
             ->once()
             ->with($cedula)
@@ -146,7 +150,9 @@ it('opens the live modal instead of resolving from DB when live is reachable, ev
         'municipality_code' => $voter->municipality->code,
     ]);
 
-    $this->mock(RegistraduriaService::class, function ($mock) use ($cedula) {
+    // isLiveReachable() checks every adapter; startLiveLookup() always uses the FIRST
+    // (InfovotantesService) unconditionally — mock that adapter as the one actually invoked.
+    $this->mock(InfovotantesService::class, function ($mock) use ($cedula) {
         $mock->shouldReceive('isReachable')->andReturn(true);
         $mock->shouldReceive('startLookup')
             ->once()
@@ -171,6 +177,13 @@ it('resolves from DB reconstruction without opening the modal when live is unrea
         'polling_station' => 'CENSUS PLACE B',
         'municipality_code' => $voter->municipality->code,
     ]);
+
+    // Mock InfovotantesService (first adapter) as unreachable too, so isLiveReachable()
+    // never makes a real network call to the currently-dead external domain.
+    $this->mock(InfovotantesService::class, function ($mock) {
+        $mock->shouldReceive('isReachable')->andReturn(false);
+        $mock->shouldNotReceive('startLookup');
+    });
 
     $this->mock(RegistraduriaService::class, function ($mock) {
         $mock->shouldReceive('isReachable')->andReturn(false);
@@ -197,6 +210,13 @@ it('resolves from the national snapshot when live is unreachable, no CensusRecor
         'document_number' => $cedula,
         'polling_place_id' => $pollingPlace->id,
     ]);
+
+    // Mock InfovotantesService (first adapter) as unreachable too, so isLiveReachable()
+    // never makes a real network call to the currently-dead external domain.
+    $this->mock(InfovotantesService::class, function ($mock) {
+        $mock->shouldReceive('isReachable')->andReturn(false);
+        $mock->shouldNotReceive('startLookup');
+    });
 
     $this->mock(RegistraduriaService::class, function ($mock) {
         $mock->shouldReceive('isReachable')->andReturn(false);
@@ -238,6 +258,13 @@ it('never downgrades an already-LIVE voter through the ordinary Save button when
         'municipality_code' => $otherMunicipality->code,
     ]);
 
+    // Mock InfovotantesService (first adapter) as unreachable too, so isLiveReachable()
+    // never makes a real network call to the currently-dead external domain.
+    $this->mock(InfovotantesService::class, function ($mock) {
+        $mock->shouldReceive('isReachable')->andReturn(false);
+        $mock->shouldNotReceive('startLookup');
+    });
+
     $this->mock(RegistraduriaService::class, function ($mock) {
         $mock->shouldReceive('isReachable')->andReturn(false);
         $mock->shouldNotReceive('startLookup');
@@ -268,7 +295,8 @@ it('forceRefreshFromRegistraduria still calls startLookup on an already-LIVE vot
 
     config(['services.registraduria.live_enabled' => true]);
 
-    $this->mock(RegistraduriaService::class, function ($mock) use ($cedula) {
+    // startLiveLookup() always uses the FIRST configured adapter (InfovotantesService).
+    $this->mock(InfovotantesService::class, function ($mock) use ($cedula) {
         $mock->shouldReceive('startLookup')
             ->once()
             ->with($cedula)
@@ -306,6 +334,13 @@ it('never mislabels a DB-reconstruction result as LIVE on a later lookup via a s
         'polling_station' => 'CENSUS PLACE G',
         'municipality_code' => $voter->municipality->code,
     ]);
+
+    // Mock InfovotantesService (first adapter) as unreachable too, so isLiveReachable()
+    // never makes a real network call to the currently-dead external domain.
+    $this->mock(InfovotantesService::class, function ($mock) {
+        $mock->shouldReceive('isReachable')->andReturn(false);
+        $mock->shouldNotReceive('startLookup');
+    });
 
     $this->mock(RegistraduriaService::class, function ($mock) {
         $mock->shouldReceive('isReachable')->andReturn(false);
