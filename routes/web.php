@@ -1,16 +1,16 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Features;
-use Livewire\Volt\Volt;
 use App\Http\Controllers\CampaignContextController;
 use App\Http\Controllers\PublicCampaignLogoController;
 use App\Http\Controllers\PublicPollingPlaceOptionsController;
 use App\Http\Controllers\PublicVoterRegistrationController;
 use App\Http\Controllers\RegistraduriaController;
+use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features;
+use Livewire\Volt\Volt;
 
 Route::get('/', function () {
-    return view('welcome');
+    return response('', 200);
 })->name('home');
 
 Route::get('media/campaign-logo/{filename}', PublicCampaignLogoController::class)
