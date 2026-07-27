@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: Completed quick task 260726-jao (permanent registraduria_lookups table replacing the 30-day Registraduría cache, VERIFIED_REGISTRADURIA status, líder/coordinador form cascades)
-last_updated: "2026-07-26T20:00:00.000Z"
+stopped_at: Completed quick task 260726-qdj (blanked root route '/' — no longer renders Laravel welcome view; /admin unaffected)
+last_updated: "2026-07-26T21:00:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -170,14 +170,20 @@ Tracked in Blockers/Concerns above.
 | 260726-jao | Permanent registraduria_lookups table replacing the 30-day cache, VERIFIED_REGISTRADURIA status, and Registraduría-first blur cascades on the líder/coordinador forms + headless reconciliation | 2026-07-26 | 3744164 | [260726-jao-tabla-permanente-de-resultados-de-regist](.planning/quick/260726-jao-tabla-permanente-de-resultados-de-regist/) |
 | 260726-k80 | Fix PollingPlaceResolver hardcoded max_tables=0 rejecting Registraduría-autofilled mesa numbers; corrected local PollingPlace id=2 to max_tables=13 | 2026-07-26 | dd46fb9 | [260726-k80-fix-pollingplaceresolver-hardcoded-max-t](.planning/quick/260726-k80-fix-pollingplaceresolver-hardcoded-max-t/) |
 | 260726-kg8 | Fix Livewire DOM-morph field-value bleed — wire:key wrapper on the Registraduría/census banner (líder + coordinador forms) | 2026-07-26 | 167ccc8 | [260726-kg8-fix-livewire-dom-morph-field-value-bleed](.planning/quick/260726-kg8-fix-livewire-dom-morph-field-value-bleed/) |
+| 260726-qdj | Blank the root route ("/") so it no longer renders the Laravel welcome view; /admin unaffected | 2026-07-26 | 7df64bc | [260726-qdj-deshabilitar-ruta-raiz-para-que-no-muest](.planning/quick/260726-qdj-deshabilitar-ruta-raiz-para-que-no-muest/) |
 
 Quick task 260726-kg8 decisions:
 
 - Static, non-interpolated `wire:key="document-status-banner"` chosen for the conditional Registraduría/census banner wrapper on both register-voter.blade.php and create-leader.blade.php — each Volt component instance renders the banner at most once, so no per-row identity or interpolation is needed, and no key collision risk exists between the two separate component instances.
 - New regression tests exercise Livewire::test()->set() sibling-field assignments only, with an explicit code comment and self-documenting test name noting they cannot reproduce the actual browser morphdom bug — real confirmation requires a manual/Playwright browser session (type + Tab), not yet performed as part of this quick task's automated scope.
 
+Quick task 260726-qdj decisions:
+
+- Root route (`/`) closure changed from `return view('welcome');` to `return response('', 200);`, keeping the `->name('home')` binding intact so other code that redirects/links to it is unaffected; `resources/views/welcome.blade.php` left on disk, untouched, simply unused.
+- Dropped the plan's placeholder `assertSee('', false)` no-op assertion, relying solely on `expect($response->getContent())->toBe('')` as the primary blank-body assertion, per the plan's own guidance.
+
 ## Session Continuity
 
-Last session: 2026-07-26T20:47:30.000Z
-Stopped at: Completed quick task 260726-kg8 (wire:key fix for Livewire DOM-morph field-value bleed on register-voter/create-leader banners; manual browser verification still pending)
+Last session: 2026-07-26T21:00:00.000Z
+Stopped at: Completed quick task 260726-qdj (blanked root route '/' — no longer renders Laravel welcome view; /admin unaffected)
 Resume file: None
