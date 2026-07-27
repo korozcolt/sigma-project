@@ -46,6 +46,44 @@ class VoterForm
         return $columns;
     }
 
+    /**
+     * Re-derives the campaign-fixed department/municipality for a create-form default.
+     *
+     * department_id and municipality_id have no ->default() of their own, so on create forms
+     * Filament's schema hydration would otherwise null them out AFTER campaign_id's
+     * afterStateHydrated/afterStateUpdated hooks have $set() them (they live later in the schema
+     * and are processed afterwards). Giving them their own ->default() prevents that reset.
+     *
+     * @return array{department_id: ?int, municipality_id: ?int}
+     */
+    private static function resolveCampaignLocationDefaults(): array
+    {
+        $campaignId = CampaignContext::currentCampaignId();
+
+        $campaign = $campaignId
+            ? Campaign::query()->select(self::campaignSelectColumns())->find($campaignId)
+            : null;
+
+        if ($campaign?->scope?->value === CampaignScope::Municipal->value && filled($campaign->municipality_id)) {
+            return [
+                'department_id' => $campaign->department_id ?? Municipality::query()->whereKey($campaign->municipality_id)->value('department_id'),
+                'municipality_id' => $campaign->municipality_id,
+            ];
+        }
+
+        if ($campaign?->scope?->value === CampaignScope::Departamental->value && filled($campaign->department_id)) {
+            return [
+                'department_id' => $campaign->department_id,
+                'municipality_id' => null,
+            ];
+        }
+
+        return [
+            'department_id' => null,
+            'municipality_id' => null,
+        ];
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -325,6 +363,7 @@ class VoterForm
                             ->dehydrated(false)
                             ->searchable()
                             ->preload()
+                            ->default(fn (): ?int => self::resolveCampaignLocationDefaults()['department_id'])
                             ->disabled(fn (Get $get): bool => filled($get('campaign_department_id_state')) || filled($get('campaign_municipality_id_state')))
                             ->live()
                             ->afterStateUpdated(function ($state, callable $set): void {
@@ -349,12 +388,14 @@ class VoterForm
                             ->preload()
                             ->required()
                             ->live()
+                            ->default(fn (): ?int => self::resolveCampaignLocationDefaults()['municipality_id'])
                             ->afterStateUpdated(function (callable $set): void {
                                 $set('neighborhood_id', null);
                                 $set('polling_place_id', null);
                                 $set('polling_table_number', null);
                             })
                             ->disabled(fn (Get $get): bool => filled($get('campaign_municipality_id_state')))
+                            ->dehydrated()
                             ->helperText('Si la campaña tiene un municipio definido, quedará fijo.'),
 
                         Select::make('neighborhood_id')
@@ -371,8 +412,8 @@ class VoterForm
                             )
                             ->searchable()
                             ->preload()
-                            ->disabled(fn ($get): bool => ! $get('municipality_id'))
-                            ->helperText('Seleccione primero un municipio'),
+                            ->disabled(fn (Get $get): bool => ! filled($get('municipality_id')))
+                            ->helperText(fn (Get $get): ?string => filled($get('municipality_id')) ? null : 'Seleccione primero un municipio'),
 
                         Select::make('polling_place_id')
                             ->label('Puesto de votación')

@@ -10,6 +10,7 @@ use App\Filament\Resources\Voters\Pages\EditVoter;
 use App\Filament\Resources\Voters\Pages\ListVoters;
 use App\Filament\Resources\Voters\Pages\ViewVoter;
 use App\Models\Campaign;
+use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\Neighborhood;
 use App\Models\User;
@@ -396,6 +397,59 @@ test('can create voter with all optional fields', function () {
         'first_name' => 'Juan',
         'last_name' => 'Pérez',
         'email' => 'juan@example.com',
+        'neighborhood_id' => $neighborhood->id,
+    ]);
+});
+
+test('creating a voter with a municipal-scope active campaign auto-fills municipality and enables barrio selection', function () {
+    $department = Department::factory()->create();
+    $municipality = Municipality::factory()->create(['department_id' => $department->id]);
+    $neighborhood = Neighborhood::factory()->for($municipality)->create();
+
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update(['coordinator_user_id' => $coordinator->id]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
+    $campaign = Campaign::factory()->municipal()->create([
+        'department_id' => $department->id,
+        'municipality_id' => $municipality->id,
+    ]);
+
+    // Campaign-scoped queries (coordinator/leader dropdowns) require membership
+    // once a specific campaign context is active.
+    $coordinator->campaigns()->attach($campaign);
+    $leader->campaigns()->attach($campaign);
+
+    Session::put('campaign_context.mode', 'single');
+    Session::put('campaign_context.campaign_id', $campaign->id);
+
+    Livewire::test(CreateVoter::class)
+        ->assertFormSet([
+            'department_id' => $department->id,
+            'municipality_id' => $municipality->id,
+        ])
+        ->assertFormFieldEnabled('neighborhood_id')
+        ->fillForm([
+            'coordinator_user_id' => $coordinator->id,
+            'registered_by' => $leader->id,
+            'first_name' => 'Ana',
+            'last_name' => 'Gómez',
+            'document_number' => '11122233',
+            'phone' => '3005556677',
+            'neighborhood_id' => $neighborhood->id,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $this->assertDatabaseHas('voters', [
+        'document_number' => '11122233',
+        'municipality_id' => $municipality->id,
         'neighborhood_id' => $neighborhood->id,
     ]);
 });
