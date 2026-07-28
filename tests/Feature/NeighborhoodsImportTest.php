@@ -1,8 +1,12 @@
 <?php
 
+use App\Imports\NeighborhoodsImport;
 use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\Neighborhood;
+use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\Cell\AdvancedValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
 
 beforeEach(function () {
     $department = Department::factory()->create(['name' => 'Sucre']);
@@ -22,7 +26,7 @@ beforeEach(function () {
     Neighborhood::factory()->count(4)->create([
         'municipality_id' => $this->sincelejo->id,
         'name' => function () {
-            return 'Barrio ' . fake()->unique()->numberBetween(1, 999);
+            return 'Barrio '.fake()->unique()->numberBetween(1, 999);
         },
     ]);
 });
@@ -74,4 +78,25 @@ test('can create neighborhood for municipality', function () {
     expect($neighborhood->municipality_id)->toBe($municipality->id)
         ->and($neighborhood->name)->toBe('Test Neighborhood')
         ->and($neighborhood->is_global)->toBeTrue();
+});
+
+test('barrio names matching day-de-month patterns import as full strings, not truncated to a day number', function () {
+    // Simulate the exact production failure mode: PhpSpreadsheet's global
+    // value binder is (or becomes) AdvancedValueBinder, which auto-detects
+    // Spanish "day de month" patterns as dates and truncates them to the
+    // leading day number on read. NeighborhoodsImport must force plain
+    // string reads regardless of whatever binder is globally active.
+    Cell::setValueBinder(new AdvancedValueBinder);
+
+    $csvPath = tempnam(sys_get_temp_dir(), 'neighborhoods_').'.csv';
+    file_put_contents($csvPath, "barrio\n20 De Julio I\n7 De Agosto\n28 De Mayo\n");
+
+    Excel::import(new NeighborhoodsImport($this->sincelejo->id), $csvPath);
+
+    @unlink($csvPath);
+
+    expect(Neighborhood::where('municipality_id', $this->sincelejo->id)->where('name', '20 De Julio I')->exists())->toBeTrue()
+        ->and(Neighborhood::where('municipality_id', $this->sincelejo->id)->where('name', '7 De Agosto')->exists())->toBeTrue()
+        ->and(Neighborhood::where('municipality_id', $this->sincelejo->id)->where('name', '28 De Mayo')->exists())->toBeTrue()
+        ->and(Neighborhood::where('municipality_id', $this->sincelejo->id)->whereIn('name', ['20', '7', '28'])->exists())->toBeFalse();
 });
