@@ -3,13 +3,17 @@
 namespace App\Filament\Resources\Coordinators\Schemas;
 
 use App\Services\CampaignContext;
+use App\Services\IdentityLookupService;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
@@ -21,10 +25,22 @@ class CoordinatorForm
         return $schema->components([
             Section::make('Información personal')
                 ->schema([
+                    Hidden::make('name_locked')->default(false)->dehydrated(false),
+
                     TextInput::make('name')
                         ->label('Nombre completo')
                         ->required()
-                        ->maxLength(255),
+                        ->maxLength(255)
+                        ->disabled(fn (Get $get): bool => (bool) $get('name_locked'))
+                        ->dehydrated()
+                        ->suffixAction(
+                            Action::make('unlock_name')
+                                ->icon('heroicon-o-lock-open')
+                                ->label('¿Nombre incorrecto? Editar manualmente')
+                                ->tooltip('¿Nombre incorrecto? Editar manualmente')
+                                ->visible(fn (Get $get): bool => (bool) $get('name_locked'))
+                                ->action(fn (Set $set) => $set('name_locked', false))
+                        ),
 
                     TextInput::make('email')
                         ->label('Correo electrónico')
@@ -37,7 +53,22 @@ class CoordinatorForm
                         ->label('Número de documento')
                         ->required()
                         ->unique(ignoreRecord: true)
-                        ->maxLength(50),
+                        ->maxLength(50)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(function ($state, Set $set): void {
+                            if (blank($state)) {
+                                return;
+                            }
+
+                            $identity = app(IdentityLookupService::class)->findByDocumentNumber($state);
+
+                            if (! $identity) {
+                                return;
+                            }
+
+                            $set('name', preg_replace('/\s+/', ' ', trim("{$identity->nombre1} {$identity->nombre2} {$identity->apellido1} {$identity->apellido2}")));
+                            $set('name_locked', true);
+                        }),
 
                     DatePicker::make('birth_date')
                         ->label('Fecha de nacimiento')
