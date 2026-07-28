@@ -9,6 +9,7 @@ use App\Models\PollingPlace;
 use App\Models\RegistraduriaLookup;
 use App\Models\Voter;
 use App\Rules\MaxTablesForPollingPlace;
+use App\Services\IdentityLookupService;
 use App\Services\PollingPlaceResolver;
 use App\Services\VoterValidationService;
 use Illuminate\Validation\Rule;
@@ -62,6 +63,8 @@ new class extends Component
 
     public bool $registraduriaVerified = false;
 
+    public bool $nameLocked = false;
+
     public function mount(): void
     {
         $campaign = auth()->user()->campaigns()->first();
@@ -86,6 +89,17 @@ new class extends Component
     {
         $this->censusNotFoundWarning = false;
         $this->registraduriaVerified = false;
+        $this->nameLocked = false;
+
+        if (preg_match('/^\d{10}$/', $this->document_number)) {
+            $identity = app(IdentityLookupService::class)->findByDocumentNumber($this->document_number);
+
+            if ($identity) {
+                $this->first_name = trim("{$identity->nombre1} {$identity->nombre2}");
+                $this->last_name = trim("{$identity->apellido1} {$identity->apellido2}");
+                $this->nameLocked = true;
+            }
+        }
 
         if (! preg_match('/^\d{10}$/', $this->document_number)) {
             return;
@@ -111,6 +125,11 @@ new class extends Component
 
         $this->censusNotFoundWarning = ! app(VoterValidationService::class)
             ->documentExistsInCensus($this->campaign_id, $this->document_number);
+    }
+
+    public function unlockName(): void
+    {
+        $this->nameLocked = false;
     }
 
     public function getDepartmentsProperty()
@@ -344,6 +363,7 @@ new class extends Component
                         type="text"
                         placeholder="Juan Carlos"
                         autocomplete="given-name"
+                        :disabled="$nameLocked"
                     />
 
                     <flux:input
@@ -352,7 +372,14 @@ new class extends Component
                         type="text"
                         placeholder="Pérez García"
                         autocomplete="family-name"
+                        :disabled="$nameLocked"
                     />
+
+                    @if($nameLocked)
+                        <flux:button type="button" variant="ghost" size="sm" wire:click="unlockName">
+                            ¿Nombre incorrecto? Editar manualmente
+                        </flux:button>
+                    @endif
 
                     <flux:input
                         wire:model.blur="birth_date"

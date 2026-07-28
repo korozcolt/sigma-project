@@ -13,6 +13,7 @@ use App\Models\Voter;
 use App\Rules\DocumentNotBelongsToLeaderOrCoordinator;
 use App\Rules\MaxTablesForPollingPlace;
 use App\Services\CampaignContext;
+use App\Services\IdentityLookupService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -23,6 +24,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema as DbSchema;
@@ -102,6 +104,7 @@ class VoterForm
                 Hidden::make('campaign_scope_state')->dehydrated(false),
                 Hidden::make('campaign_department_id_state')->dehydrated(false),
                 Hidden::make('campaign_municipality_id_state')->dehydrated(false),
+                Hidden::make('name_locked')->default(false)->dehydrated(false),
 
                 Section::make('Campaña y Estado')
                     ->schema([
@@ -222,13 +225,25 @@ class VoterForm
                             ->label('Nombre')
                             ->required()
                             ->maxLength(255)
-                            ->autocomplete('given-name'),
+                            ->autocomplete('given-name')
+                            ->disabled(fn (Get $get): bool => (bool) $get('name_locked'))
+                            ->dehydrated(),
 
                         TextInput::make('last_name')
                             ->label('Apellido')
                             ->required()
                             ->maxLength(255)
-                            ->autocomplete('family-name'),
+                            ->autocomplete('family-name')
+                            ->disabled(fn (Get $get): bool => (bool) $get('name_locked'))
+                            ->dehydrated()
+                            ->suffixAction(
+                                Action::make('unlock_name')
+                                    ->icon('heroicon-o-lock-open')
+                                    ->label('¿Nombre incorrecto? Editar manualmente')
+                                    ->tooltip('¿Nombre incorrecto? Editar manualmente')
+                                    ->visible(fn (Get $get): bool => (bool) $get('name_locked'))
+                                    ->action(fn (Set $set) => $set('name_locked', false))
+                            ),
 
                         TextInput::make('document_number')
                             ->label('Número de Documento')
@@ -236,6 +251,21 @@ class VoterForm
                             ->maxLength(255)
                             ->helperText('Puede repetirse; se marcará como duplicado en disputa hasta que un admin lo resuelva')
                             ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Set $set): void {
+                                if (blank($state)) {
+                                    return;
+                                }
+
+                                $identity = app(IdentityLookupService::class)->findByDocumentNumber($state);
+
+                                if (! $identity) {
+                                    return;
+                                }
+
+                                $set('first_name', trim("{$identity->nombre1} {$identity->nombre2}"));
+                                $set('last_name', trim("{$identity->apellido1} {$identity->apellido2}"));
+                                $set('name_locked', true);
+                            })
                             ->suffixAction(
                                 Action::make('consultar_registraduria')
                                     ->icon('heroicon-o-magnifying-glass')
