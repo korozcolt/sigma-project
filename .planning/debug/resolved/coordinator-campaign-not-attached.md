@@ -1,8 +1,8 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "coordinator-campaign-not-attached"
 created: 2026-07-28T14:13:41Z
-updated: 2026-07-28T15:10:00Z
+updated: 2026-07-28T16:20:00Z
 ---
 
 ## Current Focus
@@ -154,5 +154,21 @@ verification: >
   new failures - a pre-existing CampaignContext static-state test-isolation issue affects
   4 unrelated widget/table tests on both main and this branch (15 failed on main vs 10
   failed with this fix, out of ~1044 tests), tracked separately, not caused by this change.
-  Awaiting human confirmation before running the backfill command against production and
-  before archiving this session.
+
+production_resolution: >
+  User confirmed (1) commit approved and (2) production access via ssh korserver, full
+  authorization to act on the server. Committed as b8747f2 and pushed to origin/main.
+  Dokploy auto-deployed the fix to both instances sharing this codebase:
+  sigma-app-kb2mdl (Aldemar, campaign "Alcaldía Sincelejo 2027") and
+  sigma-betha-app-pw6k9q (campaign "Alcaldía 2027", id 1 in DB sigma_betha) - user
+  clarified the reported production incident actually happened on sigma-betha-app, not
+  Aldemar (initial assumption from campaign name similarity was wrong; corrected mid-session).
+  No new migrations required for this fix. Ran `campaigns:backfill-orphan-memberships 1`
+  dry-run against sigma-betha-app-pw6k9q, confirmed exactly the 2 affected records (the
+  reported coordinator, id 3, roles coordinator+leader, and one leader under him, id 4),
+  then --apply with interactive confirmation piped via stdin. Result: 2 attached, 0 errors.
+  Verified via tinker: both users now have campaigns()->count() == 1, and the
+  `role('coordinator')` scoped query returns the coordinator correctly. Backfill was
+  intentionally run ONLY against sigma-betha-app's database per explicit user instruction
+  - Aldemar's existing coordinators/leaders were not touched (no evidence they were
+  affected, and out of scope).
