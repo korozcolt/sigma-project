@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: Completed quick task 260728-e4j (fixed NeighborhoodsImport date/delimiter corruption, backfilled Sincelejo neighborhood names in production)
-last_updated: "2026-07-28T16:20:00.000Z"
+stopped_at: Completed quick task 260728-fw1 (cédula -> full-name lookup/autofill/lock across all 5 Coordinador/Líder/Apoyo creation touch points; production backfill applied and verified on both sigma-app-kb2mdl and sigma-betha-app-pw6k9q)
+last_updated: "2026-07-28T18:00:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -172,6 +172,7 @@ Tracked in Blockers/Concerns above.
 | 260726-kg8 | Fix Livewire DOM-morph field-value bleed — wire:key wrapper on the Registraduría/census banner (líder + coordinador forms) | 2026-07-26 | 167ccc8 | [260726-kg8-fix-livewire-dom-morph-field-value-bleed](.planning/quick/260726-kg8-fix-livewire-dom-morph-field-value-bleed/) |
 | 260726-qdj | Blank the root route ("/") so it no longer renders the Laravel welcome view; /admin unaffected | 2026-07-26 | 7df64bc | [260726-qdj-deshabilitar-ruta-raiz-para-que-no-muest](.planning/quick/260726-qdj-deshabilitar-ruta-raiz-para-que-no-muest/) |
 | 260728-e4j | Fix NeighborhoodsImport date-parsing bug corrupting barrio names starting with day-of-month patterns, and backfill 10 corrupted Sincelejo neighborhoods in production | 2026-07-28 | dfe9793 | [260728-e4j-fix-neighborhoodsimport-date-parsing-bug](.planning/quick/260728-e4j-fix-neighborhoodsimport-date-parsing-bug/) |
+| 260728-fw1 | Add cédula (document_number) -> full-name lookup/autofill/lock across Coordinador, Líder, and Apoyo creation forms (Filament + Volt), backed by national_identity_records imported from a 371,232-row CSV; backfilled both production databases | 2026-07-28 | aa9a4f4 | [260728-fw1-add-a-c-dula-document-number-full-name-l](.planning/quick/260728-fw1-add-a-c-dula-document-number-full-name-l/) |
 
 Quick task 260726-kg8 decisions:
 
@@ -183,8 +184,14 @@ Quick task 260726-qdj decisions:
 - Root route (`/`) closure changed from `return view('welcome');` to `return response('', 200);`, keeping the `->name('home')` binding intact so other code that redirects/links to it is unaffected; `resources/views/welcome.blade.php` left on disk, untouched, simply unused.
 - Dropped the plan's placeholder `assertSee('', false)` no-op assertion, relying solely on `expect($response->getContent())->toBe('')` as the primary blank-body assertion, per the plan's own guidance.
 
+Quick task 260728-fw1 decisions:
+
+- `national_identity_records` intentionally has no `campaign_id` — cross-instance reference catalog, mirroring the `NationalCensusRecord` precedent, since Aldemar (`sigma`) and sigma-betha (`sigma_betha`) are separate databases each requiring their own independent full import.
+- `identity:import-directory`'s printed "Registros importados/actualizados" counter reflects rows processed into the upsert buffer, not unique cédulas actually upserted — an exact-duplicate row for an already-seen cédula still increments the counter even though the cédula-keyed buffer dedupes it before the real `upsert()` call. Confirmed as expected/correct behavior when production counts showed 371,012 processed vs. 371,010 actual rows in `national_identity_records` on both instances — the 2-row gap matches 2 exact-duplicate rows in the 371,232-row source CSV, identical on both independently-imported databases.
+- Production backfill (Tasks 6-8) executed only after explicit human approval ("aplicar importación") at the Task 7 blocking checkpoint; re-verification re-queried both databases fresh (row count + spot-check cédula `1053006255`) independent of the import command's own printed summary.
+
 ## Session Continuity
 
-Last session: 2026-07-26T21:00:00.000Z
-Stopped at: Completed quick task 260726-qdj (blanked root route '/' — no longer renders Laravel welcome view; /admin unaffected)
+Last session: 2026-07-28T18:00:00.000Z
+Stopped at: Completed quick task 260728-fw1 (cédula -> full-name lookup/autofill/lock across all 5 Coordinador/Líder/Apoyo creation touch points; production backfill applied and verified on both sigma-app-kb2mdl and sigma-betha-app-pw6k9q)
 Resume file: None
