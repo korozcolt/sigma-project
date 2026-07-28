@@ -1,0 +1,9 @@
+cedula,nombre1,nombre2,apellido1,apellido2
+1000000001,Juan,Carlos,Perez,Gomez
+1000000002,Maria,,Lopez,
+1000000003,Pedro,Luis,Ramirez,Diaz
+1000000003,Pedro,Luis,Ramirez,Diaz
+1000000004,Ana,,Torres,Vidal
+1000000004,Ana Maria,,Torres,Vidal
+,Sin,Cedula,Aqui,
+1000000005,,,,
