@@ -5,6 +5,7 @@ use App\Models\Neighborhood;
 use App\Models\RegistraduriaLookup;
 use App\Models\User;
 use App\Services\CampaignContext;
+use App\Services\IdentityLookupService;
 use App\Services\OtpVerificationService;
 use App\Services\VoterValidationService;
 use Illuminate\Support\Facades\Hash;
@@ -31,6 +32,8 @@ new class extends Component
 
     #[Validate('required|string|max:50|unique:users,document_number')]
     public string $document_number = '';
+
+    public bool $nameLocked = false;
 
     public bool $otpSent = false;
 
@@ -59,9 +62,17 @@ new class extends Component
     {
         $this->registraduriaVerified = false;
         $this->censusNotFoundWarning = false;
+        $this->nameLocked = false;
 
         if (blank($this->document_number)) {
             return;
+        }
+
+        $identity = app(IdentityLookupService::class)->findByDocumentNumber($this->document_number);
+
+        if ($identity) {
+            $this->name = preg_replace('/\s+/', ' ', trim("{$identity->nombre1} {$identity->nombre2} {$identity->apellido1} {$identity->apellido2}"));
+            $this->nameLocked = true;
         }
 
         if (RegistraduriaLookup::query()->where('document_number', $this->document_number)->exists()) {
@@ -78,6 +89,11 @@ new class extends Component
 
         $this->censusNotFoundWarning = ! app(VoterValidationService::class)
             ->documentExistsInCensus($campaign->id, $this->document_number);
+    }
+
+    public function unlockName(): void
+    {
+        $this->nameLocked = false;
     }
 
     private function resolveActiveCampaign()
@@ -245,7 +261,14 @@ new class extends Component
                     type="text"
                     placeholder="Juan Carlos Pérez"
                     autocomplete="name"
+                    :disabled="$nameLocked"
                 />
+
+                @if($nameLocked)
+                    <flux:button type="button" variant="ghost" size="sm" wire:click="unlockName">
+                        ¿Nombre incorrecto? Editar manualmente
+                    </flux:button>
+                @endif
 
                 <flux:input
                     wire:model.blur="document_number"
