@@ -180,6 +180,19 @@ None - no external service configuration required.
 - Both production instances' historical corruption is corrected and independently re-verified.
 - No blockers. Code changes (`f1cbaf7`) live on branch `worktree-agent-a96338b557412163e`, one commit ahead of `main` at the time of this task — merge/PR still needed to land the fix on `main`.
 
+## Addendum (post-completion, same session): broader corruption discovered — full re-import performed
+
+After this quick task was marked complete, `dfe9793`/`f1cbaf7` were merged into `main` (fast-forward) and pushed. The user then spotted, via screenshot of the live "Barrio" dropdown, that many barrio names were showing as single truncated words ("Cielo", "Ciudad" ×2, "Ciudadela"...) — i.e. the **same delimiter-autodetection bug this task fixed in code had already corrupted the original production import**, far beyond the 10 date-like names this task's backfill addressed. Root cause: the original `neighborhoods:import` run (before this fix existed) used the old `NeighborhoodsImport` with no `WithCustomCsvSettings`, so PhpSpreadsheet's delimiter auto-detection on the single-column CSV silently split every multi-word name on spaces and kept only the first fragment as `barrio`. Only names that were already a single word (or matched the date pattern, separately fixed above) survived intact — 203 of 246 rows per instance were affected.
+
+Remediation performed directly (data-only, no further code changes — the fix was already in this commit, just not yet deployed to production containers at import time):
+1. Checked both instances for any FK references to the corrupted `Neighborhood` rows (`User.neighborhood_id`, `Voter.neighborhood_id`) — **0 references in both**, confirming safe to delete and re-import rather than patch row-by-row.
+2. Pushed `dfe9793` to `origin/main`, waited for Dokploy to redeploy both `sigma-app-kb2mdl` and `sigma-betha-app-pw6k9q` (confirmed via `docker service inspect --format '{{.UpdatedAt}}'` polling), so the fixed `NeighborhoodsImport` (with `WithCustomCsvSettings`) was actually running before re-importing.
+3. Deleted all 246 Sincelejo `Neighborhood` rows in both instances (`Neighborhood::withoutGlobalScopes()->where('municipality_id', $sincelejo->id)->delete()`).
+4. Re-ran `php artisan neighborhoods:import {csv} --municipality-name=Sincelejo` in both containers using the same combined 246-name CSV from the earlier barrio-catalog task.
+5. Verified in both instances: 246 total, 43 single-word names (matches the CSV's genuinely single-word entries exactly), and spot-checked several previously-corrupted compound names (`Cielo Azul`, `Ciudad Jardin`, `Ciudad Satelite`, `Ciudadela Suiza`, `Ciudadela Universitaria`) all present with full names in both `sigma` and `sigma_betha`.
+
+This was executed directly (not as a separate GSD quick/debug task) since no further code changes were needed — the already-planned-and-committed fix in this task covered the root cause; only a deploy + clean data re-import remained.
+
 ---
 *Phase: quick*
 *Completed: 2026-07-28*

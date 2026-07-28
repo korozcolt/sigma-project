@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: Completed quick task 260726-qdj (blanked root route '/' — no longer renders Laravel welcome view; /admin unaffected)
-last_updated: "2026-07-26T21:00:00.000Z"
+stopped_at: Completed quick task 260728-e4j (fixed NeighborhoodsImport date/delimiter corruption, backfilled Sincelejo neighborhood names in production)
+last_updated: "2026-07-28T16:20:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -171,6 +171,7 @@ Tracked in Blockers/Concerns above.
 | 260726-k80 | Fix PollingPlaceResolver hardcoded max_tables=0 rejecting Registraduría-autofilled mesa numbers; corrected local PollingPlace id=2 to max_tables=13 | 2026-07-26 | dd46fb9 | [260726-k80-fix-pollingplaceresolver-hardcoded-max-t](.planning/quick/260726-k80-fix-pollingplaceresolver-hardcoded-max-t/) |
 | 260726-kg8 | Fix Livewire DOM-morph field-value bleed — wire:key wrapper on the Registraduría/census banner (líder + coordinador forms) | 2026-07-26 | 167ccc8 | [260726-kg8-fix-livewire-dom-morph-field-value-bleed](.planning/quick/260726-kg8-fix-livewire-dom-morph-field-value-bleed/) |
 | 260726-qdj | Blank the root route ("/") so it no longer renders the Laravel welcome view; /admin unaffected | 2026-07-26 | 7df64bc | [260726-qdj-deshabilitar-ruta-raiz-para-que-no-muest](.planning/quick/260726-qdj-deshabilitar-ruta-raiz-para-que-no-muest/) |
+| 260728-e4j | Fix NeighborhoodsImport date-parsing bug corrupting barrio names starting with day-of-month patterns, and backfill 10 corrupted Sincelejo neighborhoods in production | 2026-07-28 | dfe9793 | [260728-e4j-fix-neighborhoodsimport-date-parsing-bug](.planning/quick/260728-e4j-fix-neighborhoodsimport-date-parsing-bug/) |
 
 Quick task 260726-kg8 decisions:
 
