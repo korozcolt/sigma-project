@@ -14,9 +14,13 @@ use Illuminate\Support\Facades\Session;
 class CampaignContext
 {
     private const SESSION_CAMPAIGN_ID = 'campaign_context.campaign_id';
+
     private const SESSION_MODE = 'campaign_context.mode';
+
     private const MODE_ALL = 'all';
+
     private static ?int $overrideCampaignId = null;
+
     private static ?string $overrideMode = null;
 
     public static function currentCampaignId(?User $user = null): ?int
@@ -62,6 +66,27 @@ class CampaignContext
             ->value('campaigns.id');
     }
 
+    /**
+     * Resolve a specific campaign id even when no campaign context is active
+     * (e.g. super_admin browsing in "view all" mode), as long as there is
+     * exactly one ACTIVE campaign system-wide - the common single-campaign
+     * scenario. Returns null when the target campaign would be ambiguous
+     * (zero or 2+ active campaigns), so callers can require an explicit
+     * selection instead of guessing.
+     */
+    public static function resolveUnambiguousCampaignId(?User $user = null): ?int
+    {
+        $campaignId = self::currentCampaignId($user);
+
+        if ($campaignId) {
+            return $campaignId;
+        }
+
+        $activeCampaignIds = Campaign::query()->where('status', CampaignStatus::ACTIVE)->pluck('id');
+
+        return $activeCampaignIds->count() === 1 ? $activeCampaignIds->first() : null;
+    }
+
     public static function currentCampaign(?User $user = null): ?Campaign
     {
         $campaignId = self::currentCampaignId($user);
@@ -105,6 +130,7 @@ class CampaignContext
         if ($campaignId === null) {
             Session::put(self::SESSION_MODE, self::MODE_ALL);
             Session::forget(self::SESSION_CAMPAIGN_ID);
+
             return;
         }
 

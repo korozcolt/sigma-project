@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Leaders\Pages;
 use App\Enums\UserRole;
 use App\Filament\Resources\Leaders\LeaderResource;
 use App\Models\User;
+use App\Services\CampaignContext;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -43,7 +44,14 @@ class EditLeader extends EditRecord
             ->pluck('campaigns.id')
             ->all() ?? [];
 
+        // Defensive fallback: if the coordinator itself has no campaign
+        // attachment (e.g. stale data from before the
+        // coordinator-campaign-not-attached fix), fall back to the currently
+        // active campaign so the leader isn't left orphaned too.
+        if (empty($campaignIds) && $activeCampaignId = CampaignContext::resolveUnambiguousCampaignId()) {
+            $campaignIds = [$activeCampaignId];
+        }
+
         $this->record->campaigns()->sync($campaignIds);
     }
 }
-
