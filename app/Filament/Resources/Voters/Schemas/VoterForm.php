@@ -49,6 +49,93 @@ class VoterForm
     }
 
     /**
+     * Resolves the campaign_id a super_admin's Voter create/edit form should use, in priority order:
+     *
+     * a. The campaign active in session (CampaignContext::currentCampaignId()).
+     * b. If a Líder (registered_by) is already selected, the single campaign their coordinator
+     *    belongs to (App\Models\User::campaigns()), when unambiguous.
+     * c. The single ACTIVE campaign system-wide (CampaignContext::resolveUnambiguousCampaignId()).
+     *
+     * Returns null when none of the above resolve unambiguously, so callers can leave the field
+     * enabled for manual selection instead of locking it with no value.
+     */
+    private static function resolveSuperAdminCampaignId(?int $registeredById = null): ?int
+    {
+        $campaignId = CampaignContext::currentCampaignId();
+
+        if ($campaignId) {
+            return $campaignId;
+        }
+
+        $campaignId = self::resolveCampaignIdFromLeader($registeredById);
+
+        if ($campaignId) {
+            return $campaignId;
+        }
+
+        return CampaignContext::resolveUnambiguousCampaignId();
+    }
+
+    /**
+     * Derives a campaign id from a Líder's Coordinador's campaigns() membership, when the
+     * coordinator belongs to exactly one campaign. Returns null when the leader has no
+     * coordinator, the coordinator has zero campaigns, or the coordinator belongs to 2+
+     * campaigns (ambiguous).
+     */
+    private static function resolveCampaignIdFromLeader(?int $registeredById): ?int
+    {
+        if (! $registeredById) {
+            return null;
+        }
+
+        $coordinatorId = User::query()->whereKey($registeredById)->value('coordinator_user_id');
+
+        if (! $coordinatorId) {
+            return null;
+        }
+
+        $coordinator = User::query()->find($coordinatorId);
+
+        if (! $coordinator) {
+            return null;
+        }
+
+        $campaignIds = $coordinator->campaigns()->pluck('campaigns.id');
+
+        return $campaignIds->count() === 1 ? $campaignIds->first() : null;
+    }
+
+    /**
+     * Applies the side effects of a resolved campaign_id (territorial "_state" mirrors +
+     * campaign-fixed department/municipality) via $set(). Shared between campaign_id's own
+     * afterStateUpdated and registered_by's afterStateUpdated (selecting a Líder can also
+     * resolve/change the campaign for a super_admin - see resolveSuperAdminCampaignId()).
+     */
+    private static function applyCampaignDerivedState(?int $campaignId, callable $set): void
+    {
+        if (! $campaignId) {
+            $set('campaign_scope_state', null);
+            $set('campaign_department_id_state', null);
+            $set('campaign_municipality_id_state', null);
+
+            return;
+        }
+
+        $campaign = Campaign::query()->select(self::campaignSelectColumns())->find($campaignId);
+
+        $set('campaign_scope_state', $campaign?->scope?->value);
+        $set('campaign_department_id_state', $campaign?->department_id);
+        $set('campaign_municipality_id_state', $campaign?->municipality_id);
+
+        if ($campaign?->scope?->value === CampaignScope::Municipal->value && filled($campaign->municipality_id)) {
+            $set('department_id', $campaign->department_id ?? Municipality::query()->whereKey($campaign->municipality_id)->value('department_id'));
+            $set('municipality_id', $campaign->municipality_id);
+        } elseif ($campaign?->scope?->value === CampaignScope::Departamental->value && filled($campaign->department_id)) {
+            $set('department_id', $campaign->department_id);
+        }
+    }
+
+    /**
      * Re-derives the campaign-fixed department/municipality for a create-form default.
      *
      * department_id and municipality_id have no ->default() of their own, so on create forms
@@ -114,9 +201,9 @@ class VoterForm
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->default(fn () => CampaignContext::currentCampaignId())
+                            ->default(fn (Get $get): ?int => self::resolveSuperAdminCampaignId($get('registered_by')))
                             ->visible(fn (): bool => CampaignContext::isSuperAdmin())
-                            ->disabled(fn (): bool => Campaign::count() <= 1)
+                            ->disabled(fn (Get $get): bool => filled(self::resolveSuperAdminCampaignId($get('registered_by'))))
                             ->dehydrated()
                             ->live()
                             ->afterStateHydrated(function ($state, callable $set, $record): void {
@@ -142,26 +229,7 @@ class VoterForm
                                 }
                             })
                             ->afterStateUpdated(function ($state, callable $set): void {
-                                if (! $state) {
-                                    $set('campaign_scope_state', null);
-                                    $set('campaign_department_id_state', null);
-                                    $set('campaign_municipality_id_state', null);
-
-                                    return;
-                                }
-
-                                $campaign = Campaign::query()->select(self::campaignSelectColumns())->find($state);
-
-                                $set('campaign_scope_state', $campaign?->scope?->value);
-                                $set('campaign_department_id_state', $campaign?->department_id);
-                                $set('campaign_municipality_id_state', $campaign?->municipality_id);
-
-                                if ($campaign?->scope?->value === CampaignScope::Municipal->value && filled($campaign->municipality_id)) {
-                                    $set('department_id', $campaign->department_id ?? Municipality::query()->whereKey($campaign->municipality_id)->value('department_id'));
-                                    $set('municipality_id', $campaign->municipality_id);
-                                } elseif ($campaign?->scope?->value === CampaignScope::Departamental->value && filled($campaign->department_id)) {
-                                    $set('department_id', $campaign->department_id);
-                                }
+                                self::applyCampaignDerivedState($state, $set);
 
                                 $set('polling_place_id', null);
                                 $set('polling_table_number', null);
@@ -215,6 +283,21 @@ class VoterForm
                             ->searchable()
                             ->preload()
                             ->required()
+                            ->live()
+                            ->afterStateUpdated(function ($state, callable $set): void {
+                                if (! CampaignContext::isSuperAdmin()) {
+                                    return;
+                                }
+
+                                $campaignId = self::resolveSuperAdminCampaignId($state);
+
+                                if (! $campaignId) {
+                                    return;
+                                }
+
+                                $set('campaign_id', $campaignId);
+                                self::applyCampaignDerivedState($campaignId, $set);
+                            })
                             ->helperText('El apoyo siempre debe pertenecer a un líder.'),
                     ])
                     ->columns(2),
