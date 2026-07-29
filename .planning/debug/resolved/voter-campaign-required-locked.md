@@ -1,8 +1,8 @@
 ---
-status: awaiting_production_deploy
+status: resolved
 trigger: "voter-campaign-required-locked"
 created: 2026-07-28T00:00:00Z
-updated: 2026-07-28T00:45:00Z
+updated: 2026-07-28T18:15:00Z
 ---
 
 ## Current Focus
@@ -139,3 +139,20 @@ verification: >
 files_changed:
   - app/Filament/Resources/Voters/Schemas/VoterForm.php
   - tests/Feature/Filament/VoterCampaignResolutionTest.php (new)
+
+production_deploy: >
+  Commits 3839129 (fix) + ed71966 (docs) pushed to origin/main after owner approval. Dokploy
+  auto-deployed to both sigma-app-kb2mdl (Aldemar) and sigma-betha-app-pw6k9q (betha-app);
+  both containers confirmed healthy post-redeploy (docker ps status). No migrations required
+  (form-only logic change). Verified directly in each production database via tinker:
+  Campaign::where('status','active')->count() === 1 and
+  CampaignContext::resolveUnambiguousCampaignId() (called with no session, mimicking a
+  super_admin in "view all" mode) correctly returns campaign id 1 in both instances -
+  confirming the exact previously-broken resolution path now resolves successfully in real
+  production data. Full UI click-through (actually saving a Voter in the browser) was not
+  performed by the orchestrator; that final confirmation is left to the project owner, who
+  reported this bug while trying to register a real support (cédula 1102834619, ROSA
+  CANDELARIA DIAZ GARRIDO per the identity directory) - the same session also confirmed via
+  a direct Registraduría microservice call that the polling-place lookup for that cédula
+  works correctly (Sincelejo, IE Santa Rosa de Lima, mesa 25), so once the owner retries
+  creating that Voter it should now save successfully end-to-end.

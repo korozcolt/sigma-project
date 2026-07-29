@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: Completed quick task 260728-fw1 (cédula -> full-name lookup/autofill/lock across all 5 Coordinador/Líder/Apoyo creation touch points; production backfill applied and verified on both sigma-app-kb2mdl and sigma-betha-app-pw6k9q)
-last_updated: "2026-07-28T18:00:00.000Z"
+stopped_at: Fixed voter-campaign-required-locked debug session (super_admin Voter creation blocked by unresolvable disabled+required campaign_id in "view all" mode); deployed and verified on both sigma-app-kb2mdl and sigma-betha-app-pw6k9q
+last_updated: "2026-07-28T18:15:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
