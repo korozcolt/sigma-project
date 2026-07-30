@@ -2,8 +2,8 @@
 
 use App\Enums\VoterStatus;
 use App\Models\Campaign;
-use App\Models\CensusRecord;
 use App\Models\Municipality;
+use App\Models\NationalIdentityRecord;
 use App\Models\Neighborhood;
 use App\Models\PollingPlace;
 use App\Models\RegistraduriaLookup;
@@ -66,10 +66,9 @@ test('blurring a document number confirmed by Registraduría sets registraduriaV
         ->assertDontSee('Esta cédula no aparece en el censo actual, revísala.');
 });
 
-test('blurring a document number found only in the local census behaves exactly as before this task — no banner at all', function () {
-    CensusRecord::factory()->create([
-        'campaign_id' => $this->campaign->id,
-        'document_number' => '1234567891',
+test('blurring a document number found only in the national identity roll (not Registraduría) shows no banner at all', function () {
+    NationalIdentityRecord::factory()->create([
+        'cedula' => '1234567891',
     ]);
 
     $this->actingAs($this->leader);
@@ -114,10 +113,9 @@ test('saving a cédula present in RegistraduriaLookup persists status VERIFIED_R
         ->and($voter->status)->toBe(VoterStatus::VERIFIED_REGISTRADURIA);
 });
 
-test('saving a cédula found only in the local census still persists PENDING_REVIEW', function () {
-    CensusRecord::factory()->create([
-        'campaign_id' => $this->campaign->id,
-        'document_number' => '1234567894',
+test('saving a cédula found only in the national identity roll still persists PENDING_REVIEW', function () {
+    NationalIdentityRecord::factory()->create([
+        'cedula' => '1234567894',
     ]);
 
     $this->actingAs($this->leader);

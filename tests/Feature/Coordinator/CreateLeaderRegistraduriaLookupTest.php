@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\UserRole;
 use App\Models\Campaign;
-use App\Models\CensusRecord;
+use App\Models\NationalIdentityRecord;
 use App\Models\RegistraduriaLookup;
 use App\Models\User;
 use Illuminate\Support\Facades\Config;
@@ -36,10 +36,9 @@ test('blurring a document_number confirmed by Registraduría sets registraduriaV
         ->assertDontSee('Esta cédula no aparece en el censo actual, revísala.');
 });
 
-test('blurring a document_number found only in the coordinator campaign census shows neither banner', function () {
-    CensusRecord::factory()->create([
-        'campaign_id' => $this->campaign->id,
-        'document_number' => '1102812123',
+test('blurring a document_number found only in the national identity roll (not Registraduría) shows neither banner', function () {
+    NationalIdentityRecord::factory()->create([
+        'cedula' => '1102812123',
     ]);
 
     $this->actingAs($this->coordinator);

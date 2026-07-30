@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Enums\VoterStatus;
 use App\Models\CensusRecord;
+use App\Models\NationalCensusRecord;
+use App\Models\NationalIdentityRecord;
+use App\Models\RegistraduriaLookup;
 use App\Models\ValidationHistory;
 use App\Models\Voter;
 use Illuminate\Support\Facades\Auth;
@@ -12,31 +15,61 @@ use Illuminate\Support\Facades\DB;
 class VoterValidationService
 {
     /**
+     * Statuses that represent a stronger, post-verification/Day-D operational state.
+     * Census validation must never clobber these, regardless of found/not-found outcome.
+     *
+     * @var array<int, VoterStatus>
+     */
+    private const NON_DOWNGRADABLE_STATUSES = [
+        VoterStatus::VERIFIED_REGISTRADURIA,
+        VoterStatus::VERIFIED_CALL,
+        VoterStatus::CONFIRMED,
+        VoterStatus::VOTED,
+        VoterStatus::DID_NOT_VOTE,
+    ];
+
+    public function __construct(
+        private readonly PollingPlaceResolver $resolver = new PollingPlaceResolver([]),
+    ) {}
+
+    /**
      * Validate a voter against the census.
+     *
+     * Delegates to the SAME automated cascade PollingPlaceResolver already uses for
+     * polling-place resolution (permanent registraduria_lookups cache -> live adapters ->
+     * national census snapshot), so a single pass resolves BOTH census status AND
+     * polling_place_source. A cedula present in national_identity_records also counts as
+     * census-found even when no polling place is resolvable. The orphaned per-campaign
+     * `census_records` table is intentionally NOT consulted here (see root-cause writeup
+     * at .planning/debug/apoyos-mass-rejected-census-betha.md).
      *
      * @return array{found: bool, match: ?CensusRecord, confidence: string}
      */
     public function validateAgainstCensus(Voter $voter): array
     {
-        $censusRecord = $this->findInCensus($voter);
+        $result = $this->resolver->resolveAutomated(
+            $voter->document_number,
+            $voter,
+            resolvedVia: 'census_validation'
+        );
 
-        if ($censusRecord) {
-            return [
-                'found' => true,
-                'match' => $censusRecord,
-                'confidence' => 'high',
-            ];
-        }
+        $found = $result !== null
+            || NationalIdentityRecord::query()->where('cedula', $voter->document_number)->exists();
 
         return [
-            'found' => false,
+            'found' => $found,
             'match' => null,
-            'confidence' => 'none',
+            'confidence' => $found ? 'high' : 'none',
         ];
     }
 
     /**
      * Find a voter in the census by document number.
+     *
+     * @deprecated Vestigial — the orphaned per-campaign census_records table is no longer
+     * the source of truth for census validation (see validateAgainstCensus()). Left in
+     * place only for getCensusInfo()'s existing callers/tests; not consulted by the
+     * validation flow itself.
      */
     protected function findInCensus(Voter $voter): ?CensusRecord
     {
@@ -47,10 +80,18 @@ class VoterValidationService
 
     /**
      * Update voter status based on census validation.
+     *
+     * No-downgrade guard: if the voter is already in one of the NON_DOWNGRADABLE_STATUSES
+     * (stronger, post-verification/Day-D states), leave it untouched — no status mutation,
+     * no ValidationHistory row — regardless of the found/not-found result.
      */
     public function updateVoterStatus(Voter $voter, bool $found): Voter
     {
         $previousStatus = $voter->status;
+
+        if ($previousStatus !== null && in_array($previousStatus, self::NON_DOWNGRADABLE_STATUSES, true)) {
+            return $voter->fresh();
+        }
 
         if ($found) {
             $voter->update([
@@ -59,8 +100,8 @@ class VoterValidationService
             ]);
         } else {
             $voter->update([
-                'status' => VoterStatus::REJECTED_CENSUS,
-                'notes' => 'No se encontró en el censo electoral',
+                'status' => VoterStatus::CENSUS_NOT_FOUND,
+                'notes' => 'No se encontró en el censo electoral ni en los registros de identidad nacional; queda pendiente de reconciliación',
             ]);
         }
 
@@ -72,7 +113,7 @@ class VoterValidationService
             'validation_type' => 'census',
             'notes' => $found
                 ? 'Validado exitosamente contra el censo electoral'
-                : 'No se encontró en el censo electoral',
+                : 'No se encontró en el censo electoral ni en los registros de identidad nacional',
         ]);
 
         return $voter->fresh();
@@ -144,16 +185,23 @@ class VoterValidationService
 
     /**
      * Check if a document number exists in the census for a campaign.
+     *
+     * Stops consulting the orphaned per-campaign `census_records` table — returns true if
+     * the cedula is in the permanent Registraduría lookup cache, the national census
+     * snapshot, or the national identity roll.
      */
     public function documentExistsInCensus(int $campaignId, string $documentNumber): bool
     {
-        return CensusRecord::where('campaign_id', $campaignId)
-            ->where('document_number', $documentNumber)
-            ->exists();
+        return RegistraduriaLookup::query()->where('document_number', $documentNumber)->exists()
+            || NationalCensusRecord::query()->where('document_number', $documentNumber)->exists()
+            || NationalIdentityRecord::query()->where('cedula', $documentNumber)->exists();
     }
 
     /**
      * Get census information for a voter.
+     *
+     * @deprecated Vestigial — reads from the orphaned per-campaign census_records table,
+     * no longer the source of truth for census validation (see validateAgainstCensus()).
      */
     public function getCensusInfo(Voter $voter): ?CensusRecord
     {

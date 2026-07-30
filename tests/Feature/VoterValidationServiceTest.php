@@ -3,6 +3,8 @@
 use App\Enums\VoterStatus;
 use App\Models\Campaign;
 use App\Models\CensusRecord;
+use App\Models\NationalIdentityRecord;
+use App\Models\RegistraduriaLookup;
 use App\Models\User;
 use App\Models\Voter;
 use App\Services\VoterValidationService;
@@ -18,10 +20,8 @@ beforeEach(function () {
 it('validates voter found in census', function () {
     $campaign = Campaign::factory()->create();
 
-    $censusRecord = CensusRecord::factory()->create([
-        'campaign_id' => $campaign->id,
+    RegistraduriaLookup::factory()->create([
         'document_number' => '1234567890',
-        'full_name' => 'Juan Pérez',
     ]);
 
     $voter = Voter::factory()->create([
@@ -33,9 +33,9 @@ it('validates voter found in census', function () {
     $result = $this->service->validateAgainstCensus($voter);
 
     expect($result['found'])->toBeTrue();
-    expect($result['match'])->toBeInstanceOf(CensusRecord::class);
-    expect($result['match']->id)->toBe($censusRecord->id);
+    expect($result['match'])->toBeNull();
     expect($result['confidence'])->toBe('high');
+    expect($voter->fresh()->polling_place_source)->not->toBeNull();
 });
 
 it('validates voter not found in census', function () {
@@ -76,7 +76,7 @@ it('updates voter status to verified when found in census', function () {
     expect($updatedVoter->census_validated_at)->not->toBeNull();
 });
 
-it('updates voter status to rejected when not found in census', function () {
+it('updates voter status to census_not_found (not the dead-end rejected_census) when not found in census', function () {
     $voter = Voter::factory()->create([
         'status' => VoterStatus::PENDING_REVIEW,
     ]);
@@ -85,15 +85,14 @@ it('updates voter status to rejected when not found in census', function () {
 
     $updatedVoter = $this->service->updateVoterStatus($voter, false);
 
-    expect($updatedVoter->status)->toBe(VoterStatus::REJECTED_CENSUS);
+    expect($updatedVoter->status)->toBe(VoterStatus::CENSUS_NOT_FOUND);
     expect($updatedVoter->notes)->toContain('No se encontró en el censo electoral');
 });
 
 it('validates and updates voter in one operation', function () {
     $campaign = Campaign::factory()->create();
 
-    CensusRecord::factory()->create([
-        'campaign_id' => $campaign->id,
+    RegistraduriaLookup::factory()->create([
         'document_number' => '1234567890',
     ]);
 
@@ -109,24 +108,23 @@ it('validates and updates voter in one operation', function () {
 
     expect($result['found'])->toBeTrue();
     expect($result['voter']->status)->toBe(VoterStatus::VERIFIED_CENSUS);
-    expect($result['match'])->toBeInstanceOf(CensusRecord::class);
+    expect($result['match'])->toBeNull();
 });
 
 it('validates all pending voters for a campaign', function () {
     $campaign = Campaign::factory()->create();
 
-    // Create census records
-    CensusRecord::factory()->create([
-        'campaign_id' => $campaign->id,
+    // Re-seed the two "found" fixtures via the permanent Registraduría lookup cache
+    // (census_records is no longer consulted at all — see VoterValidationService).
+    RegistraduriaLookup::factory()->create([
         'document_number' => '1111111111',
     ]);
 
-    CensusRecord::factory()->create([
-        'campaign_id' => $campaign->id,
+    RegistraduriaLookup::factory()->create([
         'document_number' => '2222222222',
     ]);
 
-    // Create pending voters - 2 will be found, 1 will be rejected
+    // Create pending voters - 2 will be found, 1 will land on census_not_found
     Voter::factory()->create([
         'campaign_id' => $campaign->id,
         'document_number' => '1111111111',
@@ -154,19 +152,34 @@ it('validates all pending voters for a campaign', function () {
     expect($result['rejected'])->toBe(1);
 
     expect(Voter::where('status', VoterStatus::VERIFIED_CENSUS)->count())->toBe(2);
-    expect(Voter::where('status', VoterStatus::REJECTED_CENSUS)->count())->toBe(1);
+    expect(Voter::where('status', VoterStatus::CENSUS_NOT_FOUND)->count())->toBe(1);
 });
 
 it('checks if document exists in census', function () {
     $campaign = Campaign::factory()->create();
 
-    CensusRecord::factory()->create([
-        'campaign_id' => $campaign->id,
+    RegistraduriaLookup::factory()->create([
         'document_number' => '1234567890',
     ]);
 
+    NationalIdentityRecord::factory()->create([
+        'cedula' => '5555555555',
+    ]);
+
     expect($this->service->documentExistsInCensus($campaign->id, '1234567890'))->toBeTrue();
+    expect($this->service->documentExistsInCensus($campaign->id, '5555555555'))->toBeTrue();
     expect($this->service->documentExistsInCensus($campaign->id, '9999999999'))->toBeFalse();
+});
+
+it('does not count a lone census_records row as existing in the census (orphaned table no longer consulted)', function () {
+    $campaign = Campaign::factory()->create();
+
+    CensusRecord::factory()->create([
+        'campaign_id' => $campaign->id,
+        'document_number' => '8888888888',
+    ]);
+
+    expect($this->service->documentExistsInCensus($campaign->id, '8888888888'))->toBeFalse();
 });
 
 it('gets census info for a voter', function () {

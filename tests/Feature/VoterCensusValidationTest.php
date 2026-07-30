@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\VoterStatus;
 use App\Models\Campaign;
-use App\Models\CensusRecord;
+use App\Models\RegistraduriaLookup;
 use App\Models\User;
 use App\Models\ValidationHistory;
 use App\Models\Voter;
@@ -23,8 +23,7 @@ beforeEach(function () {
 test('validating a voter found in the census sets verified status and writes an auditable validation history', function () {
     $campaign = Campaign::factory()->create();
 
-    CensusRecord::factory()->create([
-        'campaign_id' => $campaign->id,
+    RegistraduriaLookup::factory()->create([
         'document_number' => '11111111',
     ]);
 
@@ -51,7 +50,7 @@ test('validating a voter found in the census sets verified status and writes an 
     expect($history->validated_by)->toBe($this->validator->id);
 });
 
-test('validating a voter not found in the census sets rejected status and writes an auditable validation history', function () {
+test('validating a voter not found in the census sets census_not_found (not the dead-end rejected_census) and writes an auditable validation history', function () {
     $campaign = Campaign::factory()->create();
 
     $voter = Voter::factory()->create([
@@ -66,20 +65,19 @@ test('validating a voter not found in the census sets rejected status and writes
 
     $voter->refresh();
 
-    expect($voter->status)->toBe(VoterStatus::REJECTED_CENSUS);
+    expect($voter->status)->toBe(VoterStatus::CENSUS_NOT_FOUND);
 
     $history = ValidationHistory::where('voter_id', $voter->id)->latest()->first();
 
     expect($history)->not->toBeNull();
     expect($history->validation_type)->toBe('census');
-    expect($history->new_status)->toBe(VoterStatus::REJECTED_CENSUS);
+    expect($history->new_status)->toBe(VoterStatus::CENSUS_NOT_FOUND);
 });
 
 test('the validation history records the previous status before validation ran', function () {
     $campaign = Campaign::factory()->create();
 
-    CensusRecord::factory()->create([
-        'campaign_id' => $campaign->id,
+    RegistraduriaLookup::factory()->create([
         'document_number' => '33333333',
     ]);
 

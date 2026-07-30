@@ -2,8 +2,8 @@
 
 use App\Enums\VoterStatus;
 use App\Models\Campaign;
-use App\Models\CensusRecord;
 use App\Models\Municipality;
+use App\Models\NationalIdentityRecord;
 use App\Models\Neighborhood;
 use App\Models\User;
 use App\Models\Voter;
@@ -39,9 +39,8 @@ test('blurring an unknown document number shows the census-not-found warning', f
 });
 
 test('blurring a document number found in the local census clears the warning', function () {
-    CensusRecord::factory()->create([
-        'campaign_id' => $this->campaign->id,
-        'document_number' => '1234567890',
+    NationalIdentityRecord::factory()->create([
+        'cedula' => '1234567890',
     ]);
 
     $this->actingAs($this->leader);
@@ -81,9 +80,8 @@ test('saving despite the census warning persists status census not found', funct
 });
 
 test('saving a document number found in the local census persists the default pending review status', function () {
-    CensusRecord::factory()->create([
-        'campaign_id' => $this->campaign->id,
-        'document_number' => '1234567890',
+    NationalIdentityRecord::factory()->create([
+        'cedula' => '1234567890',
     ]);
 
     $this->actingAs($this->leader);
