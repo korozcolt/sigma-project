@@ -10,6 +10,7 @@ use App\Filament\Resources\Voters\Schemas\VoterForm;
 use App\Filament\Resources\Voters\Tables\VotersTable;
 use App\Models\Voter;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -69,5 +70,10 @@ class VoterResource extends Resource
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return Filament::getCurrentPanel()?->getId() !== 'reports';
     }
 }
