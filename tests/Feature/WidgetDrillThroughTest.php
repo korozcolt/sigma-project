@@ -3,11 +3,20 @@
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Filament\Resources\Voters\VoterResource;
+use App\Filament\Widgets\ApoyosLideresCoordinadoresTable;
+use App\Filament\Widgets\CampaignStatsOverview;
+use App\Filament\Widgets\DuplicatesReportTable;
 use App\Filament\Widgets\FollowUpBacklogOverview;
+use App\Filament\Widgets\JurisdictionReportTable;
+use App\Filament\Widgets\RejectionsReportTable;
+use App\Filament\Widgets\TerritorialOwnershipTable;
+use App\Filament\Widgets\TopCoordinatorsTable;
 use App\Filament\Widgets\TopLeadersTable;
+use App\Filament\Widgets\TopPollingPlacesTable;
 use App\Models\Campaign;
 use App\Models\Department;
 use App\Models\Municipality;
+use App\Models\PollingPlace;
 use App\Models\User;
 use App\Models\Voter;
 use Illuminate\Support\Facades\Session;
@@ -18,6 +27,8 @@ uses()->group('dashboard-widgets');
 
 beforeEach(function () {
     Role::firstOrCreate(['name' => UserRole::SUPER_ADMIN->value, 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => UserRole::COORDINATOR->value, 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => UserRole::LEADER->value, 'guard_name' => 'web']);
     $user = User::factory()->create();
     $user->assignRole(UserRole::SUPER_ADMIN->value);
     $this->actingAs($user);
@@ -72,4 +83,67 @@ test('top leaders table rows link to the leader filtered voter list', function (
 
     expect($recordUrl)->toBe($expectedUrl)
         ->and($recordUrl)->toContain((string) $leader->id);
+});
+
+test('territorial ownership table leader rows link to the leader filtered voter list', function () {
+    $leader = User::factory()->create(['municipality_id' => $this->municipality->id]);
+    $leader->assignRole(UserRole::LEADER->value);
+    $leader->campaigns()->attach($this->campaign);
+
+    $component = Livewire::test(TerritorialOwnershipTable::class);
+    $recordUrl = $component->instance()->getTable()->getRecordUrl($leader);
+
+    $expectedUrl = VoterResource::getUrl('index', [
+        'tableFilters' => [
+            'registered_by' => ['values' => [$leader->id]],
+        ],
+    ]);
+
+    expect($recordUrl)->toBe($expectedUrl);
+});
+
+test('territorial ownership table coordinator rows link to the coordinator team filtered voter list', function () {
+    $coordinator = User::factory()->create(['municipality_id' => $this->municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->campaigns()->attach($this->campaign);
+
+    $leader1 = User::factory()->create(['coordinator_user_id' => $coordinator->id]);
+    $leader2 = User::factory()->create(['coordinator_user_id' => $coordinator->id]);
+
+    $component = Livewire::test(TerritorialOwnershipTable::class);
+    $recordUrl = $component->instance()->getTable()->getRecordUrl($coordinator);
+
+    $teamIds = $coordinator->leaders()->pluck('id')->push($coordinator->id)->all();
+
+    $expectedUrl = VoterResource::getUrl('index', [
+        'tableFilters' => [
+            'registered_by' => ['values' => $teamIds],
+        ],
+    ]);
+
+    expect($recordUrl)->toBe($expectedUrl)
+        ->and($teamIds)->toContain($leader1->id, $leader2->id, $coordinator->id);
+});
+
+test('top coordinators table rows link to the coordinator team filtered voter list', function () {
+    $coordinator = User::factory()->create(['municipality_id' => $this->municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->campaigns()->attach($this->campaign);
+
+    $leader1 = User::factory()->create(['coordinator_user_id' => $coordinator->id]);
+    $leader2 = User::factory()->create(['coordinator_user_id' => $coordinator->id]);
+
+    $component = Livewire::test(TopCoordinatorsTable::class);
+    $recordUrl = $component->instance()->getTable()->getRecordUrl($coordinator);
+
+    $teamIds = $coordinator->leaders()->pluck('id')->push($coordinator->id)->all();
+
+    $expectedUrl = VoterResource::getUrl('index', [
+        'tableFilters' => [
+            'registered_by' => ['values' => $teamIds],
+        ],
+    ]);
+
+    expect($recordUrl)->toBe($expectedUrl)
+        ->and($teamIds)->toContain($leader1->id, $leader2->id, $coordinator->id);
 });
