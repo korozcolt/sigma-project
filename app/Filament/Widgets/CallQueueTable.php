@@ -38,7 +38,7 @@ class CallQueueTable extends TableWidget
 
                     ])
                     ->when($userId, fn (Builder $query) => $query->forCaller($userId))
-                    ->whereIn('status', ['pending', 'in_progress'])
+                    ->whereIn('call_assignments.status', ['pending', 'in_progress'])
                     ->orderedByPriority()
                     ->oldest('assigned_at')
             )

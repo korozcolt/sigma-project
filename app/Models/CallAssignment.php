@@ -64,17 +64,17 @@ class CallAssignment extends Model
 
     public function scopePending(Builder $query): void
     {
-        $query->where('status', 'pending');
+        $query->where('call_assignments.status', 'pending');
     }
 
     public function scopeInProgress(Builder $query): void
     {
-        $query->where('status', 'in_progress');
+        $query->where('call_assignments.status', 'in_progress');
     }
 
     public function scopeCompleted(Builder $query): void
     {
-        $query->where('status', 'completed');
+        $query->where('call_assignments.status', 'completed');
     }
 
     public function scopeForCampaign(Builder $query, int $campaignId): void
