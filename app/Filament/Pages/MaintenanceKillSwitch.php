@@ -24,6 +24,8 @@ class MaintenanceKillSwitch extends Page
 
     protected static string|\UnitEnum|null $navigationGroup = 'Configuración';
 
+    protected static ?int $navigationSort = 6;
+
     protected string $view = 'filament.pages.maintenance-kill-switch';
 
     public static function canAccess(): bool
