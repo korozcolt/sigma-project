@@ -8,9 +8,11 @@ use App\Filament\Widgets\FollowUpBacklogOverview;
 use App\Filament\Widgets\TerritorialOwnershipTable;
 use App\Filament\Widgets\TopCoordinatorsTable;
 use App\Filament\Widgets\TopLeadersTable;
+use App\Filament\Widgets\TopPollingPlacesTable;
 use App\Models\Campaign;
 use App\Models\Department;
 use App\Models\Municipality;
+use App\Models\PollingPlace;
 use App\Models\User;
 use App\Models\Voter;
 use Illuminate\Support\Facades\Session;
@@ -119,6 +121,27 @@ test('territorial ownership table coordinator rows link to the coordinator team 
 
     expect($recordUrl)->toBe($expectedUrl)
         ->and($teamIds)->toContain($leader1->id, $leader2->id, $coordinator->id);
+});
+
+test('top polling places table rows link to the polling place filtered voter list', function () {
+    $pollingPlace = PollingPlace::factory()->create(['municipality_id' => $this->municipality->id]);
+
+    Voter::factory()->count(3)->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'polling_place_id' => $pollingPlace->id,
+    ]);
+
+    $component = Livewire::test(TopPollingPlacesTable::class);
+    $recordUrl = $component->instance()->getTable()->getRecordUrl($pollingPlace);
+
+    $expectedUrl = VoterResource::getUrl('index', [
+        'tableFilters' => [
+            'polling_place_id' => ['values' => [$pollingPlace->id]],
+        ],
+    ]);
+
+    expect($recordUrl)->toBe($expectedUrl);
 });
 
 test('campaign stats overview total de apoyos and confirmados stats link to filtered voter lists', function () {
