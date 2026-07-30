@@ -178,6 +178,7 @@ Tracked in Blockers/Concerns above.
 | 260730-cs3 | Unify VoterValidationService onto PollingPlaceResolver::resolveAutomated() (fixes sigma-betha's 148 mass-misrejected apoyos); widen revalidation/reconciliation to NULL-source voters with RevalidationRun progress tracking; census:remediate-misrejected command; non-blocking RevalidationProgressWidget on the Apoyos screen | 2026-07-30 | 8db8278 | [260730-cs3-fix-root-cause-in-planning-debug-apoyos-](.planning/quick/260730-cs3-fix-root-cause-in-planning-debug-apoyos-/) |
 | 260730-fi4 | Rename Apoyos list page's "duplicatesReport" action label/modalHeading from "Reporte de Duplicados" to "Cruzar Cédulas Externas (CSV)" to remove naming collision with Dashboard's unrelated "Informe de Duplicados" widget | 2026-07-30 | 58190fe | [260730-fi4-rename-reporte-de-duplicados-apoyos-acti](.planning/quick/260730-fi4-rename-reporte-de-duplicados-apoyos-acti/) |
 | 260730-fm9 | Move "Modo Mantenimiento" nav item to bottom of the Configuración sidebar group (navigationSort = 6) | 2026-07-30 | 8acd21d | [260730-fm9-move-modo-mantenimiento-nav-item-to-bott](.planning/quick/260730-fm9-move-modo-mantenimiento-nav-item-to-bott/) |
+| 260730-g0h | Make LeadersTable columns toggleable (Correo/Creado hidden by default); hide VotersTable's Campaña column by default | 2026-07-30 | 1615c60, 47e42e3 | [260730-g0h-add-column-toggle-to-leaderstable-hide-c](.planning/quick/260730-g0h-add-column-toggle-to-leaderstable-hide-c/) |
 | 260730-g2k | Add column toggle to CoordinatorsTable, hide Correo/Creado by default (same pattern as 260730-g0h) | 2026-07-30 | 56dd6a5 | [260730-g2k-add-column-toggle-to-coordinatorstable-h](.planning/quick/260730-g2k-add-column-toggle-to-coordinatorstable-h/) |
 
 Quick task 260726-kg8 decisions:
@@ -214,6 +215,11 @@ Quick task 260730-fm9 decisions:
 
 - Pure ordering change — added `protected static ?int $navigationSort = 6;` to `MaintenanceKillSwitch` (no prior sort value meant it rendered first in "Configuración"); no logic/behavior change.
 
+Quick task 260730-g0h decisions:
+
+- Pure Filament column-config change on two tables: LeadersTable's 5 columns all made `->toggleable()` (email/created_at hidden by default); VotersTable's `campaign.name` switched from visible-by-default toggleable to `->toggleable(isToggledHiddenByDefault: true)`, with every other VotersTable column left untouched.
+- Added two new Pest tests (`LeaderResourceColumnTogglingTest`, `VoterResourceCampaignColumnTogglingTest`) not specified in the plan, per CLAUDE.md's test-enforcement rule — no existing test in the codebase covered Filament column-toggle defaults on either table. Established a reusable pattern: `assertTableColumnExists($name, fn ($column) => $column->isToggleable() && $column->isToggledHiddenByDefault())` paired with `assertCanNotRenderTableColumn($name)` to lock in both the config and the actual default-hidden render state.
+
 Post-260730-cs3 production follow-through (completed same day, outside the quick-task executor flow — done directly by the orchestrator with human confirmation):
 
 - Deployed `main` to sigma-betha (Dokploy auto-deploy, delayed but confirmed via deployment-table polling), ran both new migrations (`revalidation_runs`, nullable `validated_by`) with `--force`, dry-ran then for-real ran `census:remediate-misrejected --campaign=1` against production — confirmed via tinker: `rejected_census` 148 -> 0, `pending_review` +148, 148 new `ValidationHistory` rows.
@@ -223,5 +229,5 @@ Post-260730-cs3 production follow-through (completed same day, outside the quick
 ## Session Continuity
 
 Last session: 2026-07-30T16:15:00.000Z
-Stopped at: Completed quick task 260730-g2k (added ->toggleable() to all 5 CoordinatorsTable columns, Correo/Creado hidden by default — same pattern as the concurrently-running 260730-g0h on LeadersTable/VotersTable). In progress: new read-only "reports viewer" role/panel (quick task 260730-fkf) — discussion complete (CONTEXT.md written), planner running.
+Stopped at: Completed quick tasks 260730-g2k (added ->toggleable() to all 5 CoordinatorsTable columns, Correo/Creado hidden by default) and 260730-g0h (same pattern on LeadersTable's 5 columns + hid VotersTable's Campaña column by default), run concurrently. In progress: new read-only "reports viewer" role/panel (quick task 260730-fkf) — discussion complete (CONTEXT.md written), planner running.
 Resume file: None
