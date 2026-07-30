@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Widgets;
 
 use App\Enums\UserRole;
+use App\Filament\Resources\Voters\VoterResource;
 use App\Models\User;
 use App\Services\CampaignContext;
 use Filament\Tables\Columns\TextColumn;
@@ -71,6 +72,21 @@ class TerritorialOwnershipTable extends TableWidget
                     ->badge()
                     ->color('success'),
             ])
+            ->recordUrl(function (User $record): string {
+                if ($record->hasRole(UserRole::COORDINATOR->value)) {
+                    return VoterResource::getUrl('index', [
+                        'tableFilters' => [
+                            'registered_by' => ['values' => $record->leaders()->pluck('id')->push($record->id)->all()],
+                        ],
+                    ]);
+                }
+
+                return VoterResource::getUrl('index', [
+                    'tableFilters' => [
+                        'registered_by' => ['values' => [$record->id]],
+                    ],
+                ]);
+            })
             ->defaultSort('leaders_count', 'desc')
             ->paginated([10, 25, 50]);
     }

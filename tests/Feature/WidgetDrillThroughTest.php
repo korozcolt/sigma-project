@@ -3,20 +3,13 @@
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Filament\Resources\Voters\VoterResource;
-use App\Filament\Widgets\ApoyosLideresCoordinadoresTable;
-use App\Filament\Widgets\CampaignStatsOverview;
-use App\Filament\Widgets\DuplicatesReportTable;
 use App\Filament\Widgets\FollowUpBacklogOverview;
-use App\Filament\Widgets\JurisdictionReportTable;
-use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\TerritorialOwnershipTable;
 use App\Filament\Widgets\TopCoordinatorsTable;
 use App\Filament\Widgets\TopLeadersTable;
-use App\Filament\Widgets\TopPollingPlacesTable;
 use App\Models\Campaign;
 use App\Models\Department;
 use App\Models\Municipality;
-use App\Models\PollingPlace;
 use App\Models\User;
 use App\Models\Voter;
 use Illuminate\Support\Facades\Session;
@@ -108,7 +101,9 @@ test('territorial ownership table coordinator rows link to the coordinator team 
     $coordinator->campaigns()->attach($this->campaign);
 
     $leader1 = User::factory()->create(['coordinator_user_id' => $coordinator->id]);
+    $leader1->campaigns()->attach($this->campaign);
     $leader2 = User::factory()->create(['coordinator_user_id' => $coordinator->id]);
+    $leader2->campaigns()->attach($this->campaign);
 
     $component = Livewire::test(TerritorialOwnershipTable::class);
     $recordUrl = $component->instance()->getTable()->getRecordUrl($coordinator);
@@ -131,7 +126,9 @@ test('top coordinators table rows link to the coordinator team filtered voter li
     $coordinator->campaigns()->attach($this->campaign);
 
     $leader1 = User::factory()->create(['coordinator_user_id' => $coordinator->id]);
+    $leader1->campaigns()->attach($this->campaign);
     $leader2 = User::factory()->create(['coordinator_user_id' => $coordinator->id]);
+    $leader2->campaigns()->attach($this->campaign);
 
     $component = Livewire::test(TopCoordinatorsTable::class);
     $recordUrl = $component->instance()->getTable()->getRecordUrl($coordinator);
