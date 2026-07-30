@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
+use App\Filament\Resources\Voters\VoterResource;
 use App\Models\Campaign;
 use App\Models\User;
 use App\Models\Voter;
@@ -50,7 +51,8 @@ class CampaignStatsOverview extends StatsOverviewWidget
             ->description($lastWeek.' nuevos esta semana')
             ->descriptionIcon('heroicon-m-user-group')
             ->color('primary')
-            ->chart($this->getVotersGrowthChart($activeCampaign->id));
+            ->chart($this->getVotersGrowthChart($activeCampaign->id))
+            ->url(VoterResource::getUrl('index'));
     }
 
     protected function getConfirmedVotersStat(): Stat
@@ -77,7 +79,12 @@ class CampaignStatsOverview extends StatsOverviewWidget
         return Stat::make('Apoyos Confirmados', number_format($confirmed))
             ->description(round($percentage, 1).'% del total')
             ->descriptionIcon('heroicon-m-check-circle')
-            ->color($color);
+            ->color($color)
+            ->url(VoterResource::getUrl('index', [
+                'tableFilters' => [
+                    'status' => ['values' => [VoterStatus::CONFIRMED->value]],
+                ],
+            ]));
     }
 
     protected function getActiveLeadersStat(): Stat
