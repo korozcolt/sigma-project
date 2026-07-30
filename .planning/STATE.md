@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: Completed quick tasks 260730-cs3/fi4/fm9/g0h/g2k (census validation cascade fix + prod remediation, duplicates-report rename, Modo Mantenimiento nav reorder, Leaders/Voters/Coordinators column-toggle defaults); 260730-fkf (reports-viewer role/panel) and 260730-fx1 (systemic Livewire page-scoped-widget fix) planned, plan-checker in progress
-last_updated: "2026-07-30T16:37:00.000Z"
+stopped_at: "Fixed live production ambiguous-column SQL error — quick task 260730-goi (CallQueueTable + CallAssignment status scopes qualified as call_assignments.status, fixing sort-by-Municipio/Barrio 500). TDD: RED test reproduced the exact SQLSTATE[23000] error, GREEN fix confirmed. In progress before this: new read-only "reports viewer" role/panel (quick task 260730-fkf) — discussion complete (CONTEXT.md written), planner running."
+last_updated: "2026-07-30T17:02:58.615Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -181,6 +181,7 @@ Tracked in Blockers/Concerns above.
 | 260730-g0h | Make LeadersTable columns toggleable (Correo/Creado hidden by default); hide VotersTable's Campaña column by default | 2026-07-30 | 1615c60, 47e42e3 | [260730-g0h-add-column-toggle-to-leaderstable-hide-c](.planning/quick/260730-g0h-add-column-toggle-to-leaderstable-hide-c/) |
 | 260730-g2k | Add column toggle to CoordinatorsTable, hide Correo/Creado by default (same pattern as 260730-g0h) | 2026-07-30 | 56dd6a5 | [260730-g2k-add-column-toggle-to-coordinatorstable-h](.planning/quick/260730-g2k-add-column-toggle-to-coordinatorstable-h/) |
 | 260730-gk3 | Fix live production 500: CallQueueTable eager-load closure typed Builder but Laravel passes HasMany | 2026-07-30 | ab93f3f, b8ee16d | [260730-gk3-fix-typeerror-in-callqueuetable-eager-lo](.planning/quick/260730-gk3-fix-typeerror-in-callqueuetable-eager-lo/) |
+| 260730-goi | Fix live ambiguous-column SQL error: qualify call_assignments.status in CallQueueTable's whereIn + CallAssignment's pending/inProgress/completed scopes | 2026-07-30 | 0d02a80 | [260730-goi-fix-ambiguous-status-column-sql-error-in](.planning/quick/260730-goi-fix-ambiguous-status-column-sql-error-in/) |
 
 Quick task 260726-kg8 decisions:
 
@@ -232,8 +233,13 @@ Quick task 260730-gk3 decisions:
 - Root cause confirmed via TDD RED run: Laravel passes the real `Relation` subclass instance (here `HasMany`, matching `CallAssignment::verificationCalls()`'s definition) to a top-level (non-dot-notation) `->with([...])` relation constraint closure — never a plain `Builder`, since `HasMany` does not extend `Builder` (it proxies via `__call`). The bug was always latent; it never fired before because every prior render of `CallQueueTable` had zero call-assignment rows, and Eloquent skips eager-loading entirely when the base query returns no rows.
 - Fix is a pure type-hint correction (`fn (Builder $query)` -> `fn (HasMany $query)`) on the `verificationCalls` closure only; the sibling `->when($userId, fn (Builder $query) => ...)` closure on the next line is a genuine top-level query `Builder` and was left untouched.
 
+Quick task 260730-goi decisions:
+
+- Root cause confirmed via TDD RED run: `voters.status` and `call_assignments.status` both exist, so Filament's automatic relation-sort JOIN (triggered by sorting `CallQueueTable` on `voter.municipality.name`, a `->sortable()` dot-notation column) makes the widget's unqualified `->whereIn('status', [...])` ambiguous — reproduced the exact production `SQLSTATE[23000]` error via `Livewire::test(CallQueueTable::class)->sortTable('voter.municipality.name')`.
+- Fix qualified `call_assignments.status` in `CallQueueTable::query()`'s `whereIn` and, defensively, in `CallAssignment`'s `scopePending`/`scopeInProgress`/`scopeCompleted` (same unqualified-`status` bug class, latent until any of those scopes runs under a join) — `campaign_id`, `assigned_to`, `priority` left untouched since no other joined table shares those column names.
+
 ## Session Continuity
 
-Last session: 2026-07-30T16:45:00.000Z
-Stopped at: Fixed live production 500 error — quick task 260730-gk3 (CallQueueTable eager-load closure TypeError: typed as Builder, Laravel actually passes HasMany). TDD: RED test reproduced the exact production error, GREEN fix confirmed via re-typed closure. In progress before this: new read-only "reports viewer" role/panel (quick task 260730-fkf) — discussion complete (CONTEXT.md written), planner running.
+Last session: 2026-07-30T17:02:24.000Z
+Stopped at: Fixed live production ambiguous-column SQL error — quick task 260730-goi (CallQueueTable + CallAssignment status scopes qualified as call_assignments.status, fixing sort-by-Municipio/Barrio 500). TDD: RED test reproduced the exact SQLSTATE[23000] error via sortTable('voter.municipality.name'), GREEN fix confirmed. In progress before this: new read-only "reports viewer" role/panel (quick task 260730-fkf) — discussion complete (CONTEXT.md written), planner running.
 Resume file: None
