@@ -177,6 +177,7 @@ Tracked in Blockers/Concerns above.
 | 260728-fw1 | Add cédula (document_number) -> full-name lookup/autofill/lock across Coordinador, Líder, and Apoyo creation forms (Filament + Volt), backed by national_identity_records imported from a 371,232-row CSV; backfilled both production databases | 2026-07-28 | aa9a4f4 | [260728-fw1-add-a-c-dula-document-number-full-name-l](.planning/quick/260728-fw1-add-a-c-dula-document-number-full-name-l/) |
 | 260730-cs3 | Unify VoterValidationService onto PollingPlaceResolver::resolveAutomated() (fixes sigma-betha's 148 mass-misrejected apoyos); widen revalidation/reconciliation to NULL-source voters with RevalidationRun progress tracking; census:remediate-misrejected command; non-blocking RevalidationProgressWidget on the Apoyos screen | 2026-07-30 | 8db8278 | [260730-cs3-fix-root-cause-in-planning-debug-apoyos-](.planning/quick/260730-cs3-fix-root-cause-in-planning-debug-apoyos-/) |
 | 260730-fi4 | Rename Apoyos list page's "duplicatesReport" action label/modalHeading from "Reporte de Duplicados" to "Cruzar Cédulas Externas (CSV)" to remove naming collision with Dashboard's unrelated "Informe de Duplicados" widget | 2026-07-30 | 58190fe | [260730-fi4-rename-reporte-de-duplicados-apoyos-acti](.planning/quick/260730-fi4-rename-reporte-de-duplicados-apoyos-acti/) |
+| 260730-fm9 | Move "Modo Mantenimiento" nav item to bottom of the Configuración sidebar group (navigationSort = 6) | 2026-07-30 | 8acd21d | [260730-fm9-move-modo-mantenimiento-nav-item-to-bott](.planning/quick/260730-fm9-move-modo-mantenimiento-nav-item-to-bott/) |
 
 Quick task 260726-kg8 decisions:
 
@@ -208,8 +209,18 @@ Quick task 260730-fi4 decisions:
 
 - Pure label/copy change only — `->label()` and `->modalHeading()` string arguments on `Action::make('duplicatesReport')` (Apoyos list page) updated to "Cruzar Cédulas Externas (CSV)" / "Cruzar cédulas externas contra Apoyos registrados"; icon, color, form, action callback, and the `'duplicatesReport'` action key left untouched. `app/Filament/Widgets/DuplicatesReportTable.php` ("Informe de Duplicados") confirmed unrelated and left unmodified.
 
+Quick task 260730-fm9 decisions:
+
+- Pure ordering change — added `protected static ?int $navigationSort = 6;` to `MaintenanceKillSwitch` (no prior sort value meant it rendered first in "Configuración"); no logic/behavior change.
+
+Post-260730-cs3 production follow-through (completed same day, outside the quick-task executor flow — done directly by the orchestrator with human confirmation):
+
+- Deployed `main` to sigma-betha (Dokploy auto-deploy, delayed but confirmed via deployment-table polling), ran both new migrations (`revalidation_runs`, nullable `validated_by`) with `--force`, dry-ran then for-real ran `census:remediate-misrejected --campaign=1` against production — confirmed via tinker: `rejected_census` 148 -> 0, `pending_review` +148, 148 new `ValidationHistory` rows.
+- Found and fixed a real bug surfaced only in the deployed/browser environment (not caught by Pest/Livewire component tests): `RevalidationProgressWidget` threw `Livewire\Exceptions\ComponentNotFoundException` on its `wire:poll` follow-up request in both sigma-betha prod and local (`sigma-project.test`). Root cause: Livewire's alias<->class resolution is asymmetric for components outside `config('livewire.class_namespace')` (`App\Livewire`) — forward (class->alias) strips the namespace only if it matches, but the reverse fallback unconditionally prepends it, producing a nonexistent class. Page-scoped widgets (`getHeaderWidgets()`) never get an automatic registration workaround, unlike panel-globally-declared widgets (e.g. `FallbackSourceOverview`). Fixed by explicitly registering the widget via `Livewire::component()` in `AppServiceProvider::boot()` (commit `236ca78`). Verified via tinker (both local and prod) and a real Chrome browser session against `sigma-project.test` before redeploying — banner renders the finished-run summary correctly, no error.
+- **Lesson reinforced by direct user feedback:** UI changes must be browser-verified before shipping to production, not just covered by Livewire component-render tests — those didn't exercise the `wire:poll` follow-up request path where this bug lived.
+
 ## Session Continuity
 
-Last session: 2026-07-30T16:11:18.000Z
-Stopped at: Completed quick task 260730-fi4 (renamed Apoyos "duplicatesReport" action label/modalHeading to remove naming collision with Dashboard's unrelated "Informe de Duplicados" widget). Manual follow-up still owed from 260730-cs3: run `census:remediate-misrejected --campaign=1` (no --dry-run) against sigma-betha production and deploy.
+Last session: 2026-07-30T16:15:00.000Z
+Stopped at: sigma-betha's 148 misrejected voters remediated in production and confirmed (0 remaining rejected_census); RevalidationProgressWidget's Livewire ComponentNotFoundException bug found, fixed, browser-verified, and redeployed. Duplicates-report button renamed and Modo Mantenimiento nav reordered. In progress: new read-only "reports viewer" role/panel (quick task 260730-fkf) — discussion complete (CONTEXT.md written), planner running.
 Resume file: None
