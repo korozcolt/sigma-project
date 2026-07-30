@@ -88,6 +88,7 @@ class AdminPanelProvider extends PanelProvider
                 BirthdayWidget::class,           // Cumpleaños — fila 11 completa
             ])
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.components.campaign-context-switcher'))
+            ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.components.saldos-badge'))
             ->renderHook(PanelsRenderHook::BODY_END, fn () => view('filament.components.motion-init'))
             ->navigationGroups([
                 NavigationGroup::make()
