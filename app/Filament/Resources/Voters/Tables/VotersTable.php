@@ -111,7 +111,7 @@ class VotersTable
                     ->label('Campaña')
                     ->searchable()
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('municipality.name')
                     ->label('Municipio')
