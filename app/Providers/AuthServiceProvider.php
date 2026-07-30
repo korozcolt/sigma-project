@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Models\Invitation;
 use App\Models\User;
+use App\Models\Voter;
 use App\Policies\InvitationPolicy;
+use App\Policies\VoterPolicy;
 use App\Services\CampaignContext;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +22,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Invitation::class => InvitationPolicy::class,
+        Voter::class => VoterPolicy::class,
     ];
 
     /**

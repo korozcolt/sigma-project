@@ -3,9 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Concerns\HasCampaignMembershipScope;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
-use App\Models\Concerns\HasCampaignMembershipScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -218,6 +218,7 @@ class User extends Authenticatable implements FilamentUser
             'admin' => $this->hasAnyRole(['super_admin', 'admin_campaign', 'reviewer']),
             'leader' => $this->hasAnyRole(['leader', 'admin_campaign', 'super_admin']),
             'coordinator' => $this->hasAnyRole(['coordinator', 'admin_campaign', 'super_admin']),
+            'reports' => $this->hasRole('reports_viewer'),
             default => false,
         };
     }

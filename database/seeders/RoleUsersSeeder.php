@@ -21,7 +21,7 @@ class RoleUsersSeeder extends Seeder
         $password = Hash::make('password'); // Misma contraseña para todos
 
         // Asegurar que los roles existen
-        $roles = ['super_admin', 'admin_campaign', 'coordinator', 'leader', 'reviewer'];
+        $roles = ['super_admin', 'admin_campaign', 'coordinator', 'leader', 'reviewer', 'reports_viewer'];
         foreach ($roles as $roleName) {
             Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
         }
@@ -140,6 +140,20 @@ class RoleUsersSeeder extends Seeder
 
         $this->command->info('✓ Revisor creado: ing.korozco+revisor@gmail.com');
 
+        // 6. Analista de Reportes (solo lectura)
+        $reportsViewer = User::firstOrCreate(
+            ['email' => 'ing.korozco+analista@gmail.com'],
+            [
+                'name' => 'Analista de Reportes',
+                'password' => $password,
+                'email_verified_at' => now(),
+            ]
+        );
+        $reportsViewer->syncRoles(['reports_viewer']);
+        $reportsViewer->campaigns()->syncWithoutDetaching([$campaign->id]);
+
+        $this->command->info('✓ Analista de Reportes creado: ing.korozco+analista@gmail.com');
+
         $this->command->newLine();
         $this->command->info('=================================');
         $this->command->info('Usuarios de prueba creados:');
@@ -149,6 +163,7 @@ class RoleUsersSeeder extends Seeder
         $this->command->info('Coordinador:     ing.korozco+coordinador@gmail.com');
         $this->command->info('Líder:           ing.korozco+lider@gmail.com');
         $this->command->info('Revisor:         ing.korozco+revisor@gmail.com');
+        $this->command->info('Analista:        ing.korozco+analista@gmail.com');
         $this->command->newLine();
         $this->command->info('Contraseña para todos: password');
         $this->command->info('=================================');

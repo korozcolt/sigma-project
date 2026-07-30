@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Exports\TopPollingPlacesExport;
 use App\Models\PollingPlace;
@@ -76,6 +77,7 @@ class TopPollingPlacesTable extends TableWidget
                 Action::make('export')
                     ->label('Exportar')
                     ->icon('heroicon-o-arrow-down-tray')
+                    ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new TopPollingPlacesExport($activeCampaign?->id))->download('ranking-puestos-votacion.xlsx')),
             ]);
     }

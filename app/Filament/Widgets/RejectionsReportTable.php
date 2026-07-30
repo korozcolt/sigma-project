@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\CallResult;
+use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Exports\RejectionsExport;
 use App\Models\Voter;
@@ -78,6 +79,7 @@ class RejectionsReportTable extends TableWidget
                 Action::make('export')
                     ->label('Exportar')
                     ->icon('heroicon-o-arrow-down-tray')
+                    ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new RejectionsExport($activeCampaign?->id))->download('informe-rechazos.xlsx')),
             ]);
     }

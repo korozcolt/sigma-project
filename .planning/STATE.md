@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Fixed live production ambiguous-column SQL error — quick task 260730-goi (CallQueueTable + CallAssignment status scopes qualified as call_assignments.status, fixing sort-by-Municipio/Barrio 500). TDD: RED test reproduced the exact SQLSTATE[23000] error, GREEN fix confirmed. In progress before this: new read-only "reports viewer" role/panel (quick task 260730-fkf) — discussion complete (CONTEXT.md written), planner running."
-last_updated: "2026-07-30T17:02:58.615Z"
+stopped_at: "Merged quick tasks 260730-fkf (read-only reports_viewer role/panel), 260730-gk3 (CallQueueTable TypeError fix), and 260730-goi (ambiguous status-column SQL fix) into main. 260730-fx1 (systemic Livewire page-scoped-widget registration fix) has its code+tests merged; its mandatory human-browser-verification checkpoint is still open."
+last_updated: "2026-07-30T17:05:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -180,6 +180,7 @@ Tracked in Blockers/Concerns above.
 | 260730-fm9 | Move "Modo Mantenimiento" nav item to bottom of the Configuración sidebar group (navigationSort = 6) | 2026-07-30 | 8acd21d | [260730-fm9-move-modo-mantenimiento-nav-item-to-bott](.planning/quick/260730-fm9-move-modo-mantenimiento-nav-item-to-bott/) |
 | 260730-g0h | Make LeadersTable columns toggleable (Correo/Creado hidden by default); hide VotersTable's Campaña column by default | 2026-07-30 | 1615c60, 47e42e3 | [260730-g0h-add-column-toggle-to-leaderstable-hide-c](.planning/quick/260730-g0h-add-column-toggle-to-leaderstable-hide-c/) |
 | 260730-g2k | Add column toggle to CoordinatorsTable, hide Correo/Creado by default (same pattern as 260730-g0h) | 2026-07-30 | 56dd6a5 | [260730-g2k-add-column-toggle-to-coordinatorstable-h](.planning/quick/260730-g2k-add-column-toggle-to-coordinatorstable-h/) |
+| 260730-fkf | New read-only `reports_viewer` role ("Analista de Reportes") with dedicated `/reports` Filament panel (VoterResource + 16 report widgets), read-only VoterPolicy, and action-button gating on 9 files | 2026-07-30 | 5d3c589, b90dcf0, 172251a, 0ea6968, 7cd3069 | [260730-fkf-add-read-only-reports-viewer-role-with-d](.planning/quick/260730-fkf-add-read-only-reports-viewer-role-with-d/) |
 | 260730-gk3 | Fix live production 500: CallQueueTable eager-load closure typed Builder but Laravel passes HasMany | 2026-07-30 | ab93f3f, b8ee16d | [260730-gk3-fix-typeerror-in-callqueuetable-eager-lo](.planning/quick/260730-gk3-fix-typeerror-in-callqueuetable-eager-lo/) |
 | 260730-goi | Fix live ambiguous-column SQL error: qualify call_assignments.status in CallQueueTable's whereIn + CallAssignment's pending/inProgress/completed scopes | 2026-07-30 | 0d02a80 | [260730-goi-fix-ambiguous-status-column-sql-error-in](.planning/quick/260730-goi-fix-ambiguous-status-column-sql-error-in/) |
 
@@ -222,6 +223,14 @@ Quick task 260730-g0h decisions:
 - Pure Filament column-config change on two tables: LeadersTable's 5 columns all made `->toggleable()` (email/created_at hidden by default); VotersTable's `campaign.name` switched from visible-by-default toggleable to `->toggleable(isToggledHiddenByDefault: true)`, with every other VotersTable column left untouched.
 - Added two new Pest tests (`LeaderResourceColumnTogglingTest`, `VoterResourceCampaignColumnTogglingTest`) not specified in the plan, per CLAUDE.md's test-enforcement rule — no existing test in the codebase covered Filament column-toggle defaults on either table. Established a reusable pattern: `assertTableColumnExists($name, fn ($column) => $column->isToggleable() && $column->isToggledHiddenByDefault())` paired with `assertCanNotRenderTableColumn($name)` to lock in both the config and the actual default-hidden render state.
 
+Quick task 260730-fkf decisions:
+
+- VoterResource registered directly on the new `reports` panel (not duplicated as a separate read-only resource) so the 3 existing drill-through widgets (FollowUpBacklogOverview, FallbackSourceOverview, TopLeadersTable) work with zero code changes — relies on Filament's `Filament::getCurrentOrDefaultPanel()` route resolution.
+- `VoterPolicy` handles Create/Edit/Delete/bulk-delete (policy-level, both hidden buttons and 403 on direct URL); a handful of non-policy-gated action buttons (7x widget export headerAction, validateCensus, exportCurrent, export, duplicatesReport) needed explicit `->visible()` gates mirroring the existing `hasAnyRole()` precedent (`actualizar_registraduria`) rather than a new mechanism.
+- [Rule 3 - Blocking, found during Task 5] `User::canAccessPanel()` had no arm for the new `reports` panel id (not called out in the plan), defaulting to `false` and blocking every authenticated user — including a correctly role-assigned reports_viewer — from the panel regardless of the `EnsureUserHasRole` middleware. Added `'reports' => $this->hasRole('reports_viewer')` alongside the existing per-panel arms in `app/Models/User.php`.
+- **Worktree staleness recurred again** (worktree `agent-a75428d8e3a817ed7`): missing `vendor/`, `.env`, `node_modules/`, and `public/build/` entirely. HEAD was already main's own commit (no merge needed) — resolved with `composer install`, `.env` copy, `npm install && npm run build`. `npm install`'s `package-lock.json` name-field diff (worktree dir name vs `sigma-project`) discarded via `git checkout --`, not committed.
+- Full-suite run showed 11 failures, all confirmed to pass in isolation — matches the already-documented `CampaignContext` static-override test-pollution issue above; no new failures introduced by this task.
+
 Post-260730-cs3 production follow-through (completed same day, outside the quick-task executor flow — done directly by the orchestrator with human confirmation):
 
 - Deployed `main` to sigma-betha (Dokploy auto-deploy, delayed but confirmed via deployment-table polling), ran both new migrations (`revalidation_runs`, nullable `validated_by`) with `--force`, dry-ran then for-real ran `census:remediate-misrejected --campaign=1` against production — confirmed via tinker: `rejected_census` 148 -> 0, `pending_review` +148, 148 new `ValidationHistory` rows.
@@ -240,6 +249,6 @@ Quick task 260730-goi decisions:
 
 ## Session Continuity
 
-Last session: 2026-07-30T17:02:24.000Z
-Stopped at: Fixed live production ambiguous-column SQL error — quick task 260730-goi (CallQueueTable + CallAssignment status scopes qualified as call_assignments.status, fixing sort-by-Municipio/Barrio 500). TDD: RED test reproduced the exact SQLSTATE[23000] error via sortTable('voter.municipality.name'), GREEN fix confirmed. In progress before this: new read-only "reports viewer" role/panel (quick task 260730-fkf) — discussion complete (CONTEXT.md written), planner running.
+Last session: 2026-07-30T17:05:00.000Z
+Stopped at: Merged 260730-fkf (reports_viewer role/panel), 260730-gk3 (CallQueueTable TypeError), and 260730-goi (ambiguous status-column SQL) into main. 260730-fx1's code (consolidated page-scoped Livewire widget registration) is merged and Pest-tested, but its Task 2 mandatory human-browser-verification checkpoint (CallCenterStatsOverview/DiaDStatsOverview poll cycles + CallQueueTable/CallHistoryTable/DiaDTerritorialProgressTable sort/paginate interactions, zero ComponentNotFoundException) is still open — real-browser interaction on Call Center already surfaced and fixed 2 unrelated pre-existing bugs (gk3, goi) but has not yet been driven to a clean "verified" signal, and Día D has not been checked at all yet. None of today's session's fixes/features have been deployed to sigma-betha production yet except the earlier 236ca78 widget-registration fix, the census remediation, the duplicates-report rename, and the Modo Mantenimiento nav reorder (all deployed and confirmed earlier in the session) — everything from 260730-g0h onward (column toggles, reports-viewer role, gk3, goi, fx1's consolidation) is committed to main but NOT yet pushed/deployed.
 Resume file: None
