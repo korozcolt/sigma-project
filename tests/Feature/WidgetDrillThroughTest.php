@@ -3,8 +3,12 @@
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Filament\Resources\Voters\VoterResource;
+use App\Filament\Widgets\ApoyosLideresCoordinadoresTable;
 use App\Filament\Widgets\CampaignStatsOverview;
+use App\Filament\Widgets\DuplicatesReportTable;
 use App\Filament\Widgets\FollowUpBacklogOverview;
+use App\Filament\Widgets\JurisdictionReportTable;
+use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\TerritorialOwnershipTable;
 use App\Filament\Widgets\TopCoordinatorsTable;
 use App\Filament\Widgets\TopLeadersTable;
@@ -190,4 +194,59 @@ test('top coordinators table rows link to the coordinator team filtered voter li
 
     expect($recordUrl)->toBe($expectedUrl)
         ->and($teamIds)->toContain($leader1->id, $leader2->id, $coordinator->id);
+});
+
+test('jurisdiction report table rows link to the voter view page', function () {
+    $voter = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+    ]);
+
+    $component = Livewire::test(JurisdictionReportTable::class);
+    $recordUrl = $component->instance()->getTable()->getRecordUrl($voter);
+
+    $expectedUrl = VoterResource::getUrl('view', ['record' => $voter->id]);
+
+    expect($recordUrl)->toBe($expectedUrl);
+});
+
+test('rejections report table rows link to the voter view page', function () {
+    $voter = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'status' => VoterStatus::REJECTED_CENSUS,
+    ]);
+
+    $component = Livewire::test(RejectionsReportTable::class);
+    $recordUrl = $component->instance()->getTable()->getRecordUrl($voter);
+
+    $expectedUrl = VoterResource::getUrl('view', ['record' => $voter->id]);
+
+    expect($recordUrl)->toBe($expectedUrl);
+});
+
+test('apoyos lideres coordinadores table rows link to the voter view page', function () {
+    $voter = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+    ]);
+
+    $component = Livewire::test(ApoyosLideresCoordinadoresTable::class);
+    $recordUrl = $component->instance()->getTable()->getRecordUrl($voter);
+
+    $expectedUrl = VoterResource::getUrl('view', ['record' => $voter->id]);
+
+    expect($recordUrl)->toBe($expectedUrl);
+});
+
+test('duplicates report table rows have no drill-through, by design', function () {
+    $voter = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+    ]);
+
+    $component = Livewire::test(DuplicatesReportTable::class);
+    $recordUrl = $component->instance()->getTable()->getRecordUrl($voter);
+
+    expect($recordUrl)->toBeNull();
 });
