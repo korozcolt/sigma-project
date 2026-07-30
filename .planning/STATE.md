@@ -176,6 +176,7 @@ Tracked in Blockers/Concerns above.
 | 260728-e4j | Fix NeighborhoodsImport date-parsing bug corrupting barrio names starting with day-of-month patterns, and backfill 10 corrupted Sincelejo neighborhoods in production | 2026-07-28 | dfe9793 | [260728-e4j-fix-neighborhoodsimport-date-parsing-bug](.planning/quick/260728-e4j-fix-neighborhoodsimport-date-parsing-bug/) |
 | 260728-fw1 | Add cédula (document_number) -> full-name lookup/autofill/lock across Coordinador, Líder, and Apoyo creation forms (Filament + Volt), backed by national_identity_records imported from a 371,232-row CSV; backfilled both production databases | 2026-07-28 | aa9a4f4 | [260728-fw1-add-a-c-dula-document-number-full-name-l](.planning/quick/260728-fw1-add-a-c-dula-document-number-full-name-l/) |
 | 260730-cs3 | Unify VoterValidationService onto PollingPlaceResolver::resolveAutomated() (fixes sigma-betha's 148 mass-misrejected apoyos); widen revalidation/reconciliation to NULL-source voters with RevalidationRun progress tracking; census:remediate-misrejected command; non-blocking RevalidationProgressWidget on the Apoyos screen | 2026-07-30 | 8db8278 | [260730-cs3-fix-root-cause-in-planning-debug-apoyos-](.planning/quick/260730-cs3-fix-root-cause-in-planning-debug-apoyos-/) |
+| 260730-fi4 | Rename Apoyos list page's "duplicatesReport" action label/modalHeading from "Reporte de Duplicados" to "Cruzar Cédulas Externas (CSV)" to remove naming collision with Dashboard's unrelated "Informe de Duplicados" widget | 2026-07-30 | 58190fe | [260730-fi4-rename-reporte-de-duplicados-apoyos-acti](.planning/quick/260730-fi4-rename-reporte-de-duplicados-apoyos-acti/) |
 
 Quick task 260726-kg8 decisions:
 
@@ -203,8 +204,12 @@ Quick task 260730-cs3 decisions:
 - `RevalidationProgressWidget` is a plain `Filament\Widgets\Widget` (not `StatsOverviewWidget`) with its own blade view and `wire:poll.5s`, reading the latest `RevalidationRun` for the current campaign; registered as a header widget on `ListVoters`, sibling to (never blocking) the Apoyos table.
 - Confirmed via full-suite diffing (git stash to pre-task baseline + isolated re-runs) that a cluster of Filament report-table tests plus this task's own new widget test intermittently fail ONLY in full-suite runs, never alone — pre-existing `CampaignContext` static-override test pollution already logged in this file's Blockers section, unrelated to this task's changes. Logged with evidence in `.planning/quick/260730-cs3-fix-root-cause-in-planning-debug-apoyos-/deferred-items.md`.
 
+Quick task 260730-fi4 decisions:
+
+- Pure label/copy change only — `->label()` and `->modalHeading()` string arguments on `Action::make('duplicatesReport')` (Apoyos list page) updated to "Cruzar Cédulas Externas (CSV)" / "Cruzar cédulas externas contra Apoyos registrados"; icon, color, form, action callback, and the `'duplicatesReport'` action key left untouched. `app/Filament/Widgets/DuplicatesReportTable.php` ("Informe de Duplicados") confirmed unrelated and left unmodified.
+
 ## Session Continuity
 
-Last session: 2026-07-30T10:30:00.000Z
-Stopped at: Completed quick task 260730-cs3 (census validation cascade fix + remediation command + revalidation progress UI). Manual follow-up still owed: run `census:remediate-misrejected --campaign=1` (no --dry-run) against sigma-betha production and deploy.
+Last session: 2026-07-30T16:11:18.000Z
+Stopped at: Completed quick task 260730-fi4 (renamed Apoyos "duplicatesReport" action label/modalHeading to remove naming collision with Dashboard's unrelated "Informe de Duplicados" widget). Manual follow-up still owed from 260730-cs3: run `census:remediate-misrejected --campaign=1` (no --dry-run) against sigma-betha production and deploy.
 Resume file: None
