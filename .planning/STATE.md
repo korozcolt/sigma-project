@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: Completed quick task 260730-cs3 (unified census validation onto PollingPlaceResolver::resolveAutomated(), widened revalidation/reconciliation to NULL-source voters with RevalidationRun tracking, census:remediate-misrejected command, non-blocking RevalidationProgressWidget)
-last_updated: "2026-07-30T10:30:00.000Z"
+stopped_at: Completed quick tasks 260730-cs3/fi4/fm9/g0h/g2k (census validation cascade fix + prod remediation, duplicates-report rename, Modo Mantenimiento nav reorder, Leaders/Voters/Coordinators column-toggle defaults); 260730-fkf (reports-viewer role/panel) and 260730-fx1 (systemic Livewire page-scoped-widget fix) planned, plan-checker in progress
+last_updated: "2026-07-30T16:37:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
