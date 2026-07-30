@@ -180,6 +180,7 @@ Tracked in Blockers/Concerns above.
 | 260730-fm9 | Move "Modo Mantenimiento" nav item to bottom of the Configuración sidebar group (navigationSort = 6) | 2026-07-30 | 8acd21d | [260730-fm9-move-modo-mantenimiento-nav-item-to-bott](.planning/quick/260730-fm9-move-modo-mantenimiento-nav-item-to-bott/) |
 | 260730-g0h | Make LeadersTable columns toggleable (Correo/Creado hidden by default); hide VotersTable's Campaña column by default | 2026-07-30 | 1615c60, 47e42e3 | [260730-g0h-add-column-toggle-to-leaderstable-hide-c](.planning/quick/260730-g0h-add-column-toggle-to-leaderstable-hide-c/) |
 | 260730-g2k | Add column toggle to CoordinatorsTable, hide Correo/Creado by default (same pattern as 260730-g0h) | 2026-07-30 | 56dd6a5 | [260730-g2k-add-column-toggle-to-coordinatorstable-h](.planning/quick/260730-g2k-add-column-toggle-to-coordinatorstable-h/) |
+| 260730-gk3 | Fix live production 500: CallQueueTable eager-load closure typed Builder but Laravel passes HasMany | 2026-07-30 | ab93f3f, b8ee16d | [260730-gk3-fix-typeerror-in-callqueuetable-eager-lo](.planning/quick/260730-gk3-fix-typeerror-in-callqueuetable-eager-lo/) |
 
 Quick task 260726-kg8 decisions:
 
@@ -226,8 +227,13 @@ Post-260730-cs3 production follow-through (completed same day, outside the quick
 - Found and fixed a real bug surfaced only in the deployed/browser environment (not caught by Pest/Livewire component tests): `RevalidationProgressWidget` threw `Livewire\Exceptions\ComponentNotFoundException` on its `wire:poll` follow-up request in both sigma-betha prod and local (`sigma-project.test`). Root cause: Livewire's alias<->class resolution is asymmetric for components outside `config('livewire.class_namespace')` (`App\Livewire`) — forward (class->alias) strips the namespace only if it matches, but the reverse fallback unconditionally prepends it, producing a nonexistent class. Page-scoped widgets (`getHeaderWidgets()`) never get an automatic registration workaround, unlike panel-globally-declared widgets (e.g. `FallbackSourceOverview`). Fixed by explicitly registering the widget via `Livewire::component()` in `AppServiceProvider::boot()` (commit `236ca78`). Verified via tinker (both local and prod) and a real Chrome browser session against `sigma-project.test` before redeploying — banner renders the finished-run summary correctly, no error.
 - **Lesson reinforced by direct user feedback:** UI changes must be browser-verified before shipping to production, not just covered by Livewire component-render tests — those didn't exercise the `wire:poll` follow-up request path where this bug lived.
 
+Quick task 260730-gk3 decisions:
+
+- Root cause confirmed via TDD RED run: Laravel passes the real `Relation` subclass instance (here `HasMany`, matching `CallAssignment::verificationCalls()`'s definition) to a top-level (non-dot-notation) `->with([...])` relation constraint closure — never a plain `Builder`, since `HasMany` does not extend `Builder` (it proxies via `__call`). The bug was always latent; it never fired before because every prior render of `CallQueueTable` had zero call-assignment rows, and Eloquent skips eager-loading entirely when the base query returns no rows.
+- Fix is a pure type-hint correction (`fn (Builder $query)` -> `fn (HasMany $query)`) on the `verificationCalls` closure only; the sibling `->when($userId, fn (Builder $query) => ...)` closure on the next line is a genuine top-level query `Builder` and was left untouched.
+
 ## Session Continuity
 
-Last session: 2026-07-30T16:15:00.000Z
-Stopped at: Completed quick tasks 260730-g2k (added ->toggleable() to all 5 CoordinatorsTable columns, Correo/Creado hidden by default) and 260730-g0h (same pattern on LeadersTable's 5 columns + hid VotersTable's Campaña column by default), run concurrently. In progress: new read-only "reports viewer" role/panel (quick task 260730-fkf) — discussion complete (CONTEXT.md written), planner running.
+Last session: 2026-07-30T16:45:00.000Z
+Stopped at: Fixed live production 500 error — quick task 260730-gk3 (CallQueueTable eager-load closure TypeError: typed as Builder, Laravel actually passes HasMany). TDD: RED test reproduced the exact production error, GREEN fix confirmed via re-typed closure. In progress before this: new read-only "reports viewer" role/panel (quick task 260730-fkf) — discussion complete (CONTEXT.md written), planner running.
 Resume file: None
