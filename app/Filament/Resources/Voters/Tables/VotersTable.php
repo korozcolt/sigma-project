@@ -283,7 +283,8 @@ class VotersTable
                     ->color('info')
                     ->requiresConfirmation()
                     ->modalDescription('Se comparará el documento del apoyo contra los registros del censo electoral de esta campaña.')
-                    ->visible(fn (Voter $record): bool => $record->status !== VoterStatus::DUPLICATE)
+                    ->visible(fn (Voter $record): bool => $record->status !== VoterStatus::DUPLICATE
+                        && ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(function (Voter $record): void {
                         app(VoterValidationService::class)->validateAndUpdate($record);
 

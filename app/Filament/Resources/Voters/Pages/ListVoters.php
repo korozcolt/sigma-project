@@ -46,6 +46,7 @@ class ListVoters extends ListRecords
                 ->label('Exportar vista actual')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('info')
+                ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                 ->action(function (array $data, $livewire) {
                     $query = null;
 
@@ -70,6 +71,7 @@ class ListVoters extends ListRecords
                 ->label('Exportar')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('success')
+                ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                 ->modalHeading('Exportar Apoyos')
                 ->modalSubmitActionLabel('Descargar')
                 ->form([
@@ -145,6 +147,7 @@ class ListVoters extends ListRecords
                 ->label('Cruzar Cédulas Externas (CSV)')
                 ->icon('heroicon-o-document-magnifying-glass')
                 ->color('warning')
+                ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                 ->modalHeading('Cruzar cédulas externas contra Apoyos registrados')
                 ->modalSubmitActionLabel('Generar')
                 ->form([
