@@ -30,8 +30,10 @@ class ReconcileFallbackPollingPlaces implements ShouldQueue
         }
 
         $voters = Voter::query()
-            ->whereNotNull('polling_place_source')
-            ->where('polling_place_source', '!=', PollingPlaceSource::LIVE->value)
+            ->where(function ($query) {
+                $query->whereNull('polling_place_source')
+                    ->orWhere('polling_place_source', '!=', PollingPlaceSource::LIVE->value);
+            })
             ->whereNull('reconciliation_exhausted_at')
             ->orderBy('polling_place_resolved_at')
             ->limit(self::MAX_VOTERS_PER_RUN)

@@ -2,32 +2,26 @@
 
 use App\Enums\VoterStatus;
 use App\Jobs\DispatchCensusRevalidation;
-use App\Jobs\ValidateVoterAgainstCensus;
+use App\Models\RevalidationRun;
 use App\Models\User;
+use App\Models\ValidationHistory;
 use App\Models\Voter;
+use App\Services\PollingPlaceResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Bus;
 
 uses(RefreshDatabase::class);
 
-test('dispatches ValidateVoterAgainstCensus for every pending or census-not-found voter, and skips other statuses', function () {
-    Bus::fake();
-
-    $pendingVoter = Voter::factory()->create(['status' => VoterStatus::PENDING_REVIEW]);
-    $notFoundVoter = Voter::factory()->create(['status' => VoterStatus::CENSUS_NOT_FOUND]);
-    $verifiedVoter = Voter::factory()->create(['status' => VoterStatus::VERIFIED_CENSUS]);
-
-    (new DispatchCensusRevalidation)->handle();
-
-    Bus::assertDispatched(ValidateVoterAgainstCensus::class, fn ($job) => $job->voter->is($pendingVoter));
-    Bus::assertDispatched(ValidateVoterAgainstCensus::class, fn ($job) => $job->voter->is($notFoundVoter));
-    Bus::assertNotDispatched(ValidateVoterAgainstCensus::class, fn ($job) => $job->voter->is($verifiedVoter));
+beforeEach(function () {
+    // No live adapters — keeps these tests deterministic/offline (no real HTTP calls),
+    // matching the established pattern in ReconcileFallbackPollingPlacesTest. Full
+    // RevalidationRun counter/coverage assertions live in RevalidationCoverageTest.php;
+    // this file focuses on the job's own mechanics (leader/campaign scoping, scheduling).
+    app()->bind(PollingPlaceResolver::class, fn () => new PollingPlaceResolver([]));
 });
 
-test('scoping by leaderId only dispatches for that leader\'s matching voters', function () {
-    Bus::fake();
-
+test('scoping by leaderId only processes that leader\'s matching voters', function () {
     $leader = User::factory()->create();
     $otherLeader = User::factory()->create();
 
@@ -36,8 +30,23 @@ test('scoping by leaderId only dispatches for that leader\'s matching voters', f
 
     (new DispatchCensusRevalidation(leaderId: $leader->id))->handle();
 
-    Bus::assertDispatched(ValidateVoterAgainstCensus::class, fn ($job) => $job->voter->is($leaderVoter));
-    Bus::assertNotDispatched(ValidateVoterAgainstCensus::class, fn ($job) => $job->voter->is($otherLeaderVoter));
+    $run = RevalidationRun::latest()->first();
+
+    expect($run->leader_id)->toBe($leader->id)
+        ->and($run->total)->toBe(1);
+
+    expect(ValidationHistory::where('voter_id', $leaderVoter->id)->exists())->toBeTrue()
+        ->and(ValidationHistory::where('voter_id', $otherLeaderVoter->id)->exists())->toBeFalse();
+});
+
+test('scoping by campaignId writes it onto the RevalidationRun', function () {
+    $voter = Voter::factory()->create(['status' => VoterStatus::PENDING_REVIEW]);
+
+    (new DispatchCensusRevalidation(campaignId: $voter->campaign_id))->handle();
+
+    $run = RevalidationRun::latest()->first();
+
+    expect($run->campaign_id)->toBe($voter->campaign_id);
 });
 
 test('census:reconcile-validation is scheduled hourly with a 10-minute withoutOverlapping lock', function () {
