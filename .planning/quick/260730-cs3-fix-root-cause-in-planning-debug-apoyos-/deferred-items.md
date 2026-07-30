@@ -14,6 +14,10 @@ files intermittently fail, but pass cleanly both:
 - `tests/Feature/Filament/TopPollingPlacesTableTest.php`
 - `tests/Feature/Filament/VoterResourceTest.php`
 - `tests/Feature/IsElectionDayMiddlewareTest.php`
+- `tests/Feature/RevalidationProgressWidgetTest.php` (Task 4's new widget test — also a
+  victim, not a cause: passes cleanly alone or paired with any single other file tried;
+  only fails when batched alongside the files above, in the same
+  `CampaignContext`-session-vs-static-override collision pattern)
 
 This matches a test-pollution class of issue already documented in
 `.planning/STATE.md` ("Pre-existing test files ... call `CampaignContext::setCampaignId()`

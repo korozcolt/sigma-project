@@ -10,9 +10,11 @@ return new class extends Migration
      * Run the migrations.
      *
      * validated_by must be nullable so the headless census revalidation job (no
-     * authenticated actor — Auth::id() is null) can write a ValidationHistory row, mirroring
-     * the same nullable + nullOnDelete precedent already established for
-     * polling_place_resolutions.resolved_by (Phase 7 D-05 / Phase 11 D-04).
+     * authenticated actor — Auth::id() is null) can write a ValidationHistory row. Only
+     * nullability changes here — the existing cascadeOnDelete() behavior is preserved
+     * (deleting the validating user still deletes their audit rows, matching the
+     * pre-existing contract in ValidationHistoryTest); nullable and cascadeOnDelete are
+     * orthogonal, a NULL validated_by simply has nothing to cascade from.
      */
     public function up(): void
     {
@@ -25,7 +27,7 @@ return new class extends Migration
         });
 
         Schema::table('validation_histories', function (Blueprint $table) {
-            $table->foreign('validated_by')->references('id')->on('users')->nullOnDelete();
+            $table->foreign('validated_by')->references('id')->on('users')->cascadeOnDelete();
         });
     }
 

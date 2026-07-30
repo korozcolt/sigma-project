@@ -263,7 +263,10 @@ class VotersTable
                             ->required(),
                     ])
                     ->action(function (array $data): void {
-                        DispatchCensusRevalidation::dispatch((int) $data['leader_id']);
+                        DispatchCensusRevalidation::dispatch(
+                            leaderId: (int) $data['leader_id'],
+                            campaignId: CampaignContext::currentCampaignId(),
+                        );
 
                         Notification::make()
                             ->title('Revalidación en background iniciada')

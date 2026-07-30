@@ -7,6 +7,7 @@ use App\Enums\VoterStatus;
 use App\Exports\VotersExport;
 use App\Filament\Imports\ApoyoImporter;
 use App\Filament\Resources\Voters\VoterResource;
+use App\Filament\Widgets\RevalidationProgressWidget;
 use App\Services\CampaignContext;
 use App\Services\VoterDuplicateReport;
 use BackedEnum;
@@ -23,6 +24,13 @@ use Illuminate\Support\Facades\Storage;
 class ListVoters extends ListRecords
 {
     protected static string $resource = VoterResource::class;
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            RevalidationProgressWidget::class,
+        ];
+    }
 
     protected function getHeaderActions(): array
     {
