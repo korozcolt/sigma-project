@@ -3,6 +3,7 @@
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Filament\Resources\Voters\VoterResource;
+use App\Filament\Widgets\CampaignStatsOverview;
 use App\Filament\Widgets\FollowUpBacklogOverview;
 use App\Filament\Widgets\TerritorialOwnershipTable;
 use App\Filament\Widgets\TopCoordinatorsTable;
@@ -118,6 +119,29 @@ test('territorial ownership table coordinator rows link to the coordinator team 
 
     expect($recordUrl)->toBe($expectedUrl)
         ->and($teamIds)->toContain($leader1->id, $leader2->id, $coordinator->id);
+});
+
+test('campaign stats overview total de apoyos and confirmados stats link to filtered voter lists', function () {
+    Voter::factory()->count(3)->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'status' => VoterStatus::CONFIRMED,
+    ]);
+
+    $instance = Livewire::test(CampaignStatsOverview::class)->instance();
+    $stats = (new ReflectionMethod($instance, 'getStats'))->invoke($instance);
+
+    $expectedTotalUrl = VoterResource::getUrl('index');
+    $expectedConfirmedUrl = VoterResource::getUrl('index', [
+        'tableFilters' => [
+            'status' => ['values' => [VoterStatus::CONFIRMED->value]],
+        ],
+    ]);
+
+    expect($stats[0]->getUrl())->toBe($expectedTotalUrl)
+        ->and($stats[1]->getUrl())->toBe($expectedConfirmedUrl)
+        ->and($stats[2]->getUrl())->toBeNull()
+        ->and($stats[3]->getUrl())->toBeNull();
 });
 
 test('top coordinators table rows link to the coordinator team filtered voter list', function () {
