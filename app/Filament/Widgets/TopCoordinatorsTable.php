@@ -95,6 +95,7 @@ class TopCoordinatorsTable extends TableWidget
                 Action::make('export')
                     ->label('Exportar')
                     ->icon('heroicon-o-arrow-down-tray')
+                    ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new TopCoordinatorsExport($activeCampaign?->id))->download('ranking-coordinadores.xlsx')),
             ]);
     }

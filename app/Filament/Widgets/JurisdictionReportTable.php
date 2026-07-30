@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\CampaignScope;
+use App\Enums\UserRole;
 use App\Exports\JurisdictionExport;
 use App\Models\Voter;
 use App\Services\CampaignContext;
@@ -87,6 +88,7 @@ class JurisdictionReportTable extends TableWidget
                 Action::make('export')
                     ->label('Exportar CSV')
                     ->icon('heroicon-o-arrow-down-tray')
+                    ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new JurisdictionExport($activeCampaign))->download('informe-jurisdiccion.xlsx')),
             ]);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\UserRole;
 use App\Exports\DuplicatesExport;
 use App\Models\Voter;
 use App\Services\CampaignContext;
@@ -82,6 +83,7 @@ class DuplicatesReportTable extends TableWidget
                 Action::make('export')
                     ->label('Exportar')
                     ->icon('heroicon-o-arrow-down-tray')
+                    ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new DuplicatesExport)->download('informe-duplicados.xlsx')),
             ]);
     }
