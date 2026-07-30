@@ -142,10 +142,10 @@ class ListVoters extends ListRecords
                 }),
 
             Action::make('duplicatesReport')
-                ->label('Reporte de Duplicados')
+                ->label('Cruzar Cédulas Externas (CSV)')
                 ->icon('heroicon-o-document-magnifying-glass')
                 ->color('warning')
-                ->modalHeading('Reporte de duplicados por cédula')
+                ->modalHeading('Cruzar cédulas externas contra Apoyos registrados')
                 ->modalSubmitActionLabel('Generar')
                 ->form([
                     Select::make('resultado')
