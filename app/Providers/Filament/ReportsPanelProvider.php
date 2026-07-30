@@ -12,6 +12,7 @@ use App\Filament\Widgets\DuplicatesReportTable;
 use App\Filament\Widgets\FallbackSourceOverview;
 use App\Filament\Widgets\FollowUpBacklogOverview;
 use App\Filament\Widgets\JurisdictionReportTable;
+use App\Filament\Widgets\JurisdictionSummaryOverview;
 use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\SurveyStatsOverview;
 use App\Filament\Widgets\TerritorialDistributionChart;
@@ -82,6 +83,7 @@ class ReportsPanelProvider extends PanelProvider
                 TopPollingPlacesTable::class,
                 RejectionsReportTable::class,
                 DuplicatesReportTable::class,
+                JurisdictionSummaryOverview::class,
                 JurisdictionReportTable::class,
                 ApoyosLideresCoordinadoresTable::class,
                 SurveyStatsOverview::class,
