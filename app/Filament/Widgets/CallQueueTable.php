@@ -15,6 +15,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 
 class CallQueueTable extends TableWidget
@@ -33,7 +34,7 @@ class CallQueueTable extends TableWidget
                     ->with([
                         'voter.municipality',
                         'voter.neighborhood',
-                        'verificationCalls' => fn (Builder $query) => $query->latest('call_date'),
+                        'verificationCalls' => fn (HasMany $query) => $query->latest('call_date'),
 
                     ])
                     ->when($userId, fn (Builder $query) => $query->forCaller($userId))
