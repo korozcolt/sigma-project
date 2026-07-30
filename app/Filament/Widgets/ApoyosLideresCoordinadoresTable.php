@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Enums\UserRole;
 use App\Exports\ApoyosLideresCoordinadoresExport;
+use App\Filament\Resources\Voters\VoterResource;
 use App\Models\Voter;
 use App\Services\CampaignContext;
 use Filament\Actions\Action;
@@ -84,6 +85,7 @@ class ApoyosLideresCoordinadoresTable extends TableWidget
                     ->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new ApoyosLideresCoordinadoresExport($activeCampaign?->id))->download('apoyos-lideres-coordinadores.xlsx')),
-            ]);
+            ])
+            ->recordUrl(fn (Voter $record) => VoterResource::getUrl('view', ['record' => $record]));
     }
 }
