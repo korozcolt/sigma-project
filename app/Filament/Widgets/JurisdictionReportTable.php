@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Enums\CampaignScope;
 use App\Enums\UserRole;
 use App\Exports\JurisdictionExport;
+use App\Filament\Resources\Voters\VoterResource;
 use App\Models\Voter;
 use App\Services\CampaignContext;
 use Filament\Actions\Action;
@@ -90,6 +91,7 @@ class JurisdictionReportTable extends TableWidget
                     ->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new JurisdictionExport($activeCampaign))->download('informe-jurisdiccion.xlsx')),
-            ]);
+            ])
+            ->recordUrl(fn (Voter $record) => VoterResource::getUrl('view', ['record' => $record]));
     }
 }

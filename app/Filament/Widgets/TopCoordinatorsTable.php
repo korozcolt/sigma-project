@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Exports\TopCoordinatorsExport;
+use App\Filament\Resources\Voters\VoterResource;
 use App\Models\User;
 use App\Services\CampaignContext;
 use Filament\Actions\Action;
@@ -97,6 +98,11 @@ class TopCoordinatorsTable extends TableWidget
                     ->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new TopCoordinatorsExport($activeCampaign?->id))->download('ranking-coordinadores.xlsx')),
-            ]);
+            ])
+            ->recordUrl(fn (User $record) => VoterResource::getUrl('index', [
+                'tableFilters' => [
+                    'registered_by' => ['values' => $record->leaders()->pluck('id')->push($record->id)->all()],
+                ],
+            ]));
     }
 }

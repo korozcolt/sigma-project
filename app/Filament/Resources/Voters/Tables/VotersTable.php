@@ -199,6 +199,13 @@ class VotersTable
                     ->preload()
                     ->multiple(),
 
+                SelectFilter::make('polling_place_id')
+                    ->label('Puesto de Votación')
+                    ->relationship('pollingPlace', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->multiple(),
+
                 SelectFilter::make('neighborhood_id')
                     ->label('Barrio')
                     ->relationship('neighborhood', 'name')

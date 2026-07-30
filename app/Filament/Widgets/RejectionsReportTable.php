@@ -6,6 +6,7 @@ use App\Enums\CallResult;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Exports\RejectionsExport;
+use App\Filament\Resources\Voters\VoterResource;
 use App\Models\Voter;
 use App\Services\CampaignContext;
 use Filament\Actions\Action;
@@ -81,6 +82,7 @@ class RejectionsReportTable extends TableWidget
                     ->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new RejectionsExport($activeCampaign?->id))->download('informe-rechazos.xlsx')),
-            ]);
+            ])
+            ->recordUrl(fn (Voter $record) => VoterResource::getUrl('view', ['record' => $record]));
     }
 }

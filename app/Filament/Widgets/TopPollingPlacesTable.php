@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Exports\TopPollingPlacesExport;
+use App\Filament\Resources\Voters\VoterResource;
 use App\Models\PollingPlace;
 use App\Models\Voter;
 use App\Services\CampaignContext;
@@ -79,7 +80,12 @@ class TopPollingPlacesTable extends TableWidget
                     ->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new TopPollingPlacesExport($activeCampaign?->id))->download('ranking-puestos-votacion.xlsx')),
-            ]);
+            ])
+            ->recordUrl(fn (PollingPlace $record) => VoterResource::getUrl('index', [
+                'tableFilters' => [
+                    'polling_place_id' => ['values' => [$record->id]],
+                ],
+            ]));
     }
 
     protected function getTableDescription(): ?string
