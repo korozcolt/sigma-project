@@ -19,31 +19,36 @@ class CoordinatorsTable
                 TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('email')
                     ->label('Correo')
                     ->searchable()
                     ->copyable()
                     ->copyMessage('Correo copiado')
-                    ->copyMessageDuration(1500),
+                    ->copyMessageDuration(1500)
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('municipality.name')
                     ->label('Municipio')
                     ->searchable()
                     ->sortable()
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->toggleable(),
 
                 TextColumn::make('leaders_count')
                     ->counts('leaders')
                     ->label('Líderes')
                     ->sortable()
-                    ->visible(fn (): bool => Schema::hasColumn('users', 'coordinator_user_id')),
+                    ->visible(fn (): bool => Schema::hasColumn('users', 'coordinator_user_id'))
+                    ->toggleable(),
 
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
                 EditAction::make(),
