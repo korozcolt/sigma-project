@@ -54,4 +54,9 @@ return [
         'probe_url' => env('INFOVOTANTES_PROBE_URL', 'https://eleccionescolombia.registraduria.gov.co/identificacion'),
     ],
 
+    'twocaptcha' => [
+        'api_key' => env('TWO_CAPTCHA_KEY'),
+        'api_url' => env('TWO_CAPTCHA_API_URL', 'https://api.2captcha.com'),
+    ],
+
 ];
