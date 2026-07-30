@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: Fixed voter-campaign-required-locked debug session (super_admin Voter creation blocked by unresolvable disabled+required campaign_id in "view all" mode); deployed and verified on both sigma-app-kb2mdl and sigma-betha-app-pw6k9q
-last_updated: "2026-07-28T18:15:00.000Z"
+stopped_at: Completed quick task 260730-cs3 (unified census validation onto PollingPlaceResolver::resolveAutomated(), widened revalidation/reconciliation to NULL-source voters with RevalidationRun tracking, census:remediate-misrejected command, non-blocking RevalidationProgressWidget)
+last_updated: "2026-07-30T10:30:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -147,6 +147,8 @@ Quick task 260726-k80 decisions:
 - **Registraduría election-lookup endpoints currently decommissioned** (found 2026-07-23): both `eleccionescolombia.registraduria.gov.co` and `apiweb-eleccionescolombia.infovotantes.com` have no DNS record — likely temporary election-season teardown. Existing live lookup buttons fail until reactivated. Directly motivates the Phase 6-8 snapshot fallback and the Phase 9 wsp spike.
 - Intermittent flake in `Tests/Feature/Filament/UserResourceTest > can update user campaigns` (~1/3 of full-suite runs); pre-existing, logged in 04.1 deferred-items.md.
 - Pre-existing test files (`IsElectionDayMiddlewareTest`, `Filament/UserResourceTest`, `tests/E2E/ChromeDevTools/*`) call `CampaignContext::setCampaignId()` without resetting the static override — latent test-pollution risk. Found/scoped during Phase 05.1 Plan 01.
+- **Worktree staleness recurred a fifth+ time for quick task 260730-cs3** (worktree `agent-ae61e52450cab67d1`): checked out missing this task's own PLAN/CONTEXT commits plus `vendor/`, `.env`, `node_modules/`, and `public/build/` entirely (fresh Vite manifest never built, causing ~41 unrelated "Vite manifest not found" test failures until resolved). Fixed with the same established workaround: confirmed fast-forward ancestry, `git merge --ff-only`, `.env` copy, `composer install`, plus `npm install && npm run build` (the manifest-missing failure mode hadn't been hit by name in earlier log entries, but is the same class of "worktree wasn't fully provisioned before the executor started" issue). `gsd-tools init execute-phase` also reconfirmed the `findProjectRoot()` bug in this session (`project_root` resolved to the main checkout, not this worktree) — STATE.md/SUMMARY.md updates for this task were hand-edited directly in the worktree, per the established workaround, not via the CLI.
+- **Confirmed additional evidence for the pre-existing `CampaignContext` test-pollution issue during 260730-cs3**: adding one new test file shifts which specific Filament report-table tests collide with the static-override leak in full-suite runs (a different subset fails each time, always disjoint from files touched by the task, always passing in isolation/pre-task baseline). See `.planning/quick/260730-cs3-fix-root-cause-in-planning-debug-apoyos-/deferred-items.md` for the exact evidence trail. Reinforces that this should be fixed at the source (reset `CampaignContext`'s static override in a shared `afterEach`/`TestCase::tearDown()`) rather than continuing to be rediscovered per-task.
 
 ### Pending Todos
 
@@ -173,6 +175,7 @@ Tracked in Blockers/Concerns above.
 | 260726-qdj | Blank the root route ("/") so it no longer renders the Laravel welcome view; /admin unaffected | 2026-07-26 | 7df64bc | [260726-qdj-deshabilitar-ruta-raiz-para-que-no-muest](.planning/quick/260726-qdj-deshabilitar-ruta-raiz-para-que-no-muest/) |
 | 260728-e4j | Fix NeighborhoodsImport date-parsing bug corrupting barrio names starting with day-of-month patterns, and backfill 10 corrupted Sincelejo neighborhoods in production | 2026-07-28 | dfe9793 | [260728-e4j-fix-neighborhoodsimport-date-parsing-bug](.planning/quick/260728-e4j-fix-neighborhoodsimport-date-parsing-bug/) |
 | 260728-fw1 | Add cédula (document_number) -> full-name lookup/autofill/lock across Coordinador, Líder, and Apoyo creation forms (Filament + Volt), backed by national_identity_records imported from a 371,232-row CSV; backfilled both production databases | 2026-07-28 | aa9a4f4 | [260728-fw1-add-a-c-dula-document-number-full-name-l](.planning/quick/260728-fw1-add-a-c-dula-document-number-full-name-l/) |
+| 260730-cs3 | Unify VoterValidationService onto PollingPlaceResolver::resolveAutomated() (fixes sigma-betha's 148 mass-misrejected apoyos); widen revalidation/reconciliation to NULL-source voters with RevalidationRun progress tracking; census:remediate-misrejected command; non-blocking RevalidationProgressWidget on the Apoyos screen | 2026-07-30 | 8db8278 | [260730-cs3-fix-root-cause-in-planning-debug-apoyos-](.planning/quick/260730-cs3-fix-root-cause-in-planning-debug-apoyos-/) |
 
 Quick task 260726-kg8 decisions:
 
@@ -190,8 +193,18 @@ Quick task 260728-fw1 decisions:
 - `identity:import-directory`'s printed "Registros importados/actualizados" counter reflects rows processed into the upsert buffer, not unique cédulas actually upserted — an exact-duplicate row for an already-seen cédula still increments the counter even though the cédula-keyed buffer dedupes it before the real `upsert()` call. Confirmed as expected/correct behavior when production counts showed 371,012 processed vs. 371,010 actual rows in `national_identity_records` on both instances — the 2-row gap matches 2 exact-duplicate rows in the 371,232-row source CSV, identical on both independently-imported databases.
 - Production backfill (Tasks 6-8) executed only after explicit human approval ("aplicar importación") at the Task 7 blocking checkpoint; re-verification re-queried both databases fresh (row count + spot-check cédula `1053006255`) independent of the import command's own printed summary.
 
+Quick task 260730-cs3 decisions:
+
+- `VoterValidationService::validateAgainstCensus()` now delegates entirely to `PollingPlaceResolver::resolveAutomated()` (permanent `registraduria_lookups` cache -> live adapters -> national census snapshot) plus a `national_identity_records` existence check — the orphaned per-campaign `census_records` table is no longer consulted anywhere in the validation path; a single pass now resolves BOTH census status and `polling_place_source` for the same voter.
+- `REJECTED_CENSUS` is no longer produced by `updateVoterStatus()` — unresolved voters land on `CENSUS_NOT_FOUND` so they re-enter the reconciliation cycle instead of dead-ending; added a no-downgrade guard so census validation never clobbers `VERIFIED_REGISTRADURIA`/`VERIFIED_CALL`/`CONFIRMED`/`VOTED`/`DID_NOT_VOTE`.
+- `DispatchCensusRevalidation` widened its selection to PENDING_REVIEW/CENSUS_NOT_FOUND/REJECTED_CENSUS OR `polling_place_source IS NULL`, now processes voters inline (deleted the now-unused per-voter `ValidateVoterAgainstCensus` job) and writes a new `RevalidationRun` progress record consumed by the UI widget; `ReconcileFallbackPollingPlaces` dropped its `whereNotNull('polling_place_source')` guard so the hourly job also does first-time resolution for NULL-source voters.
+- `validation_histories.validated_by` made nullable (Rule 3 fix — the headless job has no authenticated actor) while explicitly preserving `cascadeOnDelete()` (nullability and delete-behavior are orthogonal; an earlier draft of this migration accidentally switched to `nullOnDelete()` and broke `ValidationHistoryTest`'s cascade-delete contract — caught and corrected within the same task).
+- `census:remediate-misrejected {--campaign=1} {--dry-run}` built, tested, and dry-run-verified locally only — NOT run against sigma-betha production, per explicit task constraint; a human with server access still needs to run it for real to revert the 148 already-misrejected voters.
+- `RevalidationProgressWidget` is a plain `Filament\Widgets\Widget` (not `StatsOverviewWidget`) with its own blade view and `wire:poll.5s`, reading the latest `RevalidationRun` for the current campaign; registered as a header widget on `ListVoters`, sibling to (never blocking) the Apoyos table.
+- Confirmed via full-suite diffing (git stash to pre-task baseline + isolated re-runs) that a cluster of Filament report-table tests plus this task's own new widget test intermittently fail ONLY in full-suite runs, never alone — pre-existing `CampaignContext` static-override test pollution already logged in this file's Blockers section, unrelated to this task's changes. Logged with evidence in `.planning/quick/260730-cs3-fix-root-cause-in-planning-debug-apoyos-/deferred-items.md`.
+
 ## Session Continuity
 
-Last session: 2026-07-28T18:00:00.000Z
-Stopped at: Completed quick task 260728-fw1 (cédula -> full-name lookup/autofill/lock across all 5 Coordinador/Líder/Apoyo creation touch points; production backfill applied and verified on both sigma-app-kb2mdl and sigma-betha-app-pw6k9q)
+Last session: 2026-07-30T10:30:00.000Z
+Stopped at: Completed quick task 260730-cs3 (census validation cascade fix + remediation command + revalidation progress UI). Manual follow-up still owed: run `census:remediate-misrejected --campaign=1` (no --dry-run) against sigma-betha production and deploy.
 Resume file: None
