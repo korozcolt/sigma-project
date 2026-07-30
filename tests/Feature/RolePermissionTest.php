@@ -14,7 +14,7 @@ beforeEach(function () {
 it('creates all roles from UserRole enum', function () {
     $roles = Role::all();
 
-    expect($roles)->toHaveCount(5);
+    expect($roles)->toHaveCount(6);
 
     foreach (UserRole::cases() as $role) {
         assertDatabaseHas('roles', [

@@ -14,6 +14,7 @@ enum UserRole: string implements HasColor, HasDescription, HasIcon, HasLabel
     case COORDINATOR = 'coordinator';
     case LEADER = 'leader';
     case REVIEWER = 'reviewer';
+    case REPORTS_VIEWER = 'reports_viewer';
 
     public function getLabel(): ?string
     {
@@ -23,6 +24,7 @@ enum UserRole: string implements HasColor, HasDescription, HasIcon, HasLabel
             self::COORDINATOR => 'Coordinador',
             self::LEADER => 'Líder',
             self::REVIEWER => 'Revisor',
+            self::REPORTS_VIEWER => 'Analista de Reportes',
         };
     }
 
@@ -34,6 +36,7 @@ enum UserRole: string implements HasColor, HasDescription, HasIcon, HasLabel
             self::COORDINATOR => 'primary',
             self::LEADER => 'success',
             self::REVIEWER => 'info',
+            self::REPORTS_VIEWER => 'gray',
         };
     }
 
@@ -45,6 +48,7 @@ enum UserRole: string implements HasColor, HasDescription, HasIcon, HasLabel
             self::COORDINATOR => 'heroicon-m-users',
             self::LEADER => 'heroicon-m-user',
             self::REVIEWER => 'heroicon-m-eye',
+            self::REPORTS_VIEWER => 'heroicon-m-chart-bar',
         };
     }
 
@@ -56,6 +60,7 @@ enum UserRole: string implements HasColor, HasDescription, HasIcon, HasLabel
             self::COORDINATOR => 'Coordina líderes en un territorio específico.',
             self::LEADER => 'Registra y gestiona apoyos en su zona.',
             self::REVIEWER => 'Valida apoyos y realiza llamadas de verificación.',
+            self::REPORTS_VIEWER => 'Consulta reportes y listados de la campaña activa; sin permisos de creación, edición o eliminación.',
         };
     }
 
