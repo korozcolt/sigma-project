@@ -14,9 +14,9 @@ class JurisdictionSummaryOverview extends StatsOverviewWidget
 {
     protected static ?int $sort = 8;
 
-    protected static ?string $heading = 'Resumen de Jurisdicción';
+    protected ?string $heading = 'Resumen de Jurisdicción';
 
-    protected static ?string $description = 'Apoyos dentro vs. fuera del territorio objetivo de la campaña';
+    protected ?string $description = 'Apoyos dentro vs. fuera del territorio objetivo de la campaña';
 
     public static function canView(): bool
     {
