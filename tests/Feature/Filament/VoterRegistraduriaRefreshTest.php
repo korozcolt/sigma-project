@@ -11,6 +11,7 @@ use App\Models\PollingPlaceResolution;
 use App\Models\RegistraduriaLookup;
 use App\Models\User;
 use App\Models\Voter;
+use App\Services\ConsultaCensoService;
 use App\Services\InfovotantesService;
 use App\Services\RegistraduriaService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -225,6 +226,11 @@ it('resolves from DB reconstruction without opening the modal when live is unrea
         $mock->shouldNotReceive('startLookup');
     });
 
+    $this->mock(ConsultaCensoService::class, function ($mock) {
+        $mock->shouldReceive('isReachable')->andReturn(false);
+        $mock->shouldNotReceive('startLookup');
+    });
+
     Livewire::test(EditVoter::class, ['record' => $voter->id])
         ->call('openRegistraduriaBrowser', $cedula)
         ->assertSet('registraduriaOpen', false)
@@ -254,6 +260,11 @@ it('resolves from the national snapshot when live is unreachable, no CensusRecor
     });
 
     $this->mock(RegistraduriaService::class, function ($mock) {
+        $mock->shouldReceive('isReachable')->andReturn(false);
+        $mock->shouldNotReceive('startLookup');
+    });
+
+    $this->mock(ConsultaCensoService::class, function ($mock) {
         $mock->shouldReceive('isReachable')->andReturn(false);
         $mock->shouldNotReceive('startLookup');
     });
@@ -301,6 +312,11 @@ it('never downgrades an already-LIVE voter through the ordinary Save button when
     });
 
     $this->mock(RegistraduriaService::class, function ($mock) {
+        $mock->shouldReceive('isReachable')->andReturn(false);
+        $mock->shouldNotReceive('startLookup');
+    });
+
+    $this->mock(ConsultaCensoService::class, function ($mock) {
         $mock->shouldReceive('isReachable')->andReturn(false);
         $mock->shouldNotReceive('startLookup');
     });
@@ -380,6 +396,11 @@ it('never mislabels a DB-reconstruction result as LIVE on a later lookup via a s
     });
 
     $this->mock(RegistraduriaService::class, function ($mock) {
+        $mock->shouldReceive('isReachable')->andReturn(false);
+        $mock->shouldNotReceive('startLookup');
+    });
+
+    $this->mock(ConsultaCensoService::class, function ($mock) {
         $mock->shouldReceive('isReachable')->andReturn(false);
         $mock->shouldNotReceive('startLookup');
     });

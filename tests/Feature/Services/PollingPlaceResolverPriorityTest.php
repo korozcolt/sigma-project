@@ -5,6 +5,7 @@ use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\PollingPlace;
 use App\Models\Voter;
+use App\Services\ConsultaCensoService;
 use App\Services\InfovotantesService;
 use App\Services\PollingPlaceResolver;
 use App\Services\RegistraduriaService;
@@ -142,7 +143,7 @@ test('startLiveLookup uses the first adapter (infovotantes) when it is reachable
     Http::assertNotSent(fn ($request) => str_ends_with($request->url(), '/lookup') && ! str_contains($request->url(), '/lookup/infovotantes'));
 });
 
-test('AppServiceProvider registers InfovotantesService ahead of RegistraduriaService in liveAdapters', function () {
+test('AppServiceProvider registers InfovotantesService, RegistraduriaService, then ConsultaCensoService in liveAdapters', function () {
     $resolver = app(PollingPlaceResolver::class);
 
     $property = new ReflectionProperty(PollingPlaceResolver::class, 'liveAdapters');
@@ -155,5 +156,62 @@ test('AppServiceProvider registers InfovotantesService ahead of RegistraduriaSer
     }
 
     expect($adapters[0])->toBeInstanceOf(InfovotantesService::class)
-        ->and($adapters[1])->toBeInstanceOf(RegistraduriaService::class);
+        ->and($adapters[1])->toBeInstanceOf(RegistraduriaService::class)
+        ->and($adapters[2])->toBeInstanceOf(ConsultaCensoService::class);
+});
+
+test('resolveAutomated falls back to consultacenso when both infovotantes and wsp are unreachable, without calling their lookup endpoints', function () {
+    config([
+        'services.infovotantes.live_enabled' => true,
+        'services.registraduria.live_enabled' => true,
+        'services.consulta_censo.live_enabled' => true,
+    ]);
+
+    Http::fake([
+        config('services.infovotantes.probe_url').'*' => Http::failedConnection(),
+        config('services.registraduria.probe_url').'*' => Http::failedConnection(),
+        config('services.consulta_censo.probe_url').'*' => Http::response('', 200),
+        '*/lookup/censo' => Http::response(['session_id' => 'censo-session'], 200),
+        '*/result/censo-session' => Http::response([
+            'status' => 'done',
+            'data' => [
+                'puesto_nombre' => 'IE LA CAMPINA', 'puesto_codigo' => '', 'zona_codigo' => '',
+                'mesa_numero' => '05', 'departamento' => 'SUCRE', 'municipio' => 'SINCELEJO',
+                'direccion' => 'CALLE FALSA 123',
+            ],
+            'error' => null,
+        ]),
+    ]);
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = app(PollingPlaceResolver::class);
+
+    $result = $resolver->resolveAutomated('1102812122', $voter);
+
+    expect($result)->not->toBeNull()->and($result->source)->toBe(PollingPlaceSource::LIVE);
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/lookup/infovotantes'));
+    Http::assertNotSent(fn ($request) => str_ends_with($request->url(), '/lookup') && ! str_contains($request->url(), '/lookup/infovotantes') && ! str_contains($request->url(), '/lookup/censo'));
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/lookup/censo'));
+});
+
+test('startLiveLookup skips two unreachable adapters (infovotantes, wsp) and uses consultacenso', function () {
+    config([
+        'services.infovotantes.live_enabled' => true,
+        'services.registraduria.live_enabled' => true,
+        'services.consulta_censo.live_enabled' => true,
+    ]);
+
+    Http::fake([
+        config('services.infovotantes.probe_url').'*' => Http::failedConnection(),
+        config('services.registraduria.probe_url').'*' => Http::failedConnection(),
+        config('services.consulta_censo.probe_url').'*' => Http::response('', 200),
+        '*/lookup/censo' => Http::response(['session_id' => 'censo-session'], 200),
+    ]);
+
+    $resolver = app(PollingPlaceResolver::class);
+    $sessionId = $resolver->startLiveLookup('1102812122');
+
+    expect($sessionId)->toBe('censo-session');
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/lookup/infovotantes'));
 });
