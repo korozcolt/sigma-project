@@ -88,3 +88,28 @@ it('allows every mutating ability on Voter for every other role (no regression)'
     expect($user->can('replicate', $voter))->toBeTrue();
     expect($user->can('reorder', Voter::class))->toBeTrue();
 })->with(collect(UserRole::cases())->reject(fn (UserRole $role) => $role === UserRole::REPORTS_VIEWER)->all());
+
+it('allows every mutating ability on Voter for a user holding super_admin AND reports_viewer together', function () {
+    $campaign = Campaign::factory()->create(['status' => 'active']);
+
+    $user = User::factory()->create();
+    $user->assignRole(UserRole::SUPER_ADMIN->value);
+    $user->assignRole(UserRole::REPORTS_VIEWER->value);
+
+    Session::put('campaign_context.mode', 'all');
+
+    $voter = Voter::factory()->create(['campaign_id' => $campaign->id]);
+
+    actingAs($user);
+
+    expect($user->can('create', Voter::class))->toBeTrue()
+        ->and($user->can('update', $voter))->toBeTrue()
+        ->and($user->can('delete', $voter))->toBeTrue()
+        ->and($user->can('deleteAny', Voter::class))->toBeTrue()
+        ->and($user->can('restore', $voter))->toBeTrue()
+        ->and($user->can('restoreAny', Voter::class))->toBeTrue()
+        ->and($user->can('forceDelete', $voter))->toBeTrue()
+        ->and($user->can('forceDeleteAny', Voter::class))->toBeTrue()
+        ->and($user->can('replicate', $voter))->toBeTrue()
+        ->and($user->can('reorder', Voter::class))->toBeTrue();
+});

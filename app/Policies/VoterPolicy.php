@@ -29,7 +29,13 @@ class VoterPolicy
      */
     public function create(User $user): bool
     {
-        return ! $user->hasRole(UserRole::REPORTS_VIEWER->value);
+        return $user->hasAnyRole([
+            UserRole::SUPER_ADMIN,
+            UserRole::ADMIN_CAMPAIGN,
+            UserRole::COORDINATOR,
+            UserRole::LEADER,
+            UserRole::REVIEWER,
+        ]);
     }
 
     /**
@@ -37,7 +43,13 @@ class VoterPolicy
      */
     public function update(User $user, Voter $voter): bool
     {
-        return ! $user->hasRole(UserRole::REPORTS_VIEWER->value);
+        return $user->hasAnyRole([
+            UserRole::SUPER_ADMIN,
+            UserRole::ADMIN_CAMPAIGN,
+            UserRole::COORDINATOR,
+            UserRole::LEADER,
+            UserRole::REVIEWER,
+        ]);
     }
 
     /**
@@ -45,7 +57,13 @@ class VoterPolicy
      */
     public function delete(User $user, Voter $voter): bool
     {
-        return ! $user->hasRole(UserRole::REPORTS_VIEWER->value);
+        return $user->hasAnyRole([
+            UserRole::SUPER_ADMIN,
+            UserRole::ADMIN_CAMPAIGN,
+            UserRole::COORDINATOR,
+            UserRole::LEADER,
+            UserRole::REVIEWER,
+        ]);
     }
 
     /**
@@ -53,7 +71,13 @@ class VoterPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return ! $user->hasRole(UserRole::REPORTS_VIEWER->value);
+        return $user->hasAnyRole([
+            UserRole::SUPER_ADMIN,
+            UserRole::ADMIN_CAMPAIGN,
+            UserRole::COORDINATOR,
+            UserRole::LEADER,
+            UserRole::REVIEWER,
+        ]);
     }
 
     /**
@@ -61,7 +85,13 @@ class VoterPolicy
      */
     public function restore(User $user, Voter $voter): bool
     {
-        return ! $user->hasRole(UserRole::REPORTS_VIEWER->value);
+        return $user->hasAnyRole([
+            UserRole::SUPER_ADMIN,
+            UserRole::ADMIN_CAMPAIGN,
+            UserRole::COORDINATOR,
+            UserRole::LEADER,
+            UserRole::REVIEWER,
+        ]);
     }
 
     /**
@@ -69,7 +99,13 @@ class VoterPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return ! $user->hasRole(UserRole::REPORTS_VIEWER->value);
+        return $user->hasAnyRole([
+            UserRole::SUPER_ADMIN,
+            UserRole::ADMIN_CAMPAIGN,
+            UserRole::COORDINATOR,
+            UserRole::LEADER,
+            UserRole::REVIEWER,
+        ]);
     }
 
     /**
@@ -77,7 +113,13 @@ class VoterPolicy
      */
     public function forceDelete(User $user, Voter $voter): bool
     {
-        return ! $user->hasRole(UserRole::REPORTS_VIEWER->value);
+        return $user->hasAnyRole([
+            UserRole::SUPER_ADMIN,
+            UserRole::ADMIN_CAMPAIGN,
+            UserRole::COORDINATOR,
+            UserRole::LEADER,
+            UserRole::REVIEWER,
+        ]);
     }
 
     /**
@@ -85,7 +127,13 @@ class VoterPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return ! $user->hasRole(UserRole::REPORTS_VIEWER->value);
+        return $user->hasAnyRole([
+            UserRole::SUPER_ADMIN,
+            UserRole::ADMIN_CAMPAIGN,
+            UserRole::COORDINATOR,
+            UserRole::LEADER,
+            UserRole::REVIEWER,
+        ]);
     }
 
     /**
@@ -93,7 +141,13 @@ class VoterPolicy
      */
     public function replicate(User $user, Voter $voter): bool
     {
-        return ! $user->hasRole(UserRole::REPORTS_VIEWER->value);
+        return $user->hasAnyRole([
+            UserRole::SUPER_ADMIN,
+            UserRole::ADMIN_CAMPAIGN,
+            UserRole::COORDINATOR,
+            UserRole::LEADER,
+            UserRole::REVIEWER,
+        ]);
     }
 
     /**
@@ -101,6 +155,12 @@ class VoterPolicy
      */
     public function reorder(User $user): bool
     {
-        return ! $user->hasRole(UserRole::REPORTS_VIEWER->value);
+        return $user->hasAnyRole([
+            UserRole::SUPER_ADMIN,
+            UserRole::ADMIN_CAMPAIGN,
+            UserRole::COORDINATOR,
+            UserRole::LEADER,
+            UserRole::REVIEWER,
+        ]);
     }
 }
