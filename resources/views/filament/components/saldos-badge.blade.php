@@ -22,7 +22,7 @@
     $dailyCosts = app(TwoCaptchaDailyCostService::class)->lastDays(7);
 @endphp
 
-<x-filament::dropdown id="saldos-badge" width="xs" placement="bottom-end" teleport="true">
+<x-filament::dropdown id="saldos-badge" class="ms-2" width="xs" placement="bottom-end" teleport="true">
     <x-slot name="trigger">
         <x-filament::icon-button
             icon="heroicon-o-banknotes"
@@ -46,7 +46,7 @@
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Saldo 2captcha</span>
             <x-filament::badge :color="SaldoColorResolver::twoCaptcha($captchaBalance)">
                 @if ($captchaBalance !== null)
-                    ${{ number_format($captchaBalance, 5) }}
+                    {{ number_format($captchaBalance, 2) }} USD
                 @else
                     N/D
                 @endif
@@ -60,7 +60,7 @@
                     <span class="text-gray-500 dark:text-gray-400">{{ $dia->day->format('d/m') }}</span>
                     <span class="font-medium text-gray-700 dark:text-gray-300">
                         @if ($dia->status === DailyCaptchaCostStatus::Computed)
-                            ${{ number_format($dia->averageUsd, 5) }}
+                            {{ number_format($dia->averageUsd, 5) }} USD
                         @elseif ($dia->status === DailyCaptchaCostStatus::RechargeDetected)
                             Recarga detectada
                         @else
