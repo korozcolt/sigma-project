@@ -10,6 +10,7 @@ use App\Filament\Widgets\DiaDTerritorialProgressTable;
 use App\Filament\Widgets\RevalidationProgressWidget;
 use App\Models\User;
 use App\Observers\UserObserver;
+use App\Services\ConsultaCensoService;
 use App\Services\InfovotantesService;
 use App\Services\PollingPlaceResolver;
 use App\Services\RegistraduriaService;
@@ -48,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
             liveAdapters: [
                 $app->make(InfovotantesService::class),
                 $app->make(RegistraduriaService::class),
+                $app->make(ConsultaCensoService::class),
             ],
         ));
     }

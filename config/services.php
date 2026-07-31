@@ -54,6 +54,12 @@ return [
         'probe_url' => env('INFOVOTANTES_PROBE_URL', 'https://eleccionescolombia.registraduria.gov.co/identificacion'),
     ],
 
+    'consulta_censo' => [
+        'url' => env('CONSULTA_CENSO_SERVICE_URL', 'http://localhost:5757'),
+        'live_enabled' => env('CONSULTA_CENSO_LIVE_ENABLED', true),
+        'probe_url' => env('CONSULTA_CENSO_PROBE_URL', 'https://consultacenso.registraduria.gov.co/'),
+    ],
+
     'twocaptcha' => [
         'api_key' => env('TWO_CAPTCHA_KEY'),
         'api_url' => env('TWO_CAPTCHA_API_URL', 'https://api.2captcha.com'),
