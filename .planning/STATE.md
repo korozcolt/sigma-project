@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260731-ezk (add consultacenso.registraduria.gov.co as a third, coexisting LiveSourceAdapter): Tasks 1-3 complete and committed (59f88ba, 49672fa, fe808b4) — Python /lookup/censo route, ConsultaCensoService adapter, config, AppServiceProvider priority registration (3rd/fallback), and Pest coverage (7 new adapter tests + 2 new cascade tests), including a Rule 1 fix to VoterRegistraduriaRefreshTest for a real-network-reachability regression. Task 4 is a blocking checkpoint:human-verify requiring a real 2captcha-budgeted lookup against the live site with 2 real test cédulas — NOT performed by the executor, task is NOT fully complete."
-last_updated: "2026-07-31T04:00:00.000Z"
+stopped_at: "Quick task 260731-ezk (add consultacenso.registraduria.gov.co as a third, coexisting LiveSourceAdapter): COMPLETE. Tasks 1-3 committed (59f88ba, 49672fa, fe808b4) — Python /lookup/censo route, ConsultaCensoService adapter, config, AppServiceProvider priority registration (3rd/fallback), and Pest coverage (7 new adapter tests + 2 new cascade tests), including a Rule 1 fix to VoterRegistraduriaRefreshTest for a real-network-reachability regression. Task 4 (blocking checkpoint:human-verify) PASSED: real end-to-end lookup against the live site with cedula 1102851353 resolved status=done/outcome=success (CHOCHO, IE SAN ISIDRO DE CHOCO, Sincelejo/Sucre, mesa 12) using real 2captcha balance. Worktree merged to main (421b74a) and cleaned up."
+last_updated: "2026-07-31T16:23:08.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -190,6 +190,7 @@ Tracked in Blockers/Concerns above.
 | 260730-i79 | Add "Resumen de Jurisdicción" 2-stat StatsOverviewWidget (Dentro/Fuera del Territorio) to the reports panel, registered directly above JurisdictionReportTable | 2026-07-30 | 2827056, a6ffa40 | [260730-i79-agregar-stat-de-resumen-de-jurisdiccion-](.planning/quick/260730-i79-agregar-stat-de-resumen-de-jurisdiccion-/) |
 | 260730-ofo | Super_admin-only topbar "cuadrito de saldos" — Hablame (COP) + 2captcha (USD) balances with color thresholds, plus a 7-day daily-average 2captcha cost derived from an hourly balance-snapshot job (America/Bogota-bucketed, cold-start/recharge/zero-count safe) | 2026-07-30 | 18da4d2, 6b80ce3, a81a03f, 9ceb863, 548976f, 87751ee, 1432293 | [260730-ofo-agregar-cuadrito-de-saldos-hablame-2capt](.planning/quick/260730-ofo-agregar-cuadrito-de-saldos-hablame-2capt/) |
 | 260730-uek | Label 2captcha balance/cost lines as USD (dropping the ambiguous leading `$`) in saldos-badge.blade.php; add ms-2 spacing so the Saldos topbar trigger no longer sits flush against the campaign-switcher "Cambiar" button | 2026-07-31 | 44f6cee | [260730-uek-fix-saldos-badge-2captcha-balance-format](.planning/quick/260730-uek-fix-saldos-badge-2captcha-balance-format/) |
+| 260731-ezk | Add consultacenso.registraduria.gov.co as a third, coexisting LiveSourceAdapter (fallback priority behind infovotantes/wsp); verified end-to-end against the live site with a real cédula and real 2captcha balance | 2026-07-31 | 59f88ba, 49672fa, fe808b4, 421b74a | [260731-ezk-agregar-consultacenso-registraduria-gov-](.planning/quick/260731-ezk-agregar-consultacenso-registraduria-gov-/) |
 
 Quick task 260726-kg8 decisions:
 

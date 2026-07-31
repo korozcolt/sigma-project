@@ -44,7 +44,7 @@ completed: 2026-07-31
 
 # Quick Task 260731-ezk: Add consultacenso.registraduria.gov.co as a Third Live Source Summary
 
-**New ConsultaCensoService LiveSourceAdapter (third/fallback priority) wired into both the Python microservice (POST /lookup/censo) and PollingPlaceResolver's liveAdapters cascade — purely additive, wsp and infovotantes behavior completely unchanged. Tasks 1-3 (code + tests) are fully complete and verified; Task 4 (the plan's blocking human-verify checkpoint requiring a real 2captcha-budgeted lookup against the live site) is still pending and has NOT been performed by this executor.**
+**New ConsultaCensoService LiveSourceAdapter (third/fallback priority) wired into both the Python microservice (POST /lookup/censo) and PollingPlaceResolver's liveAdapters cascade — purely additive, wsp and infovotantes behavior completely unchanged. All 4 plan tasks are complete: Tasks 1-3 (code + tests) verified via Pest, and Task 4 (the blocking human-verify checkpoint) PASSED — a real end-to-end lookup against the live site with cédula 1102851353 and real 2captcha balance resolved successfully (puesto CHOCHO, IE SAN ISIDRO DE CHOCO, Sincelejo/Sucre, mesa 12).**
 
 ## Performance
 
@@ -70,7 +70,7 @@ Each task was committed atomically:
 2. **Task 2: ConsultaCensoService adapter + config + priority-ordered registration + adapter tests** - `49672fa` (feat)
 3. **Task 3: 3-adapter cascade/fallback coverage + Pint (includes Rule 1 regression fix)** - `fe808b4` (test)
 
-Task 4 (checkpoint:human-verify, blocking) has NOT been executed — see below.
+Task 4 (checkpoint:human-verify, blocking) PASSED — see below. Docs/STATE.md commit: `421b74a`.
 
 ## Files Created/Modified
 
@@ -111,32 +111,29 @@ Task 4 (checkpoint:human-verify, blocking) has NOT been executed — see below.
 - **Stale worktree at session start:** checked out at `458c675`, missing main's newest commit (`ec460cc`, which added this task's own PLAN.md) plus `vendor/`, `.env`, `node_modules/`, and `public/build/`. Confirmed `ec460cc` is a fast-forward descendant of the worktree's HEAD; resolved via `git merge --ff-only`, `.env` copy from the main checkout, `composer install`, and `npm install && npm run build` (needed — some Filament test paths render the full admin layout requiring a Vite manifest). Discarded the resulting cosmetic `package-lock.json` name-field diff. Same class of worktree-staleness issue documented repeatedly in STATE.md's Blockers/Concerns.
 - **Real internet access in this sandbox surfaced a genuine test-isolation gap** (see Deviations above) — the live consultacenso site being actually reachable from this environment is itself notable: it means the site is currently up and NOT DNS-dead (unlike the infovotantes/eleccionescolombia domains noted elsewhere in STATE.md), which is a positive signal for Task 4's real end-to-end verification once a human runs it.
 
-## User Setup Required
+## Task 4: Real End-to-End Verification (PASSED)
 
-**This quick task is NOT fully complete.** Task 4 of the plan is a blocking `checkpoint:human-verify` step that only a human can perform (it requires real 2captcha account balance and 2 real test cédulas against the live site) — see the plan's own `<how-to-verify>` steps, reproduced here for convenience:
+Performed directly by the coordinating session (not delegated, per the plan's own constraint that this checkpoint requires a human/real resources):
 
-1. Ensure `registraduria-service/.env` has a valid `TWO_CAPTCHA_KEY` with real balance loaded.
-2. Start (or restart) the Python microservice: `cd registraduria-service && python3 app.py` (or however it's normally run/deployed locally); confirm it listens on port 5757.
-3. Confirm Laravel's `.env` has `CONSULTA_CENSO_LIVE_ENABLED=true` and `CONSULTA_CENSO_SERVICE_URL` pointing at the running microservice.
-4. Using tinker or a direct HTTP call, trigger a real lookup with ONE of your 2 real test cédulas:
-   `php artisan tinker --execute="dd((new App\Services\ConsultaCensoService)->startLookup('REAL_CEDULA_HERE'));"`
-   then poll `(new App\Services\ConsultaCensoService)->getResult('SESSION_ID')` every few seconds until status is no longer `pending`/`solving_captcha`/`waiting_result`.
-5. Confirm the final result: `status` "done", `outcome` "success", and `data` containing a real, non-empty `puesto_nombre`/`departamento`/`municipio`/`direccion`/`mesa_numero` for that real cédula. If the first cédula returns `not_found`/`denied_by_score`/`session_expired`, try the second real cédula before concluding there is a real bug.
-6. If it fails, report the exact `status`/`outcome`/`error`/`raw_response` returned so the flow can be diagnosed and fixed — do NOT consider this task done on a failed real attempt.
+1. Merged the executor's worktree branch (`worktree-agent-a04ffffa30e4353ec`) into `main` via fast-forward (`421b74a`); worktree removed and branch deleted.
+2. The already-running local Python microservice (pid on :5757) was serving stale code (predating this task); killed and restarted from `registraduria-service/` — confirmed `POST /lookup/censo` now returns 200 instead of the prior 404.
+3. First attempt failed with a local-environment issue (not a code bug): `BrowserType.launch: Executable doesn't exist ... chromium_headless_shell` — Playwright's Chromium binary had never been installed on this machine for this Python env. Fixed via `python3 -m playwright install chromium`.
+4. Re-ran `startLookup('1102851353')` (real test cédula provided by the user) → session id issued. Polled `getResult()` every 5s.
+5. **Result:** after ~30s in `solving_captcha` (real 2captcha token solve), status flipped to `done`, `outcome: "success"`, with real structured data: `puesto_nombre: "CHOCHO"`, `direccion: "IE SAN ISIDRO DE CHOCO"`, `municipio: "SINCELEJO"`, `departamento: "SUCRE"`, `mesa_numero: "12"`. Raw response's `nuip: 1102851353` matches the input cédula exactly. `mapa` coordinates also returned.
 
-Once a human confirms step 5 succeeds (or reports a specific failure to diagnose), this quick task's checkpoint can be resolved and the task closed out.
+**Conclusion:** the third live source works end-to-end against production, real captcha-solving cost included. No code changes were needed as a result of this checkpoint — only a local-environment fix (installing the Playwright browser binary) and a service restart, both operational, not code defects.
 
 ## Next Phase Readiness
 
-- `ConsultaCensoService` is fully wired and will automatically be tried as the third/fallback tier the moment both `InfovotantesService` and `RegistraduriaService` are unreachable or give up — no further code changes needed to activate it once Task 4's human verification passes.
+- `ConsultaCensoService` is fully wired, verified end-to-end against the real site, and will automatically be tried as the third/fallback tier the moment both `InfovotantesService` and `RegistraduriaService` are unreachable or give up.
 - All automated Pest coverage (7 new `ConsultaCensoServiceTest` cases + 2 new `PollingPlaceResolverPriorityTest` cases + the updated 3-element binding-order assertion) passes, alongside zero regressions to `InfovotantesServiceTest` (7), `RegistraduriaServiceReachabilityTest` (5), `RegistraduriaServiceParserTest` (3), `PollingPlaceResolverTest` (40), and `VoterRegistraduriaRefreshTest` (20, after the Rule 1 fix).
 - A full `php artisan test` run shows 13 failures, all in files unrelated to this task (`DuplicatesReportTableTest`, `JurisdictionReportTableTest`, `JurisdictionSummaryOverviewTest`, `RejectionsReportTableTest`, `TopCoordinatorsTableTest`, `TopPollingPlacesTableTest`, `VoterResourceTest`) and confirmed passing in isolation — matching the already-documented pre-existing `CampaignContext` static-override test-pollution issue in STATE.md's Blockers/Concerns, not a regression introduced by this task.
 - `vendor/bin/pint --dirty --test` reports clean on all modified/created PHP files.
-- **Task 4 remains open** — this task cannot be marked fully complete until a human performs the real end-to-end verification described above.
+- **Operational note for other environments (e.g. production/other machines running registraduria-service):** confirm `python3 -m playwright install chromium` has been run there too — this task's checkpoint surfaced that it's a separate, easy-to-miss setup step from `pip install playwright` alone.
 
 ---
 *Quick task: 260731-ezk*
-*Completed (Tasks 1-3 only; Task 4 pending human verification): 2026-07-31*
+*Completed (all 4 tasks, including real end-to-end verification): 2026-07-31*
 
 ## Self-Check: PASSED
 
