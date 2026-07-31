@@ -22,7 +22,7 @@
     $dailyCosts = app(TwoCaptchaDailyCostService::class)->lastDays(7);
 @endphp
 
-<x-filament::dropdown id="saldos-badge" class="ms-2" width="xs" placement="bottom-end" teleport="true">
+<x-filament::dropdown id="saldos-badge" class="ms-4" width="xs" placement="bottom-end" teleport="true">
     <x-slot name="trigger">
         <x-filament::icon-button
             icon="heroicon-o-banknotes"
