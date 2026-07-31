@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260731-i5g (add REGISTRADURIA_SERVICE_URL fallback to consulta_censo.url): COMPLETE. config/services.php's consulta_censo.url default changed from a flat env('CONSULTA_CENSO_SERVICE_URL', 'http://localhost:5757') to the nested env('CONSULTA_CENSO_SERVICE_URL', env('REGISTRADURIA_SERVICE_URL', 'http://localhost:5757')) fallback chain, mirroring the infovotantes.url precedent exactly (4982d61). A new Pest test in ConsultaCensoServiceTest.php proves the real 3-level fallback order by re-require()-ing config/services.php's source after manipulating process env vars — all 8 tests pass. .env.example needed zero changes (its CONSULTA_CENSO_SERVICE_URL line already matched INFOVOTANTES_SERVICE_URL's plain-line convention). No pending checkpoints."
-last_updated: "2026-07-31T18:12:31.000Z"
+stopped_at: "Quick task 260731-jmq (document startLiveLookup() fallback gap): COMPLETE. Appended one new Blockers/Concerns bullet to STATE.md documenting that PollingPlaceResolver::startLiveLookup() commits to the first reachable live adapter and does not catch a startLookup() exception to try the next one, why isReachable() (external probe_url) and startLookup() (internal service_url) can diverge for the same adapter, the real 2026-07-31 ConsultaCensoService 404 incident in sigma-betha production this caused (resolved by redeploying sigma-registraduria — a symptom fix, not a code fix), and the recommended (unimplemented) future fix. Documentation-only — no application code touched (e5b6f9b). No pending checkpoints."
+last_updated: "2026-07-31T19:10:15.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -195,6 +195,7 @@ Tracked in Blockers/Concerns above.
 | 260731-g7h | Fix VoterPolicy multi-role exclusion bug (inclusion-based hasAnyRole() on all 10 mutating methods) + Registraduría Alpine polling resilience (r.ok check, 15-failure escalation, 200s cap), both backed by genuine Pest Feature + Pest v4 Browser test coverage | 2026-07-31 | b875066, f4ea2d5 | [260731-g7h-fix-voterpolicy-multi-role-exclusion-bug](.planning/quick/260731-g7h-fix-voterpolicy-multi-role-exclusion-bug/) |
 | 260731-h94 | Harden registraduria-service Python microservice — replaced Werkzeug dev server with waitress (single-process, 8-thread WSGI server); real concurrent-load test proved sub-second fast-endpoint responses while a slow lookup thread is in-flight | 2026-07-31 | 52da039 | [260731-h94-harden-registraduria-service-python-micr](.planning/quick/260731-h94-harden-registraduria-service-python-micr/) |
 | 260731-i5g | Nest consulta_censo.url's fallback through REGISTRADURIA_SERVICE_URL (own var > REGISTRADURIA_SERVICE_URL > localhost default), mirroring the infovotantes.url precedent; new Pest test proves the real 3-level env fallback chain via fresh require of config/services.php | 2026-07-31 | 4982d61 | [260731-i5g-add-registraduria-service-url-fallback-t](.planning/quick/260731-i5g-add-registraduria-service-url-fallback-t/) |
+| 260731-jmq | Document PollingPlaceResolver::startLiveLookup()'s fallback gap (no catch-and-continue on startLookup() exception) in STATE.md Blockers/Concerns, including the real 2026-07-31 ConsultaCensoService production incident and the recommended (unimplemented) future fix | 2026-07-31 | e5b6f9b | [260731-jmq-document-startlivelookup-fallback-gap-fi](.planning/quick/260731-jmq-document-startlivelookup-fallback-gap-fi/) |
 
 Quick task 260726-kg8 decisions:
 
@@ -338,6 +339,6 @@ Quick task 260731-i5g decisions:
 
 ## Session Continuity
 
-Last session: 2026-07-31T18:12:31Z
-Stopped at: Quick task 260731-i5g (add REGISTRADURIA_SERVICE_URL fallback to consulta_censo.url) — COMPLETE. config/services.php's consulta_censo.url default changed to the nested env('CONSULTA_CENSO_SERVICE_URL', env('REGISTRADURIA_SERVICE_URL', 'http://localhost:5757')) fallback chain, mirroring infovotantes.url exactly (4982d61). New Pest test proves the real 3-level fallback order via fresh require() of config/services.php's source with manipulated process env vars — all 8 ConsultaCensoServiceTest tests pass. .env.example needed zero changes. No pending checkpoints — this quick task is fully closed.
-Resume file: none — see .planning/quick/260731-i5g-add-registraduria-service-url-fallback-t/260731-i5g-SUMMARY.md
+Last session: 2026-07-31T19:10:15Z
+Stopped at: Quick task 260731-jmq (document startLiveLookup() fallback gap) — COMPLETE. Appended one new Blockers/Concerns bullet to STATE.md documenting the PollingPlaceResolver::startLiveLookup() fallback gap (no catch-and-continue on a reachable adapter's startLookup() exception), the divergence between isReachable()'s external probe_url and startLookup()'s internal service_url, the real 2026-07-31 ConsultaCensoService production incident and its symptom-fix resolution, and the recommended (unimplemented) future fix. Documentation-only — zero application code changed. No pending checkpoints — this quick task is fully closed.
+Resume file: none — see .planning/quick/260731-jmq-document-startlivelookup-fallback-gap-fi/260731-jmq-SUMMARY.md
