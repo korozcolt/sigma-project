@@ -3,11 +3,9 @@
 namespace App\Filament\Resources\AuditLogs\Pages;
 
 use App\Filament\Resources\AuditLogs\AuditLogResource;
-use App\Models\AuditLog;
 use Filament\Infolists\Components;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Schema as SchemaType;
-use Filament\Support\Enums\FontFamily;
 
 class ViewAuditLog extends ViewRecord
 {
@@ -50,20 +48,14 @@ class ViewAuditLog extends ViewRecord
                 ->placeholder('—')
                 ->columnSpanFull(),
 
-            Components\TextEntry::make('old_values')
+            Components\KeyValueEntry::make('old_values')
                 ->label('Valores Anteriores')
-                ->state(fn (AuditLog $record): string => $record->old_values
-                    ? json_encode($record->old_values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
-                    : '—')
-                ->fontFamily(FontFamily::Mono)
+                ->placeholder('—')
                 ->columnSpanFull(),
 
-            Components\TextEntry::make('new_values')
+            Components\KeyValueEntry::make('new_values')
                 ->label('Valores Nuevos')
-                ->state(fn (AuditLog $record): string => $record->new_values
-                    ? json_encode($record->new_values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
-                    : '—')
-                ->fontFamily(FontFamily::Mono)
+                ->placeholder('—')
                 ->columnSpanFull(),
         ]);
     }

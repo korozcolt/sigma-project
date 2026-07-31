@@ -141,5 +141,23 @@ test('super admin can view an audit log with mixed int/string new_values without
 
     $this->get(AuditLogResource::getUrl('view', ['record' => $log], panel: 'admin'))
         ->assertOk()
-        ->assertSee('Jane Doe');
+        ->assertSee('Jane Doe')
+        ->assertSee('email')
+        ->assertSee('jane@example.com');
+});
+
+test('super admin can view an audit log with null old_values and new_values without error', function () {
+    $superAdmin = User::factory()->create();
+    $superAdmin->assignRole(UserRole::SUPER_ADMIN->value);
+    actingAs($superAdmin);
+    Session::put('campaign_context.mode', 'all');
+
+    $log = AuditLog::factory()->create([
+        'action' => 'login',
+        'old_values' => null,
+        'new_values' => null,
+    ]);
+
+    $this->get(AuditLogResource::getUrl('view', ['record' => $log], panel: 'admin'))
+        ->assertOk();
 });
