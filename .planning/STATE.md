@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260731-o5i (fix 500 error en ViewAuditLog al mostrar): COMPLETE. Root cause: Filament's TextEntry, when bound state resolves to a PHP array, invokes formatStateUsing() once PER ARRAY ELEMENT instead of once with the whole array — the old_values/new_values ->formatStateUsing(fn (?array $state) ...) closures threw TypeError for any non-array scalar element (e.g. int id). Fixed by switching both TextEntry blocks to ->state(fn (AuditLog $record) => ...), reading the model's cast array attribute directly (5b5bb65). New Pest regression test reproduces the original crash with a real mixed int/string payload, confirmed RED then GREEN; all 11 AuditLogResourceTest tests pass. No new Composer dependency. No pending checkpoints."
-last_updated: "2026-07-31T22:40:00.000Z"
+stopped_at: "Quick task 260731-odu (fix AuditLogResource KeyValueEntry + Sistema nav group): COMPLETE. Task 1: replaced ViewAuditLog's old_values/new_values TextEntry+json_encode()+FontFamily::Mono blocks with native KeyValueEntry::make() (no ->state() closure needed — reads the model's array-cast attribute directly, structurally avoiding the 260731-o5i TextEntry per-array-element formatStateUsing() bug class rather than working around it); removed now-unused FontFamily/AuditLog imports; strengthened the mixed int/string regression test + added a null-values test. Task 2: appended a sixth 'Sistema' NavigationGroup after 'Configuración' in AdminPanelProvider; new AdminPanelProviderTest asserts the exact 6-group label order. All 13 AuditLogResourceTest+AdminPanelProviderTest tests pass, pint clean. No new Composer dependency. No pending checkpoints."
+last_updated: "2026-07-31T22:38:05.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -200,6 +200,14 @@ Tracked in Blockers/Concerns above.
 | 260731-n7t | Fix banner de revalidación sin botón de cerrar (Alpine $persist, solo estado finalizado) + saldo 2captcha sin refresco manual (SaldosBadge Livewire component, acción "Refrescar" bajo demanda) | 2026-07-31 | 6f46bfe, 9a4b750 | [260731-n7t-fix-banner-de-revalidacion-sin-boton-de-](.planning/quick/260731-n7t-fix-banner-de-revalidacion-sin-boton-de-/) |
 | 260731-nuk | Read-only Filament AuditLogResource (index + view) to browse audit_logs, super-admin gated, with user/action/date-range filters and legible old/new-values JSON detail view | 2026-07-31 | 3bd42f8, 187928d | [260731-nuk-crear-filament-resource-de-solo-lectura-](.planning/quick/260731-nuk-crear-filament-resource-de-solo-lectura-/) |
 | 260731-o5i | Fix 500 TypeError in ViewAuditLog: old_values/new_values TextEntry blocks now use ->state() reading the model attribute directly, bypassing Filament's per-array-element ->formatStateUsing() iteration bug | 2026-07-31 | 5b5bb65 | [260731-o5i-fix-500-error-en-viewauditlog-al-mostrar](.planning/quick/260731-o5i-fix-500-error-en-viewauditlog-al-mostrar/) |
+| 260731-odu | Replace ViewAuditLog's old_values/new_values TextEntry+json_encode() with native KeyValueEntry tables; add 'Sistema' as the sixth/last navigation group in AdminPanelProvider | 2026-07-31 | 0093f12, fd83dc1 | [260731-odu-fix-auditlogresource-keyvalueentry-para-](.planning/quick/260731-odu-fix-auditlogresource-keyvalueentry-para-/) |
+
+Quick task 260731-odu decisions:
+
+- Replaced TextEntry+json_encode()+FontFamily::Mono with KeyValueEntry::make() for old_values/new_values — sidesteps the 260731-o5i bug class entirely (KeyValueEntry never calls formatStateUsing(), so it never hits Filament's per-array-element iteration bug) rather than continuing to patch around it with a custom ->state() closure.
+- 'Sistema' navigation group appended as the sixth/last entry in AdminPanelProvider's ->navigationGroups([...]) array, purely additive — the existing five groups (Gestión, Call Center, Mensajería, Jornada Electoral, Configuración) were not reordered or modified; new AdminPanelProviderTest locks in the exact label order.
+- Worktree (agent-a2dabfbe2d92f7e70) was stale at session start (one commit behind main, missing vendor/.env/node_modules/public/build entirely) — resolved with the established fast-forward (git merge --ff-only main) + composer install + .env copy + public/build copy (from the main checkout's already-current build, since this task made no frontend asset changes) workaround.
+- Reconfirmed the gsd-tools findProjectRoot() worktree bug in this session: `gsd-tools state add-decision --dry-run` silently ignored --dry-run and wrote a real probe decision line to the MAIN checkout's STATE.md instead of this worktree's — caught immediately (git diff showed the unexpected write before any other action touched that file) and reverted with `git checkout -- .planning/STATE.md` in the main checkout. STATE.md/SUMMARY.md updates for this task were hand-edited directly in the worktree per the established workaround.
 
 Quick task 260731-o5i decisions:
 
