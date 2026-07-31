@@ -8,6 +8,7 @@ use App\Filament\Widgets\CallQueueTable;
 use App\Filament\Widgets\DiaDStatsOverview;
 use App\Filament\Widgets\DiaDTerritorialProgressTable;
 use App\Filament\Widgets\RevalidationProgressWidget;
+use App\Listeners\AuditAuthActivitySubscriber;
 use App\Models\Campaign;
 use App\Models\User;
 use App\Models\Voter;
@@ -17,6 +18,7 @@ use App\Services\ConsultaCensoService;
 use App\Services\InfovotantesService;
 use App\Services\PollingPlaceResolver;
 use App\Services\RegistraduriaService;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
@@ -66,6 +68,7 @@ class AppServiceProvider extends ServiceProvider
         User::observe(AuditObserver::class);
         Campaign::observe(AuditObserver::class);
         Voter::observe(AuditObserver::class);
+        Event::subscribe(AuditAuthActivitySubscriber::class);
 
         // Page-scoped widgets never get Livewire's automatic alias<->class resolution the way
         // panel-globally-declared widgets do. Livewire's resolution is asymmetric for classes outside
