@@ -13,6 +13,7 @@
         statusInterval: null,
         elapsed: 0,
         elapsedInterval: null,
+        transientFailures: 0,
 
         statusLabel() {
             const base = {
@@ -47,11 +48,49 @@
 
         start() {
             this.elapsed = 0;
+            this.transientFailures = 0;
             this.elapsedInterval = setInterval(() => this.elapsed++, 1000);
             this.statusInterval = setInterval(() => {
+                // Elapsed-time safety cap (~200s, comfortably past the Python service's own ~150s
+                // hard 2captcha-solving bound) — independent of network state, checked first so it
+                // always wins even if a fetch is also in flight.
+                if (this.elapsed >= 200 && this.isSpinning()) {
+                    this.status = 'error';
+                    this.error = 'La consulta está tardando más de lo esperado. Intenta de nuevo más tarde.';
+                    this.stopAll();
+                    setTimeout(() => {
+                        this.isOpen = false;
+                        this._updateDisplay();
+                        window.Livewire.dispatch('registraduria-close');
+                    }, 3000);
+                    return;
+                }
+
                 fetch('/registraduria/result/' + this.sessionId)
-                    .then(r => r.json())
+                    .then(r => {
+                        if (!r.ok) {
+                            // Transient failure (503/network hiccup) — do NOT touch this.status,
+                            // do NOT stop polling. Only escalate after ~15 consecutive failures
+                            // (~30s at this 2000ms interval).
+                            this.transientFailures++;
+                            if (this.transientFailures >= 15) {
+                                this.status = 'error';
+                                this.error = 'No se pudo conectar con el servicio de Registraduría. Intenta de nuevo más tarde.';
+                                this.stopAll();
+                                setTimeout(() => {
+                                    this.isOpen = false;
+                                    this._updateDisplay();
+                                    window.Livewire.dispatch('registraduria-close');
+                                }, 3000);
+                            }
+                            return null;
+                        }
+                        this.transientFailures = 0;
+                        return r.json();
+                    })
                     .then(d => {
+                        if (!d) return; // transient failure already handled above, or cap already fired
+
                         this.status = d.status ?? 'error';
 
                         if (d.status === 'error') {
