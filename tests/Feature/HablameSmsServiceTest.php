@@ -300,10 +300,25 @@ test('can get real account info', function () {
             'statusCode' => 200,
             'statusMessage' => 'OK',
             'payLoad' => [
-                'account_id' => 'acc_123',
-                'status' => 'active',
-                'balance' => 123.45,
-                'billing_type' => 'prepaid',
+                'accountId' => 10011897,
+                'billing' => [
+                    'availableBalance' => 25228,
+                    'billingAccount' => 99910011897,
+                    'billingCountry' => null,
+                    'billingType' => 'prepaid',
+                    'monthlyCreditLimit' => 0,
+                    'monthlyUsage' => null,
+                    'taxId' => null,
+                ],
+                'blockStatus' => [
+                    'billing' => false,
+                    'fraud' => false,
+                    'general' => false,
+                ],
+                'createdAt' => '2018-04-19T23:57:54-05:00',
+                'currency' => '',
+                'email' => null,
+                'paymentUrl' => null,
             ],
         ], 200),
     ]);
@@ -312,7 +327,40 @@ test('can get real account info', function () {
     $result = $service->getAccountInfo();
 
     expect($result['success'])->toBeTrue()
-        ->and($result['account_id'])->toBe('acc_123')
+        ->and($result['account_id'])->toBe(10011897)
         ->and($result['status'])->toBe('active')
-        ->and($result['balance'])->toBe(123.45);
+        ->and($result['balance'])->toBe(25228)
+        ->and($result['billing_type'])->toBe('prepaid')
+        ->and($result['created_at'])->toBe('2018-04-19T23:57:54-05:00');
+});
+
+test('reports blocked status from real account info when blockStatus is true', function () {
+    Config::set('services.hablame.sandbox_mode', false);
+    Config::set('services.hablame.api_key', 'test_api_key');
+
+    Http::fake([
+        '*/account/v5/info' => Http::response([
+            'statusCode' => 200,
+            'statusMessage' => 'OK',
+            'payLoad' => [
+                'accountId' => 10011897,
+                'billing' => [
+                    'availableBalance' => 0,
+                    'billingType' => 'prepaid',
+                ],
+                'blockStatus' => [
+                    'billing' => false,
+                    'fraud' => false,
+                    'general' => true,
+                ],
+                'createdAt' => '2018-04-19T23:57:54-05:00',
+            ],
+        ], 200),
+    ]);
+
+    $service = app(HablameSmsService::class);
+    $result = $service->getAccountInfo();
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['status'])->toBe('blocked');
 });

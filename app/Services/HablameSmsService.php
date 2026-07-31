@@ -268,14 +268,23 @@ class HablameSmsService
 
             if ($response->successful()) {
                 $data = $response->json();
+                $blockStatus = $data['payLoad']['blockStatus'] ?? [];
+
+                /**
+                 * La cuenta está 'blocked' si cualquiera de billing/fraud/general
+                 * en payLoad.blockStatus es true; de lo contrario está 'active'.
+                 */
+                $isBlocked = (bool) ($blockStatus['billing'] ?? false)
+                    || (bool) ($blockStatus['fraud'] ?? false)
+                    || (bool) ($blockStatus['general'] ?? false);
 
                 return [
                     'success' => true,
-                    'account_id' => $data['payLoad']['account_id'] ?? null,
-                    'status' => $data['payLoad']['status'] ?? null,
-                    'balance' => $data['payLoad']['balance'] ?? null,
-                    'billing_type' => $data['payLoad']['billing_type'] ?? null,
-                    'created_at' => $data['payLoad']['created_at'] ?? null,
+                    'account_id' => $data['payLoad']['accountId'] ?? null,
+                    'status' => $isBlocked ? 'blocked' : 'active',
+                    'balance' => $data['payLoad']['billing']['availableBalance'] ?? null,
+                    'billing_type' => $data['payLoad']['billing']['billingType'] ?? null,
+                    'created_at' => $data['payLoad']['createdAt'] ?? null,
                 ];
             }
 
