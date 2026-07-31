@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260731-n0n (agregar sistema de auditoría general/audit trail): COMPLETE. Added audit_logs migration + AuditLog model/factory (1ec3882), generic AuditObserver wired onto User/Campaign/Voter (d3d2529), and AuditAuthActivitySubscriber wired via Event::subscribe() for login/logout/failed-login (4a8e802) — all stock Laravel (observers + auth events), no new Composer dependency. 11 new Pest tests pass reliably together. No Filament UI added (explicitly deferred). No pending checkpoints."
-last_updated: "2026-07-31T21:45:29.000Z"
+stopped_at: "Quick task 260731-n7t (fix banner de revalidación sin botón de cerrar + saldo 2captcha sin refresco manual): COMPLETE. Added Alpine $persist-backed dismiss button to the finished revalidation banner only, keyed by RevalidationRun.id (6f46bfe); converted saldos-badge into a Livewire component (app/Livewire/SaldosBadge.php) with a super-admin-gated on-demand 'Refrescar' action that calls TwoCaptchaService::getBalance() live and persists a new TwoCaptchaBalanceSnapshot, mirroring the hourly snapshot job (9a4b750). 9 new Pest tests pass. No new Composer dependency, no changes to visibility gating. No pending checkpoints."
+last_updated: "2026-07-31T21:56:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -197,6 +197,7 @@ Tracked in Blockers/Concerns above.
 | 260731-i5g | Nest consulta_censo.url's fallback through REGISTRADURIA_SERVICE_URL (own var > REGISTRADURIA_SERVICE_URL > localhost default), mirroring the infovotantes.url precedent; new Pest test proves the real 3-level env fallback chain via fresh require of config/services.php | 2026-07-31 | 4982d61 | [260731-i5g-add-registraduria-service-url-fallback-t](.planning/quick/260731-i5g-add-registraduria-service-url-fallback-t/) |
 | 260731-jmq | Document PollingPlaceResolver::startLiveLookup()'s fallback gap (no catch-and-continue on startLookup() exception) in STATE.md Blockers/Concerns, including the real 2026-07-31 ConsultaCensoService production incident and the recommended (unimplemented) future fix | 2026-07-31 | e5b6f9b | [260731-jmq-document-startlivelookup-fallback-gap-fi](.planning/quick/260731-jmq-document-startlivelookup-fallback-gap-fi/) |
 | 260731-n0n | Native general audit trail: audit_logs table + AuditLog model, generic AuditObserver on User/Campaign/Voter (create/update/delete), AuditAuthActivitySubscriber for login/logout/failed-login — no new Composer dependency, no Filament UI (deferred) | 2026-07-31 | 1ec3882, d3d2529, 4a8e802 | [260731-n0n-agregar-sistema-de-auditoria-general-aud](.planning/quick/260731-n0n-agregar-sistema-de-auditoria-general-aud/) |
+| 260731-n7t | Fix banner de revalidación sin botón de cerrar (Alpine $persist, solo estado finalizado) + saldo 2captcha sin refresco manual (SaldosBadge Livewire component, acción "Refrescar" bajo demanda) | 2026-07-31 | 6f46bfe, 9a4b750 | [260731-n7t-fix-banner-de-revalidacion-sin-boton-de-](.planning/quick/260731-n7t-fix-banner-de-revalidacion-sin-boton-de-/) |
 
 Quick task 260731-n0n decisions:
 
