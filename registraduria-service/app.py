@@ -24,8 +24,9 @@ Key findings (Phase 9 research, 2026-07-25):
   - A WAF (F5 BIG-IP ASM) returns 200 OK with an HTML block page for
     non-browser-shaped traffic -- never hand-roll raw HTTP against wsp.
 
-This process also coexists with the restored pre-Phase-9 infovotantes flow:
-wsp is served at POST /lookup, infovotantes at POST /lookup/infovotantes,
+This process also coexists with the restored pre-Phase-9 infovotantes flow
+and the consultacenso flow: wsp is served at POST /lookup, infovotantes at
+POST /lookup/infovotantes, consultacenso at POST /lookup/censo, all three
 sharing the same Flask process, sessions dict, and GET /result/<session_id>.
 """
 
@@ -66,8 +67,17 @@ INFOVOTANTES_SITEKEY = "6Lc9DmgrAAAAAJAjWVhjDy1KSgqzqJikY5z7I9SV"
 INFOVOTANTES_PAGE_URL = "https://eleccionescolombia.registraduria.gov.co/identificacion"
 INFOVOTANTES_API = "https://apiweb-eleccionescolombia.infovotantes.com/api/v1/citizen/get-information"
 
+CENSO_PAGE_URL = "https://consultacenso.registraduria.gov.co/"
+CENSO_SITEKEY_FALLBACK = "6LeLRw0tAAAAAOfUZZ34vi2KKHjukhLhQ5lfzuLM"
+CENSO_ELECCIONES_API = "https://consultacenso.registraduria.gov.co/back/api/elecciones"
+CENSO_CONSULTA_API = "https://consultacenso.registraduria.gov.co/back/api/consulta"
+
 sessions: dict = {}
 sessions_lock = threading.Lock()
+
+
+def _ci_get(d: dict, key: str) -> str:
+    return str(d.get(key) or d.get(key.lower()) or d.get(key.upper()) or "")
 
 
 async def _lookup_async(session_id: str, cedula: str, enterprise: bool) -> None:
@@ -316,6 +326,136 @@ def _run_infovotantes(session_id: str, cedula: str) -> None:
         _set(session_id, status="error", error=str(exc).split("\n")[0])
 
 
+async def _lookup_censo_async(session_id: str, cedula: str) -> None:
+    """consultacenso.registraduria.gov.co flow: standard reCAPTCHA v2 checkbox
+    (no enterprise escalation), then two same-origin JSON API calls made from
+    the same Playwright browser context that loaded the page (carries the F5
+    BIGip cookie, no CORS/Origin spoofing needed, unlike infovotantes).
+    """
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-dev-shm-usage", "--ignore-certificate-errors"],
+        )
+        ctx = await browser.new_context(
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
+            ignore_https_errors=True,
+        )
+        page = await ctx.new_page()
+
+        try:
+            await page.goto(CENSO_PAGE_URL, timeout=30_000)
+            sitekey = await page.get_attribute(".g-recaptcha", "data-sitekey") or CENSO_SITEKEY_FALLBACK
+
+            _set(session_id, status="solving_captcha", sitekey=sitekey)
+
+            connector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=connector) as http:
+                submit_payload = {
+                    "key": TWO_CAPTCHA_KEY,
+                    "method": "userrecaptcha",
+                    "googlekey": sitekey,
+                    "pageurl": CENSO_PAGE_URL,
+                    "invisible": "0",
+                    "json": "1",
+                }
+
+                resp = await http.post("https://2captcha.com/in.php", data=submit_payload)
+                payload = await resp.json(content_type=None)
+                if str(payload.get("status")) != "1":
+                    _set(session_id, status="error", outcome="source_unreachable",
+                         error=f"2captcha submit failed (check balance/key): {payload}")
+                    return
+
+                captcha_id = payload["request"]
+                token = None
+                for _ in range(30):
+                    await asyncio.sleep(5)
+                    poll = await http.get(
+                        "https://2captcha.com/res.php",
+                        params={"key": TWO_CAPTCHA_KEY, "action": "get",
+                                "id": captcha_id, "json": "1"},
+                    )
+                    poll_payload = await poll.json(content_type=None)
+                    if str(poll_payload.get("status")) == "1":
+                        token = poll_payload["request"]
+                        break
+                    if poll_payload.get("request") not in ("CAPCHA_NOT_READY", "CAPTCHA_NOT_READY"):
+                        _set(session_id, status="error", outcome="source_unreachable",
+                             error=f"2captcha poll error: {poll_payload}")
+                        return
+
+            if not token:
+                _set(session_id, status="error", outcome="source_unreachable",
+                     error="2captcha did not resolve within 150s")
+                return
+
+            _set(session_id, status="waiting_result")
+
+            eleccion_id = 0
+            try:
+                elecciones_resp = await page.request.fetch(CENSO_ELECCIONES_API, method="GET", timeout=15_000)
+                elecciones_result = await elecciones_resp.json()
+                eleccion_id = elecciones_result.get("data", [{}])[0].get("id", 0)
+            except Exception:
+                pass
+
+            try:
+                api_response = await page.request.fetch(
+                    CENSO_CONSULTA_API,
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                    data=_json.dumps({
+                        "documento": cedula,
+                        "eleccionId": eleccion_id,
+                        "captchaToken": token,
+                    }),
+                    timeout=20_000,
+                )
+                result = await api_response.json()
+            except Exception as exc:
+                _set(session_id, status="error", outcome="source_unreachable",
+                     error=f"no response from /back/api/consulta: {exc}")
+                return
+
+            if result.get("ok") and result.get("encontrado"):
+                data = result.get("data", {}) or {}
+                _set(session_id, status="done", outcome="success", raw_response=result, data={
+                    "puesto_nombre": _ci_get(data, "nom_puesto"),
+                    "puesto_codigo": "",
+                    "zona_codigo": "",
+                    "mesa_numero": _ci_get(data, "mesa"),
+                    "departamento": _ci_get(data, "nom_depto"),
+                    "municipio": _ci_get(data, "nom_mun"),
+                    "direccion": _ci_get(data, "direccion"),
+                })
+            elif result.get("ok") and not result.get("encontrado"):
+                _set(session_id, status="done", outcome="not_found",
+                     raw_response=result, message=result.get("mensaje", ""))
+            else:
+                error_msg = str(result.get("error", ""))
+                lowered = error_msg.lower()
+                if "captcha" in lowered or "token" in lowered or "expir" in lowered:
+                    outcome = "session_expired"
+                else:
+                    outcome = "denied_by_score"
+                _set(session_id, status="done", outcome=outcome, raw_response=result, error=error_msg)
+
+        finally:
+            await browser.close()
+
+
+def _run_censo(session_id: str, cedula: str) -> None:
+    try:
+        asyncio.run(_lookup_censo_async(session_id, cedula))
+    except Exception as exc:
+        _set(session_id, status="error", outcome="source_unreachable", error=str(exc).split("\n")[0])
+
+
 @app.route("/lookup", methods=["POST"])
 def lookup():
     body = request.get_json(silent=True) or {}
@@ -347,6 +487,24 @@ def lookup_infovotantes():
         sessions[session_id] = {"status": "pending", "data": None, "error": None}
 
     threading.Thread(target=_run_infovotantes, args=(session_id, cedula), daemon=True).start()
+    return jsonify({"session_id": session_id}), 200
+
+
+@app.route("/lookup/censo", methods=["POST"])
+def lookup_censo():
+    body = request.get_json(silent=True) or {}
+    cedula = str(body.get("cedula", "")).strip()
+    if not cedula:
+        return jsonify({"error": "El campo 'cedula' es requerido."}), 400
+
+    session_id = str(uuid.uuid4())
+    with sessions_lock:
+        sessions[session_id] = {
+            "status": "pending", "outcome": None, "data": None,
+            "error": None, "sitekey": None, "message": None, "raw_response": None,
+        }
+
+    threading.Thread(target=_run_censo, args=(session_id, cedula), daemon=True).start()
     return jsonify({"session_id": session_id}), 200
 
 
