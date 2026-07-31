@@ -518,4 +518,6 @@ def result(session_id: str):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5757, debug=False, threaded=True)
+    from waitress import serve
+
+    serve(app, host="0.0.0.0", port=5757, threads=8)
