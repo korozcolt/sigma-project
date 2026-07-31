@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260731-jmq (document startLiveLookup() fallback gap): COMPLETE. Appended one new Blockers/Concerns bullet to STATE.md documenting that PollingPlaceResolver::startLiveLookup() commits to the first reachable live adapter and does not catch a startLookup() exception to try the next one, why isReachable() (external probe_url) and startLookup() (internal service_url) can diverge for the same adapter, the real 2026-07-31 ConsultaCensoService 404 incident in sigma-betha production this caused (resolved by redeploying sigma-registraduria — a symptom fix, not a code fix), and the recommended (unimplemented) future fix. Documentation-only — no application code touched (e5b6f9b). No pending checkpoints."
-last_updated: "2026-07-31T19:10:15.000Z"
+stopped_at: "Quick task 260731-n0n (agregar sistema de auditoría general/audit trail): COMPLETE. Added audit_logs migration + AuditLog model/factory (1ec3882), generic AuditObserver wired onto User/Campaign/Voter (d3d2529), and AuditAuthActivitySubscriber wired via Event::subscribe() for login/logout/failed-login (4a8e802) — all stock Laravel (observers + auth events), no new Composer dependency. 11 new Pest tests pass reliably together. No Filament UI added (explicitly deferred). No pending checkpoints."
+last_updated: "2026-07-31T21:45:29.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -196,6 +196,20 @@ Tracked in Blockers/Concerns above.
 | 260731-h94 | Harden registraduria-service Python microservice — replaced Werkzeug dev server with waitress (single-process, 8-thread WSGI server); real concurrent-load test proved sub-second fast-endpoint responses while a slow lookup thread is in-flight | 2026-07-31 | 52da039 | [260731-h94-harden-registraduria-service-python-micr](.planning/quick/260731-h94-harden-registraduria-service-python-micr/) |
 | 260731-i5g | Nest consulta_censo.url's fallback through REGISTRADURIA_SERVICE_URL (own var > REGISTRADURIA_SERVICE_URL > localhost default), mirroring the infovotantes.url precedent; new Pest test proves the real 3-level env fallback chain via fresh require of config/services.php | 2026-07-31 | 4982d61 | [260731-i5g-add-registraduria-service-url-fallback-t](.planning/quick/260731-i5g-add-registraduria-service-url-fallback-t/) |
 | 260731-jmq | Document PollingPlaceResolver::startLiveLookup()'s fallback gap (no catch-and-continue on startLookup() exception) in STATE.md Blockers/Concerns, including the real 2026-07-31 ConsultaCensoService production incident and the recommended (unimplemented) future fix | 2026-07-31 | e5b6f9b | [260731-jmq-document-startlivelookup-fallback-gap-fi](.planning/quick/260731-jmq-document-startlivelookup-fallback-gap-fi/) |
+| 260731-n0n | Native general audit trail: audit_logs table + AuditLog model, generic AuditObserver on User/Campaign/Voter (create/update/delete), AuditAuthActivitySubscriber for login/logout/failed-login — no new Composer dependency, no Filament UI (deferred) | 2026-07-31 | 1ec3882, d3d2529, 4a8e802 | [260731-n0n-agregar-sistema-de-auditoria-general-aud](.planning/quick/260731-n0n-agregar-sistema-de-auditoria-general-aud/) |
+
+Quick task 260731-n0n decisions:
+
+- Native, dependency-free audit trail (audit_logs polymorphic table + AuditLog model + generic AuditObserver + AuditAuthActivitySubscriber), no package added, per CLAUDE.md's "no dependency changes without approval."
+- AuditObserver stacked alongside the existing UserObserver on User (Laravel supports multiple observers per model) rather than merging audit logic into UserObserver.
+- campaign_id resolution is per-model inside AuditObserver: Campaign uses its own id, Voter reads its raw campaign_id attribute directly (no relation load), User falls back to CampaignContext::currentCampaignId() (legitimately null with no context).
+- AuditAuthActivitySubscriber reads only $event->credentials['email'] from a Failed event — the plaintext submitted password is never read or persisted.
+- Both the observer and the subscriber wrap AuditLog::create() in try/catch + Log::error() — an audit-write failure never breaks the underlying User/Campaign/Voter mutation or the login/logout flow.
+- No Filament UI for browsing audit_logs — write path only, explicitly deferred follow-up.
+- [Rule 1 - Bug] AuditObserverTest needed `use function Pest\Laravel\actingAs;` (not auto-imported in this codebase's Pest setup) and the test actor attached to the campaign before Voter creation — Voter's HasCampaignContext trait throws OperationalDenialException when an authenticated non-super_admin actor has no resolvable campaign context.
+- Confirmed (again) the gsd-tools findProjectRoot() worktree bug in this session (`gsd-tools init` resolved project_root to the main checkout, not this worktree `agent-ae025c2eea1cb506e`) — STATE.md/SUMMARY.md updates hand-edited directly in the worktree per the established workaround.
+- Worktree was stale at session start (one commit behind main, missing vendor/.env/node_modules/public/build entirely) — resolved with the established fast-forward + composer install + .env copy + npm install/build workaround.
+- A broad regression sweep surfaced 15 pre-existing test failures (CampaignContext static-override test-pollution + the already-documented UserResourceTest "can update user campaigns" flake) — confirmed unrelated to this task (all pass in isolation except the already-known flake), logged in .planning/quick/260731-n0n-agregar-sistema-de-auditoria-general-aud/deferred-items.md, no fix attempted (out of scope).
 
 Quick task 260726-kg8 decisions:
 
