@@ -55,7 +55,7 @@ return [
     ],
 
     'consulta_censo' => [
-        'url' => env('CONSULTA_CENSO_SERVICE_URL', 'http://localhost:5757'),
+        'url' => env('CONSULTA_CENSO_SERVICE_URL', env('REGISTRADURIA_SERVICE_URL', 'http://localhost:5757')),
         'live_enabled' => env('CONSULTA_CENSO_LIVE_ENABLED', true),
         'probe_url' => env('CONSULTA_CENSO_PROBE_URL', 'https://consultacenso.registraduria.gov.co/'),
     ],

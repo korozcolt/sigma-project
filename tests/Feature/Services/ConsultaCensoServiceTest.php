@@ -98,3 +98,43 @@ it('returns an error status when the session is not found', function () {
 
     expect($result['status'])->toBe('error');
 });
+
+it('resolves consulta_censo.url through the real 3-level env fallback chain: own var > REGISTRADURIA_SERVICE_URL > localhost default', function () {
+    $original = [
+        'CONSULTA_CENSO_SERVICE_URL' => $_ENV['CONSULTA_CENSO_SERVICE_URL'] ?? null,
+        'REGISTRADURIA_SERVICE_URL' => $_ENV['REGISTRADURIA_SERVICE_URL'] ?? null,
+    ];
+
+    $setEnv = function (string $key, ?string $value): void {
+        if ($value === null) {
+            putenv($key);
+            unset($_ENV[$key], $_SERVER[$key]);
+        } else {
+            putenv("{$key}={$value}");
+            $_ENV[$key] = $value;
+            $_SERVER[$key] = $value;
+        }
+    };
+
+    try {
+        // Own var unset, middle-tier set -> resolves to REGISTRADURIA_SERVICE_URL (the actual bug this plan fixes).
+        $setEnv('CONSULTA_CENSO_SERVICE_URL', null);
+        $setEnv('REGISTRADURIA_SERVICE_URL', 'http://sigma-registraduria:5757');
+        $config = require base_path('config/services.php');
+        expect($config['consulta_censo']['url'])->toBe('http://sigma-registraduria:5757');
+
+        // Both unset -> falls through to the hardcoded localhost default.
+        $setEnv('REGISTRADURIA_SERVICE_URL', null);
+        $config = require base_path('config/services.php');
+        expect($config['consulta_censo']['url'])->toBe('http://localhost:5757');
+
+        // Own var set -> wins over the middle-tier fallback (zero regression for explicit configs).
+        $setEnv('CONSULTA_CENSO_SERVICE_URL', 'http://custom-consulta:9999');
+        $setEnv('REGISTRADURIA_SERVICE_URL', 'http://sigma-registraduria:5757');
+        $config = require base_path('config/services.php');
+        expect($config['consulta_censo']['url'])->toBe('http://custom-consulta:9999');
+    } finally {
+        $setEnv('CONSULTA_CENSO_SERVICE_URL', $original['CONSULTA_CENSO_SERVICE_URL']);
+        $setEnv('REGISTRADURIA_SERVICE_URL', $original['REGISTRADURIA_SERVICE_URL']);
+    }
+});
