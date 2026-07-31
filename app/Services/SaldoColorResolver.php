@@ -16,13 +16,13 @@ class SaldoColorResolver
 
     private const HABLAME_YELLOW_MIN_COP = 100000.0;
 
-    private const GRAY_UNAVAILABLE = 'bg-gray-100 text-gray-600';
+    private const GRAY_UNAVAILABLE = 'gray';
 
-    private const GREEN = 'bg-green-100 text-green-700';
+    private const GREEN = 'success';
 
-    private const YELLOW = 'bg-yellow-100 text-yellow-700';
+    private const YELLOW = 'warning';
 
-    private const RED = 'bg-red-100 text-red-700';
+    private const RED = 'danger';
 
     public static function twoCaptcha(?float $usd): string
     {
