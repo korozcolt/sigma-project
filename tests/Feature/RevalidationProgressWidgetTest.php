@@ -79,3 +79,34 @@ test('scopes to the current campaign, ignoring a run from a different campaign',
         ->assertOk()
         ->assertDontSee('Revalidación en progreso');
 });
+
+test('the in-progress banner never has a dismiss button', function () {
+    RevalidationRun::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'started_at' => now(),
+        'finished_at' => null,
+        'total' => 10,
+        'processed' => 4,
+        'changed' => 0,
+    ]);
+
+    Livewire::test(RevalidationProgressWidget::class)
+        ->assertOk()
+        ->assertDontSee('Cerrar');
+});
+
+test('the finished banner has a dismiss button keyed to the run id', function () {
+    $run = RevalidationRun::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'started_at' => now()->subMinutes(5),
+        'finished_at' => now(),
+        'total' => 8,
+        'processed' => 8,
+        'changed' => 3,
+    ]);
+
+    Livewire::test(RevalidationProgressWidget::class)
+        ->assertOk()
+        ->assertSee('Cerrar')
+        ->assertSee("wire:key=\"revalidation-run-{$run->id}\"", false);
+});
