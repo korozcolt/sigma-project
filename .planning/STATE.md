@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260731-n7t (fix banner de revalidación sin botón de cerrar + saldo 2captcha sin refresco manual): COMPLETE. Added Alpine $persist-backed dismiss button to the finished revalidation banner only, keyed by RevalidationRun.id (6f46bfe); converted saldos-badge into a Livewire component (app/Livewire/SaldosBadge.php) with a super-admin-gated on-demand 'Refrescar' action that calls TwoCaptchaService::getBalance() live and persists a new TwoCaptchaBalanceSnapshot, mirroring the hourly snapshot job (9a4b750). 9 new Pest tests pass. No new Composer dependency, no changes to visibility gating. No pending checkpoints."
-last_updated: "2026-07-31T21:56:00.000Z"
+stopped_at: "Quick task 260731-nuk (crear Filament Resource de solo lectura para audit_logs): COMPLETE. Added AuditLogResource (index + view only) under a new 'Sistema' nav group, gated to super_admin via CampaignContext::isSuperAdmin() (3bd42f8); AuditLogsTable with user/action/date-range filters and view-only record action, ViewAuditLog infolist formats old_values/new_values as pretty-printed monospace JSON. No create/edit/delete/bulk-delete UI anywhere. 10 new Pest tests pass (187928d): 403 for admin_campaign/coordinator/reviewer, 200+listing+filters for super_admin, getPages() returns only index/view. No new Composer dependency. No pending checkpoints."
+last_updated: "2026-07-31T22:20:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -198,6 +198,15 @@ Tracked in Blockers/Concerns above.
 | 260731-jmq | Document PollingPlaceResolver::startLiveLookup()'s fallback gap (no catch-and-continue on startLookup() exception) in STATE.md Blockers/Concerns, including the real 2026-07-31 ConsultaCensoService production incident and the recommended (unimplemented) future fix | 2026-07-31 | e5b6f9b | [260731-jmq-document-startlivelookup-fallback-gap-fi](.planning/quick/260731-jmq-document-startlivelookup-fallback-gap-fi/) |
 | 260731-n0n | Native general audit trail: audit_logs table + AuditLog model, generic AuditObserver on User/Campaign/Voter (create/update/delete), AuditAuthActivitySubscriber for login/logout/failed-login — no new Composer dependency, no Filament UI (deferred) | 2026-07-31 | 1ec3882, d3d2529, 4a8e802 | [260731-n0n-agregar-sistema-de-auditoria-general-aud](.planning/quick/260731-n0n-agregar-sistema-de-auditoria-general-aud/) |
 | 260731-n7t | Fix banner de revalidación sin botón de cerrar (Alpine $persist, solo estado finalizado) + saldo 2captcha sin refresco manual (SaldosBadge Livewire component, acción "Refrescar" bajo demanda) | 2026-07-31 | 6f46bfe, 9a4b750 | [260731-n7t-fix-banner-de-revalidacion-sin-boton-de-](.planning/quick/260731-n7t-fix-banner-de-revalidacion-sin-boton-de-/) |
+| 260731-nuk | Read-only Filament AuditLogResource (index + view) to browse audit_logs, super-admin gated, with user/action/date-range filters and legible old/new-values JSON detail view | 2026-07-31 | 3bd42f8, 187928d | [260731-nuk-crear-filament-resource-de-solo-lectura-](.planning/quick/260731-nuk-crear-filament-resource-de-solo-lectura-/) |
+
+Quick task 260731-nuk decisions:
+
+- AuditLogResource::canAccess() reuses CampaignContext::isSuperAdmin() (D-01 precedent from 260731-nuk-CONTEXT.md, same gate as SaldosBadge) rather than a new role check — closes the UI gap explicitly deferred by 260731-n0n's write-path-only scope.
+- getPages() intentionally returns only ['index' => ..., 'view' => ...] — no create/edit keys — so there is no mutation route surface for the resource at all; no ->bulkActions() call (not even an empty array), recordActions() has only ViewAction::make().
+- old_values/new_values rendered on ViewAuditLog's infolist via json_encode(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) + FontFamily::Mono for legibility, matching the plan's exact spec.
+- Worktree (agent-a4e19fbbf29fcfa95) was stale at session start (missing the plan's own commit, plus vendor/.env/node_modules/public/build entirely) — resolved with the established fast-forward (git merge --ff-only main) + composer install + .env copy + npm install/build workaround, same recurring class of issue documented earlier in this file's Blockers/Concerns.
+- Reconfirmed the gsd-tools findProjectRoot() worktree bug (gsd-tools init resolved project_root to the main checkout, not this worktree) — STATE.md/SUMMARY.md updates hand-edited directly in the worktree per the established workaround.
 
 Quick task 260731-n0n decisions:
 
