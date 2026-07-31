@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260731-nuk (crear Filament Resource de solo lectura para audit_logs): COMPLETE. Added AuditLogResource (index + view only) under a new 'Sistema' nav group, gated to super_admin via CampaignContext::isSuperAdmin() (3bd42f8); AuditLogsTable with user/action/date-range filters and view-only record action, ViewAuditLog infolist formats old_values/new_values as pretty-printed monospace JSON. No create/edit/delete/bulk-delete UI anywhere. 10 new Pest tests pass (187928d): 403 for admin_campaign/coordinator/reviewer, 200+listing+filters for super_admin, getPages() returns only index/view. No new Composer dependency. No pending checkpoints."
-last_updated: "2026-07-31T22:20:00.000Z"
+stopped_at: "Quick task 260731-o5i (fix 500 error en ViewAuditLog al mostrar): COMPLETE. Root cause: Filament's TextEntry, when bound state resolves to a PHP array, invokes formatStateUsing() once PER ARRAY ELEMENT instead of once with the whole array — the old_values/new_values ->formatStateUsing(fn (?array $state) ...) closures threw TypeError for any non-array scalar element (e.g. int id). Fixed by switching both TextEntry blocks to ->state(fn (AuditLog $record) => ...), reading the model's cast array attribute directly (5b5bb65). New Pest regression test reproduces the original crash with a real mixed int/string payload, confirmed RED then GREEN; all 11 AuditLogResourceTest tests pass. No new Composer dependency. No pending checkpoints."
+last_updated: "2026-07-31T22:40:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -199,6 +199,14 @@ Tracked in Blockers/Concerns above.
 | 260731-n0n | Native general audit trail: audit_logs table + AuditLog model, generic AuditObserver on User/Campaign/Voter (create/update/delete), AuditAuthActivitySubscriber for login/logout/failed-login — no new Composer dependency, no Filament UI (deferred) | 2026-07-31 | 1ec3882, d3d2529, 4a8e802 | [260731-n0n-agregar-sistema-de-auditoria-general-aud](.planning/quick/260731-n0n-agregar-sistema-de-auditoria-general-aud/) |
 | 260731-n7t | Fix banner de revalidación sin botón de cerrar (Alpine $persist, solo estado finalizado) + saldo 2captcha sin refresco manual (SaldosBadge Livewire component, acción "Refrescar" bajo demanda) | 2026-07-31 | 6f46bfe, 9a4b750 | [260731-n7t-fix-banner-de-revalidacion-sin-boton-de-](.planning/quick/260731-n7t-fix-banner-de-revalidacion-sin-boton-de-/) |
 | 260731-nuk | Read-only Filament AuditLogResource (index + view) to browse audit_logs, super-admin gated, with user/action/date-range filters and legible old/new-values JSON detail view | 2026-07-31 | 3bd42f8, 187928d | [260731-nuk-crear-filament-resource-de-solo-lectura-](.planning/quick/260731-nuk-crear-filament-resource-de-solo-lectura-/) |
+| 260731-o5i | Fix 500 TypeError in ViewAuditLog: old_values/new_values TextEntry blocks now use ->state() reading the model attribute directly, bypassing Filament's per-array-element ->formatStateUsing() iteration bug | 2026-07-31 | 5b5bb65 | [260731-o5i-fix-500-error-en-viewauditlog-al-mostrar](.planning/quick/260731-o5i-fix-500-error-en-viewauditlog-al-mostrar/) |
+
+Quick task 260731-o5i decisions:
+
+- Replaced ->formatStateUsing(fn (?array $state) ...) with ->state(fn (AuditLog $record) => ...) on both old_values and new_values TextEntry blocks — Filament treats an array-typed component state as a list and invokes formatStateUsing() once per element, so any non-array scalar element (e.g. int id) threw a TypeError; ->state() reads the model's cast array attribute directly, sidestepping the auto-iteration entirely.
+- Removed the now-redundant ->placeholder('—') calls on both entries since ->state()'s closure already supplies its own '—' fallback.
+- Worktree (agent-aa5ca36f945ae7ec8) was stale at session start (missing the entire 260731-nuk commit range, vendor/.env/node_modules/public/build, plus this task's own untracked plan directory) — resolved with the established fast-forward (git merge --ff-only main) + composer install + .env/public-build copy workaround, same recurring class of issue documented in this file's Blockers/Concerns.
+- Reconfirmed the gsd-tools findProjectRoot() worktree bug (gsd-tools init resolved project_root to the main checkout, not this worktree) — STATE.md/SUMMARY.md updates hand-edited directly in the worktree per the established workaround.
 
 Quick task 260731-nuk decisions:
 
