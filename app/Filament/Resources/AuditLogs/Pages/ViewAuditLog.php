@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\AuditLogs\Pages;
 
 use App\Filament\Resources\AuditLogs\AuditLogResource;
+use App\Models\AuditLog;
 use Filament\Infolists\Components;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Schema as SchemaType;
@@ -51,18 +52,16 @@ class ViewAuditLog extends ViewRecord
 
             Components\TextEntry::make('old_values')
                 ->label('Valores Anteriores')
-                ->placeholder('—')
-                ->formatStateUsing(fn (?array $state): string => $state
-                    ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+                ->state(fn (AuditLog $record): string => $record->old_values
+                    ? json_encode($record->old_values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
                     : '—')
                 ->fontFamily(FontFamily::Mono)
                 ->columnSpanFull(),
 
             Components\TextEntry::make('new_values')
                 ->label('Valores Nuevos')
-                ->placeholder('—')
-                ->formatStateUsing(fn (?array $state): string => $state
-                    ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+                ->state(fn (AuditLog $record): string => $record->new_values
+                    ? json_encode($record->new_values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
                     : '—')
                 ->fontFamily(FontFamily::Mono)
                 ->columnSpanFull(),

@@ -122,3 +122,24 @@ test('audit log table has no edit/delete record actions or bulk delete action', 
         ->assertTableActionDoesNotExist('delete')
         ->assertTableBulkActionDoesNotExist('delete');
 });
+
+test('super admin can view an audit log with mixed int/string new_values without a 500 error', function () {
+    $superAdmin = User::factory()->create();
+    $superAdmin->assignRole(UserRole::SUPER_ADMIN->value);
+    actingAs($superAdmin);
+    Session::put('campaign_context.mode', 'all');
+
+    $log = AuditLog::factory()->create([
+        'old_values' => null,
+        'new_values' => [
+            'id' => 32,
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'active' => 1,
+        ],
+    ]);
+
+    $this->get(AuditLogResource::getUrl('view', ['record' => $log], panel: 'admin'))
+        ->assertOk()
+        ->assertSee('Jane Doe');
+});
