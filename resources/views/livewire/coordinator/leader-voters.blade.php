@@ -109,6 +109,14 @@ new class extends Component {
             <flux:heading size="xl">Apoyos de {{ $leader->name }}</flux:heading>
             <flux:subheading>{{ $leader->email }}</flux:subheading>
         </div>
+        <flux:button
+            variant="primary"
+            :href="route('coordinator.leaders.voters.create', $leader)"
+            wire:navigate
+            icon="user-plus"
+        >
+            Agregar Apoyo
+        </flux:button>
     </div>
 
     <!-- Leader Info Card -->

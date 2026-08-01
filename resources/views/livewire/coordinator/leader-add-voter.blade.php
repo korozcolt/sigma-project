@@ -1,0 +1,501 @@
+<?php
+
+use App\Enums\VoterStatus;
+use App\Models\Campaign;
+use App\Models\Department;
+use App\Models\Municipality;
+use App\Models\Neighborhood;
+use App\Models\PollingPlace;
+use App\Models\RegistraduriaLookup;
+use App\Models\User;
+use App\Models\Voter;
+use App\Rules\MaxTablesForPollingPlace;
+use App\Services\IdentityLookupService;
+use App\Services\PollingPlaceResolver;
+use App\Services\VoterValidationService;
+use Illuminate\Validation\Rule;
+use Livewire\Volt\Component;
+
+use function Livewire\Volt\layout;
+
+layout('components.layouts::app', ['title' => 'Agregar Apoyo']);
+
+new class extends Component
+{
+    public User $leader;
+
+    public string $document_number = '';
+
+    public string $first_name = '';
+
+    public string $last_name = '';
+
+    public string $phone = '';
+
+    public ?string $secondary_phone = null;
+
+    public ?string $email = null;
+
+    public ?int $department_id = null;
+
+    public ?int $municipality_id = null;
+
+    public ?int $neighborhood_id = null;
+
+    public ?int $polling_place_id = null;
+
+    public ?int $polling_table_number = null;
+
+    public ?string $address = null;
+
+    public ?string $birth_date = null;
+
+    public ?int $campaign_id = null;
+
+    public bool $departmentLocked = false;
+
+    public bool $municipalityLocked = false;
+
+    public bool $censusNotFoundWarning = false;
+
+    public bool $registraduriaVerified = false;
+
+    public bool $nameLocked = false;
+
+    public function mount(User $leader): void
+    {
+        // Verificar que el coordinador puede ver este líder
+        $coordinator = auth()->user();
+        $campaignIds = $coordinator->campaigns()->pluck('campaigns.id');
+
+        // Verificar que el líder pertenece al mismo municipio y campaña
+        abort_unless(
+            $leader->hasRole('leader') &&
+            $leader->municipality_id === $coordinator->municipality_id &&
+            $leader->campaigns()->whereIn('campaigns.id', $campaignIds)->exists(),
+            403
+        );
+
+        $this->leader = $leader;
+
+        $campaign = $this->leader->campaigns()->first();
+        $this->campaign_id = $campaign?->id;
+
+        $this->departmentLocked = (bool) ($campaign?->department_id || $campaign?->municipality_id);
+        $this->municipalityLocked = (bool) $campaign?->municipality_id;
+
+        if ($campaign?->municipality_id) {
+            $this->municipality_id = $campaign->municipality_id;
+            $this->department_id = $campaign->department_id
+                ?? Municipality::query()->whereKey($campaign->municipality_id)->value('department_id');
+        } elseif ($campaign?->department_id) {
+            $this->department_id = $campaign->department_id;
+        } elseif ($this->leader->municipality_id) {
+            $this->municipality_id = $this->leader->municipality_id;
+            $this->department_id = Municipality::query()->whereKey($this->municipality_id)->value('department_id');
+        }
+    }
+
+    public function updatedDocumentNumber(): void
+    {
+        $this->censusNotFoundWarning = false;
+        $this->registraduriaVerified = false;
+        $this->nameLocked = false;
+
+        if (preg_match('/^\d{10}$/', $this->document_number)) {
+            $identity = app(IdentityLookupService::class)->findByDocumentNumber($this->document_number);
+
+            if ($identity) {
+                $this->first_name = trim("{$identity->nombre1} {$identity->nombre2}");
+                $this->last_name = trim("{$identity->apellido1} {$identity->apellido2}");
+                $this->nameLocked = true;
+            }
+        }
+
+        if (! preg_match('/^\d{10}$/', $this->document_number)) {
+            return;
+        }
+
+        $registraduria = app(PollingPlaceResolver::class)->resolveFromPermanentLookup($this->document_number);
+
+        if ($registraduria) {
+            $this->registraduriaVerified = true;
+            $this->polling_place_id = $registraduria->pollingPlaceId;
+            $this->polling_table_number = $registraduria->tableNumber ? (int) $registraduria->tableNumber : null;
+
+            if (filled($registraduria->fields['direccion'] ?? null)) {
+                $this->address = $registraduria->fields['direccion'];
+            }
+
+            return;
+        }
+
+        if (! $this->campaign_id) {
+            return;
+        }
+
+        $this->censusNotFoundWarning = ! app(VoterValidationService::class)
+            ->documentExistsInCensus($this->campaign_id, $this->document_number);
+    }
+
+    public function unlockName(): void
+    {
+        $this->nameLocked = false;
+    }
+
+    public function getDepartmentsProperty()
+    {
+        return Department::orderBy('name')->get();
+    }
+
+    public function getMunicipalitiesProperty()
+    {
+        return Municipality::query()
+            ->when($this->department_id, fn ($q) => $q->where('department_id', $this->department_id))
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function getNeighborhoodsProperty()
+    {
+        if (! $this->municipality_id) {
+            return collect();
+        }
+
+        return Neighborhood::where('municipality_id', $this->municipality_id)
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function updatedMunicipalityId(): void
+    {
+        $this->neighborhood_id = null;
+        $this->polling_place_id = null;
+        $this->polling_table_number = null;
+    }
+
+    public function updatedDepartmentId(): void
+    {
+        $this->municipality_id = null;
+        $this->neighborhood_id = null;
+        $this->polling_place_id = null;
+        $this->polling_table_number = null;
+    }
+
+    public function getPollingPlacesProperty()
+    {
+        if (! $this->municipality_id) {
+            return collect();
+        }
+
+        return PollingPlace::query()
+            ->where('municipality_id', $this->municipality_id)
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function save(): void
+    {
+        $campaign = $this->campaign_id ? Campaign::query()->find($this->campaign_id) : $this->leader->campaigns()->first();
+
+        if (! $campaign) {
+            $this->addError('campaign', 'El líder no tiene una campaña asignada. Contacta al administrador.');
+
+            return;
+        }
+
+        $this->validate([
+            'document_number' => [
+                'required',
+                'digits:10',
+                Rule::unique('voters', 'document_number')
+                    ->where(fn ($query) => $query
+                        ->where('campaign_id', $campaign->id)
+                        ->whereNull('deleted_at')),
+            ],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'digits:10'],
+            'secondary_phone' => ['nullable', 'digits:10'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'department_id' => ['nullable', 'exists:departments,id'],
+            'municipality_id' => [
+                'required',
+                Rule::exists('municipalities', 'id')->when(
+                    filled($this->department_id),
+                    fn ($rule) => $rule->where('department_id', $this->department_id),
+                ),
+            ],
+            'neighborhood_id' => ['nullable', 'exists:neighborhoods,id'],
+            'polling_place_id' => [
+                'nullable',
+                Rule::exists('polling_places', 'id')->when(
+                    filled($this->municipality_id),
+                    fn ($rule) => $rule->where('municipality_id', $this->municipality_id),
+                ),
+            ],
+            'polling_table_number' => array_values(array_filter([
+                'nullable',
+                'integer',
+                'min:1',
+                $this->polling_place_id ? new MaxTablesForPollingPlace((int) $this->polling_place_id) : null,
+            ])),
+            'address' => ['nullable', 'string', 'max:500'],
+            'birth_date' => ['nullable', 'date'],
+        ]);
+
+        if ($campaign->prefersMunicipality() && filled($campaign->municipality_id) && (int) $this->municipality_id !== (int) $campaign->municipality_id) {
+            $this->addError('municipality_id', 'El municipio debe coincidir con el de la campaña.');
+
+            return;
+        }
+
+        if ($campaign->prefersDepartment() && filled($campaign->department_id) && filled($this->municipality_id)) {
+            $municipalityDepartmentId = Municipality::query()->whereKey($this->municipality_id)->value('department_id');
+            if ((int) $municipalityDepartmentId !== (int) $campaign->department_id) {
+                $this->addError('municipality_id', 'El municipio debe pertenecer al departamento de la campaña.');
+
+                return;
+            }
+        }
+
+        $foundInRegistraduria = RegistraduriaLookup::query()->where('document_number', $this->document_number)->exists();
+
+        $foundInCensus = app(VoterValidationService::class)
+            ->documentExistsInCensus($campaign->id, $this->document_number);
+
+        $status = match (true) {
+            $foundInRegistraduria => VoterStatus::VERIFIED_REGISTRADURIA,
+            $foundInCensus => VoterStatus::PENDING_REVIEW,
+            default => VoterStatus::CENSUS_NOT_FOUND,
+        };
+
+        Voter::create([
+            'campaign_id' => $campaign->id,
+            'document_number' => $this->document_number,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'phone' => $this->phone,
+            'secondary_phone' => $this->secondary_phone,
+            'email' => $this->email,
+            'municipality_id' => $this->municipality_id,
+            'neighborhood_id' => $this->neighborhood_id,
+            'polling_place_id' => $this->polling_place_id,
+            'polling_table_number' => $this->polling_table_number,
+            'address' => $this->address,
+            'birth_date' => $this->birth_date,
+            'registered_by' => $this->leader->id,
+            'status' => $status,
+        ]);
+
+        session()->flash('success', 'Apoyo registrado exitosamente para '.$this->leader->name.'.');
+
+        $this->redirect(route('coordinator.leaders.voters', $this->leader), navigate: true);
+    }
+}; ?>
+
+<div class="mx-auto max-w-3xl space-y-6 p-6">
+    <!-- Header with Back Button -->
+    <div class="flex items-center gap-4">
+        <flux:button
+            variant="ghost"
+            :href="route('coordinator.leaders.voters', $leader)"
+            wire:navigate
+            icon="arrow-left"
+            size="sm"
+        >
+            Volver
+        </flux:button>
+        <div class="flex-1">
+            <flux:heading size="xl">Agregar Apoyo para {{ $leader->name }}</flux:heading>
+            <flux:subheading>El apoyo quedará registrado a nombre de este líder</flux:subheading>
+        </div>
+    </div>
+
+    <form wire:submit="save" class="flex flex-col gap-4">
+        <!-- Datos Personales -->
+        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
+            <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Datos Personales</h2>
+
+            <div class="flex flex-col gap-4">
+                <flux:input
+                    wire:model.blur="document_number"
+                    label="Número de Documento *"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="1234567890"
+                />
+
+                <div wire:key="document-status-banner">
+                    @if($registraduriaVerified)
+                        <div class="flex items-start gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                            <flux:icon.check-badge class="mt-0.5 h-4 w-4 shrink-0" />
+                            <span>Verificado por Registraduría — puesto de votación, mesa y dirección autocompletados. Puedes editarlos si es necesario.</span>
+                        </div>
+                    @elseif($censusNotFoundWarning)
+                        <div class="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                            <flux:icon.exclamation-triangle class="mt-0.5 h-4 w-4 shrink-0" />
+                            <span>Esta cédula no aparece en el censo actual, revísala.</span>
+                        </div>
+                    @endif
+                </div>
+
+                <flux:input
+                    wire:model.blur="first_name"
+                    label="Nombres *"
+                    type="text"
+                    placeholder="Juan Carlos"
+                    autocomplete="given-name"
+                    :disabled="$nameLocked"
+                />
+
+                <flux:input
+                    wire:model.blur="last_name"
+                    label="Apellidos *"
+                    type="text"
+                    placeholder="Pérez García"
+                    autocomplete="family-name"
+                    :disabled="$nameLocked"
+                />
+
+                @if($nameLocked)
+                    <flux:button type="button" variant="ghost" size="sm" wire:click="unlockName">
+                        ¿Nombre incorrecto? Editar manualmente
+                    </flux:button>
+                @endif
+
+                <flux:input
+                    wire:model.blur="birth_date"
+                    label="Fecha de Nacimiento"
+                    type="date"
+                />
+            </div>
+        </div>
+
+        <!-- Contacto -->
+        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
+            <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Contacto</h2>
+
+            <div class="flex flex-col gap-4">
+                <flux:input
+                    wire:model.blur="phone"
+                    label="Teléfono Principal *"
+                    type="tel"
+                    placeholder="3001234567"
+                    inputmode="tel"
+                    autocomplete="tel"
+                />
+
+                <flux:input
+                    wire:model.blur="secondary_phone"
+                    label="Teléfono Secundario"
+                    type="tel"
+                    placeholder="3009876543"
+                    inputmode="tel"
+                />
+
+                <flux:input
+                    wire:model.blur="email"
+                    label="Correo Electrónico"
+                    type="email"
+                    placeholder="correo@ejemplo.com"
+                    autocomplete="email"
+                />
+            </div>
+        </div>
+
+        <!-- Ubicación -->
+        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
+            <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Ubicación</h2>
+
+            <div class="flex flex-col gap-4">
+                <flux:select
+                    wire:model.live="department_id"
+                    label="Departamento"
+                    placeholder="Selecciona un departamento"
+                    :disabled="$departmentLocked"
+                >
+                    @foreach($this->departments as $department)
+                        <option value="{{ $department->id }}">{{ $department->name }}</option>
+                    @endforeach
+                </flux:select>
+
+                <flux:select
+                    wire:model.live="municipality_id"
+                    label="Municipio *"
+                    placeholder="Selecciona un municipio"
+                    :disabled="$municipalityLocked"
+                >
+                    @foreach($this->municipalities as $municipality)
+                        <option value="{{ $municipality->id }}">{{ $municipality->name }}</option>
+                    @endforeach
+                </flux:select>
+
+                <flux:select
+                    wire:model.live="neighborhood_id"
+                    label="Barrio"
+                    placeholder="Selecciona un barrio"
+                    :disabled="!$municipality_id"
+                >
+                    @foreach($this->neighborhoods as $neighborhood)
+                        <option value="{{ $neighborhood->id }}">{{ $neighborhood->name }}</option>
+                    @endforeach
+                </flux:select>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <flux:select
+                        wire:model.live="polling_place_id"
+                        label="Puesto de votación"
+                        placeholder="Selecciona un puesto (opcional)"
+                        :disabled="!$municipality_id"
+                    >
+                        <option value="">Sin puesto asignado</option>
+                        @foreach($this->pollingPlaces as $pollingPlace)
+                            <option value="{{ $pollingPlace->id }}">
+                                {{ $pollingPlace->name }}
+                            </option>
+                        @endforeach
+                    </flux:select>
+
+                    <flux:input
+                        wire:model.blur="polling_table_number"
+                        label="Número de mesa"
+                        type="number"
+                        inputmode="numeric"
+                        min="1"
+                        :disabled="!$polling_place_id"
+                    />
+                </div>
+
+                <flux:textarea
+                    wire:model.blur="address"
+                    label="Dirección"
+                    rows="2"
+                    placeholder="Calle 123 #45-67"
+                />
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-3 sm:flex-row">
+            <flux:button
+                type="submit"
+                variant="primary"
+                class="flex-1"
+                wire:loading.attr="disabled"
+            >
+                Guardar Apoyo
+            </flux:button>
+
+            <flux:button
+                variant="ghost"
+                :href="route('coordinator.leaders.voters', $leader)"
+                wire:navigate
+                class="flex-1"
+            >
+                Cancelar
+            </flux:button>
+        </div>
+    </form>
+</div>

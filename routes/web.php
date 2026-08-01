@@ -90,6 +90,7 @@ Route::middleware(['auth', 'role:coordinator,admin_campaign,super_admin'])->pref
     Volt::route('leaders/create', 'coordinator.create-leader')->name('leaders.create');
     Volt::route('leaders/{leader}/edit', 'coordinator.edit-leader')->name('leaders.edit');
     Volt::route('leaders/{leader}/voters', 'coordinator.leader-voters')->name('leaders.voters');
+    Volt::route('leaders/{leader}/voters/create', 'coordinator.leader-add-voter')->name('leaders.voters.create');
 
     Route::get('leaders/export', [\App\Http\Controllers\Coordinator\LeadersExportController::class, '__invoke'])->name('leaders.export');
 });
