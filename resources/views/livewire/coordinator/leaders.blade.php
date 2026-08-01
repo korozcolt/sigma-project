@@ -3,6 +3,7 @@
 use App\Enums\UserRole;
 use App\Models\User;
 use App\Models\Voter;
+use App\Services\InvitationService;
 use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
@@ -19,9 +20,23 @@ new class extends Component {
     #[Url(as: 'coordinator')]
     public ?int $coordinatorUserId = null;
 
+    public bool $showLeaderInvitationModal = false;
+
+    public ?string $leaderInvitationUrl = null;
+
     public function updatingSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function generateLeaderInvitationLink(): void
+    {
+        abort_unless(auth()->user()->hasRole(UserRole::COORDINATOR->value), 403);
+
+        $invitation = app(InvitationService::class)->createLeaderRegistrationLink(auth()->user());
+
+        $this->leaderInvitationUrl = $invitation->getLeaderRegistrationUrl();
+        $this->showLeaderInvitationModal = true;
     }
 
     public function getCoordinatorsProperty()
@@ -98,11 +113,42 @@ new class extends Component {
             <flux:button variant="outline" :href="route('coordinator.leaders.export')" icon="arrow-down-tray" data-testid="coordinator:export-leaders">
                 Exportar Líderes
             </flux:button>
+            <flux:button variant="outline" wire:click="generateLeaderInvitationLink" icon="link" data-testid="coordinator:generate-leader-link">
+                Generar enlace de registro
+            </flux:button>
             <flux:button variant="primary" :href="route('coordinator.leaders.create')" wire:navigate icon="user-plus">
                 Agregar Líder
             </flux:button>
         </div>
     </div>
+
+    @if ($showLeaderInvitationModal)
+        <flux:modal wire:model="showLeaderInvitationModal">
+            <div class="p-6" x-data="{ copied: false }">
+                <flux:heading size="lg" class="mb-2">Enlace de registro de líder</flux:heading>
+                <flux:text size="sm" class="mb-4 text-zinc-500 dark:text-zinc-400">
+                    Comparte este enlace con la persona que quieres invitar como líder. Expira en 7 días y solo puede usarse una vez.
+                </flux:text>
+
+                <div class="flex items-center gap-2">
+                    <flux:input
+                        readonly
+                        value="{{ $leaderInvitationUrl }}"
+                        data-testid="coordinator:leader-invitation-url"
+                        x-ref="leaderInvitationUrlInput"
+                    />
+                    <flux:button
+                        type="button"
+                        variant="primary"
+                        x-on:click="navigator.clipboard.writeText($refs.leaderInvitationUrlInput.value); copied = true; setTimeout(() => copied = false, 2000)"
+                    >
+                        <span x-show="!copied">Copiar</span>
+                        <span x-show="copied" x-cloak>¡Copiado!</span>
+                    </flux:button>
+                </div>
+            </div>
+        </flux:modal>
+    @endif
 
     @if (session('success'))
         <div class="rounded-xl bg-green-50 p-4 dark:bg-green-900/20">
