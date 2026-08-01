@@ -7,6 +7,7 @@ use App\Filament\Resources\AuditLogs\AuditLogResource;
 use App\Filament\Resources\AuditLogs\Pages\ListAuditLogs;
 use App\Models\AuditLog;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Session;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -144,6 +145,21 @@ test('super admin can view an audit log with mixed int/string new_values without
         ->assertSee('Jane Doe')
         ->assertSee('email')
         ->assertSee('jane@example.com');
+});
+
+test('audit log view page renders created_at in America/Bogota local time, not UTC', function () {
+    $superAdmin = User::factory()->create();
+    $superAdmin->assignRole(UserRole::SUPER_ADMIN->value);
+    actingAs($superAdmin);
+    Session::put('campaign_context.mode', 'all');
+
+    $log = AuditLog::factory()->create([
+        'created_at' => Carbon::parse('2026-08-01 15:00:00', 'UTC'),
+    ]);
+
+    $this->get(AuditLogResource::getUrl('view', ['record' => $log], panel: 'admin'))
+        ->assertOk()
+        ->assertSee('01/08/2026 10:00:00');
 });
 
 test('super admin can view an audit log with null old_values and new_values without error', function () {
