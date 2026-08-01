@@ -29,6 +29,11 @@ Route::post('registro/{token}', [PublicVoterRegistrationController::class, 'stor
     ->name('public.voters.register.submit')
     ->middleware(['invitation.required']);
 
+// Auto-registro público de líderes mediante enlace generado por el coordinador
+Volt::route('registro-lider/{token}', 'public.register-leader')
+    ->name('public.leader-registration')
+    ->middleware(['invitation.required']);
+
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified', 'redirect.role'])
     ->name('dashboard');

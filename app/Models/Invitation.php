@@ -26,11 +26,14 @@ class Invitation extends Model
         'coordinator_user_id',
         'status',
         'expires_at',
+        'accepted_at',
+        'registered_user_id',
         'notes',
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
+        'accepted_at' => 'datetime',
     ];
 
     public static function boot(): void
@@ -101,11 +104,16 @@ class Invitation extends Model
 
     public function isValid(): bool
     {
-        return $this->status === 'pending' && !$this->isExpired();
+        return $this->status === 'pending' && ! $this->isExpired();
     }
 
     public function getRegistrationUrl(): string
     {
         return route('public.voters.register', ['token' => $this->token]);
+    }
+
+    public function getLeaderRegistrationUrl(): string
+    {
+        return route('public.leader-registration', ['token' => $this->token]);
     }
 }
