@@ -16,7 +16,7 @@ class ViewAuditLog extends ViewRecord
         return $schema->schema([
             Components\TextEntry::make('created_at')
                 ->label('Fecha')
-                ->dateTime('d/m/Y H:i:s'),
+                ->dateTime('d/m/Y H:i:s', 'America/Bogota'),
 
             Components\TextEntry::make('user.name')
                 ->label('Usuario')

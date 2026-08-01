@@ -17,7 +17,7 @@ class AuditLogsTable
             ->columns([
                 TextColumn::make('created_at')
                     ->label('Fecha')
-                    ->dateTime('d/m/Y H:i:s')
+                    ->dateTime('d/m/Y H:i:s', 'America/Bogota')
                     ->sortable(),
 
                 TextColumn::make('user.name')
