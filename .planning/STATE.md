@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260804-jbc (corregir fuga de datos entre coordinadores, ronda 2): 4/4 automated tasks COMPLETE and committed (29d1a52, 414fbc2, 91a73f3, 8331349) - closed the second wave of 3 cross-coordinator PII leaks (coordinator dashboard's $leaders query, DiaDStatsOverview, DiaDTerritorialProgressTable) via the same coordinator_user_id/registered_by scoping pattern, plus deleted a 4th dead-code leak (DiaD.php's unscoped $stats/refreshStats(), zero consumers but still serialized into wire:snapshot HTML). All new/existing Pest tests passing (including full DiaD*, Coordinator/*, and OwnershipScopedWidgetsTest regression suites), pint clean. checkpoint:human-verify (Task 5) PENDING — real browser confirmation of all 6 UI-facing scenarios required before this task is considered fully complete; not yet listed in Quick Tasks Completed. Quick task 260804-i5f's own checkpoint (round 1) also still pending."
-last_updated: "2026-08-04T19:30:00.000Z"
+stopped_at: "Quick task 260804-kss (fix zombie process leak in sigma-registraduria): 1/1 automated task COMPLETE and committed (a2d76fd) - registraduria-service/Dockerfile now installs tini and sets it as ENTRYPOINT (PID 1), making permanent the zombie-reaping fix for orphaned headless_shell subprocesses that was previously only a manual, unversioned Swarm --init stopgap. Verified locally via real docker build+run. NOT yet deployed to production (sigma-registraduria autoDeploy=false in Dokploy) - manual redeploy still required, to be handled separately."
+last_updated: "2026-08-04T20:08:37.695Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -144,6 +144,7 @@ Quick task 260804-84g decisions:
 - DispatchCensusRevalidation now shares Voter's reconciliation_attempts/reconciliation_exhausted_at columns with ReconcileFallbackPollingPlaces (cap 50/run, exhaust after 5 consecutive failures) instead of adding a new parallel counter — both jobs drive the same underlying PollingPlaceResolver automated cascade for the same document_number.
 - PollingPlaceResolver::attemptLiveAutomated() widened from 5 polls/4x short sleeps (~2.6s) to 9 polls/8x 5s sleeps (~40s) via new LIVE_POLL_ATTEMPTS/LIVE_POLL_INTERVAL_MS constants, matching the real registraduria-service microservice's own 5s polling tick, to stop discarding already-paid-for 2captcha work.
 - [Phase 260804-gl5]: Quick task 260804-gl5: attemptLiveAutomated() no longer duplicates isReachable() internally — resolveAutomated()'s loop is now the sole escalation gate (unreachable-only, never on query failure); blank-puesto_nombre guard kept as permanent defense-in-depth even after fixing the Python root cause in registraduria-service/app.py's infovotantes flow.
+- [Phase quick]: Quick task 260804-kss: registraduria-service/Dockerfile now installs tini and runs it as ENTRYPOINT (PID 1) so python3 app.py runs as a reaped child instead of PID 1 — makes permanent the zombie-reaping fix (root cause of ~14,485 defunct headless_shell processes in production) that was previously only a manual, unversioned docker service update --init Swarm stopgap. Verified locally via real docker build+run (/proc/1/comm = tini, ps aux shows python3 app.py as a child). NOT yet deployed to production — sigma-registraduria has autoDeploy=false in Dokploy, manual redeploy still required.
 
 ### Blockers/Concerns
 
@@ -222,6 +223,7 @@ Tracked in Blockers/Concerns above.
 | 260801-e79 | Fix audit log's created_at timezone (both AuditLogsTable index column and ViewAuditLog detail entry) to render America/Bogota local time instead of raw UTC, via Filament v4's native dateTime() timezone argument | 2026-08-01 | 2d7dc5b, 3a04e46 | [260801-e79-corregir-zona-horaria-de-fecha-en-viewau](.planning/quick/260801-e79-corregir-zona-horaria-de-fecha-en-viewau/) |
 | 260804-84g | Reduce excess 2captcha spend: DispatchCensusRevalidation capped at 50 voters/run + shares Voter's reconciliation_attempts/reconciliation_exhausted_at counter with ReconcileFallbackPollingPlaces; PollingPlaceResolver::attemptLiveAutomated widened to 9 polls/8x5s sleeps (~40s) | 2026-08-04 | b5d836e, 4e4b30e | [260804-84g-reducir-gasto-excesivo-de-2captcha-cap-e](.planning/quick/260804-84g-reducir-gasto-excesivo-de-2captcha-cap-e/) |
 | 260804-gl5 | Fix automated live cascade escalating on query failure instead of unreachability (tripled 2captcha spend); fix infovotantes not_found misclassified as a done LIVE success (Python + PHP defense-in-depth guard) | 2026-08-04 | 69346d5, 955aee6 | [260804-gl5-cascada-de-sitios-en-vivo-debe-escalar-s](.planning/quick/260804-gl5-cascada-de-sitios-en-vivo-debe-escalar-s/) |
+| 260804-kss | Add tini as PID 1 init in registraduria-service/Dockerfile to permanently reap zombie headless_shell subprocesses (replaces manual, unversioned Swarm --init stopgap); NOT yet deployed to production (autoDeploy=false) | 2026-08-04 | a2d76fd | [260804-kss-fix-zombie-process-leak-en-sigma-registr](.planning/quick/260804-kss-fix-zombie-process-leak-en-sigma-registr/) |
 
 Quick task 260801-e79 decisions:
 
@@ -405,6 +407,6 @@ Quick task 260731-i5g decisions:
 
 ## Session Continuity
 
-Last session: 2026-08-04T17:31:25.363Z
-Stopped at: Quick task 260804-gl5 (cascada de sitios en vivo debe escalar solo por disponibilidad): 2/2 automated tasks COMPLETE and committed (69346d5, 955aee6) - resolveAutomated() escalates on isReachable()===false only, never on a reachable adapter's query failure; attemptLiveAutomated() blank-puesto_nombre guard; app.py infovotantes flow classifies not_found explicitly. All new/existing Pest tests passing, pint clean. No checkpoint, no manual verification required (backend-only, no UI surface).
+Last session: 2026-08-04T20:08:37.690Z
+Stopped at: Quick task 260804-kss (fix zombie process leak in sigma-registraduria): 1/1 automated task COMPLETE and committed (a2d76fd) - registraduria-service/Dockerfile now installs tini and sets it as ENTRYPOINT (PID 1), making permanent the zombie-reaping fix for orphaned headless_shell subprocesses that was previously only a manual, unversioned Swarm --init stopgap. Verified locally via real docker build+run. NOT yet deployed to production (sigma-registraduria autoDeploy=false in Dokploy) - manual redeploy still required, to be handled separately.
 Resume file: None
