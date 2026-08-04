@@ -1114,3 +1114,53 @@ test('resolveAutomated does NOT call a second live adapter startLookup when the 
         ->and($result->source)->toBe(PollingPlaceSource::SNAPSHOT)
         ->and(RegistraduriaLookup::count())->toBe(0);
 });
+
+// Test 34
+test('resolveAutomated treats a status=done result with a blank puesto_nombre as non-success and falls back to snapshot', function () {
+    NationalCensusRecord::factory()->create([
+        'document_number' => '1000000034',
+        'polling_place_id' => $this->pollingPlace->id,
+    ]);
+
+    $adapter = new class implements LiveSourceAdapter
+    {
+        public function startLookup(string $cedula): string
+        {
+            return 'session-blank-done';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            // Reproduces the pre-fix infovotantes "not found" bug shape: status=done
+            // with all 7 fields as blank strings, no distinct not_found outcome.
+            return [
+                'status' => 'done',
+                'data' => [
+                    'puesto_nombre' => '',
+                    'puesto_codigo' => '',
+                    'zona_codigo' => '',
+                    'mesa_numero' => '',
+                    'departamento' => '',
+                    'municipio' => '',
+                    'direccion' => '',
+                ],
+                'error' => null,
+            ];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = new PollingPlaceResolver([$adapter]);
+
+    $result = $resolver->resolveAutomated('1000000034', $voter);
+
+    expect($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::SNAPSHOT)
+        ->and($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::SNAPSHOT)
+        ->and(RegistraduriaLookup::count())->toBe(0);
+});

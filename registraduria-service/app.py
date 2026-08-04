@@ -306,6 +306,11 @@ async def _lookup_infovotantes_async(session_id: str, cedula: str) -> None:
     pp = result.get("data", {}).get("polling_place", {})
     addr = pp.get("place_address", {})
 
+    if not pp or not (pp.get("stand") or pp.get("stand_code")):
+        _set(session_id, status="done", outcome="not_found", data=None,
+             raw_response=result, message="Cedula no encontrada en infovotantes")
+        return
+
     data = {
         "puesto_nombre": f"{pp.get('stand_code', '')} - {pp.get('stand', '')}".strip(" -"),
         "puesto_codigo": pp.get("stand_code", ""),
@@ -316,7 +321,7 @@ async def _lookup_infovotantes_async(session_id: str, cedula: str) -> None:
         "direccion": addr.get("address", ""),
     }
 
-    _set(session_id, status="done", data=data)
+    _set(session_id, status="done", outcome="success", data=data, raw_response=result)
 
 
 def _run_infovotantes(session_id: str, cedula: str) -> None:
@@ -484,7 +489,10 @@ def lookup_infovotantes():
 
     session_id = str(uuid.uuid4())
     with sessions_lock:
-        sessions[session_id] = {"status": "pending", "data": None, "error": None}
+        sessions[session_id] = {
+            "status": "pending", "outcome": None, "data": None,
+            "error": None, "message": None, "raw_response": None,
+        }
 
     threading.Thread(target=_run_infovotantes, args=(session_id, cedula), daemon=True).start()
     return jsonify({"session_id": session_id}), 200

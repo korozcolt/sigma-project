@@ -281,6 +281,14 @@ class PollingPlaceResolver
             $result = $adapter->getResult($sessionId);
 
             if ($result['status'] === 'done') {
+                // Guard: a done status with no usable puesto_nombre is treated as
+                // non-success (equivalent to not_found), never as a live match — defends
+                // against ANY adapter/microservice returning "done" without a distinct
+                // not_found outcome (the infovotantes Python flow did exactly this).
+                if (blank($result['data']['puesto_nombre'] ?? null)) {
+                    return null;
+                }
+
                 return $result['data'];
             }
 
