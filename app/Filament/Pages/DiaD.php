@@ -57,38 +57,9 @@ class DiaD extends Page
 
     public ?string $pollingStation = null;
 
-    public array $stats = [
-        'total' => 0,
-        'confirmed' => 0,
-        'voted' => 0,
-        'did_not_vote' => 0,
-    ];
-
     public function mount(): void
     {
-        $this->refreshStats();
         $this->updateActionPermissions();
-    }
-
-    public function refreshStats(): void
-    {
-        $campaign = CampaignContext::currentCampaign();
-
-        if (! $campaign) {
-            $this->stats = [
-                'total' => 0,
-                'confirmed' => 0,
-                'voted' => 0,
-                'did_not_vote' => 0,
-            ];
-
-            return;
-        }
-
-        $this->stats['total'] = Voter::forCampaign($campaign->id)->count();
-        $this->stats['confirmed'] = Voter::forCampaign($campaign->id)->where('status', VoterStatus::CONFIRMED->value)->count();
-        $this->stats['voted'] = Voter::forCampaign($campaign->id)->voted()->count();
-        $this->stats['did_not_vote'] = Voter::forCampaign($campaign->id)->didNotVote()->count();
     }
 
     public function searchVoter(): void
@@ -288,7 +259,6 @@ class DiaD extends Page
         ]);
 
         Notification::make()->title('Apoyo marcado como VOTÓ')->success()->send();
-        $this->refreshStats();
         $this->fillVoterData($voter->fresh());
         $this->updateActionPermissions();
     }
@@ -334,7 +304,6 @@ class DiaD extends Page
         ]);
 
         Notification::make()->title('Apoyo marcado como NO VOTÓ')->success()->send();
-        $this->refreshStats();
         $this->fillVoterData($voter->fresh());
         $this->updateActionPermissions();
     }
