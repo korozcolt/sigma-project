@@ -16,6 +16,10 @@ use Illuminate\Support\Sleep;
 
 class PollingPlaceResolver
 {
+    private const int LIVE_POLL_ATTEMPTS = 9;
+
+    private const int LIVE_POLL_INTERVAL_MS = 5000;
+
     public function __construct(
         /** @var iterable<LiveSourceAdapter> */
         private readonly iterable $liveAdapters,
@@ -241,10 +245,20 @@ class PollingPlaceResolver
     }
 
     /**
-     * Poll a started live session up to 5 times with short backoff, giving up
-     * immediately (not after exhausting polls) if the status is waiting_captcha —
-     * that status means a human needs to interact, which the automated path can
-     * never do (D-07). Total wall-clock stays well under 10s (D-08).
+     * Poll a started live session up to LIVE_POLL_ATTEMPTS (9) times, sleeping
+     * LIVE_POLL_INTERVAL_MS (5s) between polls, giving up immediately (not after
+     * exhausting polls) if the status is waiting_captcha — that status means a human
+     * needs to interact, which the automated path can never do (D-07).
+     *
+     * The window was deliberately widened to ~40s/adapter (9 polls, 8x 5s sleeps —
+     * within an instructed 30-45s per-adapter budget) because the real 2captcha-backed
+     * registraduria-service microservice can take up to 150s to resolve a challenge
+     * (its own polling tick is also 5s — see app.py's `for _ in range(30): sleep(5)`),
+     * and the prior ~2.6s window (200/400/800/1200/1600ms, 5 polls/4 sleeps) was
+     * discarding real, already-paid-for captcha-solving work almost immediately.
+     * Bounded well short of the real 150s worst case to keep the hourly reconciliation
+     * job — which can process up to 50 voters times up to 3 cascading adapters — from
+     * running for hours.
      *
      * @return array<string,string>|null Raw fields on success, null on any give-up.
      */
@@ -260,7 +274,7 @@ class PollingPlaceResolver
             return null;
         }
 
-        $backoffMs = [200, 400, 800, 1200, 1600];
+        $backoffMs = array_fill(0, self::LIVE_POLL_ATTEMPTS, self::LIVE_POLL_INTERVAL_MS);
 
         foreach ($backoffMs as $i => $delayMs) {
             $result = $adapter->getResult($sessionId);

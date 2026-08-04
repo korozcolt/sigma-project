@@ -454,7 +454,7 @@ test('resolveAutomated gives up immediately without sleeping on waiting_captcha 
 });
 
 // Test 14
-test('resolveAutomated polls 5 times, sleeps 4 times, then falls back to snapshot when always pending', function () {
+test('resolveAutomated polls 9 times, sleeps 8 times, then falls back to snapshot when always pending', function () {
     Sleep::fake();
 
     NationalCensusRecord::factory()->create([
@@ -491,11 +491,11 @@ test('resolveAutomated polls 5 times, sleeps 4 times, then falls back to snapsho
 
     $result = $resolver->resolveAutomated('1000000014', $voter);
 
-    expect($calls)->toBe(5)
+    expect($calls)->toBe(9)
         ->and($result)->not->toBeNull()
         ->and($result->source)->toBe(PollingPlaceSource::SNAPSHOT);
 
-    Sleep::assertSleptTimes(4);
+    Sleep::assertSleptTimes(8);
 });
 
 // Test 15
