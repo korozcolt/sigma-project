@@ -2,11 +2,15 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\UserRole;
 use App\Enums\VoterStatus;
+use App\Models\Campaign;
 use App\Models\Voter;
 use App\Services\CampaignContext;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class DiaDStatsOverview extends StatsOverviewWidget
 {
@@ -26,10 +30,10 @@ class DiaDStatsOverview extends StatsOverviewWidget
             ];
         }
 
-        $total = Voter::forCampaign($campaign->id)->count();
-        $confirmed = Voter::forCampaign($campaign->id)->where('status', VoterStatus::CONFIRMED->value)->count();
-        $voted = Voter::forCampaign($campaign->id)->voted()->count();
-        $didNotVote = Voter::forCampaign($campaign->id)->didNotVote()->count();
+        $total = $this->scopedVoterQuery($campaign)->count();
+        $confirmed = $this->scopedVoterQuery($campaign)->where('status', VoterStatus::CONFIRMED->value)->count();
+        $voted = $this->scopedVoterQuery($campaign)->voted()->count();
+        $didNotVote = $this->scopedVoterQuery($campaign)->didNotVote()->count();
 
         $participation = $total > 0 ? round(($voted / $total) * 100, 1) : 0;
 
@@ -54,5 +58,21 @@ class DiaDStatsOverview extends StatsOverviewWidget
                 ->descriptionIcon('heroicon-m-hand-thumb-down')
                 ->color('danger'),
         ];
+    }
+
+    private function scopedVoterQuery(Campaign $campaign): Builder
+    {
+        $user = Auth::user();
+        $query = Voter::forCampaign($campaign->id);
+
+        if ($user?->hasRole(UserRole::LEADER->value)) {
+            return $query->where('registered_by', $user->id);
+        }
+
+        if ($user?->hasRole(UserRole::COORDINATOR->value)) {
+            return $query->whereIn('registered_by', $user->leaders()->pluck('id'));
+        }
+
+        return $query;
     }
 }
