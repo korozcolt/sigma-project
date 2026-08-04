@@ -48,6 +48,27 @@ it('devuelve 403 cuando el líder no pertenece al coordinador autenticado', func
     $response->assertForbidden();
 });
 
+it('devuelve 403 cuando el líder pertenece a otro coordinador del mismo municipio y campaña', function () {
+    // Mismo municipio y misma campaña que $this->leader, pero coordinator_user_id distinto — el gap real
+    // reportado en producción (no cubierto por el caso de "otro municipio" ya existente).
+    $otherCoordinator = User::factory()->create(['municipality_id' => $this->municipality->id]);
+    $otherCoordinator->assignRole(UserRole::COORDINATOR->value);
+    $otherCoordinator->campaigns()->attach($this->campaign->id);
+
+    $otherLeader = User::factory()->create([
+        'municipality_id' => $this->municipality->id,
+        'coordinator_user_id' => $otherCoordinator->id,
+    ]);
+    $otherLeader->assignRole(UserRole::LEADER->value);
+    $otherLeader->campaigns()->attach($this->campaign->id);
+
+    $this->actingAs($this->coordinator);
+
+    $response = $this->get(route('coordinator.leaders.voters.create', $otherLeader));
+
+    $response->assertForbidden();
+});
+
 it('guardar el formulario crea un Voter con registered_by = leader->id, no el coordinador', function () {
     $this->actingAs($this->coordinator);
 

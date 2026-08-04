@@ -68,10 +68,11 @@ new class extends Component
         $coordinator = auth()->user();
         $campaignIds = $coordinator->campaigns()->pluck('campaigns.id');
 
-        // Verificar que el líder pertenece al mismo municipio y campaña
+        // Verificar que el líder pertenece al mismo municipio, campaña y coordinador
         abort_unless(
             $leader->hasRole('leader') &&
             $leader->municipality_id === $coordinator->municipality_id &&
+            $leader->coordinator_user_id === $coordinator->id &&
             $leader->campaigns()->whereIn('campaigns.id', $campaignIds)->exists(),
             403
         );
