@@ -250,6 +250,11 @@ class PollingPlaceResolver
      * exhausting polls) if the status is waiting_captcha — that status means a human
      * needs to interact, which the automated path can never do (D-07).
      *
+     * Assumes the adapter is already known-reachable — resolveAutomated()'s loop is
+     * now the SOLE isReachable() check for the automated cascade (this method no
+     * longer duplicates it), so escalation to the next adapter is decided in exactly
+     * one place.
+     *
      * The window was deliberately widened to ~40s/adapter (9 polls, 8x 5s sleeps —
      * within an instructed 30-45s per-adapter budget) because the real 2captcha-backed
      * registraduria-service microservice can take up to 150s to resolve a challenge
@@ -264,10 +269,6 @@ class PollingPlaceResolver
      */
     private function attemptLiveAutomated(LiveSourceAdapter $adapter, string $cedula): ?array
     {
-        if (! $adapter->isReachable()) {
-            return null;
-        }
-
         try {
             $sessionId = $adapter->startLookup($cedula);
         } catch (\Exception) {
@@ -299,6 +300,13 @@ class PollingPlaceResolver
      * Automated/headless cascade (D-03): live -> national snapshot only. Never blocks
      * (LIVE-03) — every give-up path returns promptly. Always persists via persist()
      * with isExplicitOverride=false (the automatic no-downgrade guard always applies here).
+     *
+     * Escalates to the NEXT live adapter ONLY when the current one is unreachable
+     * (isReachable() === false). Once a reachable adapter is attempted, ANY non-success
+     * result (timeout/exhausted-polls, error, waiting_captcha, not_found) stops the live
+     * cascade for this cédula entirely and falls through to the free national snapshot
+     * tier — it never tries a second/third live adapter. This prevents tripling 2captcha
+     * spend per cédula on a merely-slow/failed (but reachable) live site.
      */
     public function resolveAutomated(string $cedula, Voter $voter, string $resolvedVia = 'reconciliation'): ?PollingPlaceResolutionResult
     {
@@ -307,6 +315,14 @@ class PollingPlaceResolver
         }
 
         foreach ($this->liveAdapters as $adapter) {
+            if (! $adapter->isReachable()) {
+                continue;
+            }
+
+            // A reachable adapter gets exactly one attempt. Any non-success (timeout,
+            // error, waiting_captcha, not_found) stops the live cascade HERE — it falls
+            // through to the free national snapshot tier below, never to another
+            // live/2captcha adapter. Only genuine unreachability (above) advances the loop.
             if ($fields = $this->attemptLiveAutomated($adapter, $cedula)) {
                 $this->persistPermanentLookup($cedula, $fields, $voter->campaign_id);
 
@@ -319,6 +335,8 @@ class PollingPlaceResolver
 
                 return $this->persist($voter, $result, isExplicitOverride: false, resolvedVia: $resolvedVia);
             }
+
+            break;
         }
 
         if ($fromSnapshot = $this->resolveFromNationalSnapshot($cedula)) {

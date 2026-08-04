@@ -990,3 +990,127 @@ test('resolveOrCreatePollingPlace still sets max_tables to 0 for a newly created
     expect($result)->not->toBeNull()
         ->and($result->max_tables)->toBe(0);
 });
+
+// ============ Cascade-by-availability, not cascade-by-result (quick task 260804-gl5) ============
+
+// Test 32
+test('resolveAutomated does NOT call a second live adapter startLookup when the first REACHABLE adapter exhausts all polls without reaching done', function () {
+    Sleep::fake();
+
+    NationalCensusRecord::factory()->create([
+        'document_number' => '1000000032',
+        'polling_place_id' => $this->pollingPlace->id,
+    ]);
+
+    $secondCalled = false;
+
+    $first = new class implements LiveSourceAdapter
+    {
+        public function startLookup(string $cedula): string
+        {
+            return 'session-first-pending';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'pending', 'data' => null, 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $second = new class($secondCalled) implements LiveSourceAdapter
+    {
+        public function __construct(private bool &$called) {}
+
+        public function startLookup(string $cedula): string
+        {
+            $this->called = true;
+
+            return 'session-second';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'done', 'data' => [], 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = new PollingPlaceResolver([$first, $second]);
+
+    $result = $resolver->resolveAutomated('1000000032', $voter);
+
+    expect($secondCalled)->toBeFalse()
+        ->and($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::SNAPSHOT)
+        ->and(RegistraduriaLookup::count())->toBe(0);
+});
+
+// Test 33
+test('resolveAutomated does NOT call a second live adapter startLookup when the first REACHABLE adapter returns status=error', function () {
+    NationalCensusRecord::factory()->create([
+        'document_number' => '1000000033',
+        'polling_place_id' => $this->pollingPlace->id,
+    ]);
+
+    $secondCalled = false;
+
+    $first = new class implements LiveSourceAdapter
+    {
+        public function startLookup(string $cedula): string
+        {
+            return 'session-first-error';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'error', 'data' => null, 'error' => 'boom'];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $second = new class($secondCalled) implements LiveSourceAdapter
+    {
+        public function __construct(private bool &$called) {}
+
+        public function startLookup(string $cedula): string
+        {
+            $this->called = true;
+
+            return 'session-second';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'done', 'data' => [], 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = new PollingPlaceResolver([$first, $second]);
+
+    $result = $resolver->resolveAutomated('1000000033', $voter);
+
+    expect($secondCalled)->toBeFalse()
+        ->and($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::SNAPSHOT)
+        ->and(RegistraduriaLookup::count())->toBe(0);
+});
