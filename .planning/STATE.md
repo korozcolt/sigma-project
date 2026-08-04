@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260804-84g (reducir gasto excesivo de 2captcha): 2/2 automated tasks COMPLETE and committed (b5d836e, 4e4b30e) - DispatchCensusRevalidation capped at 50 voters/run + shares Voter's reconciliation_attempts/reconciliation_exhausted_at counter with ReconcileFallbackPollingPlaces; PollingPlaceResolver::attemptLiveAutomated widened to 9 polls/8x5s sleeps (~40s) via LIVE_POLL_ATTEMPTS/LIVE_POLL_INTERVAL_MS. All new/existing Pest tests passing, pint clean. No checkpoint, no manual verification required (backend-only, no UI surface)."
-last_updated: "2026-08-04T14:45:26.977Z"
+stopped_at: "Quick task 260804-gl5 (cascada de sitios en vivo debe escalar solo por disponibilidad): 2/2 automated tasks COMPLETE and committed (69346d5, 955aee6) - resolveAutomated() escalates on isReachable()===false only, never on a reachable adapter's query failure; attemptLiveAutomated() blank-puesto_nombre guard; app.py infovotantes flow classifies not_found explicitly. All new/existing Pest tests passing, pint clean. No checkpoint, no manual verification required (backend-only, no UI surface)."
+last_updated: "2026-08-04T17:31:25.367Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -136,6 +136,7 @@ Quick task 260804-84g decisions:
 
 - DispatchCensusRevalidation now shares Voter's reconciliation_attempts/reconciliation_exhausted_at columns with ReconcileFallbackPollingPlaces (cap 50/run, exhaust after 5 consecutive failures) instead of adding a new parallel counter — both jobs drive the same underlying PollingPlaceResolver automated cascade for the same document_number.
 - PollingPlaceResolver::attemptLiveAutomated() widened from 5 polls/4x short sleeps (~2.6s) to 9 polls/8x 5s sleeps (~40s) via new LIVE_POLL_ATTEMPTS/LIVE_POLL_INTERVAL_MS constants, matching the real registraduria-service microservice's own 5s polling tick, to stop discarding already-paid-for 2captcha work.
+- [Phase 260804-gl5]: Quick task 260804-gl5: attemptLiveAutomated() no longer duplicates isReachable() internally — resolveAutomated()'s loop is now the sole escalation gate (unreachable-only, never on query failure); blank-puesto_nombre guard kept as permanent defense-in-depth even after fixing the Python root cause in registraduria-service/app.py's infovotantes flow.
 
 ### Blockers/Concerns
 
@@ -211,6 +212,7 @@ Tracked in Blockers/Concerns above.
 | 260731-odu | Replace ViewAuditLog's old_values/new_values TextEntry+json_encode() with native KeyValueEntry tables; add 'Sistema' as the sixth/last navigation group in AdminPanelProvider | 2026-07-31 | 0093f12, fd83dc1 | [260731-odu-fix-auditlogresource-keyvalueentry-para-](.planning/quick/260731-odu-fix-auditlogresource-keyvalueentry-para-/) |
 | 260801-e79 | Fix audit log's created_at timezone (both AuditLogsTable index column and ViewAuditLog detail entry) to render America/Bogota local time instead of raw UTC, via Filament v4's native dateTime() timezone argument | 2026-08-01 | 2d7dc5b, 3a04e46 | [260801-e79-corregir-zona-horaria-de-fecha-en-viewau](.planning/quick/260801-e79-corregir-zona-horaria-de-fecha-en-viewau/) |
 | 260804-84g | Reduce excess 2captcha spend: DispatchCensusRevalidation capped at 50 voters/run + shares Voter's reconciliation_attempts/reconciliation_exhausted_at counter with ReconcileFallbackPollingPlaces; PollingPlaceResolver::attemptLiveAutomated widened to 9 polls/8x5s sleeps (~40s) | 2026-08-04 | b5d836e, 4e4b30e | [260804-84g-reducir-gasto-excesivo-de-2captcha-cap-e](.planning/quick/260804-84g-reducir-gasto-excesivo-de-2captcha-cap-e/) |
+| 260804-gl5 | Fix automated live cascade escalating on query failure instead of unreachability (tripled 2captcha spend); fix infovotantes not_found misclassified as a done LIVE success (Python + PHP defense-in-depth guard) | 2026-08-04 | 69346d5, 955aee6 | [260804-gl5-cascada-de-sitios-en-vivo-debe-escalar-s](.planning/quick/260804-gl5-cascada-de-sitios-en-vivo-debe-escalar-s/) |
 
 Quick task 260801-e79 decisions:
 
@@ -394,6 +396,6 @@ Quick task 260731-i5g decisions:
 
 ## Session Continuity
 
-Last session: 2026-08-04T14:45:26.973Z
-Stopped at: Quick task 260804-84g (reducir gasto excesivo de 2captcha): 2/2 automated tasks COMPLETE and committed (b5d836e, 4e4b30e) - DispatchCensusRevalidation capped at 50 voters/run + shares Voter's reconciliation_attempts/reconciliation_exhausted_at counter with ReconcileFallbackPollingPlaces; PollingPlaceResolver::attemptLiveAutomated widened to 9 polls/8x5s sleeps (~40s) via LIVE_POLL_ATTEMPTS/LIVE_POLL_INTERVAL_MS. All new/existing Pest tests passing, pint clean. No checkpoint, no manual verification required (backend-only, no UI surface).
+Last session: 2026-08-04T17:31:25.363Z
+Stopped at: Quick task 260804-gl5 (cascada de sitios en vivo debe escalar solo por disponibilidad): 2/2 automated tasks COMPLETE and committed (69346d5, 955aee6) - resolveAutomated() escalates on isReachable()===false only, never on a reachable adapter's query failure; attemptLiveAutomated() blank-puesto_nombre guard; app.py infovotantes flow classifies not_found explicitly. All new/existing Pest tests passing, pint clean. No checkpoint, no manual verification required (backend-only, no UI surface).
 Resume file: None
