@@ -2,6 +2,7 @@
 
 use App\Enums\VoterStatus;
 use App\Jobs\DispatchCensusRevalidation;
+use App\Models\NationalIdentityRecord;
 use App\Models\RevalidationRun;
 use App\Models\User;
 use App\Models\ValidationHistory;
@@ -61,4 +62,75 @@ test('census:reconcile-validation command dispatches the job', function () {
     Artisan::call('census:reconcile-validation');
 
     Bus::assertDispatched(DispatchCensusRevalidation::class);
+});
+
+// Cap + exhaustion tracking (2captcha spend reduction)
+
+test('never processes more than 50 voters in a single run', function () {
+    $voters = Voter::factory()->count(51)->create(['status' => VoterStatus::PENDING_REVIEW]);
+
+    (new DispatchCensusRevalidation)->handle();
+
+    $touched = Voter::whereIn('id', $voters->pluck('id'))->where('reconciliation_attempts', '>', 0)->count();
+
+    expect($touched)->toBe(50);
+});
+
+test('a failed resolution increments reconciliation_attempts by 1 and leaves reconciliation_exhausted_at null before the 5th failure', function () {
+    $voter = Voter::factory()->create([
+        'status' => VoterStatus::PENDING_REVIEW,
+        'reconciliation_attempts' => 2,
+    ]);
+
+    (new DispatchCensusRevalidation)->handle();
+
+    $fresh = $voter->fresh();
+
+    expect($fresh->reconciliation_attempts)->toBe(3)
+        ->and($fresh->reconciliation_exhausted_at)->toBeNull();
+});
+
+test('the 5th consecutive failed resolution sets reconciliation_exhausted_at to a non-null timestamp', function () {
+    $voter = Voter::factory()->create([
+        'status' => VoterStatus::PENDING_REVIEW,
+        'reconciliation_attempts' => 4,
+    ]);
+
+    (new DispatchCensusRevalidation)->handle();
+
+    $fresh = $voter->fresh();
+
+    expect($fresh->reconciliation_attempts)->toBe(5)
+        ->and($fresh->reconciliation_exhausted_at)->not->toBeNull();
+});
+
+test('a found resolution resets reconciliation_attempts to 0 and reconciliation_exhausted_at to null even after prior failed attempts', function () {
+    $voter = Voter::factory()->create([
+        'status' => VoterStatus::PENDING_REVIEW,
+        'reconciliation_attempts' => 3,
+    ]);
+
+    NationalIdentityRecord::factory()->create(['cedula' => $voter->document_number]);
+
+    (new DispatchCensusRevalidation)->handle();
+
+    $fresh = $voter->fresh();
+
+    expect($fresh->reconciliation_attempts)->toBe(0)
+        ->and($fresh->reconciliation_exhausted_at)->toBeNull();
+});
+
+test('a voter with reconciliation_exhausted_at already set is excluded from the run', function () {
+    $voter = Voter::factory()->create([
+        'status' => VoterStatus::PENDING_REVIEW,
+        'reconciliation_attempts' => 5,
+        'reconciliation_exhausted_at' => now(),
+    ]);
+
+    (new DispatchCensusRevalidation)->handle();
+
+    $fresh = $voter->fresh();
+
+    expect($fresh->reconciliation_attempts)->toBe(5)
+        ->and($fresh->status)->toBe(VoterStatus::PENDING_REVIEW);
 });
