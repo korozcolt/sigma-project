@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260801-hvd (enlaces de auto-registro de lideres + agregar apoyos desde detalle de lider): 6/6 automated tasks COMPLETE and committed (bfa1451, e5c185f, e018f61, c09f89d, f6c3e32) - InvitationService/Invitation extended with a leader self-registration link lifecycle (target_role=LEADER + leader_user_id=null, single-use, non-interchangeable with apoyo-invitation tokens); 'Generar enlace de registro' button+modal on coordinator/leaders; public registro-lider/{token} Volt page (OTP+cedula verification, same as create-leader.blade.php) creates the User as leader; 'Agregar Apoyo' button + coordinator/leaders/{leader}/voters/create page sets registered_by=leader.id; regression test confirms the pre-existing voters_count display still works. 60 tests passing, pint clean. PENDING: the plan's final checkpoint:human-verify task (real-SMS OTP round-trip + DB confirmation + single-use confirmation) was NOT performed - no human was present in this execution run, so it was left pending rather than fabricated as approved. SUMMARY.md documents this explicitly; quick task NOT yet added to the Quick Tasks Completed table below pending that verification."
-last_updated: "2026-08-01T18:51:00.000Z"
+stopped_at: "Quick task 260804-84g (reducir gasto excesivo de 2captcha): 2/2 automated tasks COMPLETE and committed (b5d836e, 4e4b30e) - DispatchCensusRevalidation capped at 50 voters/run + shares Voter's reconciliation_attempts/reconciliation_exhausted_at counter with ReconcileFallbackPollingPlaces; PollingPlaceResolver::attemptLiveAutomated widened to 9 polls/8x5s sleeps (~40s) via LIVE_POLL_ATTEMPTS/LIVE_POLL_INTERVAL_MS. All new/existing Pest tests passing, pint clean. No checkpoint, no manual verification required (backend-only, no UI surface)."
+last_updated: "2026-08-04T14:45:26.977Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -132,6 +132,11 @@ Quick task 260726-k80 decisions:
 - No mesa_numero present in $fields preserves the exact legacy behavior (max_tables = 0 on create) — zero behavior change for that path, locked in by a dedicated regression test.
 - Local dev DB data fix (PollingPlace id=2 "IE SAN JOSE C I P" max_tables 0 -> 13) applied for real via php artisan tinker, not just described, per explicit task constraint.
 
+Quick task 260804-84g decisions:
+
+- DispatchCensusRevalidation now shares Voter's reconciliation_attempts/reconciliation_exhausted_at columns with ReconcileFallbackPollingPlaces (cap 50/run, exhaust after 5 consecutive failures) instead of adding a new parallel counter — both jobs drive the same underlying PollingPlaceResolver automated cascade for the same document_number.
+- PollingPlaceResolver::attemptLiveAutomated() widened from 5 polls/4x short sleeps (~2.6s) to 9 polls/8x 5s sleeps (~40s) via new LIVE_POLL_ATTEMPTS/LIVE_POLL_INTERVAL_MS constants, matching the real registraduria-service microservice's own 5s polling tick, to stop discarding already-paid-for 2captcha work.
+
 ### Blockers/Concerns
 
 - **`gsd-tools.cjs` root-resolution bug when a git worktree owns its own `.planning/`:** `findProjectRoot()` (in `lib/core.cjs`) walks up from `cwd` and, upon finding an *ancestor* directory that also has `.planning/` plus a `.git` heuristic match, redirects `cwd` there — even when the original `cwd` already has its own valid, independent `.planning/`. In this session's worktree (`worktree-agent-ae9f012d50fef4e54`, which owns its own `.planning/`), every `gsd-tools state|roadmap|requirements` subcommand silently redirected reads/writes to the **main checkout's** `.planning/` instead of the worktree's. This was caught before real damage (the only accidental write to the main repo's `STATE.md` was reverted), but it means **`gsd-tools` CLI commands cannot be trusted to target a worktree's own `.planning/` in this repo layout** — STATE.md/ROADMAP.md/REQUIREMENTS.md updates for Phase 06 Plan 01 were made by hand-editing the worktree copies directly instead. Worth a fix in `gsd-tools` (short-circuit `findProjectRoot` when `startDir` itself already has `.planning/`) or at minimum a documented workaround for future phases executed in this worktree.
@@ -205,6 +210,7 @@ Tracked in Blockers/Concerns above.
 | 260731-o5i | Fix 500 TypeError in ViewAuditLog: old_values/new_values TextEntry blocks now use ->state() reading the model attribute directly, bypassing Filament's per-array-element ->formatStateUsing() iteration bug | 2026-07-31 | 5b5bb65 | [260731-o5i-fix-500-error-en-viewauditlog-al-mostrar](.planning/quick/260731-o5i-fix-500-error-en-viewauditlog-al-mostrar/) |
 | 260731-odu | Replace ViewAuditLog's old_values/new_values TextEntry+json_encode() with native KeyValueEntry tables; add 'Sistema' as the sixth/last navigation group in AdminPanelProvider | 2026-07-31 | 0093f12, fd83dc1 | [260731-odu-fix-auditlogresource-keyvalueentry-para-](.planning/quick/260731-odu-fix-auditlogresource-keyvalueentry-para-/) |
 | 260801-e79 | Fix audit log's created_at timezone (both AuditLogsTable index column and ViewAuditLog detail entry) to render America/Bogota local time instead of raw UTC, via Filament v4's native dateTime() timezone argument | 2026-08-01 | 2d7dc5b, 3a04e46 | [260801-e79-corregir-zona-horaria-de-fecha-en-viewau](.planning/quick/260801-e79-corregir-zona-horaria-de-fecha-en-viewau/) |
+| 260804-84g | Reduce excess 2captcha spend: DispatchCensusRevalidation capped at 50 voters/run + shares Voter's reconciliation_attempts/reconciliation_exhausted_at counter with ReconcileFallbackPollingPlaces; PollingPlaceResolver::attemptLiveAutomated widened to 9 polls/8x5s sleeps (~40s) | 2026-08-04 | b5d836e, 4e4b30e | [260804-84g-reducir-gasto-excesivo-de-2captcha-cap-e](.planning/quick/260804-84g-reducir-gasto-excesivo-de-2captcha-cap-e/) |
 
 Quick task 260801-e79 decisions:
 
@@ -388,6 +394,6 @@ Quick task 260731-i5g decisions:
 
 ## Session Continuity
 
-Last session: 2026-07-31T19:10:15Z
-Stopped at: Quick task 260731-jmq (document startLiveLookup() fallback gap) — COMPLETE. Appended one new Blockers/Concerns bullet to STATE.md documenting the PollingPlaceResolver::startLiveLookup() fallback gap (no catch-and-continue on a reachable adapter's startLookup() exception), the divergence between isReachable()'s external probe_url and startLookup()'s internal service_url, the real 2026-07-31 ConsultaCensoService production incident and its symptom-fix resolution, and the recommended (unimplemented) future fix. Documentation-only — zero application code changed. No pending checkpoints — this quick task is fully closed.
-Resume file: none — see .planning/quick/260731-jmq-document-startlivelookup-fallback-gap-fi/260731-jmq-SUMMARY.md
+Last session: 2026-08-04T14:45:26.973Z
+Stopped at: Quick task 260804-84g (reducir gasto excesivo de 2captcha): 2/2 automated tasks COMPLETE and committed (b5d836e, 4e4b30e) - DispatchCensusRevalidation capped at 50 voters/run + shares Voter's reconciliation_attempts/reconciliation_exhausted_at counter with ReconcileFallbackPollingPlaces; PollingPlaceResolver::attemptLiveAutomated widened to 9 polls/8x5s sleeps (~40s) via LIVE_POLL_ATTEMPTS/LIVE_POLL_INTERVAL_MS. All new/existing Pest tests passing, pint clean. No checkpoint, no manual verification required (backend-only, no UI surface).
+Resume file: None
