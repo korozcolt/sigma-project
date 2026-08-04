@@ -2,9 +2,11 @@
 
 namespace App\Exports;
 
+use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -30,7 +32,11 @@ class TopLeadersExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
                     ->withCount(['registeredVoters' => fn ($q) => $q->where('campaign_id', $this->campaignId)
                         ->where('status', '!=', VoterStatus::DUPLICATE->value)])
                     ->orderByDesc('registered_voters_count');
-            }, fn (Builder $query) => $query->whereRaw('1 = 0'));
+            }, fn (Builder $query) => $query->whereRaw('1 = 0'))
+            ->when(
+                Auth::user()?->hasRole(UserRole::COORDINATOR->value),
+                fn (Builder $query) => $query->where('coordinator_user_id', Auth::user()->id)
+            );
     }
 
     public function headings(): array
