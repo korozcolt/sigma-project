@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\UserRole;
 use App\Models\User;
 use App\Models\Voter;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ new class extends Component {
         $leaders = User::role('leader')
             ->whereHas('campaigns', fn ($q) => $q->whereIn('campaigns.id', $campaignIds))
             ->where('municipality_id', $user->municipality_id)
+            ->when($user->hasRole(UserRole::COORDINATOR->value), fn ($q) => $q->where('coordinator_user_id', $user->id))
             ->withCount(['registeredVoters as voters_count'])
             ->get();
 
