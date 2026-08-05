@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\PollingPlaceSource;
 use App\Enums\VoterStatus;
 use App\Models\Campaign;
 use App\Models\Municipality;
@@ -113,6 +114,32 @@ test('saving a cédula present in RegistraduriaLookup persists status VERIFIED_R
         ->and($voter->status)->toBe(VoterStatus::VERIFIED_REGISTRADURIA);
 });
 
+// status-polling-place-source-desync: polling_place_source must be set to LIVE in the
+// same Voter::create() call as status = VERIFIED_REGISTRADURIA, never left null for a
+// later cron job to fill in.
+test('saving a cédula present in RegistraduriaLookup also persists polling_place_source LIVE', function () {
+    createVerifiedRegistraduriaLookup('1234567897', $this->municipality);
+
+    $this->actingAs($this->leader);
+
+    Volt::test('leader.register-voter')
+        ->set('document_number', '1234567897')
+        ->set('first_name', 'Test')
+        ->set('last_name', 'User')
+        ->set('phone', '3001234567')
+        ->set('municipality_id', $this->municipality->id)
+        ->assertSet('registraduriaVerified', true)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $voter = Voter::where('document_number', '1234567897')->first();
+
+    expect($voter)->not->toBeNull()
+        ->and($voter->status)->toBe(VoterStatus::VERIFIED_REGISTRADURIA)
+        ->and($voter->polling_place_source)->toBe(PollingPlaceSource::LIVE)
+        ->and($voter->polling_place_resolved_at)->not->toBeNull();
+});
+
 test('saving a cédula found only in the national identity roll still persists PENDING_REVIEW', function () {
     NationalIdentityRecord::factory()->create([
         'cedula' => '1234567894',
@@ -133,7 +160,8 @@ test('saving a cédula found only in the national identity roll still persists P
     $voter = Voter::where('document_number', '1234567894')->first();
 
     expect($voter)->not->toBeNull()
-        ->and($voter->status)->toBe(VoterStatus::PENDING_REVIEW);
+        ->and($voter->status)->toBe(VoterStatus::PENDING_REVIEW)
+        ->and($voter->polling_place_source)->toBeNull();
 });
 
 test('saving a cédula found in neither source still persists CENSUS_NOT_FOUND', function () {

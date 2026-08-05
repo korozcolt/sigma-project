@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PollingPlaceSource;
+use App\Enums\VoterStatus;
 use App\Jobs\ReconcileFallbackPollingPlaces;
 use App\Models\Campaign;
 use App\Models\NationalCensusRecord;
@@ -8,6 +9,7 @@ use App\Models\PollingPlace;
 use App\Models\Voter;
 use App\Services\LiveSourceAdapter;
 use App\Services\PollingPlaceResolver;
+use App\Services\VoterValidationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Bus;
@@ -70,7 +72,7 @@ test('skips the entire run and updates nothing when the live source is unreachab
 
     $voter = Voter::factory()->create(['polling_place_source' => PollingPlaceSource::SNAPSHOT, 'reconciliation_attempts' => 0]);
 
-    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class));
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
 
     expect($voter->fresh()->reconciliation_attempts)->toBe(0);
 });
@@ -101,7 +103,7 @@ test('never processes more than 50 voters in a single run', function () {
         'polling_place_resolved_at' => now()->subDays(51 - $sequence->index),
     ])->create();
 
-    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class));
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
 
     $touched = Voter::whereIn('id', $voters->pluck('id'))->where('reconciliation_attempts', '>', 0)->count();
 
@@ -120,7 +122,7 @@ test('upgrades a voter to LIVE, resets reconciliation_attempts, and writes an au
         'reconciliation_attempts' => 2,
     ]);
 
-    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class));
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
 
     $fresh = $voter->fresh();
 
@@ -128,6 +130,43 @@ test('upgrades a voter to LIVE, resets reconciliation_attempts, and writes an au
         ->and($fresh->reconciliation_attempts)->toBe(0)
         ->and($fresh->reconciliation_exhausted_at)->toBeNull()
         ->and($fresh->pollingPlaceResolutions()->count())->toBe(1);
+});
+
+// status-polling-place-source-desync: a genuine LIVE upgrade must also sync `status` in
+// the same pass, reusing the already-fetched result instead of waiting on the separate
+// census:reconcile-validation cron job.
+test('syncs status to VERIFIED_CENSUS in the same pass a voter is upgraded to LIVE', function () {
+    bindResolverWithAdapter(liveSuccessAdapter());
+
+    \App\Models\Municipality::factory()->create(['name' => 'SINCELEJO']);
+
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::SNAPSHOT,
+        'status' => VoterStatus::PENDING_REVIEW,
+    ]);
+
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
+
+    expect($voter->fresh()->status)->toBe(VoterStatus::VERIFIED_CENSUS);
+});
+
+// status-polling-place-source-desync: the NON_DOWNGRADABLE_STATUSES guard on
+// VoterValidationService::updateVoterStatus() must still protect stronger, post-verification
+// statuses even when this job also upgrades polling_place_source to LIVE.
+test('does not downgrade a non-downgradable status when upgrading polling_place_source to LIVE', function () {
+    bindResolverWithAdapter(liveSuccessAdapter());
+
+    \App\Models\Municipality::factory()->create(['name' => 'SINCELEJO']);
+
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::SNAPSHOT,
+        'status' => VoterStatus::CONFIRMED,
+    ]);
+
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
+
+    expect($voter->fresh()->status)->toBe(VoterStatus::CONFIRMED)
+        ->and($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::LIVE);
 });
 
 // RECON-05: the critical SNAPSHOT-fallthrough-is-a-failure branch
@@ -163,7 +202,7 @@ test('counts a SNAPSHOT fallthrough as a failed attempt, never as success', func
         'reconciliation_attempts' => 0,
     ]);
 
-    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class));
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
 
     expect($voter->fresh()->reconciliation_attempts)->toBe(1);
 });
@@ -198,7 +237,7 @@ test('sets reconciliation_exhausted_at on the 5th consecutive failed attempt', f
         'reconciliation_attempts' => 4,
     ]);
 
-    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class));
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
 
     $fresh = $voter->fresh();
 
@@ -216,7 +255,7 @@ test('skips a voter whose reconciliation_exhausted_at is already set', function 
         'reconciliation_exhausted_at' => now(),
     ]);
 
-    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class));
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
 
     expect($voter->fresh()->reconciliation_attempts)->toBe(5);
 });
@@ -250,7 +289,7 @@ test('processes voters across multiple campaigns without any authenticated/ambie
 
     expect(auth()->check())->toBeFalse();
 
-    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class));
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
 
     expect($voterA->fresh()->reconciliation_attempts)->toBe(1)
         ->and($voterB->fresh()->reconciliation_attempts)->toBe(1);

@@ -11,6 +11,7 @@ use App\Models\ValidationHistory;
 use App\Models\Voter;
 use App\Services\LiveSourceAdapter;
 use App\Services\PollingPlaceResolver;
+use App\Services\VoterValidationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -140,7 +141,7 @@ test('ReconcileFallbackPollingPlaces selects a voter with polling_place_source I
         'reconciliation_attempts' => 0,
     ]);
 
-    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class));
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
 
     // Selected and attempted (reachable adapter's miss increments the failure counter) —
     // proving it was NOT skipped by the (now-removed) whereNotNull guard.
@@ -178,7 +179,7 @@ test('ReconcileFallbackPollingPlaces still upgrades a non-LIVE-tier voter (where
         'reconciliation_attempts' => 1,
     ]);
 
-    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class));
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
 
     expect($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::LIVE)
         ->and($voter->fresh()->reconciliation_attempts)->toBe(0);
@@ -212,7 +213,7 @@ test('ReconcileFallbackPollingPlaces still skips a reconciliation_exhausted_at v
     };
     app()->bind(PollingPlaceResolver::class, fn () => new PollingPlaceResolver([$adapter]));
 
-    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class));
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
 
     expect($voter->fresh()->reconciliation_attempts)->toBe(5);
 });
@@ -242,7 +243,7 @@ test('ReconcileFallbackPollingPlaces still skips a LIVE-source voter', function 
         'reconciliation_attempts' => 0,
     ]);
 
-    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class));
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
 
     expect($voter->fresh()->reconciliation_attempts)->toBe(0);
 });

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\PollingPlaceSource;
 use App\Enums\VoterStatus;
 use App\Models\Campaign;
 use App\Models\Department;
@@ -276,6 +277,16 @@ new class extends Component
             'birth_date' => $this->birth_date,
             'registered_by' => auth()->id(),
             'status' => $status,
+            // Keep polling_place_source in lockstep with `status` on manual creation: a
+            // voter already confirmed by a genuine live Registraduría lookup (the same
+            // $foundInRegistraduria check that drove VERIFIED_REGISTRADURIA above) must
+            // not sit with polling_place_source = null until a later cron job fills it
+            // in — that gap is the same status/source desync fixed in
+            // ReconcileFallbackPollingPlaces (see .planning/debug/resolved/
+            // status-polling-place-source-desync.md). No new lookup is performed here;
+            // $foundInRegistraduria only checks the already-persisted RegistraduriaLookup row.
+            'polling_place_source' => $foundInRegistraduria ? PollingPlaceSource::LIVE : null,
+            'polling_place_resolved_at' => $foundInRegistraduria ? now() : null,
         ]);
 
         $this->lastVoterName = $this->first_name.' '.$this->last_name;
