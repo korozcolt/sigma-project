@@ -84,7 +84,7 @@ test('the validation history records the previous status before validation ran',
     $voter = Voter::factory()->create([
         'campaign_id' => $campaign->id,
         'document_number' => '33333333',
-        'status' => VoterStatus::CORRECTION_REQUIRED,
+        'status' => VoterStatus::PENDING_REVIEW,
     ]);
 
     actingAs($this->validator);
@@ -93,6 +93,6 @@ test('the validation history records the previous status before validation ran',
 
     $history = ValidationHistory::where('voter_id', $voter->id)->latest()->first();
 
-    expect($history->previous_status)->toBe(VoterStatus::CORRECTION_REQUIRED);
+    expect($history->previous_status)->toBe(VoterStatus::PENDING_REVIEW);
     expect($history->new_status)->toBe(VoterStatus::VERIFIED_CENSUS);
 });

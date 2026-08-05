@@ -69,3 +69,28 @@ files_changed:
   - tests/Feature/Leader/RegisterVoterRegistraduriaLookupTest.php (1 new test + regression assertion)
   - tests/Feature/Console/BackfillLiveStatusDesyncTest.php (new, 5 tests)
   - tests/Feature/RevalidationCoverageTest.php (updated 4 handle() call sites for the new method signature)
+
+## Addendum: production dry-run surfaced an incomplete guard list (2026-08-05, post-merge)
+
+While applying this fix in production, a live dry-run of `census:backfill-live-status-desync --dry-run` against the sigma-betha production database surfaced a real, previously-undetected edge case: **4 real voters currently have `status = VoterStatus::DUPLICATE` and `polling_place_source = PollingPlaceSource::LIVE` simultaneously.**
+
+`VoterValidationService::NON_DOWNGRADABLE_STATUSES` only protected `VERIFIED_REGISTRADURIA`, `VERIFIED_CALL`, `CONFIRMED`, `VOTED`, `DID_NOT_VOTE`. It did NOT include `VoterStatus::DUPLICATE` (a manual dispute-resolution state, see `Voter` creating-event logic and `EditVoter` Filament page) or `VoterStatus::CORRECTION_REQUIRED` (also a manual-intervention state). Because `updateVoterStatus($voter, found: true)` is called by both the new backfill command AND the just-added call inside `ReconcileFallbackPollingPlaces::handle()`, any voter sitting in `DUPLICATE` or `CORRECTION_REQUIRED` whose `polling_place_source` gets touched would have been silently reclassified to `VERIFIED_CENSUS`/`CENSUS_NOT_FOUND`, clobbering a manual dispute-resolution/correction state — before the backfill ever got to write to the 4 already-affected production voters.
+
+**Fix:** Added `VoterStatus::DUPLICATE` and `VoterStatus::CORRECTION_REQUIRED` to `VoterValidationService::NON_DOWNGRADABLE_STATUSES` (app/Services/VoterValidationService.php).
+
+**Regression tests added:**
+- `tests/Feature/VoterValidationServiceTest.php` — 2 new tests: `updateVoterStatus()` leaves a `DUPLICATE` voter and a `CORRECTION_REQUIRED` voter completely untouched (no status change, zero new `ValidationHistory` rows) even when `found: true` and `polling_place_source = LIVE`.
+- `tests/Feature/Console/BackfillLiveStatusDesyncTest.php` — 2 new tests: the backfill command itself respects the guard for `DUPLICATE` and `CORRECTION_REQUIRED` voters.
+
+**Pre-existing tests that assumed the old (incomplete) guard list — updated to keep testing what they were meant to test:**
+- `tests/Feature/CensusUnifiedResolutionTest.php` — added `DUPLICATE` and `CORRECTION_REQUIRED` to the parameterized "never downgrades a protected status" dataset; renamed/repointed the "non-protected status" example test from `CORRECTION_REQUIRED` (now protected) to `PENDING_REVIEW`.
+- `tests/Feature/VoterCensusValidationTest.php` — the "validation history records the previous status" test used `CORRECTION_REQUIRED` merely as a starting status incidental to what it was testing; repointed to `PENDING_REVIEW` since `CORRECTION_REQUIRED` no longer produces a `ValidationHistory` row at all.
+
+**Verification:** Full affected-area suite plus `CensusUnifiedResolutionTest` and `VoterCensusValidationTest` all green (49+17 tests covering the directly-touched files, no regressions). Confirmed, by stashing the change and re-running the identical full-suite filter, that 3 unrelated Filament/Livewire full-suite-only failures (`VoterResourceTest`, `DiaDComponentTest` x2) are pre-existing test-order flakiness present with or without this change — not caused by it. `vendor/bin/pint --dirty` clean. Not run against real/production data — no DB access in this environment; the backfill command itself was already run in `--dry-run` mode by the user in production, which is what surfaced this edge case in the first place. The 4 affected sigma-betha voters should now be safe to backfill for real once this fix ships.
+
+files_changed (addendum):
+  - app/Services/VoterValidationService.php (added DUPLICATE and CORRECTION_REQUIRED to NON_DOWNGRADABLE_STATUSES)
+  - tests/Feature/VoterValidationServiceTest.php (2 new tests)
+  - tests/Feature/Console/BackfillLiveStatusDesyncTest.php (2 new tests)
+  - tests/Feature/CensusUnifiedResolutionTest.php (dataset extended, one test repointed)
+  - tests/Feature/VoterCensusValidationTest.php (one test repointed)

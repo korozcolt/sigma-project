@@ -44,6 +44,28 @@ test('respects the non-downgradable status guard for already-stronger statuses',
     expect($voter->fresh()->status)->toBe(VoterStatus::CONFIRMED);
 });
 
+test('respects the non-downgradable status guard for a DUPLICATE voter', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::LIVE,
+        'status' => VoterStatus::DUPLICATE,
+    ]);
+
+    $this->artisan('census:backfill-live-status-desync')->assertSuccessful();
+
+    expect($voter->fresh()->status)->toBe(VoterStatus::DUPLICATE);
+});
+
+test('respects the non-downgradable status guard for a CORRECTION_REQUIRED voter', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::LIVE,
+        'status' => VoterStatus::CORRECTION_REQUIRED,
+    ]);
+
+    $this->artisan('census:backfill-live-status-desync')->assertSuccessful();
+
+    expect($voter->fresh()->status)->toBe(VoterStatus::CORRECTION_REQUIRED);
+});
+
 test('dry-run mode writes nothing', function () {
     $voter = Voter::factory()->create([
         'polling_place_source' => PollingPlaceSource::LIVE,

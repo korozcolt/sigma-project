@@ -187,12 +187,14 @@ test('census validation never downgrades a voter already in a protected post-ver
     VoterStatus::CONFIRMED,
     VoterStatus::VOTED,
     VoterStatus::DID_NOT_VOTE,
+    VoterStatus::DUPLICATE,
+    VoterStatus::CORRECTION_REQUIRED,
 ]);
 
-test('census validation still updates a voter in a non-protected status (e.g. correction_required)', function () {
+test('census validation still updates a voter in a non-protected status (e.g. pending_review)', function () {
     $voter = Voter::factory()->create([
         'document_number' => '9999999997',
-        'status' => VoterStatus::CORRECTION_REQUIRED,
+        'status' => VoterStatus::PENDING_REVIEW,
         'polling_place_source' => null,
     ]);
 

@@ -26,6 +26,8 @@ class VoterValidationService
         VoterStatus::CONFIRMED,
         VoterStatus::VOTED,
         VoterStatus::DID_NOT_VOTE,
+        VoterStatus::DUPLICATE,
+        VoterStatus::CORRECTION_REQUIRED,
     ];
 
     public function __construct(

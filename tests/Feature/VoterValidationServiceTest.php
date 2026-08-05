@@ -1,11 +1,13 @@
 <?php
 
+use App\Enums\PollingPlaceSource;
 use App\Enums\VoterStatus;
 use App\Models\Campaign;
 use App\Models\CensusRecord;
 use App\Models\NationalIdentityRecord;
 use App\Models\RegistraduriaLookup;
 use App\Models\User;
+use App\Models\ValidationHistory;
 use App\Models\Voter;
 use App\Services\VoterValidationService;
 
@@ -87,6 +89,34 @@ it('updates voter status to census_not_found (not the dead-end rejected_census) 
 
     expect($updatedVoter->status)->toBe(VoterStatus::CENSUS_NOT_FOUND);
     expect($updatedVoter->notes)->toContain('No se encontró en el censo electoral');
+});
+
+it('does not downgrade a DUPLICATE voter even when found in census with polling_place_source LIVE', function () {
+    $voter = Voter::factory()->create([
+        'status' => VoterStatus::DUPLICATE,
+        'polling_place_source' => PollingPlaceSource::LIVE,
+    ]);
+
+    actingAs(User::factory()->create());
+
+    $updatedVoter = $this->service->updateVoterStatus($voter, true);
+
+    expect($updatedVoter->status)->toBe(VoterStatus::DUPLICATE);
+    expect(ValidationHistory::where('voter_id', $voter->id)->count())->toBe(0);
+});
+
+it('does not downgrade a CORRECTION_REQUIRED voter even when found in census with polling_place_source LIVE', function () {
+    $voter = Voter::factory()->create([
+        'status' => VoterStatus::CORRECTION_REQUIRED,
+        'polling_place_source' => PollingPlaceSource::LIVE,
+    ]);
+
+    actingAs(User::factory()->create());
+
+    $updatedVoter = $this->service->updateVoterStatus($voter, true);
+
+    expect($updatedVoter->status)->toBe(VoterStatus::CORRECTION_REQUIRED);
+    expect(ValidationHistory::where('voter_id', $voter->id)->count())->toBe(0);
 });
 
 it('validates and updates voter in one operation', function () {
