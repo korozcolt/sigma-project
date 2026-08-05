@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Municipality;
+use App\Models\RegistraduriaLookup;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 
@@ -25,6 +27,40 @@ it('returns session id from lookup when service responds successfully', function
         ->post(route('registraduria.lookup'), ['cedula' => '1234567890'])
         ->assertOk()
         ->assertJson(['session_id' => 'abc-123']);
+});
+
+it('returns the cached permanent lookup and never calls the python microservice when the cedula was already resolved', function () {
+    // Regression test for the closing task in 260804-us6: RegistraduriaController::lookup()
+    // used to call the Python microservice unconditionally, with no permanent-cache check
+    // at all, even when the cédula already has a row in registraduria_lookups.
+    $municipality = Municipality::factory()->create();
+
+    RegistraduriaLookup::factory()->create([
+        'document_number' => '1102812122',
+        'puesto_nombre' => 'IE LA CAMPIÑA',
+        'municipio' => $municipality->name,
+        'mesa_numero' => '05',
+        'direccion' => 'Calle Falsa 123',
+    ]);
+
+    Http::fake([
+        '*/lookup' => Http::response(['session_id' => 'should-not-happen'], 200),
+    ]);
+
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->post(route('registraduria.lookup'), ['cedula' => '1102812122'])
+        ->assertOk()
+        ->assertJson([
+            'session_id' => null,
+            'status' => 'done',
+            'error' => null,
+        ]);
+
+    expect($response->json('data.puesto_nombre'))->toBe('IE LA CAMPIÑA');
+
+    Http::assertNothingSent();
 });
 
 it('returns 422 when cedula is missing from lookup', function () {

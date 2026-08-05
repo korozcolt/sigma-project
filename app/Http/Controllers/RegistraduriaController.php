@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Services\PollingPlaceResolver;
 use App\Services\RegistraduriaService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -14,8 +15,9 @@ class RegistraduriaController extends Controller
 {
     protected string $baseUrl;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly PollingPlaceResolver $resolver,
+    ) {
         $this->baseUrl = config('services.registraduria.url', 'http://localhost:5757');
     }
 
@@ -25,6 +27,20 @@ class RegistraduriaController extends Controller
 
         if (blank($cedula)) {
             return response()->json(['error' => 'El campo cedula es requerido.'], 422);
+        }
+
+        // Permanent-cache guard: a cédula already resolved in registraduria_lookups never
+        // needs another live (2captcha-costing) call to the Python microservice — mirrors
+        // HasRegistraduriaPolling::openRegistraduriaBrowser()'s exact permanent-lookup tier.
+        $permanentResult = $this->resolver->resolveFromPermanentLookup($cedula);
+
+        if ($permanentResult) {
+            return response()->json([
+                'session_id' => null,
+                'status' => 'done',
+                'data' => $permanentResult->fields,
+                'error' => null,
+            ]);
         }
 
         try {
