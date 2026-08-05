@@ -151,6 +151,8 @@ trait HasRegistraduriaPolling
      */
     public function forceRefreshFromRegistraduria(string $cedula): void
     {
+        abort_unless(CampaignContext::isSuperAdmin(), 403);
+
         if (blank($cedula)) {
             Notification::make()
                 ->title('Número de documento requerido')

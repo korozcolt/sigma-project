@@ -463,24 +463,20 @@ it('handles the interactive registraduria-result event without throwing when pue
 
 // ============ D-06: role gate on the "actualizar_registraduria" (force-refresh) suffixAction ============
 
-it('shows the "actualizar_registraduria" action for admin_campaign, coordinator, and super_admin roles', function (string $role) {
+it('shows the "actualizar_registraduria" action for the super_admin role only', function () {
     $voter = createEditableVoter();
     $pollingPlace = PollingPlace::factory()->create(['municipality_id' => $voter->municipality_id]);
     $voter->update(['polling_place_id' => $pollingPlace->id]);
 
     $user = User::factory()->create();
-    $user->assignRole($role);
+    $user->assignRole(UserRole::SUPER_ADMIN->value);
     actingAs($user);
 
     Livewire::test(EditVoter::class, ['record' => $voter->id])
         ->assertFormComponentActionVisible('document_number', 'actualizar_registraduria');
-})->with([
-    UserRole::ADMIN_CAMPAIGN->value,
-    UserRole::COORDINATOR->value,
-    UserRole::SUPER_ADMIN->value,
-]);
+});
 
-it('hides the "actualizar_registraduria" action for leader and reviewer roles even when a polling place is resolved', function (string $role) {
+it('hides the "actualizar_registraduria" action for admin_campaign, coordinator, leader, and reviewer roles even when a polling place is resolved', function (string $role) {
     $voter = createEditableVoter();
     $pollingPlace = PollingPlace::factory()->create(['municipality_id' => $voter->municipality_id]);
     $voter->update(['polling_place_id' => $pollingPlace->id]);
@@ -492,9 +488,56 @@ it('hides the "actualizar_registraduria" action for leader and reviewer roles ev
     Livewire::test(EditVoter::class, ['record' => $voter->id])
         ->assertFormComponentActionHidden('document_number', 'actualizar_registraduria');
 })->with([
+    UserRole::ADMIN_CAMPAIGN->value,
+    UserRole::COORDINATOR->value,
     UserRole::LEADER->value,
     UserRole::REVIEWER->value,
 ]);
+
+// ============ Backend enforcement: forceRefreshFromRegistraduria() rejects any non-super_admin
+// caller with a 403, even bypassing the UI (calling the Livewire method directly) ============
+
+it('aborts with 403 when a non-super_admin role calls forceRefreshFromRegistraduria() directly, bypassing the hidden UI button', function (string $role) {
+    $cedula = '1102816100';
+    $voter = createEditableVoter(['document_number' => $cedula]);
+    $pollingPlace = PollingPlace::factory()->create(['municipality_id' => $voter->municipality_id]);
+    $voter->update(['polling_place_id' => $pollingPlace->id]);
+
+    $user = User::factory()->create();
+    $user->assignRole($role);
+    actingAs($user);
+
+    Livewire::test(EditVoter::class, ['record' => $voter->id])
+        ->call('forceRefreshFromRegistraduria', $cedula)
+        ->assertForbidden();
+})->with([
+    UserRole::ADMIN_CAMPAIGN->value,
+    UserRole::COORDINATOR->value,
+    UserRole::LEADER->value,
+    UserRole::REVIEWER->value,
+]);
+
+it('allows a super_admin to call forceRefreshFromRegistraduria() successfully after the backend guard', function () {
+    $cedula = '1102816101';
+    $voter = createEditableVoter(['document_number' => $cedula]);
+
+    $user = User::factory()->create();
+    $user->assignRole(UserRole::SUPER_ADMIN->value);
+    actingAs($user);
+
+    $this->mock(InfovotantesService::class, function ($mock) use ($cedula) {
+        $mock->shouldReceive('isReachable')->andReturn(true);
+        $mock->shouldReceive('startLookup')
+            ->once()
+            ->with($cedula)
+            ->andReturn('session-super-admin');
+    });
+
+    Livewire::test(EditVoter::class, ['record' => $voter->id])
+        ->call('forceRefreshFromRegistraduria', $cedula)
+        ->assertSet('registraduriaSessionId', 'session-super-admin')
+        ->assertSet('registraduriaOpen', true);
+});
 
 // ============ D-01/SRC-04: the original "consultar_registraduria" manual re-check stays available to every role ============
 

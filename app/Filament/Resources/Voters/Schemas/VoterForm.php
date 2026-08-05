@@ -365,11 +365,7 @@ class VoterForm
                                     ->tooltip('Forzar nueva consulta a la Registraduría (ignora la caché)')
                                     ->color('gray')
                                     ->visible(fn (Get $get): bool => filled($get('polling_place_id'))
-                                        && (auth()->user()?->hasAnyRole([
-                                            UserRole::ADMIN_CAMPAIGN->value,
-                                            UserRole::COORDINATOR->value,
-                                            UserRole::SUPER_ADMIN->value,
-                                        ]) ?? false))
+                                        && CampaignContext::isSuperAdmin())
                                     ->requiresConfirmation()
                                     ->modalHeading('Actualizar datos desde Registraduría')
                                     ->modalDescription('Esto hace una nueva consulta pagada a la Registraduría e ignora los datos ya guardados en caché/base de datos. Úsalo solo si necesitas corregir un puesto de votación desactualizado.')
