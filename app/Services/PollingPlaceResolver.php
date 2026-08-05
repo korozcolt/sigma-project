@@ -16,9 +16,9 @@ use Illuminate\Support\Sleep;
 
 class PollingPlaceResolver
 {
-    private const int LIVE_POLL_ATTEMPTS = 9;
+    private const LIVE_POLL_ATTEMPTS = 9;
 
-    private const int LIVE_POLL_INTERVAL_MS = 5000;
+    private const LIVE_POLL_INTERVAL_MS = 5000;
 
     public function __construct(
         /** @var iterable<LiveSourceAdapter> */

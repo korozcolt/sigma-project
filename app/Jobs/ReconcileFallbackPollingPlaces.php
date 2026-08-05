@@ -15,9 +15,9 @@ class ReconcileFallbackPollingPlaces implements ShouldQueue
 {
     use Queueable;
 
-    private const int MAX_VOTERS_PER_RUN = 50;
+    private const MAX_VOTERS_PER_RUN = 50;
 
-    private const int MAX_ATTEMPTS_BEFORE_EXHAUSTION = 5;
+    private const MAX_ATTEMPTS_BEFORE_EXHAUSTION = 5;
 
     public function handle(PollingPlaceResolver $resolver): void
     {
