@@ -408,6 +408,93 @@ test('persist is a pass-through returning the given result and writing no audit 
         ->and(PollingPlaceResolution::count())->toBe(0);
 });
 
+// ============ polling_place_id write in persist() (quick task polling-place-id-not-persisted-by-resolver) ============
+
+// Test 12b
+test('persist writes polling_place_id on a fresh voter when the result carries one', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'polling_place_id' => null,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::SNAPSHOT,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($voter->fresh()->polling_place_id)->toBe($this->pollingPlace->id);
+});
+
+// Test 12c
+test('persist writes polling_place_id when a voter is re-resolved to a different PollingPlace', function () {
+    $otherPlace = PollingPlace::factory()->create([
+        'department_id' => $this->department->id,
+        'municipality_id' => $this->municipality->id,
+    ]);
+
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::SNAPSHOT,
+        'polling_place_id' => $this->pollingPlace->id,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::LIVE,
+        fields: [],
+        pollingPlaceId: $otherPlace->id,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($voter->fresh()->polling_place_id)->toBe($otherPlace->id);
+});
+
+// Test 12d
+test('persist does NOT null out an existing polling_place_id when the new result carries no pollingPlaceId', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::SNAPSHOT,
+        'polling_place_id' => $this->pollingPlace->id,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::SNAPSHOT,
+        fields: [],
+        pollingPlaceId: null,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($voter->fresh()->polling_place_id)->toBe($this->pollingPlace->id);
+});
+
+// Test 12e
+test('persist writes polling_place_id on a no-op source reconfirmation (same source, previously-missing FK)', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::LIVE,
+        'polling_place_id' => null,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::LIVE,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($voter->fresh()->polling_place_id)->toBe($this->pollingPlace->id);
+});
+
 // Test 13
 test('resolveAutomated gives up immediately without sleeping on waiting_captcha and falls back to snapshot', function () {
     Sleep::fake();

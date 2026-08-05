@@ -207,6 +207,23 @@ class PollingPlaceResolver
      * $voter is null when no Voter record exists yet (e.g. the Filament CreateVoter flow
      * before the first save) — in that case this is a pure pass-through with no persistence,
      * since there is no voter_id to attach an audit row to.
+     *
+     * Also writes polling_place_id (the actual FK the "Ranking de Puestos de Votación"
+     * widget's PollingPlace::voters() relation and the "sin puesto de votación asignado"
+     * count both depend on) whenever $result->pollingPlaceId is non-null — every resolve*()
+     * method on this class already computes it via resolveOrCreatePollingPlace(), but until
+     * this fix persist() silently dropped it, so only the interactive Filament flow (which
+     * separately assigns $this->data['polling_place_id'] before the ordinary form save) ever
+     * ended up with the FK populated; the entire automated cascade (resolveAutomated(), used
+     * by ReconcileFallbackPollingPlaces and VoterValidationService) never did.
+     * See .planning/debug/resolved/polling-place-id-not-persisted-by-resolver.md.
+     *
+     * Deliberately NEVER clears an existing polling_place_id when $result->pollingPlaceId is
+     * null (e.g. resolveOrCreatePollingPlace() couldn't match a municipality/name at
+     * re-resolution time) — that would downgrade a previously-good FK to NULL on a merely
+     * incomplete re-resolution, the same no-downgrade spirit as the source guard above but
+     * applied independently since a result can carry a real source with no resolvable
+     * pollingPlaceId (e.g. a DB_RECONSTRUCTION result with no municipality match).
      */
     public function persist(
         ?Voter $voter,
@@ -224,10 +241,16 @@ class PollingPlaceResolver
             return null;
         }
 
-        $voter->update([
+        $updates = [
             'polling_place_source' => $result->source,
             'polling_place_resolved_at' => now(),
-        ]);
+        ];
+
+        if ($result->pollingPlaceId !== null) {
+            $updates['polling_place_id'] = $result->pollingPlaceId;
+        }
+
+        $voter->update($updates);
 
         if ($existingSource !== $result->source) {
             PollingPlaceResolution::create([
