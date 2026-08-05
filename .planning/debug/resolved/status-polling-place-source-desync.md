@@ -94,3 +94,19 @@ files_changed (addendum):
   - tests/Feature/Console/BackfillLiveStatusDesyncTest.php (2 new tests)
   - tests/Feature/CensusUnifiedResolutionTest.php (dataset extended, one test repointed)
   - tests/Feature/VoterCensusValidationTest.php (one test repointed)
+
+## Addendum: production deployment and backfill execution (2026-08-05)
+
+Both commits (`de5f20e` fix + `87f9351` guard addendum) were pushed to `origin/main` and picked up by `autoDeploy` on both Laravel apps sharing the server (Dokploy, `sigma-app-kb2mdl` / Aldemar and `sigma-betha-app-pw6k9q` / sigma-betha), confirmed via `git -C /app log -1` inside each container after each push (~10-12 min queued deploy each time, per the infra runbook).
+
+**Aldemar** (`census:backfill-live-status-desync --dry-run`): 0 apoyos with `polling_place_source = LIVE` found. Nothing to do; command not run for real on this instance.
+
+**sigma-betha** (`census:backfill-live-status-desync`, dry-run then real):
+- 1099 apoyos with `polling_place_source = LIVE` total.
+- 1095 already sitting correctly at `status = VERIFIED_CENSUS` — the sibling `census:reconcile-validation` job had already caught up naturally on its own hourly cadence by the time the backfill ran (no drift left to fix). Running the command against them was a safe no-op for `status` (0 transitions) but did write 1095 new `ValidationHistory` rows (re-confirmation audit trail) and bumped `census_validated_at` — expected side effect of calling `updateVoterStatus()`, not a bug.
+- 4 sitting at `status = DUPLICATE` — correctly left untouched by the new guard (confirmed: `0 de 1099... fueron sincronizados de status` in the real run's output, meaning zero status values changed, matching expectation for all 1099).
+- **0 voters were actually caught in the originally-reported `PENDING_REVIEW` + `LIVE` contradictory state at the moment the backfill ran** — the specific backlog visible in the product owner's screenshot had already self-cleared via the sibling job's normal hourly processing between the screenshot being taken and the fix being deployed. The structural fix (job now syncs status inline) is what prevents this from recurring going forward; the backfill's role here ended up being confirmatory/preventive rather than corrective for this particular snapshot.
+- Verified via `docker exec ... tinker`: exactly 1095 new `ValidationHistory` rows with `validation_type = census` created in the 5 minutes around the run, matching the reconfirmation count exactly.
+- No live/2captcha adapter calls were made on either instance during this entire deployment+backfill sequence (by design — verified in code and by the resolver-spy Pest tests before ever touching production).
+
+Product owner confirmed visually in the browser afterward that the Apoyos table no longer shows the contradictory badge combination.

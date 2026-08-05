@@ -24,6 +24,7 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 ### Fixed
 - Aislamiento por campaña consistente en listados y exports críticos.
 - Error 500 en `/admin` por recursión en scope de membresía de campaña.
+- Desincronización entre `status` y `polling_place_source` en Voters: un apoyo podía quedar con estado "Pendiente de Revisión" mientras su fuente de puesto de votación ya era "En Vivo", porque dos cron jobs independientes (`census:reconcile-live` y `census:reconcile-validation`) actualizaban cada campo por separado sin coordinarse. `ReconcileFallbackPollingPlaces` ahora sincroniza `status` en la misma pasada (sin llamadas nuevas al resolver/2captcha); se agregó `polling_place_source` al flujo de registro manual de apoyos; y se agregó el comando `census:backfill-live-status-desync` para corregir registros históricos afectados sin ninguna consulta pagada. Ver `.planning/debug/resolved/status-polling-place-source-desync.md`.
 
 ## [0.8.2] - 2025-11-27
 
