@@ -14,6 +14,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
+use stdClass;
+use Throwable;
 
 class TopPollingPlacesTable extends TableWidget
 {
@@ -41,18 +43,17 @@ class TopPollingPlacesTable extends TableWidget
             ->columns([
                 TextColumn::make('ranking')
                     ->label('#')
-                    ->state(fn ($rowLoop) => $rowLoop->iteration)
+                    ->state(fn ($livewire, $rowLoop): int => static::resolveAbsolutePosition($livewire, $rowLoop))
                     ->badge()
-                    ->color(fn ($rowLoop) => match ($rowLoop->iteration) {
+                    ->color(fn ($livewire, $rowLoop) => match (static::resolveAbsolutePosition($livewire, $rowLoop)) {
                         1 => 'warning',
                         2 => 'gray',
                         3 => 'orange',
                         default => 'primary',
                     })
-                    ->icon(fn ($rowLoop) => match ($rowLoop->iteration) {
+                    ->icon(fn ($livewire, $rowLoop) => match (static::resolveAbsolutePosition($livewire, $rowLoop)) {
                         1 => 'heroicon-m-trophy',
-                        2 => 'heroicon-m-star',
-                        3 => 'heroicon-m-star',
+                        2, 3 => 'heroicon-m-star',
                         default => null,
                     }),
 
@@ -86,6 +87,36 @@ class TopPollingPlacesTable extends TableWidget
                     'polling_place_id' => ['values' => [$record->id]],
                 ],
             ]));
+    }
+
+    /**
+     * Resolve the row's absolute position across all pages (not the
+     * per-page-relative `$rowLoop->iteration`), so the leaderboard
+     * trophy/star badge only ever applies to the true overall #1/#2/#3,
+     * regardless of which page is currently displayed.
+     *
+     * Public so it can be exercised directly in tests: Filament's
+     * `assertTableColumnStateSet()` test helper reads the column's cached
+     * `$rowLoop`, which is mutated in place to the LAST rendered row of the
+     * page (not the row matching the asserted record), so this method needs
+     * to be independently testable with a hand-built loop object.
+     */
+    public static function resolveAbsolutePosition(mixed $livewire, ?stdClass $rowLoop): int
+    {
+        $iteration = $rowLoop?->iteration ?? 1;
+
+        try {
+            $page = (int) $livewire->getTablePage();
+            $perPage = $livewire->getTableRecordsPerPage();
+
+            if (! is_numeric($perPage) || $page < 1 || (int) $perPage < 1) {
+                return $iteration;
+            }
+
+            return (($page - 1) * (int) $perPage) + $iteration;
+        } catch (Throwable) {
+            return $iteration;
+        }
     }
 
     protected function getTableDescription(): ?string

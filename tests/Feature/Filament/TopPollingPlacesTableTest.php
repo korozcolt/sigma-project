@@ -75,3 +75,51 @@ test('top polling places table export header action exists', function () {
     Livewire::test(TopPollingPlacesTable::class)
         ->assertTableHeaderActionsExistInOrder(['export']);
 });
+
+test('top polling places table shows absolute rank across pages, not per-page-relative rank', function () {
+    // 12 polling places with a distinct, descending number of non-duplicate
+    // voters each, so ranking order by apoyos_count desc is deterministic:
+    // place #1 has 12 voters ... place #12 has 1 voter. Default per-page is
+    // 10, so page 1 holds ranks 1-10 and page 2 holds ranks 11-12.
+    collect(range(12, 1))->each(function (int $voterCount) {
+        $place = PollingPlace::factory()->create(['municipality_id' => $this->municipality->id]);
+
+        Voter::factory()->count($voterCount)->create([
+            'campaign_id' => $this->campaign->id,
+            'municipality_id' => $this->municipality->id,
+            'polling_place_id' => $place->id,
+        ]);
+    });
+
+    $tenthPlace = PollingPlace::query()->withCount('voters')->orderByDesc('voters_count')->get()->get(9);
+    $twelfthPlace = PollingPlace::query()->withCount('voters')->orderByDesc('voters_count')->get()->get(11);
+
+    $component = Livewire::test(TopPollingPlacesTable::class);
+
+    // Filament's `assertTableColumnStateSet()` reads the ranking column's
+    // cached `$rowLoop`, which is mutated in place to the LAST rendered row
+    // of the page (not the row matching the asserted record). So the value
+    // it reflects after a render is always the absolute position of the
+    // page's LAST row — used here as an end-to-end check that the widget's
+    // real Livewire instance correctly reports its own page/per-page state
+    // through `TopPollingPlacesTable::resolveAbsolutePosition()`.
+    $component->assertTableColumnStateSet('ranking', 10, $tenthPlace->getKey());
+
+    $component->call('gotoPage', 2)
+        ->assertTableColumnStateSet('ranking', 12, $twelfthPlace->getKey());
+
+    // Directly verify the specific regression: the FIRST row of page 2
+    // (overall rank 11) must resolve to absolute position 11, not 1.
+    $livewire = $component->instance();
+
+    expect(TopPollingPlacesTable::resolveAbsolutePosition($livewire, (object) ['iteration' => 1]))
+        ->toBe(11)
+        ->not->toBe(1);
+
+    // And the first row of page 1 (overall rank 1) still resolves to 1.
+    $component->call('gotoPage', 1);
+    $livewire = $component->instance();
+
+    expect(TopPollingPlacesTable::resolveAbsolutePosition($livewire, (object) ['iteration' => 1]))
+        ->toBe(1);
+});
