@@ -189,6 +189,7 @@ return [
         'description' => 'descripción',
         'display_type' => 'tipo de visualización',
         'district' => 'distrito',
+        'document_number' => 'Número de Documento',
         'duration' => 'duración',
         'email' => 'correo electrónico',
         'excerpt' => 'extracto',
