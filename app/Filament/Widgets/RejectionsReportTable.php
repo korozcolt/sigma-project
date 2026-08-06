@@ -39,7 +39,12 @@ class RejectionsReportTable extends TableWidget
             ->query(fn (): Builder => Voter::query()
                 ->when($activeCampaign, fn ($q) => $q->where('campaign_id', $activeCampaign->id), fn ($q) => $q->whereRaw('1 = 0'))
                 ->where(function (Builder $q) use ($rejectionCallResults) {
-                    $q->whereIn('status', [VoterStatus::REJECTED_CENSUS->value, VoterStatus::CORRECTION_REQUIRED->value])
+                    $q->whereIn('status', [
+                        VoterStatus::REJECTED_CENSUS->value,
+                        VoterStatus::CORRECTION_REQUIRED->value,
+                        VoterStatus::CENSUS_NOT_FOUND->value,
+                        VoterStatus::REJECTED_OUT_OF_SCOPE->value,
+                    ])
                         ->orWhereHas('verificationCalls', fn ($q2) => $q2->whereIn('call_result', $rejectionCallResults));
                 })
                 ->with(['registeredBy', 'verificationCalls' => fn ($q) => $q->whereIn('call_result', $rejectionCallResults)->latest('call_date')]))
@@ -62,7 +67,12 @@ class RejectionsReportTable extends TableWidget
                     ->state(function (Voter $record): string {
                         $reasons = [];
 
-                        if (in_array($record->status, [VoterStatus::REJECTED_CENSUS, VoterStatus::CORRECTION_REQUIRED], true)) {
+                        if (in_array($record->status, [
+                            VoterStatus::REJECTED_CENSUS,
+                            VoterStatus::CORRECTION_REQUIRED,
+                            VoterStatus::CENSUS_NOT_FOUND,
+                            VoterStatus::REJECTED_OUT_OF_SCOPE,
+                        ], true)) {
                             $reasons[] = $record->status->getLabel();
                         }
 

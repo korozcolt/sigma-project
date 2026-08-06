@@ -62,3 +62,24 @@ test('rejections report table shows status-rejected voters, call-rejected voters
         ->assertCountTableRecords(3)
         ->assertTableHeaderActionsExistInOrder(['export']);
 });
+
+test('rejections report table shows CENSUS_NOT_FOUND and REJECTED_OUT_OF_SCOPE voters with the correct motivo del rechazo', function () {
+    $censusNotFoundVoter = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'status' => VoterStatus::CENSUS_NOT_FOUND,
+    ]);
+
+    $outOfScopeVoter = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'status' => VoterStatus::REJECTED_OUT_OF_SCOPE,
+    ]);
+
+    Livewire::test(RejectionsReportTable::class)
+        ->assertOk()
+        ->assertCanSeeTableRecords([$censusNotFoundVoter, $outOfScopeVoter])
+        ->assertCountTableRecords(2)
+        ->assertSee(VoterStatus::CENSUS_NOT_FOUND->getLabel())
+        ->assertSee(VoterStatus::REJECTED_OUT_OF_SCOPE->getLabel());
+});
