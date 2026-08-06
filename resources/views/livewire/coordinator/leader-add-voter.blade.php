@@ -103,7 +103,7 @@ new class extends Component
         $this->registraduriaVerified = false;
         $this->nameLocked = false;
 
-        if (preg_match('/^\d{6,10}$/', $this->document_number)) {
+        if (preg_match('/^\d{6,11}$/', $this->document_number)) {
             $identity = app(IdentityLookupService::class)->findByDocumentNumber($this->document_number);
 
             if ($identity) {
@@ -113,7 +113,7 @@ new class extends Component
             }
         }
 
-        if (! preg_match('/^\d{6,10}$/', $this->document_number)) {
+        if (! preg_match('/^\d{6,11}$/', $this->document_number)) {
             return;
         }
 
@@ -208,7 +208,7 @@ new class extends Component
         $this->validate([
             'document_number' => [
                 'required',
-                'digits_between:6,10',
+                'digits_between:6,11',
                 Rule::unique('voters', 'document_number')
                     ->where(fn ($query) => $query
                         ->where('campaign_id', $campaign->id)

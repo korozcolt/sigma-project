@@ -63,7 +63,7 @@ class PublicVoterRegistrationController extends Controller
         $validator = Validator::make($request->all(), [
             'document_number' => [
                 'required',
-                'digits_between:6,10',
+                'digits_between:6,11',
                 Rule::unique('voters', 'document_number')
                     ->where(fn ($query) => $query
                         ->where('campaign_id', $invitation->campaign_id)
