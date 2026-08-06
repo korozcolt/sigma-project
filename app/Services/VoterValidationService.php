@@ -81,13 +81,6 @@ class VoterValidationService
     }
 
     /**
-     * Update voter status based on census validation.
-     *
-     * No-downgrade guard: if the voter is already in one of the NON_DOWNGRADABLE_STATUSES
-     * (stronger, post-verification/Day-D states), leave it untouched — no status mutation,
-     * no ValidationHistory row — regardless of the found/not-found result.
-     */
-    /**
      * Whether a status represents a stronger, post-verification/Day-D operational state that
      * no automated validation (census OR territory) should ever downgrade. Public so other
      * automated-validation consumers (e.g. ReconcileVoterTerritory) can reuse the same guard
@@ -98,6 +91,13 @@ class VoterValidationService
         return $status !== null && in_array($status, self::NON_DOWNGRADABLE_STATUSES, true);
     }
 
+    /**
+     * Update voter status based on census validation.
+     *
+     * No-downgrade guard: if the voter is already in one of the NON_DOWNGRADABLE_STATUSES
+     * (stronger, post-verification/Day-D states), leave it untouched — no status mutation,
+     * no ValidationHistory row — regardless of the found/not-found result.
+     */
     public function updateVoterStatus(Voter $voter, bool $found): Voter
     {
         $previousStatus = $voter->status;

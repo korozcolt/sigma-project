@@ -39,9 +39,15 @@ class ReconcileVoterTerritory implements ShouldQueue
                 break;
             }
 
+            // inRandomOrder(), not orderBy(id)/no-order: with more voters per campaign than
+            // MAX_VOTERS_PER_RUN (the common case — e.g. sigma-betha has ~1100), a deterministic
+            // order would select the exact same first N voters every hourly run forever, never
+            // reaching the rest. Random sampling gives every voter a chance each run, so coverage
+            // approaches completeness over enough runs instead of permanently stalling.
             $voters = Voter::query()
                 ->where('campaign_id', $campaign->id)
                 ->with('municipality')
+                ->inRandomOrder()
                 ->limit($remainingBudget)
                 ->get();
 
