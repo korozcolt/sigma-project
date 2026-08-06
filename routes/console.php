@@ -19,5 +19,8 @@ Schedule::command('census:reconcile-live')->hourly()->withoutOverlapping(10);
 // Revalida en background los apoyos pendientes o no encontrados en el censo local
 Schedule::command('census:reconcile-validation')->hourly()->withoutOverlapping(10);
 
+// Marca/revierte automáticamente el status por fuera de alcance territorial (municipio/departamento)
+Schedule::command('census:reconcile-territory')->hourly()->withoutOverlapping(10);
+
 // Snapshot horario del saldo 2captcha para el cuadrito de saldos y el promedio diario
 Schedule::command('balances:snapshot-2captcha')->hourly()->withoutOverlapping(10);

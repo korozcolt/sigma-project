@@ -87,11 +87,22 @@ class VoterValidationService
      * (stronger, post-verification/Day-D states), leave it untouched — no status mutation,
      * no ValidationHistory row — regardless of the found/not-found result.
      */
+    /**
+     * Whether a status represents a stronger, post-verification/Day-D operational state that
+     * no automated validation (census OR territory) should ever downgrade. Public so other
+     * automated-validation consumers (e.g. ReconcileVoterTerritory) can reuse the same guard
+     * without duplicating the protected-status list.
+     */
+    public function isProtectedStatus(?VoterStatus $status): bool
+    {
+        return $status !== null && in_array($status, self::NON_DOWNGRADABLE_STATUSES, true);
+    }
+
     public function updateVoterStatus(Voter $voter, bool $found): Voter
     {
         $previousStatus = $voter->status;
 
-        if ($previousStatus !== null && in_array($previousStatus, self::NON_DOWNGRADABLE_STATUSES, true)) {
+        if ($this->isProtectedStatus($previousStatus)) {
             return $voter->fresh();
         }
 
