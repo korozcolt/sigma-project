@@ -8,6 +8,7 @@ use App\Exports\JurisdictionExport;
 use App\Filament\Resources\Voters\VoterResource;
 use App\Models\Voter;
 use App\Services\CampaignContext;
+use App\Services\VoterTerritoryScope;
 use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -44,6 +45,7 @@ class JurisdictionReportTable extends TableWidget
     public function table(Table $table): Table
     {
         $activeCampaign = CampaignContext::currentCampaign();
+        $territoryScope = new VoterTerritoryScope;
 
         return $table
             ->query(fn (): Builder => Voter::query()
@@ -63,20 +65,16 @@ class JurisdictionReportTable extends TableWidget
 
                 TextColumn::make('jurisdiccion')
                     ->label('Jurisdicción')
-                    ->state(function (Voter $record) use ($activeCampaign): string {
+                    ->state(function (Voter $record) use ($activeCampaign, $territoryScope): string {
                         if (! $activeCampaign) {
                             return 'N/A';
                         }
 
-                        if ($activeCampaign->municipality_id) {
-                            return $record->municipality_id === $activeCampaign->municipality_id ? 'Dentro' : 'Fuera';
+                        if (! $territoryScope->isTerritoryDefined($activeCampaign)) {
+                            return 'N/A';
                         }
 
-                        if ($activeCampaign->department_id) {
-                            return $record->municipality?->department_id === $activeCampaign->department_id ? 'Dentro' : 'Fuera';
-                        }
-
-                        return 'N/A';
+                        return $territoryScope->isWithinCampaignScope($record, $activeCampaign) ? 'Dentro' : 'Fuera';
                     })
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {

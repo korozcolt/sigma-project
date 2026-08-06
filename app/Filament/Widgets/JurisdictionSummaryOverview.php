@@ -6,9 +6,9 @@ use App\Enums\CampaignScope;
 use App\Models\Campaign;
 use App\Models\Voter;
 use App\Services\CampaignContext;
+use App\Services\VoterTerritoryScope;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Database\Eloquent\Builder;
 
 class JurisdictionSummaryOverview extends StatsOverviewWidget
 {
@@ -64,20 +64,17 @@ class JurisdictionSummaryOverview extends StatsOverviewWidget
 
     private function insideCount(Campaign $activeCampaign): int
     {
-        if ($activeCampaign->municipality_id) {
-            return Voter::query()
-                ->where('campaign_id', $activeCampaign->id)
-                ->where('municipality_id', $activeCampaign->municipality_id)
-                ->count();
+        $territoryScope = new VoterTerritoryScope;
+
+        if (! $territoryScope->isTerritoryDefined($activeCampaign)) {
+            return 0;
         }
 
-        if ($activeCampaign->department_id) {
-            return Voter::query()
-                ->where('campaign_id', $activeCampaign->id)
-                ->whereHas('municipality', fn (Builder $query): Builder => $query->where('department_id', $activeCampaign->department_id))
-                ->count();
-        }
-
-        return 0;
+        return Voter::query()
+            ->where('campaign_id', $activeCampaign->id)
+            ->with('municipality')
+            ->get()
+            ->filter(fn (Voter $voter): bool => $territoryScope->isWithinCampaignScope($voter, $activeCampaign))
+            ->count();
     }
 }

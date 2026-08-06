@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\Campaign;
 use App\Models\Voter;
+use App\Services\VoterTerritoryScope;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromQuery;
@@ -64,14 +65,12 @@ class JurisdictionExport implements FromQuery, ShouldAutoSize, WithHeadings, Wit
             return 'N/A';
         }
 
-        if ($this->campaign->municipality_id) {
-            return $voter->municipality_id === $this->campaign->municipality_id ? 'Dentro' : 'Fuera';
+        $territoryScope = new VoterTerritoryScope;
+
+        if (! $territoryScope->isTerritoryDefined($this->campaign)) {
+            return 'N/A';
         }
 
-        if ($this->campaign->department_id) {
-            return $voter->municipality?->department_id === $this->campaign->department_id ? 'Dentro' : 'Fuera';
-        }
-
-        return 'N/A';
+        return $territoryScope->isWithinCampaignScope($voter, $this->campaign) ? 'Dentro' : 'Fuera';
     }
 }

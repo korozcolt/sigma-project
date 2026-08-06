@@ -11,6 +11,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
 {
     case PENDING_REVIEW = 'pending_review';
     case REJECTED_CENSUS = 'rejected_census';
+    case REJECTED_OUT_OF_SCOPE = 'rejected_out_of_scope';
     case CENSUS_NOT_FOUND = 'census_not_found';
     case VERIFIED_CENSUS = 'verified_census';
     case VERIFIED_REGISTRADURIA = 'verified_registraduria';
@@ -26,6 +27,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
         return match ($this) {
             self::PENDING_REVIEW => 'Pendiente de Revisión',
             self::REJECTED_CENSUS => 'Rechazado en Censo',
+            self::REJECTED_OUT_OF_SCOPE => 'Rechazado - Fuera de Alcance',
             self::CENSUS_NOT_FOUND => 'No Encontrado en Censo',
             self::VERIFIED_CENSUS => 'Verificado en Censo',
             self::VERIFIED_REGISTRADURIA => 'Verificado por Registraduría',
@@ -43,6 +45,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
         return match ($this) {
             self::PENDING_REVIEW => 'gray',
             self::REJECTED_CENSUS => 'danger',
+            self::REJECTED_OUT_OF_SCOPE => 'danger',
             self::CENSUS_NOT_FOUND => 'warning',
             self::VERIFIED_CENSUS => 'info',
             self::VERIFIED_REGISTRADURIA => 'success',
@@ -60,6 +63,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
         return match ($this) {
             self::PENDING_REVIEW => 'heroicon-m-clock',
             self::REJECTED_CENSUS => 'heroicon-m-x-circle',
+            self::REJECTED_OUT_OF_SCOPE => 'heroicon-m-map-pin',
             self::CENSUS_NOT_FOUND => 'heroicon-m-question-mark-circle',
             self::VERIFIED_CENSUS => 'heroicon-m-check-badge',
             self::VERIFIED_REGISTRADURIA => 'heroicon-m-shield-check',
@@ -77,6 +81,7 @@ enum VoterStatus: string implements HasColor, HasDescription, HasIcon, HasLabel
         return match ($this) {
             self::PENDING_REVIEW => 'El apoyo está pendiente de revisión inicial',
             self::REJECTED_CENSUS => 'El apoyo fue rechazado al validar contra el censo electoral',
+            self::REJECTED_OUT_OF_SCOPE => 'El apoyo fue rechazado automáticamente por quedar fuera del alcance territorial (municipio/departamento) definido para la campaña',
             self::CENSUS_NOT_FOUND => 'El apoyo no se encontró en el censo electoral local al momento de registrarlo; requiere revisión o reconciliación en segundo plano.',
             self::VERIFIED_CENSUS => 'El apoyo fue verificado exitosamente en el censo electoral',
             self::VERIFIED_REGISTRADURIA => 'El apoyo fue verificado directamente contra un resultado en vivo de la Registraduría — la fuente más confiable disponible, más fuerte que el censo local',
