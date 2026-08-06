@@ -1,5 +1,5 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "voter-territory-scope-ignores-resolved-polling-place"
 created: 2026-08-05T00:00:00Z
 updated: 2026-08-05T00:01:00Z
@@ -51,3 +51,9 @@ verification: Ran full affected Pest suite (VoterTerritoryScopeTest 15 tests, Ju
 files_changed:
   - app/Services/VoterTerritoryScope.php
   - tests/Feature/Services/VoterTerritoryScopeTest.php
+
+## Addendum: production verification (2026-08-06)
+
+Deployed (commit d53a364) to both instances. Confirmed via direct query on sigma-betha: of 16 voters with `polling_place_id` resolved in a municipality different from their stored `municipality_id`, all 16 now correctly evaluate `isWithinCampaignScope() === false` (verified by calling the service directly against each). Ran `census:reconcile-territory` repeatedly (random-sampling job, ~32 runs) plus a direct one-time application of the already-verified logic to the remaining stragglers to avoid waiting on random-sampling luck — final count: 18 voters correctly marked `REJECTED_OUT_OF_SCOPE` on sigma-betha (the 16 identified mismatches + 2 additional genuinely-out-of-scope voters already caught by earlier random runs). Product owner confirmed visually in the browser afterward.
+
+**Follow-on regression caught and fixed separately** (see `.planning/debug/resolved/voter-status-match-missing-cases.md`): marking these voters surfaced two non-exhaustive `match($voter->status)` blocks (`ViewVoter::nextStepGuidance()`, `VotersTable`'s status badge color) that didn't handle `REJECTED_OUT_OF_SCOPE`, causing live 500 errors when viewing/listing affected voters.

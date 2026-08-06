@@ -21,10 +21,19 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 - Widgets y páginas de estadísticas ahora usan campaña seleccionada.
 - Eliminado el enforcement de “una sola campaña activa”.
 
+### Added
+- Estado `VoterStatus::REJECTED_OUT_OF_SCOPE` y validación automática de alcance territorial (`VoterTerritoryScope`, job/comando `census:reconcile-territory` cada hora) — marca/revierte apoyos fuera del municipio/departamento definido para su campaña, usando el puesto de votación resuelto (Registraduría/censo) como fuente de verdad en vez del campo `municipality_id` del propio apoyo. Ver `.planning/debug/resolved/voter-territory-scope-ignores-resolved-polling-place.md`.
+- Nuevo logo de SIGMA en todo el sistema (favicons, panel Filament, login/registro, sidebars).
+
 ### Fixed
 - Aislamiento por campaña consistente en listados y exports críticos.
 - Error 500 en `/admin` por recursión en scope de membresía de campaña.
 - Desincronización entre `status` y `polling_place_source` en Voters: un apoyo podía quedar con estado "Pendiente de Revisión" mientras su fuente de puesto de votación ya era "En Vivo", porque dos cron jobs independientes (`census:reconcile-live` y `census:reconcile-validation`) actualizaban cada campo por separado sin coordinarse. `ReconcileFallbackPollingPlaces` ahora sincroniza `status` en la misma pasada (sin llamadas nuevas al resolver/2captcha); se agregó `polling_place_source` al flujo de registro manual de apoyos; y se agregó el comando `census:backfill-live-status-desync` para corregir registros históricos afectados sin ninguna consulta pagada. Ver `.planning/debug/resolved/status-polling-place-source-desync.md`.
+- `PollingPlaceResolver::persist()` nunca escribía `polling_place_id` (solo `polling_place_source`), inflando el conteo de "apoyos sin puesto asignado" y subcontando el ranking de puestos de votación. Ver `.planning/debug/resolved/polling-place-id-not-persisted-by-resolver.md`.
+- Numeración de ranking en "Ranking de Puestos de Votación" se reseteaba en cada página (el #1 real solo debía aparecer una vez, no repetirse por página). Ver `.planning/debug/resolved/top-polling-places-rank-resets-per-page.md`.
+- Cédulas de menos de 10 dígitos (comunes en Colombia, 6-11 dígitos válidos) eran rechazadas al crear líderes/apoyos; mensaje de error también mostraba el nombre del campo sin traducir. Ver `.planning/debug/resolved/document-number-digits-exact-10-too-strict.md`.
+- Validación de alcance territorial ignoraba el puesto de votación real ya resuelto, comparando contra un campo desactualizado del propio apoyo. Ver `.planning/debug/resolved/voter-territory-scope-ignores-resolved-polling-place.md`.
+- Error 500 al ver o listar apoyos con ciertos estados (`match` no exhaustivo sobre `VoterStatus` en la vista de detalle y en la tabla principal). Ver `.planning/debug/resolved/voter-status-match-missing-cases.md`.
 
 ## [0.8.2] - 2025-11-27
 

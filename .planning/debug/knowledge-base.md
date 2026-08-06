@@ -38,3 +38,28 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Files changed:** app/Filament/Widgets/TopPollingPlacesTable.php, tests/Feature/Filament/TopPollingPlacesTableTest.php
 ---
 
+
+## document-number-digits-exact-10-too-strict — cédulas de menos de 10 dígitos rechazadas al crear líder/apoyo
+- **Date:** 2026-08-05
+- **Error patterns:** debe tener 10 dígitos, document number, digits:10, document_number, Agregar Apoyo, Registrar Apoyo, cédula, NUIP
+- **Root cause:** 3 formularios independientes (coordinator/leader-add-voter.blade.php, leader/register-voter.blade.php, PublicVoterRegistrationController) usaban `digits:10` (exacto) para `document_number`, pero las cédulas/NUIP colombianas van de 6 a 11 dígitos. Además faltaba `document_number` en `lang/es/validation.php`'s attributes, mostrando el nombre crudo en inglés.
+- **Fix:** `digits:10` → `digits_between:6,11` en los 3 sitios (más sus gates `preg_match` que disparan el autofill de identidad/Registraduría). Agregada traducción `document_number => 'Número de Documento'`.
+- **Files changed:** lang/es/validation.php, resources/views/livewire/coordinator/leader-add-voter.blade.php, resources/views/livewire/leader/register-voter.blade.php, app/Http/Controllers/PublicVoterRegistrationController.php
+---
+
+## voter-territory-scope-ignores-resolved-polling-place — apoyos fuera de municipio no se rechazaban si polling_place difería de voter.municipality_id
+- **Date:** 2026-08-05/06
+- **Error patterns:** alcance territorial, jurisdicción, Dentro/Fuera, REJECTED_OUT_OF_SCOPE, VoterTerritoryScope, municipality_id, polling_place_id, Ranking de Puestos de Votación municipio distinto
+- **Root cause:** La nueva validación de alcance territorial (y los 3 widgets de jurisdicción de los que se extrajo) comparaban el municipio de la campaña contra `voter.municipality_id` — un campo autocompletado con el municipio de la campaña al crear el apoyo y NUNCA actualizado cuando el puesto de votación real se resuelve después en otro municipio. 16 apoyos reales en sigma-betha tenían su puesto de votación resuelto en Morroa/Palmito/Sampués/etc. pero `municipality_id` seguía diciendo Sincelejo.
+- **Fix:** `VoterTerritoryScope::isWithinCampaignScope()` ahora usa el municipio/departamento del `polling_place` resuelto (fuente de verdad de Registraduría/censo) cuando existe, cayendo a `voter.municipality_id` solo si no hay puesto resuelto.
+- **Production execution:** 18 apoyos correctamente marcados REJECTED_OUT_OF_SCOPE en sigma-betha tras el fix (16 discrepancias identificadas + 2 adicionales).
+- **Files changed:** app/Services/VoterTerritoryScope.php, tests/Feature/Services/VoterTerritoryScopeTest.php
+---
+
+## voter-status-match-missing-cases — 500 al ver/listar apoyos con status nuevo o ya existente (match no exhaustivo)
+- **Date:** 2026-08-06
+- **Error patterns:** Unhandled match case, App\Enums\VoterStatus, ViewVoter, nextStepGuidance, VotersTable, 500 error del servidor
+- **Root cause:** `ViewVoter::nextStepGuidance()` y el `->color()` de la columna status en `VotersTable` son `match($voter->status)` SIN `default`. El primero ya le faltaban CENSUS_NOT_FOUND y VERIFIED_REGISTRADURIA desde antes (sin tests que lo cubrieran); ambos les faltaba el REJECTED_OUT_OF_SCOPE recién agregado, causando 500 real en producción al ver o listar cualquier apoyo con ese estado.
+- **Fix:** Agregados los casos faltantes en ambos matches. Nuevos tests parametrizados (`->with(VoterStatus::cases())`) que renderizan ViewVoter y ListVoters para los 12 estados — cualquier caso nuevo del enum que se olvide en un match no exhaustivo ahora falla en CI, no en producción.
+- **Files changed:** app/Filament/Resources/Voters/Pages/ViewVoter.php, app/Filament/Resources/Voters/Tables/VotersTable.php, tests/Feature/Filament/VoterResourceTest.php
+---
