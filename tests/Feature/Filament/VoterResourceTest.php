@@ -622,6 +622,20 @@ test('view page displays voter information', function () {
         ->assertSee('3001234567');
 });
 
+test('view page renders successfully for every VoterStatus case', function (VoterStatus $status) {
+    $voter = Voter::factory()->create(['status' => $status]);
+
+    Livewire::test(ViewVoter::class, ['record' => $voter->id])
+        ->assertSuccessful();
+})->with(VoterStatus::cases());
+
+test('voters table renders successfully for every VoterStatus case', function (VoterStatus $status) {
+    Voter::factory()->create(['status' => $status]);
+
+    Livewire::test(ListVoters::class)
+        ->assertSuccessful();
+})->with(VoterStatus::cases());
+
 test('view page displays the polling place source badge with its Spanish label', function () {
     $voter = Voter::factory()->create([
         'polling_place_source' => PollingPlaceSource::DB_RECONSTRUCTION,

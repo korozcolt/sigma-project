@@ -97,13 +97,16 @@ class ViewVoter extends ViewRecord
         return match ($record->status) {
             VoterStatus::PENDING_REVIEW => 'Validar contra el censo electoral para continuar el flujo.',
             VoterStatus::REJECTED_CENSUS => 'Revisar y corregir el documento del apoyo antes de re-intentar la validación.',
+            VoterStatus::CENSUS_NOT_FOUND => 'Pendiente de reconciliación en segundo plano — no se encontró en el censo electoral ni en los registros de identidad nacional.',
             VoterStatus::VERIFIED_CENSUS => 'Asignar a un revisor para verificación telefónica.',
+            VoterStatus::VERIFIED_REGISTRADURIA => 'Verificado directamente por la Registraduría — asignar a un revisor si requiere verificación adicional.',
             VoterStatus::CORRECTION_REQUIRED => 'Corregir los datos señalados y volver a intentar la validación.',
             VoterStatus::VERIFIED_CALL => 'Confirmar asistencia para el día de la jornada electoral.',
             VoterStatus::CONFIRMED => 'Listo para el Día D — sin acciones pendientes.',
             VoterStatus::VOTED => 'Proceso completo — el apoyo ya ejerció su voto.',
             VoterStatus::DID_NOT_VOTE => 'Sin acciones pendientes — el apoyo no asistió a votar.',
             VoterStatus::DUPLICATE => 'Resolver la cédula duplicada desde el panel de administración.',
+            VoterStatus::REJECTED_OUT_OF_SCOPE => 'Revisar el alcance territorial de la campaña — el apoyo quedó fuera del municipio/departamento definido.',
         };
     }
 

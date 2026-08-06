@@ -98,6 +98,7 @@ class VotersTable
                         VoterStatus::VOTED => 'primary',
                         VoterStatus::DID_NOT_VOTE => 'gray',
                         VoterStatus::DUPLICATE => 'warning',
+                        VoterStatus::REJECTED_OUT_OF_SCOPE => 'danger',
                     })
                     ->sortable(),
 
