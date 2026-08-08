@@ -13,7 +13,9 @@ use App\Models\Campaign;
 use App\Models\Department;
 use App\Models\Municipality;
 use App\Models\Neighborhood;
+use App\Models\PollingPlace;
 use App\Models\User;
+use App\Models\ValidationHistory;
 use App\Models\Voter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Session;
@@ -644,6 +646,35 @@ test('view page displays the polling place source badge with its Spanish label',
 
     Livewire::test(ViewVoter::class, ['record' => $voter->id])
         ->assertSee(PollingPlaceSource::DB_RECONSTRUCTION->getLabel());
+});
+
+test('view page displays territory reconciliation validation source with its Spanish label', function () {
+    $voter = Voter::factory()->create();
+
+    ValidationHistory::create([
+        'voter_id' => $voter->id,
+        'previous_status' => VoterStatus::PENDING_REVIEW,
+        'new_status' => VoterStatus::REJECTED_OUT_OF_SCOPE,
+        'validated_by' => null,
+        'validation_type' => 'territory',
+        'notes' => 'Rechazado automáticamente: el apoyo quedó fuera del alcance territorial (municipio/departamento) definido para la campaña',
+    ]);
+
+    Livewire::test(ViewVoter::class, ['record' => $voter->id])
+        ->assertSee('Reconciliación Territorial');
+});
+
+test('view page displays polling place name and mesa number', function () {
+    $pollingPlace = PollingPlace::factory()->create(['name' => 'Distinctive Test Polling Place Name']);
+
+    $voter = Voter::factory()->create([
+        'polling_place_id' => $pollingPlace->id,
+        'polling_table_number' => 7,
+    ]);
+
+    Livewire::test(ViewVoter::class, ['record' => $voter->id])
+        ->assertSee('Distinctive Test Polling Place Name')
+        ->assertSee('7');
 });
 
 // ============ Tests de Eliminación ============
