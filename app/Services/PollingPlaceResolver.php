@@ -224,6 +224,20 @@ class PollingPlaceResolver
      * incomplete re-resolution, the same no-downgrade spirit as the source guard above but
      * applied independently since a result can carry a real source with no resolvable
      * pollingPlaceId (e.g. a DB_RECONSTRUCTION result with no municipality match).
+     *
+     * Also writes polling_table_number (voters.polling_table_number), the sibling of the
+     * polling_place_id bug fixed above — same root cause (persist() silently dropping a
+     * value the resolve*() methods already compute via $result->tableNumber), same fix
+     * shape, same backfill-command precedent. See
+     * .planning/debug/resolved/polling-place-id-not-persisted-by-resolver.md. A real
+     * $result->tableNumber ALWAYS overwrites whatever is currently stored — mirroring the
+     * polling_place_id FK block's overwrite philosophy above, since real data can always
+     * correct stale/defaulted data. When the source carries no mesa number at all, the
+     * weaker single-mesa '1' default (used only when the resolved PollingPlace has exactly
+     * one possible mesa, max_tables === 1) is deliberately guarded to fill ONLY a currently-
+     * null value — never overwriting an existing real or previously-defaulted number, since
+     * we can't distinguish the two from the column alone and a weaker default must never
+     * clobber a stronger prior write.
      */
     public function persist(
         ?Voter $voter,
@@ -248,6 +262,16 @@ class PollingPlaceResolver
 
         if ($result->pollingPlaceId !== null) {
             $updates['polling_place_id'] = $result->pollingPlaceId;
+        }
+
+        if ($result->tableNumber !== null) {
+            $updates['polling_table_number'] = $result->tableNumber;
+        } elseif ($voter->polling_table_number === null && $result->pollingPlaceId !== null) {
+            $pollingPlace = PollingPlace::find($result->pollingPlaceId);
+
+            if ($pollingPlace?->max_tables === 1) {
+                $updates['polling_table_number'] = '1';
+            }
         }
 
         $voter->update($updates);

@@ -495,6 +495,140 @@ test('persist writes polling_place_id on a no-op source reconfirmation (same sou
     expect($voter->fresh()->polling_place_id)->toBe($this->pollingPlace->id);
 });
 
+// ============ polling_table_number write in persist() (quick task 260808-jsz) ============
+
+// Test 12f
+test('persist writes polling_table_number on a fresh voter when the result carries one', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'polling_table_number' => null,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::LIVE,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+        tableNumber: '7',
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($voter->fresh()->polling_table_number)->toBe(7);
+});
+
+// Test 12g
+test('persist defaults polling_table_number to 1 when the result carries none but the resolved PollingPlace has max_tables===1', function () {
+    $this->pollingPlace->update(['max_tables' => 1]);
+
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'polling_table_number' => null,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::LIVE,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+        tableNumber: null,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($voter->fresh()->polling_table_number)->toBe(1);
+});
+
+// Test 12h
+test('persist does NOT default polling_table_number when the resolved PollingPlace has max_tables greater than 1', function () {
+    $this->pollingPlace->update(['max_tables' => 5]);
+
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'polling_table_number' => null,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::LIVE,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+        tableNumber: null,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($voter->fresh()->polling_table_number)->toBeNull();
+});
+
+// Test 12i
+test('persist ALWAYS overwrites an already-set polling_table_number when the result carries a real tableNumber', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'polling_table_number' => 3,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::LIVE,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+        tableNumber: '9',
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($voter->fresh()->polling_table_number)->toBe(9);
+});
+
+// Test 12j
+test('persist does NOT overwrite an already-set polling_table_number with the single-mesa default', function () {
+    $this->pollingPlace->update(['max_tables' => 1]);
+
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'polling_table_number' => 3,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::LIVE,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+        tableNumber: null,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($voter->fresh()->polling_table_number)->toBe(3);
+});
+
+// Test 12k
+test('persist corrects a previously-defaulted polling_table_number once a later real tableNumber becomes available', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'polling_table_number' => '1',
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::LIVE,
+        fields: [],
+        pollingPlaceId: $this->pollingPlace->id,
+        tableNumber: '4',
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($voter->fresh()->polling_table_number)->toBe(4);
+});
+
 // Test 13
 test('resolveAutomated gives up immediately without sleeping on waiting_captcha and falls back to snapshot', function () {
     Sleep::fake();
