@@ -57,6 +57,14 @@ class ViewVoter extends ViewRecord
                 ->dateTime('d/m/Y H:i')
                 ->placeholder('Sin resolver'),
 
+            Components\TextEntry::make('pollingPlace.name')
+                ->label('Puesto de Votación')
+                ->placeholder('Sin resolver'),
+
+            Components\TextEntry::make('polling_table_number')
+                ->label('Mesa')
+                ->placeholder('Sin resolver'),
+
             Components\TextEntry::make('last_validation_source')
                 ->label('Fuente de Última Validación')
                 ->state(fn (Voter $record): string => $this->latestValidationSource($record))
@@ -88,6 +96,7 @@ class ViewVoter extends ViewRecord
             'census' => 'Censo Electoral',
             'call' => 'Llamada de Verificación',
             'election' => 'Jornada Electoral (Día D)',
+            'territory' => 'Reconciliación Territorial',
             default => $latest->validation_type,
         };
     }
