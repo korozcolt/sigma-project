@@ -677,6 +677,24 @@ test('view page displays polling place name and mesa number', function () {
         ->assertSee('7');
 });
 
+test('view page displays the polling place municipality, even when it differs from the voter\'s own municipality', function () {
+    $voterMunicipality = Municipality::factory()->create(['name' => 'Sincelejo']);
+    $pollingPlaceMunicipality = Municipality::factory()->create(['name' => 'Corozal']);
+
+    $pollingPlace = PollingPlace::factory()->create([
+        'municipality_id' => $pollingPlaceMunicipality->id,
+    ]);
+
+    $voter = Voter::factory()->create([
+        'municipality_id' => $voterMunicipality->id,
+        'polling_place_id' => $pollingPlace->id,
+    ]);
+
+    Livewire::test(ViewVoter::class, ['record' => $voter->id])
+        ->assertSee('Sincelejo')
+        ->assertSee('Corozal');
+});
+
 // ============ Tests de Eliminación ============
 
 test('can delete voter from edit page', function () {

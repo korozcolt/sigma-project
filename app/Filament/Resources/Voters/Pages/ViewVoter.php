@@ -61,6 +61,10 @@ class ViewVoter extends ViewRecord
                 ->label('Puesto de Votación')
                 ->placeholder('Sin resolver'),
 
+            Components\TextEntry::make('pollingPlace.municipality.name')
+                ->label('Municipio del Puesto de Votación')
+                ->placeholder('Sin resolver'),
+
             Components\TextEntry::make('polling_table_number')
                 ->label('Mesa')
                 ->placeholder('Sin resolver'),
