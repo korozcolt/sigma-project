@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260806-elm (widget de contadores rechazados/duplicados/fuera de jurisdicción): 2/2 tasks COMPLETE and committed (aad01af, bf5970e) - new RejectionsCountersOverview StatsOverviewWidget with 3 non-overlapping campaign-scoped counters (Rechazados / Duplicados / Fuera de Jurisdicción), registered in ReportsPanelProvider before RejectionsReportTable. Verified via full dashboard-widgets Pest group (75 tests, 204 assertions), all passing; pint clean. Manual browser verification of the new tile row on /reports still pending per standing project preference."
-last_updated: "2026-08-06T15:38:40.000Z"
+stopped_at: "Quick task 260808-f0x (arreglar badge territory y mostrar puesto de votación en ViewVoter): 2/2 tasks COMPLETE and committed (de5387a, 68f6382) - ViewVoter's latestValidationSource() now returns 'Reconciliación Territorial' for validation_type='territory' (previously the raw string leaked through); infolist now shows pollingPlace.name and polling_table_number with 'Sin resolver' placeholders. Verified via full VoterResourceTest.php suite (59 tests, 146 assertions), all passing; pint clean. Manual browser verification still pending per standing project preference."
+last_updated: "2026-08-08T17:11:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -237,6 +237,7 @@ Tracked in Blockers/Concerns above.
 | 260804-us6 | Restrict "Actualizar datos" force-refresh to super_admin (backend-enforced 403, not just UI-hidden) + permanent-cache guard on RegistraduriaController::lookup() (orphaned route, no longer calls the Python microservice for an already-resolved cédula) | 2026-08-05 | 53f4bb0, e278f83 | [260804-us6-cerrar-puntos-que-pueden-re-consultar-un](.planning/quick/260804-us6-cerrar-puntos-que-pueden-re-consultar-un/) |
 | 260805-qt1 | Territorial-scope validation: VoterStatus::REJECTED_OUT_OF_SCOPE + shared VoterTerritoryScope service (replaces 3 duplicated Dentro/Fuera comparisons) + hourly census:reconcile-territory job/command + RejectionsReportTable now surfaces CENSUS_NOT_FOUND/REJECTED_OUT_OF_SCOPE | 2026-08-06 | 6b34059, c95a849, a3ea319 | [260805-qt1-implementar-validaci-n-de-alcance-territ](.planning/quick/260805-qt1-implementar-validaci-n-de-alcance-territ/) |
 | 260806-elm | New RejectionsCountersOverview StatsOverviewWidget (Rechazados/Duplicados/Fuera de Jurisdicción — 3 non-overlapping campaign-scoped counters) registered in the reports panel | 2026-08-06 | aad01af, bf5970e | [260806-elm-widget-de-contadores-rechazados-duplicad](.planning/quick/260806-elm-widget-de-contadores-rechazados-duplicad/) |
+| 260808-f0x | Fix ViewVoter's raw 'territory' validation-source string (now 'Reconciliación Territorial') + surface resolved PollingPlace name/mesa on the Apoyo view page | 2026-08-08 | de5387a, 68f6382 | [260808-f0x-arreglar-badge-territory-y-mostrar-puest](.planning/quick/260808-f0x-arreglar-badge-territory-y-mostrar-puest/) |
 
 Quick task 260801-e79 decisions:
 
@@ -418,8 +419,13 @@ Quick task 260731-i5g decisions:
 
 - No `.env.example` change made — `CONSULTA_CENSO_SERVICE_URL`'s existing plain `KEY=value` line already mirrors `INFOVOTANTES_SERVICE_URL`'s documentation convention (no comment) exactly, confirmed by direct inspection before finishing.
 
+Quick task 260808-f0x decisions:
+
+- Followed the plan's literal task split (implementation in Task 1, Pest coverage in Task 2) rather than a strict RED-GREEN TDD cycle, since the plan itself defined the task boundaries that way.
+- **Worktree staleness recurred yet again** (worktree `agent-a911b8010d3b19fb2`): one fast-forward commit behind main, missing this task's own PLAN.md (untracked-only in the main checkout, never committed to this worktree) plus `vendor/` and `.env` entirely. `node_modules/`/`public/build/` were not needed since this task is backend/infolist-only. Resolved with the established workaround: confirmed fast-forward ancestry via `git merge-base --is-ancestor HEAD main`, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`. `gsd-tools init execute-phase` again confirmed the `findProjectRoot()` root-resolution bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/SUMMARY.md updates hand-edited directly in the worktree per the established workaround.
+
 ## Session Continuity
 
-Last session: 2026-08-06T15:38:40.000Z
-Stopped at: Quick task 260806-elm (widget de contadores rechazados/duplicados/fuera de jurisdicción): 2/2 tasks COMPLETE and committed (aad01af, bf5970e) - new RejectionsCountersOverview StatsOverviewWidget with 3 non-overlapping campaign-scoped counters registered in the reports panel before RejectionsReportTable. Verified via full dashboard-widgets Pest group (75 tests, 204 assertions), all passing; pint clean. Manual browser verification still pending per standing project preference.
+Last session: 2026-08-08T17:11:00.000Z
+Stopped at: Quick task 260808-f0x (arreglar badge territory y mostrar puesto de votación en ViewVoter): 2/2 tasks COMPLETE and committed (de5387a, 68f6382) - ViewVoter's latestValidationSource() now returns 'Reconciliación Territorial' for validation_type='territory'; infolist now shows pollingPlace.name and polling_table_number with 'Sin resolver' placeholders. Verified via full VoterResourceTest.php suite (59 tests, 146 assertions), all passing; pint clean. Manual browser verification still pending per standing project preference.
 Resume file: None
