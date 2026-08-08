@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
 status: Phase complete — ready for verification
-stopped_at: "Quick task 260808-f0x (arreglar badge territory y mostrar puesto de votación en ViewVoter): 2/2 tasks COMPLETE and committed (de5387a, 68f6382) - ViewVoter's latestValidationSource() now returns 'Reconciliación Territorial' for validation_type='territory' (previously the raw string leaked through); infolist now shows pollingPlace.name and polling_table_number with 'Sin resolver' placeholders. Verified via full VoterResourceTest.php suite (59 tests, 146 assertions), all passing; pint clean. Manual browser verification still pending per standing project preference."
-last_updated: "2026-08-08T17:11:00.000Z"
+stopped_at: "Quick task 260808-hx8 (mostrar municipio del puesto de votación en ViewVoter): 1/1 task COMPLETE and committed (e10ab33) - ViewVoter's infolist now shows a new 'Municipio del Puesto de Votación' TextEntry (pollingPlace.municipality.name) immediately after 'Puesto de Votación', with a 'Sin resolver' placeholder. Verified via full VoterResourceTest.php suite (60 tests, 148 assertions), all passing; pint clean. Manual browser verification still pending per standing project preference."
+last_updated: "2026-08-08T17:57:18.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -238,6 +238,7 @@ Tracked in Blockers/Concerns above.
 | 260805-qt1 | Territorial-scope validation: VoterStatus::REJECTED_OUT_OF_SCOPE + shared VoterTerritoryScope service (replaces 3 duplicated Dentro/Fuera comparisons) + hourly census:reconcile-territory job/command + RejectionsReportTable now surfaces CENSUS_NOT_FOUND/REJECTED_OUT_OF_SCOPE | 2026-08-06 | 6b34059, c95a849, a3ea319 | [260805-qt1-implementar-validaci-n-de-alcance-territ](.planning/quick/260805-qt1-implementar-validaci-n-de-alcance-territ/) |
 | 260806-elm | New RejectionsCountersOverview StatsOverviewWidget (Rechazados/Duplicados/Fuera de Jurisdicción — 3 non-overlapping campaign-scoped counters) registered in the reports panel | 2026-08-06 | aad01af, bf5970e | [260806-elm-widget-de-contadores-rechazados-duplicad](.planning/quick/260806-elm-widget-de-contadores-rechazados-duplicad/) |
 | 260808-f0x | Fix ViewVoter's raw 'territory' validation-source string (now 'Reconciliación Territorial') + surface resolved PollingPlace name/mesa on the Apoyo view page | 2026-08-08 | de5387a, 68f6382 | [260808-f0x-arreglar-badge-territory-y-mostrar-puest](.planning/quick/260808-f0x-arreglar-badge-territory-y-mostrar-puest/) |
+| 260808-hx8 | Add "Municipio del Puesto de Votación" TextEntry to ViewVoter's infolist (`pollingPlace.municipality.name`), surfacing the discrepancy behind REJECTED_OUT_OF_SCOPE | 2026-08-08 | e10ab33 | [260808-hx8-mostrar-municipio-del-puesto-de-votacion](.planning/quick/260808-hx8-mostrar-municipio-del-puesto-de-votacion/) |
 
 Quick task 260801-e79 decisions:
 
@@ -424,8 +425,13 @@ Quick task 260808-f0x decisions:
 - Followed the plan's literal task split (implementation in Task 1, Pest coverage in Task 2) rather than a strict RED-GREEN TDD cycle, since the plan itself defined the task boundaries that way.
 - **Worktree staleness recurred yet again** (worktree `agent-a911b8010d3b19fb2`): one fast-forward commit behind main, missing this task's own PLAN.md (untracked-only in the main checkout, never committed to this worktree) plus `vendor/` and `.env` entirely. `node_modules/`/`public/build/` were not needed since this task is backend/infolist-only. Resolved with the established workaround: confirmed fast-forward ancestry via `git merge-base --is-ancestor HEAD main`, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`. `gsd-tools init execute-phase` again confirmed the `findProjectRoot()` root-resolution bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/SUMMARY.md updates hand-edited directly in the worktree per the established workaround.
 
+Quick task 260808-hx8 decisions:
+
+- Followed the plan's exact interface spec: `Components\TextEntry::make('pollingPlace.municipality.name')` inserted between the existing `pollingPlace.name` and `polling_table_number` entries, using Filament's dot-notation relationship traversal (no new accessor/computed field needed).
+- **Worktree staleness recurred yet again** (worktree `agent-a810c65e2c9741fbd`): missing this task's own PLAN.md commit (`844b73c`, created directly on `main`) plus `vendor/` and `.env` entirely. `node_modules/`/`public/build/` were not needed (backend/infolist-only change). Resolved with the established workaround: confirmed fast-forward ancestry via `git merge-base --is-ancestor HEAD main`, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`. STATE.md/SUMMARY.md updates hand-edited directly in the worktree per the established workaround (not re-verified via `gsd-tools` this session).
+
 ## Session Continuity
 
-Last session: 2026-08-08T17:11:00.000Z
-Stopped at: Quick task 260808-f0x (arreglar badge territory y mostrar puesto de votación en ViewVoter): 2/2 tasks COMPLETE and committed (de5387a, 68f6382) - ViewVoter's latestValidationSource() now returns 'Reconciliación Territorial' for validation_type='territory'; infolist now shows pollingPlace.name and polling_table_number with 'Sin resolver' placeholders. Verified via full VoterResourceTest.php suite (59 tests, 146 assertions), all passing; pint clean. Manual browser verification still pending per standing project preference.
+Last session: 2026-08-08T17:57:18.000Z
+Stopped at: Quick task 260808-hx8 (mostrar municipio del puesto de votación en ViewVoter): 1/1 task COMPLETE and committed (e10ab33) - ViewVoter's infolist now shows a new "Municipio del Puesto de Votación" TextEntry (pollingPlace.municipality.name) immediately after "Puesto de Votación", with a "Sin resolver" placeholder. Verified via full VoterResourceTest.php suite (60 tests, 148 assertions), all passing; pint clean. Manual browser verification still pending per standing project preference.
 Resume file: None
