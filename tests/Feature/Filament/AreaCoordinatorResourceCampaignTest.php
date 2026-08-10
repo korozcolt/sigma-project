@@ -115,7 +115,16 @@ test('list table shows the count of coordinadores assigned to each area coordina
 test('super_admin is not blocked by CoordinatorPolicy when editing an area coordinator record', function () {
     CampaignContext::setCampaignId($this->campaign->id);
 
-    $areaCoordinator = User::factory()->create(['municipality_id' => $this->municipality->id]);
+    // phone/document_number set explicitly: UserFactory nulls them ~20%/10%
+    // of the time by default, and the form's Edit save() re-validates both
+    // as required — an unset value here intermittently fails validation
+    // with no code changes between runs (Rule 1 fix, same precedent as
+    // CoordinatorResourceCampaignTest's self-heal test).
+    $areaCoordinator = User::factory()->create([
+        'municipality_id' => $this->municipality->id,
+        'phone' => '3001112233',
+        'document_number' => '900300400',
+    ]);
     $areaCoordinator->assignRole(UserRole::AREA_COORDINATOR->value);
     $areaCoordinator->campaigns()->attach($this->campaign->id);
 
