@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 15
-stopped_at: Completed 15-02-PLAN.md (wave 1)
-last_updated: "2026-08-10T22:39:13Z"
+stopped_at: Completed 15-03-PLAN.md (wave 2)
+last_updated: "2026-08-10T22:53:23Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 10
-  completed_plans: 8
-  percent: 70
+  completed_plans: 9
+  percent: 90
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 15 of 17 (articulador self service panel)
-Plan: 2 of 4 complete (wave 1 done — 15-01, 15-02; wave 2 — 15-03, 15-04 — up next)
-Status: Wave 1 complete. 15-01: `AreaCoordinatorPanelProvider` registered at `/articulador` (Dashboard + Día D + 3 widgets), `User::canAccessPanel()` gained the required `'area_coordinator'` arm, `RedirectBasedOnRole` gained the AREA_COORDINATOR UX-parity branch. 15-02: registered the `/articulador` route group (exactly the 3 D-02-locked routes: `coordinadores`, `coordinadores/create`, `coordinadores/{coordinator}/edit`) and built the own-team-scoped `articulador.coordinators` Volt list page (search, pagination, stats, empty states), mirroring `coordinator/leaders.blade.php` minus the invitation-link button (D-07 deferred) and self-promote block (not applicable). Together these cover the Filament-panel half (D-05/D-06) and the list-page half of ARTIC-02 — the create/edit Volt CRUD (15-03/15-04) is next. ARTIC-02 NOT yet marked complete, deferred to phase completion per established split-requirement precedent.
+Plan: 3 of 4 complete (wave 1 done — 15-01, 15-02; wave 2 — 15-03 done, 15-04 in progress/up next)
+Status: Wave 2 in progress. 15-01/15-02 (wave 1): `AreaCoordinatorPanelProvider` + route group + own-team-scoped coordinadores list Volt page. 15-03 (wave 2): built `articulador.create-coordinator` Volt page — full `CoordinatorForm` field set (name, email, document_number, birth_date, phone, secondary_phone, address, municipality_id, neighborhood_id, password), IdentityLookupService document-number autofill/name-lock reused verbatim from `create-leader.blade.php`, NO OTP step (D-04), NO `area_coordinator_user_id` form field (D-03 — computed inline in `save()` from `auth()->user()->hasRole()`), campaign-scoped municipality select, created coordinador attached to the acting user's campaigns and assigned the `coordinator` role. 11 tests, 29 assertions, all passing; Pint clean. Found (but did not fix, out of scope) a pre-existing bug in `App\Models\CampaignUser`'s `HasCampaignContext` trait that forcibly overwrites `campaign_id` on every pivot attach/sync with the actor's current-context campaign, silently corrupting multi-campaign attach calls across the whole app (not just this plan) — logged as a new blocker below. 15-04 (edit-coordinator Volt page) is the phase's remaining plan. ARTIC-02 NOT yet marked complete, deferred to phase completion per established split-requirement precedent.
 Last activity: 2026-08-10
 
-Progress: [███████···] 70% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 2/4 plans complete)
+Progress: [████████··] 90% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 3/4 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 15 Plan 03 decisions:
+
+- [Phase 15 Plan 03]: ARTIC-02 is NOT marked complete in REQUIREMENTS.md by this plan alone, same split-requirement precedent as 15-01/15-02 — 15-04 (edit-coordinator) is still outstanding.
+- [Phase 15 Plan 03]: `birth_date`'s 18+ validation rule lives in a `rules()` method override (computed cutoff via `now()->subYears(18)->toDateString()`) alongside the other properties' `#[Validate(...)]` attributes, per the plan's explicit instruction to avoid a stale literal date string.
+- [Phase 15 Plan 03]: Discovered (but did not fix — out of scope, cross-cutting, pre-existing) a real bug in `App\Models\CampaignUser`: it uses `HasCampaignContext`, whose `creating` hook forcibly overwrites `campaign_id` with `CampaignContext::currentCampaignId()` on every pivot insert — correct for scoping columns like `Voter.campaign_id`, but wrong here since `CampaignUser.campaign_id` IS the relationship key set explicitly by `attach()`/`sync()`. Any `campaigns()->attach($id)` call targeting a campaign different from the acting user's current-context campaign silently gets overwritten to the wrong campaign id (reproduced via a `UniqueConstraintViolationException` when attaching a second campaign). Not specific to this plan's files — the same latent bug already exists in `create-leader.blade.php`, `register-leader.blade.php`, and `CreateLeader::afterCreate()`. Worked around in this plan's own tests by using a realistic single-campaign fixture (the common case, which doesn't trigger the bug). See `.planning/phases/15-articulador-self-service-panel/15-03-SUMMARY.md` for the full write-up. Added to Blockers/Concerns below.
+- [Phase 15 Plan 03]: This worktree (`agent-a069fbb71e30b393d`) was stale at session start — 62 commits behind `main`, missing Phase 15's own PLAN/CONTEXT files, `vendor/`, `.env`, `node_modules/`, `public/build`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install` (tests run against sqlite `:memory:` per `phpunit.xml`, so no `npm`/Vite build was needed for this plan's Volt/Pest-only scope). `gsd-tools init execute-phase` again confirmed the `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout) — STATE.md/ROADMAP.md updated by hand-editing this worktree's copies directly.
 
 Phase 15 Plan 02 decisions:
 
@@ -222,6 +229,7 @@ Quick task 260808-jsz decisions:
 - **Volt's `layout()` global helper has no effect on class-based full-page Volt components** in the installed `livewire/volt` version — every page silently renders with the default `components.layouts.app` regardless of what `layout(...)` specifies. Invisible everywhere except unauthenticated full-page routes (crashes on `auth()->user()->hasRole()` against a null user). Fixed only for the one page that hit it (`public.register-leader`, via Livewire's native `#[Layout(...)]` attribute instead). Every other existing `layout()` call project-wide is still affected but cosmetically harmless today.
 - **Three pending `checkpoint:human-verify` sign-offs** (all code complete, committed, and test-covered — only the real-browser confirmation step is outstanding): quick tasks `260801-hvd` (public leader self-registration + SMS OTP), `260804-i5f` (cross-coordinator data-leak fix, 4 UI surfaces), `260804-jbc` (second cross-coordinator leak fix, 6 scenarios). See each task's SUMMARY.md for the exact verification script.
 - **`sigma-registraduria` production container needs a manual Dokploy redeploy** to pick up the tini zombie-reaping fix (quick task 260804-kss) — `autoDeploy=false` on that service, not urgent (zombie leak, not user-facing).
+- **`App\Models\CampaignUser`'s `HasCampaignContext` trait silently corrupts multi-campaign `attach()`/`sync()` calls to a campaign other than the acting user's current-context campaign.** Found 2026-08-10 during Phase 15 Plan 03. The trait's `static::creating` hook calls `CampaignContext::enforceCampaignId($model)`, unconditionally overwriting the pivot's `campaign_id` attribute with the actor's resolved current-context campaign id, regardless of what id was actually passed to `attach()`/`sync()`. This is correct behavior for models where `campaign_id` is a scoping column separate from the row's identity (e.g. `Voter`), but wrong for `CampaignUser`, where `campaign_id` IS the relationship key itself. Reproduced with a `UniqueConstraintViolationException` when a user with 2+ campaigns tries to attach a NEW user to their second (non-active-context) campaign — the insert silently targets the wrong campaign id instead. Affects every existing call site: `create-leader.blade.php`, `register-leader.blade.php` (public), `App\Filament\Resources\Leaders\Pages\CreateLeader::afterCreate()`/`EditLeader`, `CreateCoordinator`/`EditCoordinator`, `CreateAreaCoordinator`/`EditAreaCoordinator`, `BackfillCoordinatorCampaign`, and the new `articulador/create-coordinator.blade.php` (15-03). Not fixed (out of scope for 15-03 — touches a shared model used app-wide, would need its own regression pass). **Recommended fix (not yet implemented):** remove `HasCampaignContext` from `CampaignUser` entirely — its `campaign_id`/`user_id` pair should only ever be set explicitly by the relationship's `attach()`/`sync()` calls, never silently overridden.
 
 <details>
 <summary>Archived — resolved/historical blockers (click to expand)</summary>
