@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: "Roadmap created, ready for /gsd:plan-phase 12"
-stopped_at: Phase 12 context gathered
-last_updated: "2026-08-10T15:01:09.388Z"
-last_activity: 2026-08-10 — Roadmap created (Phases 12-17, 17/17 requirements mapped)
+status: "Phase 12 in progress — plan 12-01 complete"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-08-10T15:32:48Z"
+last_activity: 2026-08-10 — Phase 12 Plan 01 complete (area_coordinator role + hierarchy FK, ARTIC-04/05)
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 2
+  completed_plans: 1
+  percent: 50
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 12 of 17 (Hierarchy & Metadata Schema Foundation) — ready to plan
-Plan: —
-Status: Roadmap created, ready for /gsd:plan-phase 12
-Last activity: 2026-08-10 — Roadmap created (Phases 12-17, 17/17 requirements mapped)
+Phase: 12 of 17 (Hierarchy & Metadata Schema Foundation) — in progress
+Plan: 12-01 complete (12-02 pending/in progress)
+Status: Plan 12-01 (area_coordinator role + hierarchy FK, ARTIC-04/05) complete
+Last activity: 2026-08-10 — Phase 12 Plan 01 complete
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█████░░░░░] 50% (Phase 12: 1/2 plans)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 12 Plan 01 decisions:
+
+- [Phase 12 Plan 01]: `AREA_COORDINATOR` is deliberately NOT wired into `VoterPolicy` (or any other authorization policy) by this plan — that wiring is Phase 13's explicit scope (Hierarchy Authorization & Call-Site Audit). `VoterPolicyTest`'s "every other role can mutate Voter" dataset was narrowed to exclude the new role rather than granting it premature/unreviewed authorization.
+- [Phase 12 Plan 01]: `RolePermissionTest`'s hardcoded `Role::all()` count updated 6 -> 7 after adding `UserRole::AREA_COORDINATOR` — mechanical fix, not a design decision.
+- [Phase 12 Plan 01]: Worktree (`agent-aace80a76ec188522`) was stale at session start — missing this plan's own PLAN.md commits plus `vendor/`, `.env`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed `main` is a fast-forward descendant via the shared object store, `git merge --ff-only main`, `.env` copy, `composer install`, `npm install && npm run build` (the Vite-manifest-missing failure caused 59 spurious full-suite failures until built). `gsd-tools init execute-phase 12` again confirmed the `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's copies directly, per the established workaround.
 
 <details>
 <summary>Archived v1.1 decision log (phases 6-11 + post-ship quick tasks, click to expand)</summary>
