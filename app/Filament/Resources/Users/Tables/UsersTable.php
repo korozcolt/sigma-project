@@ -13,6 +13,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Spatie\Permission\Models\Role;
 
 class UsersTable
 {
@@ -130,7 +131,7 @@ class UsersTable
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload()
-                    ->options(fn () => collect(UserRole::cases())->mapWithKeys(fn ($role) => [$role->value => $role->getLabel()])),
+                    ->getOptionLabelFromRecordUsing(fn (Role $record): string => UserRole::tryFrom($record->name)?->getLabel() ?? $record->name),
 
                 SelectFilter::make('campaigns')
                     ->label('Campaña')
