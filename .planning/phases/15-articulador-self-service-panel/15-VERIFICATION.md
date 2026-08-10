@@ -1,21 +1,15 @@
 ---
 phase: 15-articulador-self-service-panel
-verified: 2026-08-10T23:02:22Z
-status: gaps_found
-score: 9/10 must-haves verified
-gaps:
-  - truth: "An articulador manages their coordinadores from a dedicated self-service panel, mirroring the existing coordinador self-service experience"
-    status: partial
-    reason: "All three coordinador management pages exist, are substantive, are correctly scoped/authorized, and cross-link to each other — but nothing links INTO them. The articulador lands on the Filament panel dashboard after login (RedirectBasedOnRole), and that panel registers no navigation item for /articulador/coordinadores. The shared Volt sidebar has no area_coordinator branch either, so it falls through to the generic 'Platform' group whose only link is route('dashboard') — which bounces straight back to the Filament dashboard. The pages are reachable only by typing the URL manually. The coordinador experience this phase mirrors has a full sidebar group (Dashboard, Líderes, Día D)."
-    artifacts:
-      - path: app/Providers/Filament/AreaCoordinatorPanelProvider.php
-        issue: "No navigationItems() entry pointing to route('articulador.coordinadores'); panel registers only Dashboard + DiaD pages"
-      - path: resources/views/components/layouts/app/sidebar.blade.php
-        issue: "flux:navlist has admin_campaign and coordinator branches but no area_coordinator branch; articulador falls into the generic @else 'Platform' group"
-    missing:
-      - "Add a navigation item in AreaCoordinatorPanelProvider linking to route('articulador.coordinadores') (e.g. ->navigationItems([NavigationItem::make('Coordinadores')->url(fn () => route('articulador.coordinadores'))->icon(...)]))"
-      - "Add an area_coordinator branch to resources/views/components/layouts/app/sidebar.blade.php with Dashboard (Filament panel) + Coordinadores links, mirroring the existing coordinator branch"
-      - "Optionally show the 'Articulador' role label in the sidebar campaign header, mirroring the admin_campaign/coordinator labels"
+verified: 2026-08-10T19:20:00Z
+status: human_needed
+score: 10/10 must-haves verified
+re_verification:
+  previous_status: gaps_found
+  previous_score: 9/10
+  gaps_closed:
+    - "An articulador manages their coordinadores from a dedicated self-service panel, mirroring the existing coordinador self-service experience — navigation now exists on both the Filament panel and the shared Volt sidebar"
+  gaps_remaining: []
+  regressions: []
 human_verification:
   - test: "Log in as an articulador and confirm the /articulador panel dashboard widgets (CampaignStatsOverview, TerritorialDistributionChart, TopLeadersTable) render campaign-appropriate numbers and do not leak another articulador's or another campaign's data"
     expected: "Widgets render without error and show only data the articulador is entitled to see"
@@ -23,118 +17,135 @@ human_verification:
   - test: "On the create-coordinador form, type a cédula that exists in the national identity directory, blur the field, then click the unlock control and edit the name"
     expected: "Name autofills and locks on match, unlock control re-enables editing — identical feel to create-leader.blade.php"
     why_human: "Live blur/lock interaction and visual parity with the coordinador form require a real browser (project convention: browser-verify before prod)"
+  - test: "Log in as an articulador and click through the sidebar: Dashboard → Coordinadores → Día D, then use the panel's own 'Coordinadores' nav item from the Filament dashboard"
+    expected: "Every link lands on the intended page with the correct item highlighted as current; no bounce back to the dashboard"
+    why_human: "Active-state highlighting and wire:navigate transitions between a Filament panel and Volt pages are visual/runtime behaviors"
 ---
 
 # Phase 15: Articulador Self-Service Panel Verification Report
 
 **Phase Goal:** An articulador manages their own coordinadores from a dedicated self-service panel, mirroring the existing coordinador self-service experience.
-**Verified:** 2026-08-10T23:02:22Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verified:** 2026-08-10T19:20:00Z
+**Status:** human_needed
+**Re-verification:** Yes — after gap closure via plan 15-05
+
+## Re-Verification Summary
+
+The initial verification (2026-08-10T23:02:22Z) reported `gaps_found` at 9/10. Nine truths passed; the tenth failed because no navigation path led an articulador to `/articulador/coordinadores` — the pages were reachable only by typing the URL by hand.
+
+Plan 15-05 closed that gap. Both required entry points now exist in the merged `main` state, verified against the code rather than the SUMMARY:
+
+- `app/Providers/Filament/AreaCoordinatorPanelProvider.php:59-65` — a real `navigationItems([...])` block with `NavigationItem::make('Coordinadores')` whose `->url()` closure calls `route('articulador.coordinadores')`, plus an `isActiveWhen()` route matcher and `->sort(2)`. `NavigationItem` and `Heroicon` are imported explicitly (lines 14, 19), per the CLAUDE.md explicit-`use` rule.
+- `resources/views/components/layouts/app/sidebar.blade.php:45-50` — an `@elseif(auth()->user()->hasRole('area_coordinator'))` branch rendering an "Articulación" `flux:navlist.group` with three items: Dashboard → `route('filament.area_coordinator.pages.dashboard')`, Coordinadores → `route('articulador.coordinadores')`, and Día D → `/articulador/dia-d`. This structurally mirrors the `coordinator` branch (lines 39-44) item-for-item.
+- `sidebar.blade.php:10` — the brand link now resolves `area_coordinator` to the Filament panel dashboard instead of falling through to `route('dashboard')`, closing the redirect loop identified in the original report.
+- `sidebar.blade.php:25-27` — the "Articulador" role label under the campaign name, mirroring the `admin_campaign` / `coordinator` labels.
+
+No regressions were introduced. All nine previously-passing truths were re-checked and still hold.
 
 ## Goal Achievement
 
 ### Observable Truths
 
-| # | Truth | Status | Evidence |
+| #   | Truth | Status | Evidence |
 | --- | ------- | ---------- | -------------- |
-| 1 | Articulador reaches their own Filament panel at `/articulador` (Dashboard + Día D) without admin-panel access | ✓ VERIFIED | `AreaCoordinatorPanelProvider` id=`area_coordinator` path=`articulador`; registered in `bootstrap/providers.php`; `route:list` resolves `filament.area_coordinator.pages.dashboard` + `.dia-d`; test "articulador reaches the /articulador panel dashboard" passes |
-| 2 | Non-articulador roles denied with 403, not a silent redirect | ✓ VERIFIED | `authMiddleware` includes `EnsureUserHasRole:area_coordinator`; `User::canAccessPanel()` has `'area_coordinator'` arm (User.php:253); test "coordinador is forbidden from the /articulador panel" passes |
-| 3 | Articulador on generic `/dashboard` auto-redirects to their own panel | ✓ VERIFIED | `RedirectBasedOnRole` has AREA_COORDINATOR branch → `filament.area_coordinator.pages.dashboard`, plus `isCorrectDashboard()` map entry; 2 passing tests |
-| 4 | `/articulador` route group exists with all 3 D-02-locked routes, no dashboard route (D-06) | ✓ VERIFIED | routes/web.php:99-103 — exactly 3 Volt routes, no `dashboard` route; all resolve in `route:list` |
-| 5 | Articulador sees only coordinadores where `area_coordinator_user_id` = own id | ✓ VERIFIED | coordinators.blade.php:30-32 applies the filter behind a `hasRole(AREA_COORDINATOR)` guard; test "an articulador sees only their own coordinadores" passes |
-| 6 | admin_campaign/super_admin see all coordinadores (campaign-scoped, no owner filter) | ✓ VERIFIED | Filter is role-gated so admins skip it; test "an admin_campaign sees coordinadores belonging to multiple different articuladores" passes |
-| 7 | Created coordinador auto-linked via `area_coordinator_user_id`, field never shown/editable (D-03) | ✓ VERIFIED | create-coordinator.blade.php:123-125 derives id from `auth()`, passed at :138; no form field; tests "creates a coordinador linked…", "the rendered form does not contain an articulador field", "admin_campaign actor creates a coordinador with a null area_coordinator…" pass |
-| 8 | Creating a coordinador requires no phone OTP (D-04) | ✓ VERIFIED | No OTP code path in the component; test "the rendered form does not contain OTP verification elements" passes |
-| 9 | Articulador denied (403, clear reason) editing a coordinador they do not own, via CoordinatorPolicy | ✓ VERIFIED | edit-coordinator.blade.php:54 `abort_unless(auth()->user()->can('update', $coordinator), 403)`; `CoordinatorPolicy::update()` → `authorizeOwnership()` returns `Response::deny('Este coordinador no pertenece a tu equipo de articulador.')`; policy registered in AuthServiceProvider.php:26; test "denied editing a coordinador belonging to a different…" passes |
-| 10 | Articulador manages coordinadores **entirely from their own panel**, mirroring the coordinador experience | ✗ FAILED | Pages exist and work, but no navigation path leads to them. `AreaCoordinatorPanelProvider` registers zero navigation items; shared sidebar has no `area_coordinator` branch. Reachable only by manually typing the URL. See Gaps Summary. |
+| 1 | Articulador reaches their own Filament panel at `/articulador` (Dashboard + Día D) without admin-panel access | ✓ VERIFIED (regression check) | Panel id=`area_coordinator` path=`articulador`; `route:list` resolves `filament.area_coordinator.pages.dashboard` + `.dia-d`; access tests pass |
+| 2 | Non-articulador roles denied with 403, not a silent redirect | ✓ VERIFIED (regression check) | `authMiddleware` includes `EnsureUserHasRole:area_coordinator` (line 85); `User::canAccessPanel()` arm at User.php:253; test "coordinador is forbidden from the /articulador panel" passes |
+| 3 | Articulador on generic `/dashboard` auto-redirects to their own panel | ✓ VERIFIED (regression check) | `RedirectBasedOnRole` (82 lines) AREA_COORDINATOR branch + `isCorrectDashboard()` entry; 2 tests pass |
+| 4 | `/articulador` route group exists with all 3 D-02-locked routes, no dashboard route (D-06) | ✓ VERIFIED (regression check) | routes/web.php:99-102 — exactly 3 Volt routes, no `dashboard` route; all resolve |
+| 5 | Articulador sees only coordinadores where `area_coordinator_user_id` = own id | ✓ VERIFIED (regression check) | coordinators.blade.php (175 lines) role-gated filter; test passes |
+| 6 | admin_campaign/super_admin see all coordinadores (campaign-scoped, no owner filter) | ✓ VERIFIED (regression check) | Filter role-gated; test passes |
+| 7 | Created coordinador auto-linked via `area_coordinator_user_id`, field never shown/editable (D-03) | ✓ VERIFIED (regression check) | create-coordinator.blade.php (321 lines) derives id from `auth()`; no form field; 3 tests pass |
+| 8 | Creating a coordinador requires no phone OTP (D-04) | ✓ VERIFIED (regression check) | No OTP code path; test passes |
+| 9 | Articulador denied (403, clear reason) editing a coordinador they do not own, via CoordinatorPolicy | ✓ VERIFIED (regression check) | edit-coordinator.blade.php `abort_unless(...can('update'...), 403)`; `CoordinatorPolicy` (49 lines) denies with a Spanish reason; test passes |
+| 10 | Articulador manages coordinadores **entirely from their own panel**, mirroring the coordinador experience | ✓ VERIFIED (gap closed) | Panel `navigationItems()` at AreaCoordinatorPanelProvider.php:59-65 → `route('articulador.coordinadores')`; sidebar `area_coordinator` branch at sidebar.blade.php:45-50 with Dashboard/Coordinadores/Día D; brand link and role label fixed at :10 and :25-27. Six new tests confirm the links render and do not leak into the coordinador sidebar. |
 
-**Score:** 9/10 truths verified
+**Score:** 10/10 truths verified
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 | -------- | ----------- | ------ | ------- |
-| `app/Providers/Filament/AreaCoordinatorPanelProvider.php` | Panel registration, pages, widgets, role-locked authMiddleware | ⚠️ PARTIAL | 79 lines, fully substantive and wired — but missing navigation to the coordinadores pages |
-| `app/Models/User.php` | `canAccessPanel()` `area_coordinator` arm | ✓ VERIFIED | Line 253; without it the panel would 403 (RESEARCH Pitfall 1) |
-| `app/Http/Middleware/RedirectBasedOnRole.php` | AREA_COORDINATOR redirect branch | ✓ VERIFIED | Redirect branch + `isCorrectDashboard()` map entry both present |
-| `routes/web.php` | `/articulador` group, 3 named routes | ✓ VERIFIED | Lines 99-103, role middleware `area_coordinator,admin_campaign,super_admin` |
-| `resources/views/livewire/articulador/coordinators.blade.php` | List — search, pagination, stats, empty state, own-team scoping | ✓ VERIFIED | 175 lines; real paginated query, all elements present |
-| `resources/views/livewire/articulador/create-coordinator.blade.php` | Create — full field set, no OTP, no articulador field | ✓ VERIFIED | 321 lines; real `User::create()`, role assign, campaign attach |
-| `resources/views/livewire/articulador/edit-coordinator.blade.php` | Edit — policy-gated, no `area_coordinator_user_id`, optional password | ✓ VERIFIED | 256 lines; real `update()`, password preserved when blank (:114) |
-| `resources/views/components/layouts/app/sidebar.blade.php` | (implied by "mirroring") articulador nav group | ✗ MISSING | No `area_coordinator` branch — articulador falls into generic `@else` |
+| `app/Providers/Filament/AreaCoordinatorPanelProvider.php` | Panel registration, pages, widgets, role-locked authMiddleware, **navigation to coordinadores** | ✓ VERIFIED | 88 lines (was 79). `navigationItems()` added; explicit `use` for `NavigationItem` and `Heroicon` |
+| `resources/views/components/layouts/app/sidebar.blade.php` | `area_coordinator` nav group mirroring the coordinador group | ✓ VERIFIED | Branch at 45-50 mirrors 39-44 item-for-item; brand link (:10) and role label (:25-27) also handle `area_coordinator` |
+| `app/Models/User.php` | `canAccessPanel()` `area_coordinator` arm | ✓ VERIFIED | Line 253, unchanged |
+| `app/Http/Middleware/RedirectBasedOnRole.php` | AREA_COORDINATOR redirect branch | ✓ VERIFIED | 82 lines, unchanged |
+| `routes/web.php` | `/articulador` group, 3 named routes | ✓ VERIFIED | Lines 99-102, unchanged |
+| `resources/views/livewire/articulador/coordinators.blade.php` | List — search, pagination, stats, empty state, own-team scoping | ✓ VERIFIED | 175 lines, unchanged |
+| `resources/views/livewire/articulador/create-coordinator.blade.php` | Create — full field set, no OTP, no articulador field | ✓ VERIFIED | 321 lines, unchanged |
+| `resources/views/livewire/articulador/edit-coordinator.blade.php` | Edit — policy-gated, no `area_coordinator_user_id`, optional password | ✓ VERIFIED | 256 lines, unchanged |
+| `tests/Feature/Articulador/ArticuladorNavigationTest.php` | Coverage for the new navigation, incl. negative cases | ✓ VERIFIED | 89 lines, 6 tests, 15 assertions — includes two negative tests confirming the coordinador panel and sidebar contain no articulador links |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 | ---- | --- | --- | ------ | ------- |
-| `bootstrap/providers.php` | `AreaCoordinatorPanelProvider` | provider array | ✓ WIRED | Present in providers list |
-| `User::canAccessPanel()` | panel id `area_coordinator` | match arm `hasAnyRole` | ✓ WIRED | Allows area_coordinator, admin_campaign, super_admin |
-| `RedirectBasedOnRole` | `filament.area_coordinator.pages.dashboard` | `hasRole(AREA_COORDINATOR)` branch | ✓ WIRED | Both redirect and no-op-when-already-there paths |
-| `routes/web.php` | `articulador.coordinators` Volt view | `Volt::route('coordinadores', ...)` | ✓ WIRED | Route resolves; view file exists |
-| `coordinators.blade.php with()` | `users.area_coordinator_user_id` | role-gated `where()` filter | ✓ WIRED | Line 31 |
-| `create-coordinator.blade.php save()` | `users.area_coordinator_user_id` | auto-set from `auth()->id()` | ✓ WIRED | Lines 123-125, 138 |
-| `create-coordinator.blade.php updatedDocumentNumber()` | `IdentityLookupService::findByDocumentNumber()` | blur autofill | ✓ WIRED | Line 77, name lock at :81, `unlockName()` at :85 |
-| `edit-coordinator.blade.php mount()` | `CoordinatorPolicy::update()` | `abort_unless(...can('update'...), 403)` | ✓ WIRED | Line 54; policy mapped `User::class => CoordinatorPolicy::class` |
-| Filament panel dashboard | `articulador.coordinadores` | navigation item | ✗ NOT_WIRED | No `navigationItems()` / `NavigationItem` anywhere in `app/` |
-| Shared Volt sidebar | `articulador.coordinadores` | `flux:navlist` role branch | ✗ NOT_WIRED | No `area_coordinator` branch in any layout file |
+| Filament panel `area_coordinator` | `articulador.coordinadores` | `navigationItems([NavigationItem::make(...)->url(...)])` | ✓ WIRED (was NOT_WIRED) | AreaCoordinatorPanelProvider.php:59-65; URL closure calls the named route, so it fails loudly if the route is ever removed |
+| Shared Volt sidebar | `articulador.coordinadores` | `flux:navlist` `area_coordinator` branch | ✓ WIRED (was NOT_WIRED) | sidebar.blade.php:48 |
+| Shared Volt sidebar | `filament.area_coordinator.pages.dashboard` | `flux:navlist.item` + brand link | ✓ WIRED | sidebar.blade.php:47 and :10 — the previous `route('dashboard')` bounce loop is gone |
+| Shared Volt sidebar | `/articulador/dia-d` | `flux:navlist.item` href | ✓ WIRED | sidebar.blade.php:49; `route:list` confirms `filament.area_coordinator.pages.dia-d` serves `articulador/dia-d`. Hardcoded path mirrors the coordinador branch's `/coordinator/dia-d` (line 43) — consistent with the existing convention |
+| `bootstrap/providers.php` | `AreaCoordinatorPanelProvider` | provider array | ✓ WIRED | Unchanged |
+| `User::canAccessPanel()` | panel id `area_coordinator` | match arm `hasAnyRole` | ✓ WIRED | Unchanged |
+| `RedirectBasedOnRole` | `filament.area_coordinator.pages.dashboard` | `hasRole(AREA_COORDINATOR)` branch | ✓ WIRED | Unchanged |
+| `routes/web.php` | `articulador.coordinadores` Volt view | `Volt::route(...)` | ✓ WIRED | Unchanged |
+| `coordinators.blade.php with()` | `users.area_coordinator_user_id` | role-gated `where()` | ✓ WIRED | Unchanged |
+| `create-coordinator.blade.php save()` | `users.area_coordinator_user_id` | auto-set from `auth()->id()` | ✓ WIRED | Unchanged |
+| `edit-coordinator.blade.php mount()` | `CoordinatorPolicy::update()` | `abort_unless(...can('update'...), 403)` | ✓ WIRED | Unchanged |
 
 ### Data-Flow Trace (Level 4)
 
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 | -------- | ------------- | ------ | ------------------ | ------ |
+| `AreaCoordinatorPanelProvider` nav item | item URL | `route('articulador.coordinadores')` inside a closure | Yes — resolves to `/articulador/coordinadores`, confirmed in `route:list`; not a hardcoded string | ✓ FLOWING |
+| `sidebar.blade.php` articulador branch | three `:href` values | `route()` helpers + one literal path matching a registered Filament page | Yes — all three targets appear in `route:list` | ✓ FLOWING |
 | `coordinators.blade.php` | `$coordinators`, `$totalCoordinators`, `$totalLeaders` | `User::role(COORDINATOR)->withCount('leaders')` paginated | Yes — real Eloquent query, no static fallback | ✓ FLOWING |
-| `create-coordinator.blade.php` | `$this->municipalities`, `$this->neighborhoods` | `Municipality`/`Neighborhood` queries scoped by `CampaignContext` | Yes | ✓ FLOWING |
-| `create-coordinator.blade.php` | `$this->name` (autofill) | `IdentityLookupService::findByDocumentNumber()` | Yes — service call, name set from result | ✓ FLOWING |
-| `edit-coordinator.blade.php` | form fields | hydrated from bound `User $coordinator` in `mount()` | Yes — real model, lines 57-65 | ✓ FLOWING |
+| `create-coordinator.blade.php` | `$this->municipalities`, `$this->neighborhoods`, `$this->name` | Campaign-scoped queries + `IdentityLookupService` | Yes | ✓ FLOWING |
+| `edit-coordinator.blade.php` | form fields | hydrated from bound `User $coordinator` | Yes | ✓ FLOWING |
 
-Note: `$totalLeaders` uses `$query->clone()->get()->sum('leaders_count')`, which loads all matching rows into memory rather than aggregating in SQL. Correct, but will degrade for articuladores with very large teams. Informational only — not a goal blocker.
+Carried forward from the initial report (informational, not a blocker): `coordinators.blade.php` computes `$totalLeaders` via `$query->clone()->get()->sum('leaders_count')`, which loads matching rows into memory rather than aggregating in SQL. Output is correct; cost grows with team size.
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 | -------- | ------- | ------ | ------ |
-| Routes register and resolve | `php artisan route:list \| grep articulador` | 3 Volt routes + panel dashboard + dia-d + logout | ✓ PASS |
-| Phase test suites pass | `php artisan test tests/Feature/Articulador/ tests/Feature/Filament/AreaCoordinatorPanelAccessTest.php tests/Feature/Middleware/RoleMiddlewareTest.php` | 49 passed (87 assertions), 3.29s | ✓ PASS |
-| Code style clean | `vendor/bin/pint --test` on phase files | PASS, 3 files | ✓ PASS |
-| Navigation entry point exists | `grep -rn "articulador.coordinadores" app/ resources/ routes/` | Only self-references inside the 3 Volt pages | ✗ FAIL |
+| Navigation entry point exists in code | Read `AreaCoordinatorPanelProvider.php` + `sidebar.blade.php` | `navigationItems()` block present; `area_coordinator` sidebar branch present | ✓ PASS |
+| All navigation targets resolve to real routes | `php artisan route:list \| grep articulador` | 6 entries: panel dashboard, 3 Volt routes, dia-d, logout | ✓ PASS |
+| Articulador panel dashboard actually renders the link | `php artisan test .../ArticuladorNavigationTest.php` | 6 passed (15 assertions), 0.72s — incl. `assertSee('/articulador/coordinadores')` on `GET /articulador` | ✓ PASS |
+| Articulador sidebar renders the "Articulación" group and no generic "Platform" group | same suite | Both assertions pass | ✓ PASS |
+| No leakage into the coordinador experience | same suite | Coordinador panel nav items exclude the articulador URL; coordinador sidebar `assertDontSee('/articulador/coordinadores')` | ✓ PASS |
+| Phase test suites pass | `php artisan test tests/Feature/Articulador/ tests/Feature/Filament/AreaCoordinatorPanelAccessTest.php tests/Feature/Middleware/RoleMiddlewareTest.php` | 55 passed (102 assertions), 3.63s — was 49, +6 new | ✓ PASS |
+| Code style clean | `vendor/bin/pint --test` on the panel provider + articulador tests | PASS, 5 files | ✓ PASS |
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 | ----------- | ---------- | ----------- | ------ | -------- |
-| ARTIC-02 | 15-01, 15-02, 15-03, 15-04 | Articulador crea y gestiona coordinadores desde su propio panel de auto-gestión (mirroring el panel de auto-gestión que ya tiene coordinador) | ⚠️ PARTIAL | All CRUD logic, scoping, and authorization implemented and tested (49 passing tests). The "mirroring el panel de auto-gestión que ya tiene coordinador" clause is not fully satisfied: the coordinador mirror has a sidebar nav group, the articulador has none. |
+| ARTIC-02 | 15-01, 15-02, 15-03, 15-04, 15-05 | Articulador crea y gestiona coordinadores desde su propio panel de auto-gestión (mirroring el panel de auto-gestión que ya tiene coordinador) | ✓ SATISFIED | CRUD, own-team scoping, auto-linking, and policy-gated ownership were verified in the initial pass. The outstanding "mirroring el panel de auto-gestión que ya tiene coordinador" clause is now satisfied: the articulador has a sidebar group structurally identical to the coordinador's, plus a panel-level nav item. 55 passing tests across the phase suites. |
 
-No orphaned requirements — ARTIC-02 is the only ID mapped to Phase 15 in REQUIREMENTS.md, and all 4 plans declare it.
+**REQUIREMENTS.md current state (re-checked):** ARTIC-02 is now `[x]` at line 13 and **Done** in the traceability table at line 64. Both edits are consistent with the verified code — closing the requirement was correct.
 
-**REQUIREMENTS.md current state:** ARTIC-02 is `[ ]` (line 13) and marked **Pending** in the mapping table (line 64).
-
-**Recommendation:** do NOT close ARTIC-02 yet. The requirement text explicitly invokes mirroring the coordinador self-service panel, and navigation is part of that mirror. Closing it after the navigation gap is addressed is safe — no other part of the requirement is outstanding.
+No orphaned requirements — ARTIC-02 remains the only ID mapped to Phase 15, and all five plans declare it.
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 | ---- | ---- | ------- | -------- | ------ |
-| — | — | No TODO/FIXME/XXX/HACK/PLACEHOLDER in any phase file | — | Clean |
+| — | — | No TODO/FIXME/XXX/HACK/PLACEHOLDER in any phase file, including the 15-05 additions | — | Clean |
 | — | — | No empty handlers, `console.log`, or stub returns | — | Clean |
-| `AreaCoordinatorPanelProvider.php` | 76 | Inline namespace `\App\Http\Middleware\EnsureUserHasRole::class` violates the CLAUDE.md explicit-`use` rule | ℹ️ Info | Pre-existing repo pattern — `CoordinatorPanelProvider:76` and `LeaderPanelProvider:78` are identical. Faithful mirroring; fixing here alone would create inconsistency. |
-| `coordinators.blade.php` | 44 | `->get()->sum()` instead of SQL aggregate | ℹ️ Info | Memory cost at large team sizes; correct output |
-
-`layout('components.layouts::app', ...)` was checked and is the established repo-wide convention (13 Volt pages use the `::` form) — not a defect.
+| `AreaCoordinatorPanelProvider.php` | 85 | Inline namespace `\App\Http\Middleware\EnsureUserHasRole::class` violates the CLAUDE.md explicit-`use` rule | ℹ️ Info | Pre-existing and unchanged by 15-05. `CoordinatorPanelProvider` and `LeaderPanelProvider` are identical — fixing here alone would break consistency. Note that the new code added by 15-05 does follow the rule (`NavigationItem`, `Heroicon` imported at lines 14, 19). |
+| `sidebar.blade.php` | 10 | Triple-nested ternary in the brand `href` | ℹ️ Info | Readability only. Correct for all four role paths; extending it for a fifth role would warrant extracting a helper |
+| `coordinators.blade.php` | 44 | `->get()->sum()` instead of SQL aggregate | ℹ️ Info | Carried forward; memory cost at large team sizes, correct output |
 
 ### Human Verification Required
 
-See `human_verification` in frontmatter. Two items: articulador panel widget data scoping, and the cédula autofill lock/unlock interaction in a real browser (per the project's browser-verify-before-prod convention).
+Three items, listed in `human_verification` in the frontmatter. Two carry over from the initial report (panel widget data scoping; the cédula autofill lock/unlock interaction). The third is new and covers the navigation added by 15-05 — the tests confirm the links are rendered with the right hrefs, but active-state highlighting and `wire:navigate` transitions between a Filament panel and Volt pages are runtime/visual behaviors that need a browser, per the project's browser-verify-before-prod convention.
 
 ### Gaps Summary
 
-The phase is functionally complete and well-tested. Every piece of business logic the goal requires — panel access gating, 403 denial for non-articuladores, post-login redirect, own-team list scoping, auto-linking on create, policy-gated ownership on edit, and deliberate omission of `area_coordinator_user_id` from both forms — exists in real code, is correctly wired, moves real data, and is covered by 49 passing tests.
+None. The single gap from the initial verification is closed at the code level, not just claimed in a SUMMARY: the panel registers a real `NavigationItem` resolving through the named route, and the shared sidebar has an `area_coordinator` branch that mirrors the coordinador branch item-for-item, including the role label and the brand link that previously bounced back to the Filament dashboard. Six new tests lock the behavior in, two of them negative tests guarding against leakage into the coordinador experience. All nine previously-verified truths were re-checked and show no regression; the phase suites grew from 49 to 55 passing tests with no failures.
 
-The single gap is reachability. After login, `RedirectBasedOnRole` sends the articulador to the Filament panel dashboard. That panel registers only `Dashboard` and `DiaD` pages and zero navigation items, so nothing there points to `/articulador/coordinadores`. The three Volt pages render inside `components.layouts::app`, whose sidebar branches on `admin_campaign` and `coordinator` but not `area_coordinator` — the articulador falls into the generic `@else` "Platform" group whose only link is `route('dashboard')`, which redirects right back to the Filament dashboard. The result is a closed loop: the coordinador management surface is reachable only by typing the URL by hand.
-
-This matters specifically because the goal is defined as mirroring the coordinador experience, and that experience does have a nav group (Dashboard, Líderes, Día D). The fix is small and additive — a navigation item on the panel plus an `area_coordinator` sidebar branch — and touches no logic verified above, so it carries low regression risk.
+Status is `human_needed` rather than `passed` only because three items remain that cannot be confirmed programmatically — no automated check is outstanding.
 
 ---
 
-_Verified: 2026-08-10T23:02:22Z_
+_Verified: 2026-08-10T19:20:00Z (re-verification)_
 _Verifier: Claude (gsd-verifier)_

@@ -1,0 +1,36 @@
+---
+status: partial
+phase: 15-articulador-self-service-panel
+source: [15-VERIFICATION.md]
+started: 2026-08-10T23:55:00Z
+updated: 2026-08-10T23:55:00Z
+---
+
+## Current Test
+
+[awaiting human testing]
+
+## Tests
+
+### 1. Panel dashboard widget scoping
+expected: Log in as an articulador and confirm the `/articulador` panel dashboard widgets (CampaignStatsOverview, TerritorialDistributionChart, TopLeadersTable) render campaign-appropriate numbers and do not leak another articulador's or another campaign's data. Widgets render without error and show only data the articulador is entitled to see.
+result: [pending]
+
+### 2. Cédula autofill lock/unlock on create-coordinador form
+expected: On the create-coordinador form, type a cédula that exists in the national identity directory, blur the field, then click the unlock control and edit the name. Name autofills and locks on match, unlock control re-enables editing — identical feel to create-leader.blade.php.
+result: [pending]
+
+### 3. Navigation click-through (new — from gap closure)
+expected: Log in as an articulador and click through the sidebar: Dashboard → Coordinadores → Día D, then use the panel's own "Coordinadores" nav item from the Filament dashboard. Every link lands on the intended page with the correct item highlighted as current; no bounce back to the dashboard.
+result: [pending]
+
+## Summary
+
+total: 3
+passed: 0
+issues: 0
+pending: 3
+skipped: 0
+blocked: 0
+
+## Gaps
