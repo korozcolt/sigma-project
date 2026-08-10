@@ -99,7 +99,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 14-01-PLAN.md — AreaCoordinatorResource admin resource (Resource, Pages, Form, Table) (ARTIC-01)
+- [x] 14-01-PLAN.md — AreaCoordinatorResource admin resource (Resource, Pages, Form, Table) (ARTIC-01)
 - [ ] 14-02-PLAN.md — area_coordinator_user_id Select on CoordinatorForm, campaign-scoped (ARTIC-01, ARTIC-03)
 
 ### Phase 15: Articulador Self-Service Panel
@@ -147,7 +147,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
 | 12. Hierarchy & Metadata Schema Foundation | 2/2 | Complete    | 2026-08-10 |
 | 13. Hierarchy Authorization & Call-Site Audit | 1/2 | Complete    | 2026-08-10 |
-| 14. Articulador Admin Resource & Hierarchy Wiring | 0/2 | Not started | - |
+| 14. Articulador Admin Resource & Hierarchy Wiring | 1/2 | In Progress | - |
 | 15. Articulador Self-Service Panel | 0/? | Not started | - |
 | 16. Metadata Catalog UI & Assignment | 0/? | Not started | - |
 | 17. Filter/Sort/Export Surfaces | 0/? | Not started | - |
