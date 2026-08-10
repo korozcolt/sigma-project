@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserRole;
 use App\Models\Concerns\HasCampaignMembershipScope;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -152,6 +153,26 @@ class User extends Authenticatable implements FilamentUser
     public function coordinators(): HasMany
     {
         return $this->hasMany(User::class, 'area_coordinator_user_id');
+    }
+
+    /**
+     * Resolve the coordinator_user_id values whose leaders should be visible to
+     * this user for "my team" scoped queries (TopLeadersTable, TopLeadersExport,
+     * LeadersExportController). A coordinador's team is just themselves; an
+     * articulador's team is every coordinador assigned to them (leaders hang off
+     * coordinador via coordinator_user_id, not off area_coordinator_user_id
+     * directly, so this is the transitive-team resolution point — AUTHZ-01).
+     * Any other role has no team.
+     *
+     * @return array<int, int>
+     */
+    public function teamCoordinatorUserIds(): array
+    {
+        return match (true) {
+            $this->hasRole(UserRole::AREA_COORDINATOR->value) => $this->coordinators()->pluck('id')->all(),
+            $this->hasRole(UserRole::COORDINATOR->value) => [$this->id],
+            default => [],
+        };
     }
 
     /**

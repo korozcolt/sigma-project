@@ -34,8 +34,8 @@ class TopLeadersExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
                     ->orderByDesc('registered_voters_count');
             }, fn (Builder $query) => $query->whereRaw('1 = 0'))
             ->when(
-                Auth::user()?->hasRole(UserRole::COORDINATOR->value),
-                fn (Builder $query) => $query->where('coordinator_user_id', Auth::user()->id)
+                Auth::user()?->hasAnyRole([UserRole::COORDINATOR->value, UserRole::AREA_COORDINATOR->value]),
+                fn (Builder $query) => $query->whereIn('coordinator_user_id', Auth::user()->teamCoordinatorUserIds())
             );
     }
 

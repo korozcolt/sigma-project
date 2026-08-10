@@ -19,7 +19,10 @@ class LeadersExportController extends Controller
             ->whereHas('campaigns', fn ($q) => $q->whereIn('campaigns.id', $campaignIds))
             ->when($request->query('q'), fn ($q, $search) => $q->where(fn ($q2) => $q2->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")))
             ->when($user->municipality_id, fn ($q) => $q->where('municipality_id', $user->municipality_id))
-            ->when($user->hasRole(UserRole::COORDINATOR->value), fn ($q) => $q->where('coordinator_user_id', $user->id))
+            ->when(
+                $user->hasAnyRole([UserRole::COORDINATOR->value, UserRole::AREA_COORDINATOR->value]),
+                fn ($q) => $q->whereIn('coordinator_user_id', $user->teamCoordinatorUserIds())
+            )
             ->withCount(['registeredVoters as voters_count']);
 
         $export = new LeadersExport(queryBuilder: $query);

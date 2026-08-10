@@ -44,8 +44,8 @@ class TopLeadersTable extends TableWidget
                             ->orderByDesc('registered_voters_count');
                     })
                     ->when(
-                        $user?->hasRole(UserRole::COORDINATOR->value),
-                        fn ($query) => $query->where('coordinator_user_id', $user->id)
+                        $user?->hasAnyRole([UserRole::COORDINATOR->value, UserRole::AREA_COORDINATOR->value]),
+                        fn ($query) => $query->whereIn('coordinator_user_id', $user->teamCoordinatorUserIds())
                     )
                     ->limit(10)
             )
