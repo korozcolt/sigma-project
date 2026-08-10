@@ -11,10 +11,12 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -53,6 +55,13 @@ class AreaCoordinatorPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
                 DiaD::class,
+            ])
+            ->navigationItems([
+                NavigationItem::make('Coordinadores')
+                    ->url(fn (): string => route('articulador.coordinadores'))
+                    ->icon(Heroicon::OutlinedUsers)
+                    ->isActiveWhen(fn (): bool => request()->routeIs('articulador.coordinadores*'))
+                    ->sort(2),
             ])
             ->widgets([
                 CampaignStatsOverview::class,
