@@ -5,11 +5,13 @@ use App\Models\User;
 use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
-use function Livewire\Volt\{layout, with};
+
+use function Livewire\Volt\layout;
 
 layout('components.layouts::app', ['title' => 'Gestión de Coordinadores']);
 
-new class extends Component {
+new class extends Component
+{
     use WithPagination;
 
     #[Url(as: 'q')]
