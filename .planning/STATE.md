@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: Executing Phase 15
-stopped_at: Completed 15-03-PLAN.md and 15-04-PLAN.md (wave 2)
-last_updated: "2026-08-10T22:53:23Z"
+status: Phase 15 complete, ready for Phase 16
+stopped_at: Completed 15-05-PLAN.md (gap closure)
+last_updated: "2026-08-10T23:49:04Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
-  completed_phases: 3
-  total_plans: 10
-  completed_plans: 10
+  completed_phases: 4
+  total_plans: 11
+  completed_plans: 11
   percent: 100
 ---
 
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 15 of 17 (articulador self service panel)
-Plan: 4 of 4 complete (wave 1 — 15-01, 15-02; wave 2 — 15-03, 15-04)
-Status: All 4 plans complete. 15-01/15-02 (wave 1): `AreaCoordinatorPanelProvider` + route group + own-team-scoped coordinadores list Volt page. 15-03 (wave 2): `articulador.create-coordinator` Volt page — full `CoordinatorForm` field set, IdentityLookupService document-number autofill/name-lock reused verbatim from `create-leader.blade.php`, NO OTP step (D-04), NO `area_coordinator_user_id` form field (D-03 — computed inline in `save()`), campaign-scoped municipality select. 11 tests, 29 assertions, all passing. Found (but did not fix, out of scope) a pre-existing bug in `App\Models\CampaignUser`'s `HasCampaignContext` trait that forcibly overwrites `campaign_id` on every pivot attach/sync with the actor's current-context campaign, silently corrupting multi-campaign attach calls across the whole app — logged as a blocker below. 15-04 (wave 2): `articulador/coordinadores/{coordinator}/edit` Volt page, authorization enforced via `CoordinatorPolicy::update()` (`auth()->user()->can('update', $coordinator)`) rather than a hand-rolled FK check — resolves RESEARCH.md's Open Question 1. 10 Pest tests cover load/save/password/ownership-denial/cross-role-passthrough/middleware-block. Phase 15 execution complete; verification pending. ARTIC-02 now closable — all 4 split plans landed.
+Phase: 15 of 17 (articulador self service panel) — COMPLETE, ready to move to Phase 16
+Plan: 5 of 5 complete (wave 1 — 15-01, 15-02; wave 2 — 15-03, 15-04; gap closure — 15-05)
+Status: All 5 plans complete. 15-01/15-02 (wave 1): `AreaCoordinatorPanelProvider` + route group + own-team-scoped coordinadores list Volt page. 15-03 (wave 2): `articulador.create-coordinator` Volt page — full `CoordinatorForm` field set, IdentityLookupService document-number autofill/name-lock reused verbatim from `create-leader.blade.php`, NO OTP step (D-04), NO `area_coordinator_user_id` form field (D-03 — computed inline in `save()`), campaign-scoped municipality select. 11 tests, 29 assertions, all passing. Found (but did not fix, out of scope) a pre-existing bug in `App\Models\CampaignUser`'s `HasCampaignContext` trait that forcibly overwrites `campaign_id` on every pivot attach/sync with the actor's current-context campaign, silently corrupting multi-campaign attach calls across the whole app — logged as a blocker below. 15-04 (wave 2): `articulador/coordinadores/{coordinator}/edit` Volt page, authorization enforced via `CoordinatorPolicy::update()` (`auth()->user()->can('update', $coordinator)`) rather than a hand-rolled FK check — resolves RESEARCH.md's Open Question 1. 10 Pest tests cover load/save/password/ownership-denial/cross-role-passthrough/middleware-block. 15-05 (gap closure, wave 1): closed the sole `15-VERIFICATION.md` FAILED truth (Truth 10 — reachability) by adding a Filament `NavigationItem` on the `/articulador` panel plus an `area_coordinator` branch + role label in the shared Volt sidebar, so the three coordinador-management pages are reachable by clicking instead of typing a URL. 6 new Pest tests; full phase regression suite (66 tests) green. ARTIC-02 is now closed (checklist `[x]` + traceability `Done`) — Phase 15 is fully complete.
 Last activity: 2026-08-10
 
-Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 4/4 plans complete)
+Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 15 Plan 05 decisions (gap closure — navigation reachability):
+
+- [Phase 15 Plan 05]: Deliberate divergence from `15-CONTEXT.md` D-06 ("no structural link between the Filament panel and the Volt CRUD pages"): added exactly such a link — a `NavigationItem` on the `/articulador` Filament panel plus a sidebar Dashboard item pointing back at `route('filament.area_coordinator.pages.dashboard')`. Necessary because the articulador's post-login landing page is the Filament panel (D-06 itself forbade a Volt dashboard route), so without this link the landing surface was a dead end with no path back to the coordinador-management pages — `15-VERIFICATION.md`'s `missing` list explicitly prescribed this exact `NavigationItem`.
+- [Phase 15 Plan 05]: [Rule 1 - Bug] The plan's own RED-state test spec called for a hardcoded English `assertDontSee('Platform')` needle to prove the generic sidebar group is absent for an articulador. `APP_LOCALE=es` translates `"Platform"` → `"Plataforma"` via `lang/es.json`, making the hardcoded needle a permanent no-op in both RED and GREEN states (it "passed" for the wrong reason from the start — actual RED was 3 failed/3 passed, not the plan's expected 4 failed/2 passed). Fixed by asserting against `__('Platform')` instead, which resolves to the actual rendered locale string; RED state then correctly matched the plan's expected 4 failed/2 passed.
+- [Phase 15 Plan 05]: ARTIC-02 is now marked complete (checklist `[x]` + traceability `Done`) — the final requirement for Phase 15, gated on the full phase regression suite (66 tests across `Articulador/`, `AreaCoordinatorPanelAccessTest`, `RoleMiddlewareTest`, `RoleBasedRedirectTest`) passing green with zero failures. Phase 15 is now fully complete (5/5 plans).
+- [Phase 15 Plan 05]: Worktree (`agent-a3a7516501be8223a`) was stale at session start — missing Phases 12-15 entirely plus `vendor/`, `.env`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, copied `.env`, `composer install`, `npm install && npm run build`. `gsd-tools init execute-phase 15` again resolved `project_root` to the main checkout, not this worktree, reconfirming the recurring `findProjectRoot()` bug — STATE.md/ROADMAP.md updated by hand-editing the worktree copies directly.
 
 Phase 15 Plan 04 decisions:
 
@@ -238,6 +245,7 @@ Quick task 260808-jsz decisions:
 - **Volt's `layout()` global helper has no effect on class-based full-page Volt components** in the installed `livewire/volt` version — every page silently renders with the default `components.layouts.app` regardless of what `layout(...)` specifies. Invisible everywhere except unauthenticated full-page routes (crashes on `auth()->user()->hasRole()` against a null user). Fixed only for the one page that hit it (`public.register-leader`, via Livewire's native `#[Layout(...)]` attribute instead). Every other existing `layout()` call project-wide is still affected but cosmetically harmless today.
 - **Three pending `checkpoint:human-verify` sign-offs** (all code complete, committed, and test-covered — only the real-browser confirmation step is outstanding): quick tasks `260801-hvd` (public leader self-registration + SMS OTP), `260804-i5f` (cross-coordinator data-leak fix, 4 UI surfaces), `260804-jbc` (second cross-coordinator leak fix, 6 scenarios). See each task's SUMMARY.md for the exact verification script.
 - **`sigma-registraduria` production container needs a manual Dokploy redeploy** to pick up the tini zombie-reaping fix (quick task 260804-kss) — `autoDeploy=false` on that service, not urgent (zombie leak, not user-facing).
+- **Phase 15 has three outstanding `checkpoint:human-verify` items, none of which block Phase 16** (all code complete, committed, and Pest-covered): (1) articulador panel widget data scoping — visual confirmation the panel's stat widgets reflect only the articulador's own team; (2) the cédula autofill lock/unlock interaction on the create-coordinador form, in a real browser; (3) new from 15-05 — visually confirm the new "Articulación" sidebar group and "Coordinadores" Filament navigation item render correctly and are clickable for a real articulador login. See `.planning/phases/15-articulador-self-service-panel/15-05-SUMMARY.md` and `15-VERIFICATION.md` for details.
 - **`App\Models\CampaignUser`'s `HasCampaignContext` trait silently corrupts multi-campaign `attach()`/`sync()` calls to a campaign other than the acting user's current-context campaign.** Found 2026-08-10 during Phase 15 Plan 03. The trait's `static::creating` hook calls `CampaignContext::enforceCampaignId($model)`, unconditionally overwriting the pivot's `campaign_id` attribute with the actor's resolved current-context campaign id, regardless of what id was actually passed to `attach()`/`sync()`. This is correct behavior for models where `campaign_id` is a scoping column separate from the row's identity (e.g. `Voter`), but wrong for `CampaignUser`, where `campaign_id` IS the relationship key itself. Reproduced with a `UniqueConstraintViolationException` when a user with 2+ campaigns tries to attach a NEW user to their second (non-active-context) campaign — the insert silently targets the wrong campaign id instead. Affects every existing call site: `create-leader.blade.php`, `register-leader.blade.php` (public), `App\Filament\Resources\Leaders\Pages\CreateLeader::afterCreate()`/`EditLeader`, `CreateCoordinator`/`EditCoordinator`, `CreateAreaCoordinator`/`EditAreaCoordinator`, `BackfillCoordinatorCampaign`, and the new `articulador/create-coordinator.blade.php` (15-03). Not fixed (out of scope for 15-03 — touches a shared model used app-wide, would need its own regression pass). **Recommended fix (not yet implemented):** remove `HasCampaignContext` from `CampaignUser` entirely — its `campaign_id`/`user_id` pair should only ever be set explicitly by the relationship's `attach()`/`sync()` calls, never silently overridden.
 
 <details>
