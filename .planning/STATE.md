@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: Defining requirements
+status: Roadmap created
 last_updated: "2026-08-10T00:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -22,14 +22,25 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 12 of 17 (Hierarchy & Metadata Schema Foundation) — ready to plan
 Plan: —
-Status: Defining requirements
-Last activity: 2026-08-10 — Milestone v1.2 started
+Status: Roadmap created, ready for /gsd:plan-phase 12
+Last activity: 2026-08-10 — Roadmap created (Phases 12-17, 17/17 requirements mapped)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## v1.2 Phase Map
 
-Not yet defined — populated when the roadmap is created.
+| Phase | Name | Requirements | Depends On |
+|-------|------|--------------|------------|
+| 12 | Hierarchy & Metadata Schema Foundation | ARTIC-04, ARTIC-05 | Nothing (first phase of v1.2) |
+| 13 | Hierarchy Authorization & Call-Site Audit | AUTHZ-01, AUTHZ-02, AUTHZ-03 | Phase 12 |
+| 14 | Articulador Admin Resource & Hierarchy Wiring | ARTIC-01, ARTIC-03 | Phase 13 |
+| 15 | Articulador Self-Service Panel | ARTIC-02 | Phase 14 |
+| 16 | Metadata Catalog UI & Assignment | META-01..06 | Phase 12, Phase 13 |
+| 17 | Filter/Sort/Export Surfaces | FILT-01, FILT-02, FILT-03 | Phase 16 |
+
+Full phase details, success criteria, and dependencies: `.planning/ROADMAP.md`
 
 ## Performance Metrics
 

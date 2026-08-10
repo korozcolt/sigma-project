@@ -60,29 +60,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ARTIC-01 | TBD | Pending |
-| ARTIC-02 | TBD | Pending |
-| ARTIC-03 | TBD | Pending |
-| ARTIC-04 | TBD | Pending |
-| ARTIC-05 | TBD | Pending |
-| AUTHZ-01 | TBD | Pending |
-| AUTHZ-02 | TBD | Pending |
-| AUTHZ-03 | TBD | Pending |
-| META-01 | TBD | Pending |
-| META-02 | TBD | Pending |
-| META-03 | TBD | Pending |
-| META-04 | TBD | Pending |
-| META-05 | TBD | Pending |
-| META-06 | TBD | Pending |
-| FILT-01 | TBD | Pending |
-| FILT-02 | TBD | Pending |
-| FILT-03 | TBD | Pending |
+| ARTIC-01 | Phase 14 | Pending |
+| ARTIC-02 | Phase 15 | Pending |
+| ARTIC-03 | Phase 14 | Pending |
+| ARTIC-04 | Phase 12 | Pending |
+| ARTIC-05 | Phase 12 | Pending |
+| AUTHZ-01 | Phase 13 | Pending |
+| AUTHZ-02 | Phase 13 | Pending |
+| AUTHZ-03 | Phase 13 | Pending |
+| META-01 | Phase 16 | Pending |
+| META-02 | Phase 16 | Pending |
+| META-03 | Phase 16 | Pending |
+| META-04 | Phase 16 | Pending |
+| META-05 | Phase 16 | Pending |
+| META-06 | Phase 16 | Pending |
+| FILT-01 | Phase 17 | Pending |
+| FILT-02 | Phase 17 | Pending |
+| FILT-03 | Phase 17 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17 ⚠️ (roadmap creation pending)
+- Mapped to phases: 17
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-10*
-*Last updated: 2026-08-10 after initial v1.2 definition*
+*Last updated: 2026-08-10 — roadmap created, all 17 v1.2 requirements mapped to Phases 12-17*
