@@ -2,13 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: Roadmap created
-last_updated: "2026-08-10T00:00:00.000Z"
+status: "Roadmap created, ready for /gsd:plan-phase 12"
+stopped_at: Phase 12 context gathered
+last_updated: "2026-08-10T15:01:09.388Z"
+last_activity: 2026-08-10 — Roadmap created (Phases 12-17, 17/17 requirements mapped)
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -449,6 +452,6 @@ Quick task 260808-hx8 decisions:
 
 ## Session Continuity
 
-Last session: 2026-08-08T17:57:18.000Z
-Stopped at: Quick task 260808-hx8 (mostrar municipio del puesto de votación en ViewVoter): 1/1 task COMPLETE and committed (e10ab33) - ViewVoter's infolist now shows a new "Municipio del Puesto de Votación" TextEntry (pollingPlace.municipality.name) immediately after "Puesto de Votación", with a "Sin resolver" placeholder. Verified via full VoterResourceTest.php suite (60 tests, 148 assertions), all passing; pint clean. Manual browser verification still pending per standing project preference.
-Resume file: None
+Last session: 2026-08-10T15:01:09.378Z
+Stopped at: Phase 12 context gathered
+Resume file: .planning/phases/12-hierarchy-metadata-schema-foundation/12-CONTEXT.md
