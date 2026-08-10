@@ -70,7 +70,7 @@ This milestone adds two related but separable capabilities on top of SIGMA's exi
 
 Plans:
 - [ ] 12-01-PLAN.md — area_coordinator role + area_coordinator_user_id hierarchy FK/relations (ARTIC-04, ARTIC-05)
-- [ ] 12-02-PLAN.md — metadata_keys + user_metadata_values catalog schema (append-only, D-02)
+- [x] 12-02-PLAN.md — metadata_keys + user_metadata_values catalog schema (append-only, D-02)
 
 ### Phase 13: Hierarchy Authorization & Call-Site Audit
 **Goal**: Existing hierarchy-scoped surfaces correctly resolve an articulador's transitive team, and an explicit ownership policy prevents cross-boundary access, before any new UI is built on top of the new role.

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: "Roadmap created, ready for /gsd:plan-phase 12"
-stopped_at: Phase 12 context gathered
-last_updated: "2026-08-10T15:01:09.388Z"
-last_activity: 2026-08-10 — Roadmap created (Phases 12-17, 17/17 requirements mapped)
+status: "Phase 12 in progress — plan 12-02 complete, 12-01 pending"
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-08-10T15:28:44Z"
+last_activity: 2026-08-10 — Phase 12 Plan 02 (metadata catalog schema) complete
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 2
+  completed_plans: 1
+  percent: 8
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 12 of 17 (Hierarchy & Metadata Schema Foundation) — ready to plan
-Plan: —
-Status: Roadmap created, ready for /gsd:plan-phase 12
-Last activity: 2026-08-10 — Roadmap created (Phases 12-17, 17/17 requirements mapped)
+Phase: 12 of 17 (Hierarchy & Metadata Schema Foundation) — in progress
+Plan: 02 (metadata catalog schema) complete; 01 (area_coordinator hierarchy) pending/in-flight (parallel wave 1)
+Status: Phase 12 in progress — plan 12-02 complete
+Last activity: 2026-08-10 — Phase 12 Plan 02 (metadata catalog schema) complete
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 8%
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,14 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 12 Plan 02 decisions:
+
+- [Phase 12 Plan 02]: Implemented D-02 exactly — `user_metadata_values` has no unique constraint on `(user_id, metadata_key_id)`, so every assignment is a new append-only row, giving native per-assignment audit history for free without a separate audit table.
+- [Phase 12 Plan 02]: `metadata_key_id` uses `restrictOnDelete()` (not `cascadeOnDelete()`) as a DB-level backstop against deleting a catalog key that already has assignments, structurally enforcing REQUIREMENTS.md's "no hard delete of keys with existing assignments" rule.
+- [Phase 12 Plan 02]: ARTIC-04/ARTIC-05 are NOT marked complete in REQUIREMENTS.md by this plan alone — this plan only implements Phase 12's success criterion 4 (the metadata schema); the actual ARTIC-04/ARTIC-05 structural claims (no articulador nesting, no coordinador cap) are implemented by the parallel 12-01-PLAN.md (area_coordinator hierarchy). Deferred requirement sign-off to phase completion, same precedent as Phase 10's split-requirement handling.
+- [Phase 12 Plan 02]: Worktree (`agent-a8ab1a1bce4d62ed3`) was stale at session start (missing this phase's own PLAN.md files, `vendor/`, `.env`, `node_modules/`, `public/build/`) — resolved with the established fast-forward + `.env` copy + `composer install` + `npm install && npm run build` workaround. `gsd-tools init execute-phase 12` again confirmed the `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md updates for this plan were hand-edited directly in this worktree instead.
+- [Phase 12 Plan 02]: Full-suite `php artisan test` run showed 17-18 failures in files unrelated to this plan (report/jurisdiction/coordinator/voter-resource tests), confirmed pre-existing via isolated re-run (`VoterResourceTest` passes 60/60 alone) — matches the already-documented `CampaignContext` static-override test-pollution issue below. Logged in `.planning/phases/12-hierarchy-metadata-schema-foundation/deferred-items.md`, not fixed (out of scope).
 
 <details>
 <summary>Archived v1.1 decision log (phases 6-11 + post-ship quick tasks, click to expand)</summary>
