@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: completed
-stopped_at: Phase 13 context gathered
-last_updated: "2026-08-10T16:15:12.316Z"
+status: in_progress
+stopped_at: Phase 13 Plan 02 complete (CoordinatorPolicy)
+last_updated: "2026-08-10T16:51:26.000Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 100
+  total_plans: 4
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 13 of 17 (hierarchy authorization & call site audit)
-Plan: Not started
-Status: Phase 12 Wave 1 complete — area_coordinator role + hierarchy FK (ARTIC-04/05) and metadata_keys/user_metadata_values schema both done
+Plan: 02 of 2 complete (CoordinatorPolicy — AUTHZ-02/AUTHZ-03)
+Status: Phase 13 Plan 02 complete — CoordinatorPolicy created and registered globally for User::class, denying an articulador direct view/edit access to a non-owned coordinador with a named reason; cross-campaign isolation (AUTHZ-03) confirmed via regression test against the pre-existing Gate::before check. Plan 13-01 (AUTHZ-01, transitive-team call-site audit) tracked separately (parallel wave-1 plan).
 Last activity: 2026-08-10
 
-Progress: [██████████] 100% (Phase 12: 2/2 plans)
+Progress: [███████░░░] 75% (Phase 12: 2/2 plans, Phase 13: 1/2 plans known complete in this worktree)
 
 ## v1.2 Phase Map
 
@@ -68,6 +68,12 @@ Phase 12 Plan 02 decisions:
 - [Phase 12 Plan 02]: ARTIC-04/ARTIC-05 are NOT marked complete in REQUIREMENTS.md by this plan alone — this plan only implements Phase 12's success criterion 4 (the metadata schema); the actual ARTIC-04/ARTIC-05 structural claims (no articulador nesting, no coordinador cap) are implemented by the parallel 12-01-PLAN.md (area_coordinator hierarchy). Deferred requirement sign-off to phase completion, same precedent as Phase 10's split-requirement handling.
 - [Phase 12 Plan 02]: Worktree (`agent-a8ab1a1bce4d62ed3`) was stale at session start (missing this phase's own PLAN.md files, `vendor/`, `.env`, `node_modules/`, `public/build/`) — resolved with the established fast-forward + `.env` copy + `composer install` + `npm install && npm run build` workaround. `gsd-tools init execute-phase 12` again confirmed the `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md updates for this plan were hand-edited directly in this worktree instead.
 - [Phase 12 Plan 02]: Full-suite `php artisan test` run showed 17-18 failures in files unrelated to this plan (report/jurisdiction/coordinator/voter-resource tests), confirmed pre-existing via isolated re-run (`VoterResourceTest` passes 60/60 alone) — matches the already-documented `CampaignContext` static-override test-pollution issue below. Logged in `.planning/phases/12-hierarchy-metadata-schema-foundation/deferred-items.md`, not fixed (out of scope).
+
+Phase 13 Plan 02 decisions:
+
+- [Phase 13 Plan 02]: `CoordinatorPolicy` implements ONLY `view()`/`update()` on `User::class` — purely additive per 13-CONTEXT.md D-03/D-04. Every other Filament ability (`viewAny`, `create`, `delete`, etc.) on `User` falls through untouched to `Gate::before` + default-allow, so `UserResource`/`LeaderResource`/`CoordinatorResource` have zero behavior change. This is the first ownership-aware Policy in the codebase (`VoterPolicy`/`InvitationPolicy` are role-only or use inline field comparisons, not a dedicated ownership helper).
+- [Phase 13 Plan 02]: AUTHZ-03 required no new production code — `CampaignContext::currentCampaignId($user)` already resolves from the acting user's own attached campaigns when no session override is set, so `Gate::before`'s existing `User`-branch check (`'Este usuario no pertenece a la campaña activa.'`) already denies a legitimately-owned coordinador in a different campaign before `CoordinatorPolicy::view()`/`update()` ever run. This plan only adds the regression test proving it holds for the new `area_coordinator` role.
+- [Phase 13 Plan 02]: Worktree (`agent-a32d4cb12325f22a2`) was 15 commits behind `main` at session start, missing all of Phase 12's completed work and both of Phase 13's PLAN.md files, plus `.env`/`vendor/`/`node_modules/`/`public/build` — same recurring class documented repeatedly above. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy, `composer install`, `php artisan migrate` (2 pending Phase 12 migrations against the shared `sigma_betha_backup` DB). `gsd-tools init execute-phase 13` again confirmed the `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's copies directly. Only this plan's own AUTHZ-02/AUTHZ-03 requirements were marked Done (not AUTHZ-01, which belongs to the parallel 13-01 plan not present in this worktree at time of writing).
 
 <details>
 <summary>Archived v1.1 decision log (phases 6-11 + post-ship quick tasks, click to expand)</summary>

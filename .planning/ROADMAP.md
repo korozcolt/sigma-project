@@ -142,7 +142,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 1-5.1. v1.0 MVP Hardening | 25/25 | Complete | 2026-07-24 |
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
 | 12. Hierarchy & Metadata Schema Foundation | 2/2 | Complete    | 2026-08-10 |
-| 13. Hierarchy Authorization & Call-Site Audit | 0/2 | Not started | - |
+| 13. Hierarchy Authorization & Call-Site Audit | 1/2 | In progress | - |
 | 14. Articulador Admin Resource & Hierarchy Wiring | 0/? | Not started | - |
 | 15. Articulador Self-Service Panel | 0/? | Not started | - |
 | 16. Metadata Catalog UI & Assignment | 0/? | Not started | - |
