@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: verifying
-stopped_at: Phase 15 context gathered
-last_updated: "2026-08-10T19:27:02.466Z"
+status: Executing Phase 15
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-08-10T22:39:13Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_plans: 10
+  completed_plans: 7
+  percent: 70
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 15 of 17 (articulador self service panel)
-Plan: Not started
-Status: Phase 14 both plans complete — 14-01 added `AreaCoordinatorResource` (Resource + 3 Pages + Form + Table), mirroring `CoordinatorResource` minus the también-será-líder toggle (D-01), plus a `coordinators_count` list column (D-05). 14-02 added an optional, campaign-scoped `area_coordinator_user_id` Select to `CoordinatorForm`'s Ubicación section, role-filtered to `area_coordinator` via `relationship()`, relying on `User`'s global `CampaignMembershipScope` for campaign isolation (no manual closure needed). Both ARTIC-01 and ARTIC-03 marked Done. Pending phase-goal verification.
+Plan: 2 of 4 (15-02 complete)
+Status: 15-02 complete — registered the `/articulador` route group (exactly the 3 D-02-locked routes: `coordinadores`, `coordinadores/create`, `coordinadores/{coordinator}/edit`) and built the own-team-scoped `articulador.coordinators` Volt list page (search, pagination, stats, empty states), mirroring `coordinator/leaders.blade.php` minus the invitation-link button (D-07 deferred) and self-promote block (not applicable). `routes/web.php` is this plan's exclusive claim for the whole phase so wave-2 plans (15-03, 15-04) never touch it. ARTIC-02 NOT marked complete yet — split across all 4 of this phase's plans, deferred to phase completion per established precedent. 15-01 (AreaCoordinatorPanelProvider) runs in a parallel worktree, not yet merged as of this plan's completion.
 Last activity: 2026-08-10
 
-Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2 plans complete)
+Progress: [███████···] 70% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 1/4 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 15 Plan 02 decisions:
+
+- [Phase 15 Plan 02]: ARTIC-02 is NOT marked complete in REQUIREMENTS.md by this plan alone, despite being listed in this plan's frontmatter `requirements` field — ARTIC-02 is explicitly split across all 4 of this phase's plans (15-01 panel provider, 15-02 route group + list, 15-03 create-coordinator, 15-04 edit-coordinator). Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent (Phase 05.1, 10, 11, 12, 13, 14).
+- [Phase 15 Plan 02]: `routes/web.php` is this plan's exclusive claim for the entire phase (per plan frontmatter) — all 3 D-02-locked `/articulador` routes were registered in this single plan even though only the list view exists yet, so wave-2 plans 15-03/15-04 (which depend_on this plan) never need to touch the shared routes file.
+- [Phase 15 Plan 02]: Followed proper TDD for the coordinadores list Volt page — wrote 4 failing tests against a temporarily-removed component (RED, confirmed `ComponentNotFoundException` on all 4), restored the component (GREEN, all 4 pass), then a separate Pint style-only commit (removed an unused `with` import from the `Livewire\Volt` group-use, since the class defines its own `with()` method rather than using Volt's helper).
+- [Phase 15 Plan 02]: Worktree (`agent-a19a2c2ddd313ecce`) was 53 commits behind `main` at session start — missing all of Phase 12/13/14's completed work, this phase's own PLAN.md, `vendor/`, `.env`, and `public/build`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, and copied `public/build` from the main checkout (Vite manifest was missing, caused 4 spurious `RoleBasedRedirectTest` failures until copied — confirmed not a regression, 11/11 pass afterward). `gsd-tools init execute-phase 15` again confirmed the `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md updates for this plan were hand-edited directly in this worktree instead of via the CLI, per the established workaround.
 
 Phase 14 Plan 01 decisions:
 
