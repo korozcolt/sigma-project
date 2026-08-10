@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: "Phase 14 plans complete — pending verification"
-stopped_at: Phase 14 plans 01 and 02 complete (both parallel wave-1 plans merged)
-last_updated: "2026-08-10T18:05:00.000Z"
+status: verifying
+stopped_at: Phase 14 context gathered
+last_updated: "2026-08-10T18:13:56.073Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
   completed_plans: 6
   percent: 100
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 14 of 17 (articulador admin resource & hierarchy wiring)
-Plan: 02 of 2 complete (both parallel wave-1 plans merged)
+Phase: 15 of 17 (articulador self service panel)
+Plan: Not started
 Status: Phase 14 both plans complete — 14-01 added `AreaCoordinatorResource` (Resource + 3 Pages + Form + Table), mirroring `CoordinatorResource` minus the también-será-líder toggle (D-01), plus a `coordinators_count` list column (D-05). 14-02 added an optional, campaign-scoped `area_coordinator_user_id` Select to `CoordinatorForm`'s Ubicación section, role-filtered to `area_coordinator` via `relationship()`, relying on `User`'s global `CampaignMembershipScope` for campaign isolation (no manual closure needed). Both ARTIC-01 and ARTIC-03 marked Done. Pending phase-goal verification.
 Last activity: 2026-08-10
 
@@ -61,6 +61,7 @@ Phase 14 Plan 01 decisions:
 - [Phase 14 Plan 01]: Found and fixed two real bugs in the plan's own literal Task 3 test code during verification (both Rule 1 — auto-fixed, not architectural): (1) the `coordinators_count` assertion originally created 3 coordinator factories without attaching them to the active campaign — `User::coordinators()` (HasMany) carries `User`'s `CampaignMembershipScope` global scope, so unattached coordinators silently drop out of the `counts('coordinators')` aggregate, and separately `assertTableColumnStateSet` was passed the in-memory `$areaCoordinator` model instance rather than its key, which also independently returns a `null` state since Filament re-resolves records through the table's own query (where the count is applied) only when given a key; (2) the "super_admin is not blocked by CoordinatorPolicy" test's `$areaCoordinator` fixture used a bare `User::factory()->create()` without explicit `phone`/`document_number` — `UserFactory` nulls those ~20%/10% of the time by default, and `EditAreaCoordinator`'s `save()` re-validates both as required, causing an intermittent (~35% of runs) `assertHasNoFormErrors()` failure with zero code changes between runs. Fixed by attaching coordinators to the campaign, passing the record key instead of the instance, and setting `phone`/`document_number` explicitly (matching the existing `CoordinatorResourceCampaignTest`'s self-heal test precedent for the latter). Confirmed stable across 10 consecutive isolated runs post-fix.
 - [Phase 14 Plan 01]: Worktree (`agent-a0a54832e1200e119`) was behind `main` at session start, missing Phase 12/13/14's own PLAN.md files plus `vendor/`/`.env` — same recurring staleness class documented repeatedly above. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`. `gsd-tools init execute-phase 14` again confirmed the `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md updates for this plan were hand-edited directly in this worktree instead of via the CLI, per the established workaround.
 - [Phase 14 Plan 01]: Running the new test file's full suite alongside `CoordinatorResourceCampaignTest`/`CoordinatorPolicyTest` in one `php artisan test` invocation intermittently reproduced the already-documented pre-existing `CampaignContext` static-override test-pollution issue (unrelated tests fail only when run together). Confirmed not a regression from this plan: `CoordinatorPolicyTest` alone passes 10/10 in isolation, and `CoordinatorResourceCampaignTest` + `AreaCoordinatorResourceCampaignTest` together pass cleanly. Not fixed — matches the standing project-level deferred item below.
+
 Phase 14 Plan 02 decisions:
 
 - [Phase 14 Plan 02]: `CoordinatorForm`'s new `area_coordinator_user_id` Select needed no manual `CampaignContext`-based query closure — `User::query()`'s global `CampaignMembershipScope` already restricts the `relationship()` Select's option query to the active campaign, confirmed by inspecting the generated SQL (a `whereHas('campaigns', ...)` clause bound to the active campaign id) rather than assumed from the plan's stated interface.
