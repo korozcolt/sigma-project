@@ -114,7 +114,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 15-01-PLAN.md — AreaCoordinatorPanelProvider + canAccessPanel() arm + RedirectBasedOnRole branch (ARTIC-02)
+- [x] 15-01-PLAN.md — AreaCoordinatorPanelProvider + canAccessPanel() arm + RedirectBasedOnRole branch (ARTIC-02)
 - [ ] 15-02-PLAN.md — /articulador route group (3 routes) + coordinadores list Volt page, own-team scoping (ARTIC-02)
 - [ ] 15-03-PLAN.md — create-coordinator Volt page, auto-linked via area_coordinator_user_id, no OTP (ARTIC-02)
 - [ ] 15-04-PLAN.md — edit-coordinator Volt page, CoordinatorPolicy-gated ownership (ARTIC-02)
@@ -154,7 +154,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 12. Hierarchy & Metadata Schema Foundation | 2/2 | Complete    | 2026-08-10 |
 | 13. Hierarchy Authorization & Call-Site Audit | 1/2 | Complete    | 2026-08-10 |
 | 14. Articulador Admin Resource & Hierarchy Wiring | 1/2 | Complete    | 2026-08-10 |
-| 15. Articulador Self-Service Panel | 0/4 | Not started | - |
+| 15. Articulador Self-Service Panel | 1/4 | In Progress | - |
 | 16. Metadata Catalog UI & Assignment | 0/? | Not started | - |
 | 17. Filter/Sort/Export Surfaces | 0/? | Not started | - |
 
