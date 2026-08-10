@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: completed
-stopped_at: Phase 13 context gathered
-last_updated: "2026-08-10T16:15:12.316Z"
-last_activity: 2026-08-10
+status: "Phase 13 in progress — plan 01 complete"
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-08-10T16:55:00.000Z"
+last_activity: 2026-08-10 — Phase 13 Plan 01 complete (AUTHZ-01 done, AUTHZ-03 partial pending 13-02)
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 2
-  completed_plans: 2
-  percent: 100
+  completed_plans: 1
+  percent: 50
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 13 of 17 (hierarchy authorization & call site audit)
-Plan: Not started
-Status: Phase 12 Wave 1 complete — area_coordinator role + hierarchy FK (ARTIC-04/05) and metadata_keys/user_metadata_values schema both done
+Plan: 01 complete, 02 in progress (parallel wave)
+Status: 13-01 done — User::teamCoordinatorUserIds() wired into TopLeadersTable/TopLeadersExport/LeadersExportController (AUTHZ-01 done; AUTHZ-03 shared with 13-02, deferred to phase completion)
 Last activity: 2026-08-10
 
-Progress: [██████████] 100% (Phase 12: 2/2 plans)
+Progress: [█████░░░░░] 50% (Phase 13: 1/2 plans)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,11 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 13 Plan 01 decisions:
+
+- [Phase 13 Plan 01]: AUTHZ-03 is NOT marked complete in REQUIREMENTS.md by this plan alone, despite being listed in this plan's frontmatter `requirements` field — AUTHZ-03 is explicitly split across both parallel Phase 13 plans (13-01 proves campaign isolation holds for the 3 audited call sites; 13-02 must prove it for the new `CoordinatorPolicy` ownership checks). Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent (Phase 10, Phase 11). Only AUTHZ-01 (exclusively this plan's claim) was marked Done.
+- [Phase 13 Plan 01]: This worktree (`agent-a6beaebb4e89d11f9`) was 15 commits behind `main` at session start — missing Phase 13's own PLAN.md files, all of Phase 12's completed work, `vendor/`, and `.env`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`. `gsd-tools init execute-phase 13` again confirmed the `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md/REQUIREMENTS.md updates for this plan were hand-edited directly in this worktree instead of via the CLI, per the established workaround.
 
 Phase 12 Plan 01 decisions:
 
