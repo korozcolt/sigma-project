@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 15
-stopped_at: Completed 15-03-PLAN.md (wave 2)
+stopped_at: Completed 15-03-PLAN.md and 15-04-PLAN.md (wave 2)
 last_updated: "2026-08-10T22:53:23Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 15 of 17 (articulador self service panel)
-Plan: 3 of 4 complete (wave 1 done — 15-01, 15-02; wave 2 — 15-03 done, 15-04 in progress/up next)
-Status: Wave 2 in progress. 15-01/15-02 (wave 1): `AreaCoordinatorPanelProvider` + route group + own-team-scoped coordinadores list Volt page. 15-03 (wave 2): built `articulador.create-coordinator` Volt page — full `CoordinatorForm` field set (name, email, document_number, birth_date, phone, secondary_phone, address, municipality_id, neighborhood_id, password), IdentityLookupService document-number autofill/name-lock reused verbatim from `create-leader.blade.php`, NO OTP step (D-04), NO `area_coordinator_user_id` form field (D-03 — computed inline in `save()` from `auth()->user()->hasRole()`), campaign-scoped municipality select, created coordinador attached to the acting user's campaigns and assigned the `coordinator` role. 11 tests, 29 assertions, all passing; Pint clean. Found (but did not fix, out of scope) a pre-existing bug in `App\Models\CampaignUser`'s `HasCampaignContext` trait that forcibly overwrites `campaign_id` on every pivot attach/sync with the actor's current-context campaign, silently corrupting multi-campaign attach calls across the whole app (not just this plan) — logged as a new blocker below. 15-04 (edit-coordinator Volt page) is the phase's remaining plan. ARTIC-02 NOT yet marked complete, deferred to phase completion per established split-requirement precedent.
+Plan: 4 of 4 complete (wave 1 — 15-01, 15-02; wave 2 — 15-03, 15-04)
+Status: All 4 plans complete. 15-01/15-02 (wave 1): `AreaCoordinatorPanelProvider` + route group + own-team-scoped coordinadores list Volt page. 15-03 (wave 2): `articulador.create-coordinator` Volt page — full `CoordinatorForm` field set, IdentityLookupService document-number autofill/name-lock reused verbatim from `create-leader.blade.php`, NO OTP step (D-04), NO `area_coordinator_user_id` form field (D-03 — computed inline in `save()`), campaign-scoped municipality select. 11 tests, 29 assertions, all passing. Found (but did not fix, out of scope) a pre-existing bug in `App\Models\CampaignUser`'s `HasCampaignContext` trait that forcibly overwrites `campaign_id` on every pivot attach/sync with the actor's current-context campaign, silently corrupting multi-campaign attach calls across the whole app — logged as a blocker below. 15-04 (wave 2): `articulador/coordinadores/{coordinator}/edit` Volt page, authorization enforced via `CoordinatorPolicy::update()` (`auth()->user()->can('update', $coordinator)`) rather than a hand-rolled FK check — resolves RESEARCH.md's Open Question 1. 10 Pest tests cover load/save/password/ownership-denial/cross-role-passthrough/middleware-block. Phase 15 execution complete; verification pending. ARTIC-02 now closable — all 4 split plans landed.
 Last activity: 2026-08-10
 
-Progress: [████████··] 90% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 3/4 plans complete)
+Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 4/4 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,15 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 15 Plan 04 decisions:
+
+- [Phase 15 Plan 04]: Authorization enforced via `CoordinatorPolicy::update()` through `auth()->user()->can('update', $coordinator)` in `mount()`, NOT a hand-rolled `area_coordinator_user_id !== auth()->id()` comparison — resolves RESEARCH.md's Open Question 1, making the Phase 13 Policy the actual enforcement mechanism on this non-Filament Volt route (proven by a dedicated 403-denial test), not just theoretically available.
+- [Phase 15 Plan 04]: ARTIC-02 is NOT marked complete in REQUIREMENTS.md by this plan alone — it is split across all 4 of this phase's plans; this plan closes the "edit/manage" half specifically. Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent.
+- [Phase 15 Plan 04]: `create-coordinator.blade.php` (plan 15-03, a parallel wave-2 sibling running in its own worktree/session) was not present in this worktree when this plan executed. Per the plan's own explicit fallback instruction, the municipality/neighborhood cascading-select computed properties were derived independently from `CoordinatorForm.php`'s existing Filament Select closures (the shared source both plans copy from), preserving identical campaign-scoping semantics.
+- [Phase 15 Plan 04]: [Rule 1 - Bug] `UserFactory` generates `document_number`/`phone` as null ~10-20% of the time; the plan's typed `string` properties threw `Cannot assign null to property ... of type string` when a factory-created coordinador rolled a null value. Fixed by explicitly setting both fields in the test fixture that gets mounted into the edit form.
+- [Phase 15 Plan 04]: [Rule 1 - Bug] `abort(403)`/`abort(404)` inside a Volt component's `mount()` do not propagate as a thrown exception through `Livewire\Volt\Volt::test(...)` — the testing harness wraps the resulting HTTP response into the returned `Testable`. Confirmed via an isolated (unmerged) debug test that `Volt::test(...)->assertForbidden()`/`->assertNotFound()` is the correct assertion pattern.
+- [Phase 15 Plan 04]: Worktree (`agent-a49e7f7f19c3553d2`) was stale at session start — checked out at the Phase 12 context-capture commit, missing Phases 13-15 entirely plus `vendor/`, `.env`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, `npm install`. `gsd-tools init execute-phase 15` again confirmed the `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md updates for this plan were hand-edited directly in this worktree instead of via the CLI, per the established workaround.
 
 Phase 15 Plan 03 decisions:
 
