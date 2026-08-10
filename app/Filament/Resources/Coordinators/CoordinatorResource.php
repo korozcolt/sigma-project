@@ -30,7 +30,7 @@ class CoordinatorResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Coordinadores';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     public static function getEloquentQuery(): Builder
     {
