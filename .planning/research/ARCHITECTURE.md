@@ -1,277 +1,253 @@
-# Architecture Research
+# Architecture Research: Articuladores + User Metadata (v1.2)
 
-**Domain:** Resilient dual-source (live-scrape vs. local-census-snapshot) polling-place lookup inside an existing Laravel 12 / Filament 4 / Livewire 3 app (SIGMA v1.1)
-**Researched:** 2026-07-24
-**Confidence:** HIGH (grounded in the actual codebase; every integration point below names a real existing file/class)
+**Domain:** Integration architecture — extending an existing Laravel 12 / Filament 4 / Spatie-Permission hierarchy and admin-panel resource pattern
+**Researched:** 2026-08-10
+**Confidence:** HIGH (all findings sourced directly from the current codebase, not training-data assumptions)
 
-## Executive Framing
-
-This is a **brownfield integration**, not a greenfield build. The single most important finding of this research is that **a fallback lookup chain already exists** — it is just incomplete for the v1.1 requirements. Before designing anything new, understand what is already there:
-
-`app/Filament/Resources/Voters/Concerns/HasRegistraduriaPolling.php::openRegistraduriaBrowser()` already implements a **3-tier cascade**:
-
-1. **Redis cache** (`registraduria:cedula:{cedula}`, 30-day TTL) — instant, free
-2. **DB reconstruction** (`resolveFromDatabase()`) — joins the **campaign-scoped** `census_records` table against `polling_places`, free, permanent
-3. **2captcha live lookup** (`RegistraduriaService::startLookup()` → async poll) — last resort, costs money
-
-So "fallback" is not a new concept in this codebase. What v1.1 actually adds on top of the existing cascade is **four missing pieces**:
-
-- **A national census snapshot table** (the 216K-row CSV is nationwide reference data; the existing `census_records` table is campaign-scoped and semantically different).
-- **A persisted, queryable source flag on the voter** (today the "source" is only communicated via a transient Filament `Notification` — "desde caché" / "desde base de datos" — and is lost the moment the lookup completes).
-- **An auditable resolution history** (nothing today records *why* a voter's polling place has the value it has).
-- **A scheduled reconciliation job** to re-attempt live lookup for snapshot-sourced voters.
-
-The correct architectural move is to **extract the cascade out of the Filament trait into a dedicated orchestrating service**, add the national snapshot as a new tier, and make the source flag a first-class persisted attribute so a background job can query for it.
-
-## Standard Architecture (target state)
-
-### System Overview
+## Current Architecture (as-is)
 
 ```
-┌───────────────────────────────────────────────────────────────────────┐
-│                          INTERACTIVE (Filament UI)                      │
-├───────────────────────────────────────────────────────────────────────┤
-│  HasRegistraduriaPolling (trait)   RegistraduriaController (browser AJAX)│
-│         │ delegates to                       │ (unchanged — live browser)│
-│         ▼                                     ▼                          │
-├───────────────────────────────────────────────────────────────────────┤
-│                     ORCHESTRATION (new service layer)                    │
-│   ┌─────────────────────────────────────────────────────────────────┐  │
-│   │  PollingPlaceResolver  (NEW)                                      │  │
-│   │   resolve(cedula): PollingPlaceResolution                        │  │
-│   │   ── tier 1: Redis cache                                          │  │
-│   │   ── tier 2: live (RegistraduriaService)                          │  │
-│   │   ── tier 3: national snapshot (NationalCensusRecord)  ← NEW tier │  │
-│   │   ── writes source flag + audit row                              │  │
-│   └───────────┬───────────────────────────┬──────────────────────────┘  │
-│               │                            │                             │
-├───────────────┼────────────────────────────┼─────────────────────────────┤
-│               ▼                            ▼                             │
-│   RegistraduriaService (EXISTING,   NationalCensusRecord (NEW model)     │
-│   thin HTTP client → Python svc)    → joined to PollingPlace at import   │
-├───────────────────────────────────────────────────────────────────────┤
-│                       BACKGROUND (queue + scheduler)                     │
-│   ReconcileSnapshotPollingPlaces (NEW job, mirrors FinalizeElectionEvent)│
-│   Schedule::job(...)->hourly()->withoutOverlapping()  (routes/console.php)│
-│         │ queries voters WHERE polling_place_source = 'snapshot'         │
-│         └─ re-attempts live via PollingPlaceResolver                     │
-├───────────────────────────────────────────────────────────────────────┤
-│                              PERSISTENCE                                 │
-│  voters (+ polling_place_source, polling_place_resolved_at)  ← NEW cols  │
-│  polling_place_resolutions  (NEW audit table, ValidationHistory-shaped)  │
-│  national_census_records    (NEW, 216K rows, cedula-unique)  ← NEW table │
-│  polling_places (EXISTING national ref)   census_records (EXISTING, camp)│
-└───────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│ Filament Panels (app/Providers/Filament/*PanelProvider.php)         │
+│                                                                       │
+│  admin/  ──────── discoverResources(app/Filament/Resources) ─────►  │
+│    canAccessPanel: super_admin, admin_campaign, reviewer            │
+│    CoordinatorResource, LeaderResource, UserResource, GremioResource│
+│                                                                       │
+│  coordinator/  ── path 'coordinator', custom pages, NOT Filament   │
+│    canAccessPanel: coordinator, admin_campaign, super_admin         │
+│    authMiddleware: EnsureUserHasRole:coordinator                    │
+│    Livewire/Volt self-service: resources/views/livewire/coordinator/│
+│      dashboard, leaders, create-leader, edit-leader, ...            │
+│                                                                       │
+│  leader/   ── similar self-service shape, role: leader              │
+│  reports/  ── canAccessPanel: reports_viewer, ->resources([...])   │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+┌────────────────────────────▼────────────────────────────────────────┐
+│ App\Models\User (single table, role via Spatie HasRoles, no teams)  │
+│                                                                       │
+│  users.coordinator_user_id  (self-FK, nullOnDelete)                 │
+│    User::coordinator(): BelongsTo(User, 'coordinator_user_id')      │
+│    User::leaders(): HasMany(User, 'coordinator_user_id')            │
+│    Semantic meaning is fixed: "this leader's coordinator"           │
+│                                                                       │
+│  campaign_user (pivot): user_id, campaign_id, role_id, assigned_*   │
+│    → drives HasCampaignMembershipScope / CampaignMembershipScope    │
+│      global scope (whereHas('campaigns', campaign_id = current))    │
+│    → INDEPENDENT of coordinator_user_id — campaign isolation does   │
+│      not care about hierarchy, only campaign_user membership        │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Responsibilities
+`coordinator_user_id` is **not** a generic "reports-to" pointer — it is a specific, narrowly-typed, heavily-consumed field meaning "the coordinator this leader belongs to." It is directly referenced (not just via the `coordinator()`/`leaders()` relations) in:
 
-| Component | Status | Responsibility |
-|-----------|--------|----------------|
-| `RegistraduriaService` | **KEEP AS-IS** | Thin HTTP client to the Python microservice. Single responsibility: `startLookup()` / `getResult()`. **Do not add fallback logic here** — it must stay a pure live-source adapter so the resolver can treat it as one tier among several. |
-| `PollingPlaceResolver` | **NEW** | The orchestrator. Owns the cascade decision (cache → live → snapshot), returns a `PollingPlaceResolution` value object carrying the resolved fields **and the source flag**, and persists both the voter flag and the audit row. This is the *only* place the fallback order is expressed. |
-| `NationalCensusRecord` | **NEW model + table** | Nationwide cédula→polling-place reference data imported from `censo_decoded_202310210734.csv`. `polling_place_id` FK resolved at import time via the divipol codes. Sibling to `PollingPlace` (both are national reference data, **not** campaign-scoped). |
-| `voters.polling_place_source` + `polling_place_resolved_at` | **NEW columns** | The *current* source flag, directly on the voter so it is visible in the UI and **queryable by the reconciliation job**. Values: `live`, `snapshot`, `manual`, `cache`. |
-| `polling_place_resolutions` | **NEW audit table** | Append-only history of every resolution, structurally modeled on `ValidationHistory` (see below). Answers "this voter's polling place came from source X on date Y, attempted by Z." |
-| `ReconcileSnapshotPollingPlaces` | **NEW queued job** | Scheduled job that finds `polling_place_source = 'snapshot'` voters and re-attempts live lookup via the resolver. Structurally mirrors `FinalizeElectionEvent`. |
-| `HasRegistraduriaPolling` | **REFACTOR** | Stop owning the cascade. Delegate to `PollingPlaceResolver`. Keep the Filament-specific concerns (notifications, filling `$this->data[...]`, the async browser modal state). Its private `resolveFromDatabase()` logic moves into the resolver. |
-| `RegistraduriaController` | **KEEP AS-IS** | Proxies the interactive browser/captcha flow (screenshot/click/viewport) to the Python service. Untouched by v1.1. |
-| `census_records` (campaign-scoped) | **KEEP** | Stays as the per-campaign enrichment accumulator. **Not** the national snapshot. May remain as an additional resolver tier (see "Two census tables" below). |
+- `app/Filament/Resources/Leaders/Schemas/LeaderForm.php` — the coordinator `Select` is scoped `->role(UserRole::COORDINATOR->value)`
+- `app/Filament/Resources/Leaders/Pages/CreateLeader.php`, `EditLeader.php` — municipality sync and campaign-inheritance logic keyed on `coordinator_user_id`
+- `app/Filament/Resources/Coordinators/Tables/CoordinatorsTable.php` — `leaders_count` via `counts('leaders')`
+- `app/Filament/Resources/Invitations/Schemas/InvitationForm.php`, `app/Models/Invitation.php`, `app/Services/InvitationService.php` — leader self-registration invitation links carry a `coordinator_user_id`
+- `app/Filament/Resources/Users/Schemas/UserForm.php`, `app/Filament/Resources/Voters/Schemas/VoterForm.php` — generic forms reference it for context
+- `app/Exports/TopLeadersExport.php`, `app/Filament/Widgets/TopLeadersTable.php`, `app/Http/Controllers/Coordinator/LeadersExportController.php` — reports/exports filter `where('coordinator_user_id', Auth::id())` for the logged-in coordinator's own team
+- `resources/views/livewire/coordinator/*.blade.php` — the entire self-service coordinator panel (dashboard, leaders list, create/edit leader) is built around "my leaders = `leaders()` where `coordinator_user_id = me`"
+- ~20 Pest test files assert this exact semantics (`CoordinatorLeaderRelationshipTest`, `DashboardLeadersScopeTest`, `TopLeadersExportTest`, `OwnershipScopedWidgetsTest`, `WidgetDrillThroughTest`, etc.)
 
-## Key Design Decisions
+This is the single most important fact for the roadmap: **`coordinator_user_id` is a load-bearing, well-tested, narrowly-scoped column.** Repurposing it (renaming, or making it polymorphic to mean "any superior") would touch ~25 files and every test above, for a column whose current name and FK target (`coordinator` role) is asserted directly in multiple places.
 
-### Decision 1: National snapshot is a NEW table, not a reuse of `census_records`
+## Q1 — Articulador→Coordinador Link: New Column, Not a Reuse of `coordinator_user_id`
 
-**Recommendation:** Create `national_census_records` (model `NationalCensusRecord`). Do **not** widen the existing `census_records`.
+**Recommendation: add a new dedicated `articulador_user_id` self-referencing FK on `users`, mirroring the exact migration pattern used for `coordinator_user_id`. Do not rename, generalize, or repurpose `coordinator_user_id`.**
 
-**Why:** The existing `census_records` table is fundamentally campaign-scoped:
-- `campaign_id` is a non-null FK with `cascadeOnDelete()`.
-- Unique constraint is `(campaign_id, document_number)`.
-- It uses the `HasCampaignContext` trait, so every query is auto-scoped to the active campaign.
-- Its lifecycle is per-campaign upload (`CensusImporter`) + per-lookup enrichment (`HasRegistraduriaPolling::fillPollingPlaceFields()` does `CensusRecord::updateOrCreate([...campaign_id...])`).
+### Tradeoffs
 
-The 216K-row CSV is **nationwide, campaign-agnostic reference data** — the same category as `polling_places` (also nationwide, also seeded from an external file). Trying to shoehorn it into `census_records` breaks in three ways: (a) making `campaign_id` nullable defeats the unique constraint (MySQL/Postgres do not dedupe NULLs), (b) it would pollute every campaign-scoped census query with 216K national rows, and (c) it conflates two lifecycles (national import-once vs. campaign accumulate). Keep national reference data next to `polling_places`, not inside campaign operational data.
+| Option | Pros | Cons | Verdict |
+|---|---|---|---|
+| New `articulador_user_id` column (mirror pattern) | Zero risk to existing `coordinator_user_id` consumers/tests; migration is a copy-paste of `2026_01_21_000002_add_coordinator_to_users_table.php`; `User::articulador()`/`User::coordinators()` relations are additive; existing `LeaderForm`, exports, dashboards, invitations untouched | One more FK column on `users`; two parallel self-FK columns to reason about | **Recommended** |
+| Rename/generalize `coordinator_user_id` → e.g. `parent_user_id` with a `parent_role` discriminator | "Cleaner" schema in the abstract | Breaks every literal `coordinator_user_id` reference above; requires touching Leader/Coordinator resource forms, exports, coordinator self-service panel, invitations, and ~20 tests; also semantically wrong — the milestone explicitly says "coordinadores keep working exactly as today, no coordinador→coordinador nesting," i.e. the *shape* of the hierarchy is not symmetric (articulador→coordinador is a different, additive level, not a recursive "parent" concept) | Rejected — violates the "harden in place, no rewrites" project constraint and the milestone's own "keep working exactly as today" requirement |
+| Single polymorphic `superior_id` + `superior_type`/level enum | Extensible to arbitrary depth | Massive overkill: the milestone explicitly caps this at one new flat level (articulador→coordinador, no further nesting) and the project constraint says avoid large schema expansion for a hardening milestone | Rejected — YAGNI, and campaign isolation (`CampaignMembershipScope`) is already independent of hierarchy depth, so there's no scaling need it solves today |
 
-**Schema (`national_census_records`):**
+### Concrete migration shape (mirrors `2026_01_21_000002_add_coordinator_to_users_table.php`)
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | bigint PK | |
-| `document_number` | string, **unique**, indexed | The `cedula` column from the CSV — the lookup key |
-| `polling_place_id` | nullable FK → `polling_places` | **Resolved at import time** via divipol join (see Decision 4) |
-| `table_number` | string, nullable | The CSV `mesa` column |
-| `dane_department_code` / `dane_municipality_code` / `zone_code` / `place_code` | string | Raw divipol components kept for traceability + re-join if `polling_places` is re-seeded |
-| `polling_station_name` | string, nullable | The CSV `nombre` column (fallback when FK resolution misses) |
-| `imported_at` | timestamp | Snapshot provenance / which import run |
-
-No `campaign_id`, no `HasCampaignContext` trait, no timestamps churn — this is static reference data.
-
-### Decision 2: Source flag = column on `voters` (current) + `polling_place_resolutions` table (history)
-
-The requirement has two halves — "**visible** on the voter's result" and "**auditable**" — and they want different storage.
-
-**Current flag → columns on `voters`:**
-```
-polling_place_source      enum: live | snapshot | manual | cache   (nullable)
-polling_place_resolved_at timestamp (nullable)
-```
-This must live on the voter itself because:
-- The reconciliation job's core query is `Voter::where('polling_place_source', 'snapshot')` — that has to be an indexed column, not a JOIN into an audit table's latest row.
-- The Filament UI needs to show the current source next to the polling place without an extra query.
-
-Add both to the `$fillable` array and a `PollingPlaceSource` enum cast (follow the `VoterStatus` enum precedent in `app/Enums/`).
-
-**History → new `polling_place_resolutions` table, modeled on `ValidationHistory`:**
-
-This directly satisfies the quality gate's "reuse the ValidationHistory-style audit pattern." I reuse the *pattern* — not the table — because `ValidationHistory`'s `previous_status`/`new_status` columns are **non-nullable and cast to the `VoterStatus` enum**; a polling-place source change is not a voter-status change and would abuse those columns. Instead, mirror its shape:
-
-| `ValidationHistory` (precedent) | `polling_place_resolutions` (new, same shape) |
-|---|---|
-| `voter_id` FK cascadeOnDelete | `voter_id` FK cascadeOnDelete |
-| `previous_status` / `new_status` | `previous_source` / `new_source` |
-| `validated_by` FK → users | `resolved_by` FK → users **(nullable — jobs have no user)** |
-| `validation_type` (`census`/`election`) | `resolved_via` (`interactive`/`reconciliation`) |
-| `notes` text nullable | `notes` text nullable (+ `polling_place_id`, `table_number` snapshot) |
-| scopes: `forVoter`, `byType`, `recent` | same scopes: `forVoter`, `bySource`, `recent` |
-| indexes: `voter_id`, `validation_type`, `created_at` | same indexes |
-
-Model `PollingPlaceResolution` gets a `voter()` BelongsTo and a `resolver()` BelongsTo (nullable), exactly mirroring `ValidationHistory::voter()` / `validator()`. Add a `Voter::pollingPlaceResolutions(): HasMany` relation next to the existing `validationHistories()`.
-
-**One notable difference from `ValidationHistory`:** `validated_by` is non-nullable there because a human always drives validations. Reconciliation runs headless, so `resolved_by` **must** be nullable — this is the one place the pattern legitimately diverges.
-
-### Decision 3: Fallback decision lives in a NEW `PollingPlaceResolver`, not in `RegistraduriaService` and not in the trait
-
-**Do not** put the cascade in `RegistraduriaService` — it must stay a single-responsibility live-source HTTP adapter so it is testable and swappable (relevant given the separate `wsp.registraduria.gov.co` feasibility spike may replace the live source entirely).
-
-**Do not** leave the cascade in `HasRegistraduriaPolling` — it is trapped there today, UI-coupled, and cannot be reused by the background job. The trait's `resolveFromDatabase()` is exactly the logic that must become reusable.
-
-**Instead:** `app/Services/PollingPlaceResolver.php` exposes:
-```
-resolve(string $cedula, ?Voter $voter = null): PollingPlaceResolution
-```
-returning a `PollingPlaceResolution` value object `{ source, pollingPlaceId, tableNumber, fields[], resolvedAt }`. The resolver:
-1. Checks Redis cache → `source = cache`.
-2. Attempts live via `RegistraduriaService` → `source = live` (interactive path stays async/UI-driven; see the async caveat below).
-3. Falls back to `NationalCensusRecord::where('document_number', $cedula)->first()` → `source = snapshot`.
-4. When a `Voter` is passed, persists `polling_place_source` + `polling_place_resolved_at` and appends a `polling_place_resolutions` row.
-
-Both the Filament trait and the reconciliation job call this one method, so the fallback order is expressed exactly once.
-
-**Two census tables — how they relate (avoid confusion):** after v1.1 there are two census-shaped tables with different jobs. `census_records` = campaign-scoped, mutable, accumulates verified live results per campaign (existing tier 2 of today's cascade). `national_census_records` = nationwide, static, import-once baseline (new snapshot tier). The resolver can keep the campaign `census_records` reconstruction as a tier *before* the national snapshot (it holds richer, campaign-verified data), then fall to the national snapshot as the broad baseline. Recommended resolver tier order: `cache → live → campaign census_records → national snapshot`. Only the last two count as "snapshot" source for the flag.
-
-**Async caveat (important, flag for roadmap):** the *live* tier is genuinely asynchronous and partly human-driven — `startLookup()` returns a `session_id`, then the Alpine/browser modal in `registraduria-browser.blade.php` handles `waiting_captcha` by showing screenshots and forwarding clicks. A headless job **cannot** complete a lookup that requires a human captcha click. So the resolver needs two live modes: an **interactive** mode (returns the session for the UI to drive) and an **automated** mode (polls `getResult()` with bounded backoff and *gives up* if it hits `waiting_captcha` without auto-solve). How completely the automated mode works is **gated by the `wsp.registraduria.gov.co` feasibility spike** — if the new source auto-solves via 2captcha server-side, reconciliation is fully unattended; if not, reconciliation can only opportunistically catch cases the automated path resolves and must leave the rest snapshot-flagged for a human.
-
-**Live-first vs. cost-first tension (flag for roadmap):** the v1.1 requirement says "attempt live first, fall back to snapshot." The *existing* interactive code is deliberately cost-**last** (cache → DB → 2captcha) because live costs money per lookup. These conflict. Recommended resolution: the reconciliation job is always live-first (that is its whole purpose); the *interactive* path keeps cache as a transparent perf layer, then follows the requirement's live→snapshot order, while retaining the existing explicit `forceRefreshFromRegistraduria()` "Actualizar datos" action for operator-driven fresh live pulls. The roadmap should confirm this ordering with the client since it has a real per-lookup cost implication.
-
-### Decision 4: Import via an Artisan command using the divipol join, mirroring `PollingPlaceSeeder`
-
-The CSV row `280019909010,00;280019909;1100696116;28;0;0;1;;99;0;9;CHOCHO;10` decodes to `dpto=28, mcpio=1, zona=99, puesto=9, nombre=CHOCHO, mesa=10`. Those four codes (`dpto/mcpio/zona/puesto`) are exactly the `(dane_department_code, dane_municipality_code, zone_code, place_code)` key on `polling_places`, and `nombre` matches `polling_places.name`. So the import can resolve `polling_place_id` per row by pre-loading a keyed map of `polling_places` (same technique `PollingPlaceSeeder` already uses with its `keyBy` maps).
-
-**Build it as `php artisan census:import-national` (an Artisan command), not a Filament import or a plain seeder**, because 216K rows demands streaming: use `LazyCollection::make(fn() => ...fgetcsv...)` + `->chunk(1000)` + `NationalCensusRecord::upsert()` on the unique `document_number`. This mirrors `CensusImporter::importInBatches()` (batched `insert()`) but at national scale and idempotent (upsert lets re-running a newer snapshot update in place). Note the CSV is Latin-1 (`LA PE�ATA`) — decode with `mb_convert_encoding(..., 'UTF-8', 'ISO-8859-1')` on ingest.
-
-### Decision 5: Reconciliation job is a structural clone of `FinalizeElectionEvent`
-
-`FinalizeElectionEvent` is the established, test-protected queued-job pattern in this codebase (per PROJECT.md QUAL-01/02). Clone its structure exactly:
-
-| `FinalizeElectionEvent` element | `ReconcileSnapshotPollingPlaces` equivalent |
-|---|---|
-| `implements ShouldQueue` + `use Queueable` | identical |
-| ctor with scalar IDs (`electionEventId`) | ctor with optional `?int $limit` (batch slice per run) |
-| `Log::info('election_event.finalize.started', [...])` | `Log::info('polling_reconcile.started', [...])` |
-| `Voter::query()->where(...)->chunkById(500, fn)` | `Voter::where('polling_place_source','snapshot')->oldest('polling_place_resolved_at')->limit($n)->chunkById(500, fn)` |
-| per-record `ValidationHistory::create([...])` | per-record `PollingPlaceResolution::create([...])` via the resolver |
-| `Log::info('...completed', ['voters_closed' => $n])` | `Log::info('polling_reconcile.completed', ['reconciled' => $n, 'still_snapshot' => $m])` |
-| `failed(\Throwable $e)` → `Log::error` | identical |
-
-**Scheduling:** register in `routes/console.php` alongside the existing scheduled entries, using the `Schedule::job(...)->withoutOverlapping()` idiom already established by `Schedule::command('birthday:dispatch-webhooks')->everyMinute()->withoutOverlapping()`:
 ```php
-Schedule::job(new ReconcileSnapshotPollingPlaces)->hourly()->withoutOverlapping();
+Schema::table('users', function (Blueprint $table) {
+    $table->foreignId('articulador_user_id')
+        ->nullable()
+        ->after('coordinator_user_id')
+        ->constrained('users')
+        ->nullOnDelete();
+
+    $table->index('articulador_user_id');
+});
 ```
 
-**Throttling (important given live-lookup cost/rate limits):** unlike `FinalizeElectionEvent` (pure DB writes, cheap), each reconciliation record triggers a slow, possibly paid live lookup against the Python service. Do **not** re-attempt every snapshot voter every run. Use `->oldest('polling_place_resolved_at')->limit(N)` so each hourly run reconciles a bounded slice (least-recently-attempted first). If N-per-run proves too slow inline, the scale-up path is to fan out one lightweight per-voter job (mirroring the existing per-item `App\Jobs\SendMessage` pattern) onto a rate-limited queue — but start with the bounded in-job `chunkById` loop; it matches `FinalizeElectionEvent` and is simpler to test.
+### Model additions (`app/Models/User.php`)
 
-## Data Flow (in words)
+```php
+public function articulador(): BelongsTo
+{
+    return $this->belongsTo(User::class, 'articulador_user_id');
+}
 
-**Interactive lookup (operator enters a cédula in the Filament voter form):**
-
-```
-cédula entered
-  → HasRegistraduriaPolling suffix action
-    → PollingPlaceResolver::resolve(cedula, voter)
-        tier 1: Redis cache hit?  → fill fields, source = cache        → STOP
-        tier 2: live attempt (RegistraduriaService.startLookup → browser modal / poll)
-                  success?        → fill fields, source = live, warm cache → STOP
-        tier 3: campaign census_records / NationalCensusRecord by document_number found?
-                  yes             → fill fields (via polling_place_id), source = snapshot
-                  no              → not found
-    → persist voter.polling_place_source + polling_place_resolved_at
-    → append polling_place_resolutions row (resolved_via = interactive, resolved_by = current user)
-    → Filament Notification shows source to operator
+public function coordinators(): HasMany
+{
+    return $this->hasMany(User::class, 'articulador_user_id');
+}
 ```
 
-**Reconciliation (hourly, headless):**
+Do **not** add `articulador_user_id` to `CoordinatorMembershipScope`/`CampaignMembershipScope` — that scope is driven entirely by `campaign_user`, and hierarchy has never been part of campaign isolation. Confirmed by reading `app/Models/Scopes/CampaignMembershipScope.php`: it only does `whereHas('campaigns', ...)`, nothing FK/hierarchy related.
 
+## Q2 — Metadata-Key Catalog: New Table (not enum, not config)
+
+**Recommendation: a new `metadata_keys` table, managed via a Filament resource (super_admin only), following the exact `Gremio`/`GremioResource` precedent already in the codebase — plus a `metadata` JSON column on `users`.**
+
+### Why a table (not `UserRole`-style PHP enum, not `config/*.php`)
+
+The milestone explicitly says: *"Superadmin-managed predefined catalog of metadata keys ... not freeform."* That requirement — a catalog **manageable through a UI at runtime by a super_admin, without a deploy** — rules out both alternatives:
+
+- **PHP enum** (`app/Enums/UserRole.php` pattern): enum cases are compile-time; adding/renaming a metadata key would require a code change + deploy, which directly contradicts "superadmin-managed."
+- **`config/*.php` array**: same problem — config changes require deploy/cache-clear, and there's no existing pattern in this codebase for admin-editable config (settings that are user-editable at runtime, e.g. `campaigns.settings`, live in DB columns, not config files).
+- **New DB table**: this is the codebase's existing precedent for exactly this shape of requirement. `Gremio` (`database/migrations/2026_07_22_000001_create_gremios_table.php`, `app/Models/Gremio.php`, `app/Filament/Resources/Gremios/*`) is a superadmin-managed, name-only lookup catalog with a full Filament CRUD resource under the `Configuración` navigation group. `metadata_keys` should copy this shape exactly, extended with a `type` column for typed filtering/sorting.
+
+### Schema
+
+```php
+Schema::create('metadata_keys', function (Blueprint $table) {
+    $table->id();
+    $table->string('key')->unique();       // e.g. "biaticos", "almuerzo", "asignacion"
+    $table->string('label');                // display label, e.g. "Biáticos"
+    $table->enum('type', ['numeric', 'string']); // drives cast + filter widget
+    $table->boolean('is_active')->default(true);
+    $table->timestamps();
+});
+
+Schema::table('users', function (Blueprint $table) {
+    $table->json('metadata')->nullable()->after('is_special_coordinator');
+});
 ```
-Schedule fires ReconcileSnapshotPollingPlaces
-  → Voter WHERE polling_place_source = 'snapshot'
-          ORDER BY polling_place_resolved_at ASC  LIMIT N
-  → chunkById(500):
-        for each voter:
-          PollingPlaceResolver::resolve(voter.document_number, voter)  [automated live mode]
-            live succeeded (no human captcha needed)?
-              yes → update voter polling place, source = live,
-                    append polling_place_resolutions (resolved_via = reconciliation, resolved_by = null)
-              no  → leave as snapshot (bump resolved_at so it rotates to back of queue)
-  → Log::info completed { reconciled, still_snapshot }
+
+Why `type` as a simple `numeric|string` enum column rather than trying to encode arbitrary JSON-schema typing: the milestone's own examples (`biaticos`, `almuerzo` = numeric; `asignacion` = string) are the full requirement surface — don't over-engineer a generic type system for two type buckets. This mirrors the project's existing preference for narrow, purpose-built enums (`UserRole`, `VoterStatus`) over generic frameworks.
+
+### Model
+
+```php
+// app/Models/MetadataKey.php
+class MetadataKey extends Model
+{
+    protected $fillable = ['key', 'label', 'type', 'is_active'];
+    protected function casts(): array
+    {
+        return ['is_active' => 'boolean'];
+    }
+}
 ```
 
-## Recommended Build Order (respects the dependency chain)
+```php
+// app/Models/User.php additions
+protected function casts(): array
+{
+    return [
+        // ...existing...
+        'metadata' => 'array',   // same pattern as SurveyMetrics/MessageBatch/Message::metadata
+    ];
+}
+```
 
-The dependencies are strict: you cannot fall back to a snapshot that isn't imported, you cannot flag a source without the schema, and you cannot reconcile without both the flag (to query) and the resolver (to re-attempt).
+`'metadata' => 'array'` is the exact existing cast pattern already used in `app/Models/SurveyMetrics.php`, `app/Models/MessageBatch.php`, and `app/Models/Message.php` — no new cast infrastructure needed. Values should be stored consistently as JSON scalars keyed by the catalog's `key` string, e.g. `{"biaticos": 50000, "asignacion": "zona-norte"}`; the numeric/string distinction is enforced at the **form layer** (Filament `TextInput::numeric()` vs plain `TextInput`, chosen dynamically per `MetadataKey::type`), not by a custom Eloquent cast, since a single JSON column necessarily mixes types across keys.
 
-1. **National snapshot table + model + import command** — `national_census_records` migration, `NationalCensusRecord` model, `php artisan census:import-national` (streaming upsert + divipol→`polling_place_id` join, Latin-1 decode). *Blocks everything; the fallback has nothing to read until this exists.* Ship with a test that imports a small fixture CSV and asserts `polling_place_id` resolution.
+### Assignment UI
 
-2. **Source-flag schema** — migration adding `voters.polling_place_source` + `polling_place_resolved_at` (+ `PollingPlaceSource` enum + cast + `$fillable`); `polling_place_resolutions` table + `PollingPlaceResolution` model (ValidationHistory-shaped, `resolved_by` nullable) + `Voter::pollingPlaceResolutions()` relation. *Must exist before the resolver can write a flag and before the job can query for stale records.* Can proceed in parallel with step 1 (no data dependency between them).
+A "Metadata" `Repeater` or a dynamically-built `Section` in the Coordinator/Leader/Articulador Filament forms, keyed off `MetadataKey::where('is_active', true)->get()`, is the natural fit — each active catalog key renders one input (numeric or text, per its `type`), read/written against `users.metadata->{key}`. This is additive to `CoordinatorForm`/`LeaderForm`/new `ArticuladorForm`; it does not require a separate table for values (`user_metadata` values-table) since the milestone frames this as a single JSON column, and Filament forms can dehydrate/populate JSON sub-paths directly via `dehydrateStateUsing`/`formatStateUsing` per field, or via `KeyValue`-style dynamic component generation.
 
-3. **`PollingPlaceResolver` orchestrating service** — extract/generalize the cascade out of `HasRegistraduriaPolling` (its `resolveFromDatabase()` becomes a resolver tier), add the `NationalCensusRecord` snapshot tier, persist flag + audit row, return a `PollingPlaceResolution` VO. Refactor the trait to delegate. *Depends on 1 (snapshot to read) and 2 (flag/audit to write).*
+## Q3 — New `ArticuladorResource`: Exact Mirror of `CoordinatorResource`/`LeaderResource`
 
-4. **`ReconcileSnapshotPollingPlaces` job + schedule** — clone `FinalizeElectionEvent`, query `snapshot`-flagged voters with a bounded `limit`, re-attempt via the resolver's automated mode, register in `routes/console.php`. *Depends on 2 (flag to query) and 3 (resolver to re-attempt).* Ship with a direct job test mirroring the `FinalizeElectionEvent` test.
+**Recommendation: new resource directory `app/Filament/Resources/Articuladores/` with the identical five-file shape as `Coordinators/`/`Leaders/`, auto-discovered by the `admin` panel's `discoverResources()` call — no manual panel registration needed.**
 
-5. **(Parallel / non-blocking) `wsp.registraduria.gov.co` feasibility spike** — does not block 1–4, but **determines how effective step 4's automated live mode can be**. If the new source cannot be auto-solved server-side, step 4 still ships but reconciles only the subset the automated path can complete; document that limitation rather than blocking on it.
+Confirmed from `app/Providers/Filament/AdminPanelProvider.php`: `->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')` — any resource class under `app/Filament/Resources/**` is auto-registered for the `admin` panel. `CoordinatorResource`, `LeaderResource`, and `GremioResource` all rely on this; none are manually listed. So `ArticuladorResource` needs zero panel-provider changes.
 
-## Anti-Patterns to Avoid
+### File-by-file mirror
 
-| Anti-pattern | Why it's wrong here | Do instead |
+| New file | Mirrors | Key difference |
 |---|---|---|
-| Widening `census_records` with a nullable `campaign_id` to hold the national snapshot | Breaks the `(campaign_id, document_number)` unique dedup (NULLs aren't deduped), pollutes every campaign-scoped census query with 216K rows, conflates two lifecycles | New `national_census_records` table (Decision 1) |
-| Putting the cascade logic inside `RegistraduriaService` | Destroys its single responsibility as a live-source adapter; makes it untestable and un-swappable right when a source swap (`wsp`) is being evaluated | `PollingPlaceResolver` owns the cascade (Decision 3) |
-| Forcing polling-source history through `ValidationHistory` | Its `previous_status`/`new_status` are non-null and `VoterStatus`-cast; a source change is not a status change | New `polling_place_resolutions`, same *shape* as ValidationHistory (Decision 2) |
-| Reusing `FinalizeElectionEvent`'s "process every matching voter every run" for reconciliation | Live lookups are slow/paid/rate-limited; re-hitting all snapshot voters hourly stampedes the Python service | Bounded `->oldest(...)->limit(N)` slice per run (Decision 5) |
-| Making the reconciliation job depend on a human captcha click | Jobs are headless; the interactive modal can't run in a queue worker | Automated live mode that *gives up* on `waiting_captcha`; gate completeness on the `wsp` spike (Decision 3 async caveat) |
-| Importing 216K rows via a Filament import action or a single `insert()` | Memory blow-up / timeout | Streaming `LazyCollection` + chunked `upsert()` in an Artisan command (Decision 4) |
-| Storing the source only in a transient Filament `Notification` (current behavior) | Not persisted, not queryable, lost after the request — the reconciliation job can't find snapshot voters | Persisted `voters.polling_place_source` column (Decision 2) |
+| `app/Filament/Resources/Articuladores/ArticuladorResource.php` | `CoordinatorResource.php` | `getEloquentQuery()` → `parent::getEloquentQuery()->role('articulador')`; new `$navigationSort` (suggest `1`, above Coordinadores at `2`, so hierarchy reads top-down in the nav) |
+| `app/Filament/Resources/Articuladores/Schemas/ArticuladorForm.php` | `CoordinatorForm.php` | Same personal-info/contact/location/access sections; no `also_leader`-style toggle needed unless product wants "también coordinador" parity (not requested) |
+| `app/Filament/Resources/Articuladores/Tables/ArticuladoresTable.php` | `CoordinatorsTable.php` | Replace `leaders_count` (`counts('leaders')`) with `coordinators_count` (`counts('coordinators')`, the new relation from Q1) |
+| `app/Filament/Resources/Articuladores/Pages/{Create,Edit,List}Articulador.php` | `Coordinators/Pages/*` | `CreateArticulador::afterCreate()` → `$this->record->assignRole(UserRole::ARTICULADOR->value)` + `attachActiveCampaign()` using `Role::findByName(UserRole::ARTICULADOR->value)` |
 
-## Testing Considerations (per project QUAL requirements)
+### `CoordinatorForm`/`CoordinatorResource` also need one addition
 
-The project explicitly requires test protection for voter/Day-D flows and treats `FinalizeElectionEvent`'s direct job test as the QUAL-01/02 precedent. For v1.1:
-- **Import command test:** small fixture CSV → assert row count, `polling_place_id` FK resolution, and Latin-1 → UTF-8 handling.
-- **Resolver test:** table-driven (Pest dataset) over the tiers — cache hit, live success, live-down→snapshot fallback, total miss — asserting the correct `source` flag and that a `polling_place_resolutions` row is written each time.
-- **Reconciliation job test:** direct job test mirroring the `FinalizeElectionEvent` test — seed snapshot-flagged voters, fake the resolver's live tier as reachable, assert voters flip to `source = live` and audit rows are appended with `resolved_by = null`; and the inverse (live still down → stay `snapshot`).
-- **Campaign isolation:** `national_census_records` is intentionally *not* campaign-scoped (it's national reference data), but the resolver writes to campaign-scoped `voters` — assert a lookup for campaign A never mutates campaign B's voter, consistent with the project's strict-isolation constraint.
+Once `articulador_user_id` exists, `CoordinatorForm` should gain an `articulador_user_id` `Select` scoped `->role(UserRole::ARTICULADOR->value)`, directly mirroring how `LeaderForm` scopes its `coordinator_user_id` select to `->role(UserRole::COORDINATOR->value)` (`app/Filament/Resources/Leaders/Schemas/LeaderForm.php:29-44`). This is a **modification** to an existing file, not new — flag it explicitly in planning since it's easy to miss (the milestone says "coordinadores keep working exactly as today" for the leader-facing side, but the coordinator *record itself* needs a new optional field to be assignable to an articulador).
+
+### Role/enum/seeder changes (all additive)
+
+- `app/Enums/UserRole.php`: add `case ARTICULADOR = 'articulador';` with label/color/icon/description — `RoleSeeder` picks it up automatically (`foreach (UserRole::cases())`), no seeder change needed.
+- `app/Models/User.php::canAccessPanel()`: decide whether `articulador` gets `admin` panel access (to use `ArticuladorResource`/`CoordinatorResource` directly) and/or a **new self-service `articulador` panel** — see the open question below.
+
+### Open architecture question the roadmap must resolve explicitly
+
+The existing `coordinator` role has **two separate surfaces**: (a) `CoordinatorResource` in the `admin` panel, for admins/reviewers to manage coordinator records, and (b) a wholly separate self-service `coordinator` Filament panel (`app/Providers/Filament/CoordinatorPanelProvider.php`, gated by `EnsureUserHasRole:coordinator`, built on custom Livewire/Volt pages under `resources/views/livewire/coordinator/*` — dashboard, leaders list, create/edit leader) where a logged-in coordinator manages *their own* leaders.
+
+The milestone's stated goal — *"Articuladores organize a set of coordinadores (creating and managing them)"* — reads like the same shape as the coordinator's self-service capability, not just an admin-panel CRUD resource. If so, this milestone implies a **third new component**: an `ArticuladorPanelProvider` + `resources/views/livewire/articulador/*` self-service views, mirroring the coordinator panel exactly (dashboard, coordinadores list, create/edit coordinador — each create/edit setting `articulador_user_id = Auth::id()` the same way `create-leader.blade.php` implicitly sets `coordinator_user_id = Auth::id()`). This is a bigger scope item than "just a Filament resource" and should be an explicit roadmap decision/phase, not an assumption — flag it for the roadmap author rather than silently building only the admin-panel resource.
+
+## Q4 — Filter/Sort by JSON Key: No Interaction With Campaign Isolation; Targeted Impact on Reporting Surfaces
+
+### Campaign-isolation scope: unaffected
+
+`CampaignMembershipScope` (`app/Models/Scopes/CampaignMembershipScope.php`) applies unconditionally to every `User::query()` via the `HasCampaignMembershipScope` trait's global scope, constraining to `whereHas('campaigns', campaign_id = current)`. It has no knowledge of, and no interaction with, `metadata`/JSON columns, `coordinator_user_id`, or the new `articulador_user_id`. Any Filament `SelectFilter`/custom filter/`orderBy` added against `users.metadata->{key}` composes on top of this scope exactly like every existing filter in `UsersTable`/`CoordinatorsTable`/`LeadersTable` does — because Filament resource tables always operate on `Resource::getEloquentQuery()`, which already includes the global scope. **No change to the scope itself is needed or should be made.**
+
+### Filament implementation for filter/sort by JSON key
+
+Laravel's query builder supports JSON path filtering via arrow syntax (`where('metadata->biaticos', ...)`, `whereJsonContains`) across MySQL 8.0+, confirmed current in the Laravel 12.x docs ("JSON Where Clauses" — MariaDB 10.3+, MySQL 8.0+, PostgreSQL 12.0+, SQL Server 2017+, SQLite 3.39.0+ all supported via the `->` operator). `orderBy('metadata->biaticos')` uses the same column-wrapping mechanism as `where()` in Laravel's grammar layer and is a well-established pattern (MEDIUM-HIGH confidence — not explicitly demoed in the docs' Ordering section, but the JSON arrow-path wrapping is shared infrastructure between `where`/`orderBy`/`groupBy` in Laravel's query grammars). Given the project's confirmed `DB_CONNECTION=mysql`, this is directly usable.
+
+Practical Filament pattern, since the catalog is dynamic (keys aren't known at compile time):
+
+```php
+// In ArticuladoresTable / CoordinatorsTable / LeadersTable / UsersTable
+...MetadataKey::where('is_active', true)->get()->map(fn (MetadataKey $key) =>
+    TextColumn::make("metadata_{$key->key}")
+        ->label($key->label)
+        ->state(fn (User $record) => data_get($record->metadata, $key->key))
+        ->sortable(query: fn (Builder $query, string $direction) =>
+            $query->orderBy("metadata->{$key->key}", $direction))
+)
+```
+
+and for filters, a per-key `Filter::make()` with a custom form input (numeric range for `type=numeric`, text/select for `type=string`) applying `->where("metadata->{$key->key}", ...)`.
+
+**Performance note (flag for a later phase, not this one's blocker):** MySQL cannot index a raw JSON path directly; if a metadata key like `biaticos` becomes a common sort/filter target at scale, the standard mitigation is a MySQL **generated/virtual column** (`ALTER TABLE users ADD biaticos_numeric DECIMAL(10,2) GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.biaticos'))) VIRTUAL, ADD INDEX (biaticos_numeric)`) — but the current campaign-scale data volumes in this project (hundreds to low-thousands of users per campaign, per the existing `Voter`/`Apoyo` scale) don't warrant this up front. Treat as a documented future optimization, not a v1.2 requirement.
+
+### Reporting/export surfaces that touch `users` and need explicit review (not necessarily code changes, but scope decisions)
+
+These are the concrete surfaces the milestone's "filterable and sortable in Filament listings" claim could reasonably extend to, or that assume a 2-level (coordinator→leader) hierarchy and may need articulador-awareness:
+
+| File | Current assumption | Impact of this milestone |
+|---|---|---|
+| `app/Filament/Resources/Users/Tables/UsersTable.php` | Generic, all roles, no hierarchy awareness | Explicitly named in the milestone ("users/coordinators/leaders/articuladores") — add metadata filter/sort columns here |
+| `app/Filament/Resources/Coordinators/Tables/CoordinatorsTable.php` | 1-level (`leaders_count`) | Add metadata columns; optionally add an `articulador.name` column now that coordinators can belong to one |
+| `app/Filament/Resources/Leaders/Tables/LeadersTable.php` | 1-level (`coordinator.name`) | Add metadata columns; no hierarchy change needed (leaders still only know their coordinator) |
+| `app/Exports/TopLeadersExport.php`, `app/Filament/Widgets/TopLeadersTable.php`, `app/Http/Controllers/Coordinator/LeadersExportController.php` | Coordinator-scoped via literal `coordinator_user_id = Auth::id()` | **Not in the milestone's explicit scope** (filter/sort is scoped to "Filament tables for users/coordinators/leaders/articuladores," not exports) — leave untouched; only revisit if the roadmap decides articuladores need an equivalent "my coordinadores' rollup" export, which would be new code analogous to `TopLeadersExport`, not a modification of it |
+| `app/Filament/Widgets/TopCoordinatorsTable.php`, dashboard widgets (`TerritorialOwnershipTable`, `ApoyosLideresCoordinadoresTable`) | Coordinator/leader rollups, campaign-scoped | Out of explicit scope for v1.2; flag as a likely v1.3 ask if articuladores need dashboard visibility into "their" coordinadores' teams |
+
+None of these require changes to `CampaignMembershipScope` itself. The isolation model and the new hierarchy/metadata features are orthogonal by design (confirmed by reading the scope's actual implementation), which is exactly why this feature set is safe to add without touching the campaign-safety guarantees the v1.0/v1.1 milestones spent most of their effort hardening.
+
+## Recommended Build Order (dependency-driven)
+
+1. **Schema first** — three additive migrations, no destructive changes to existing tables:
+   a. `add_articulador_to_users_table` (mirrors `2026_01_21_000002_add_coordinator_to_users_table.php`)
+   b. `create_metadata_keys_table`
+   c. `add_metadata_to_users_table` (JSON column)
+2. **Role + model layer** — `UserRole::ARTICULADOR` enum case (seeder picks it up automatically); `User::articulador()`/`coordinators()` relations; `MetadataKey` model + `'metadata' => 'array'` cast on `User`. This must land before any Filament form can scope a `Select` against the `articulador` role or read/write `metadata`.
+3. **Metadata catalog UI** — `MetadataKeyResource` (copy `GremioResource` shape exactly) so a super_admin can create/edit keys before any assignment UI needs them populated.
+4. **Hierarchy UI** — `ArticuladorResource` (copy `CoordinatorResource` shape) + the `articulador_user_id` `Select` addition to `CoordinatorForm`. This depends on step 2's role/relation existing.
+5. **Metadata assignment UI** — dynamic per-key inputs added to `ArticuladorForm`/`CoordinatorForm`/`LeaderForm`/`UserForm`, depends on step 3's catalog existing (forms iterate `MetadataKey::active()`).
+6. **Filter/sort surfaces** — add metadata-driven `TextColumn`s + `Filter`s to `UsersTable`, `CoordinatorsTable`, `LeadersTable`, and the new `ArticuladoresTable`; depends on step 5's data actually being assignable (no point filtering an always-empty column).
+7. **Decision checkpoint before further work**: resolve the open Q3 question (self-service `articulador` panel vs. admin-only resource) — this determines whether steps beyond 6 include a new `ArticuladorPanelProvider` + Livewire views, which is a materially larger scope item than the rest of this list combined.
+
+Each step is independently testable (Pest, mirroring the existing `CoordinatorLeaderRelationshipTest`/`DashboardLeadersScopeTest` shape for the new `articulador`/`coordinators()` relation, and a new `MetadataKey`/`users.metadata` filter/sort test), consistent with the project's "every change must have a test" rule.
 
 ## Sources
 
-- **HIGH** — Direct reads of the SIGMA codebase (authoritative, current):
-  - `app/Filament/Resources/Voters/Concerns/HasRegistraduriaPolling.php` (existing 3-tier cascade, `resolveFromDatabase()`)
-  - `app/Services/RegistraduriaService.php` (live HTTP adapter)
-  - `app/Http/Controllers/RegistraduriaController.php` (interactive browser proxy)
-  - `app/Jobs/FinalizeElectionEvent.php` (queued-job pattern to mirror)
-  - `app/Models/ValidationHistory.php` + `database/migrations/2025_11_03_171233_create_validation_histories_table.php` (audit pattern to mirror)
-  - `app/Models/CensusRecord.php` + `database/migrations/2025_11_03_170817_create_census_records_table.php` + `2026_05_10_190000_make_census_records_nullable.php` (campaign-scoped — why the snapshot needs a new table)
-  - `app/Services/CensusImporter.php` (batched-insert precedent for the import command)
-  - `app/Services/VoterValidationService.php` (existing ValidationHistory writer pattern)
-  - `app/Models/Voter.php` / `app/Models/PollingPlace.php` + `database/migrations/2026_01_22_000003_add_polling_place_to_voters_table.php` (where the source columns attach)
-  - `database/seeders/PollingPlaceSeeder.php` + `database/external-data/divipole-nacional.json` (divipol keyed-map join technique)
-  - `database/external-data/censo_decoded_202310210734.csv` (216,528 rows; column layout + Latin-1 encoding confirmed by direct inspection)
-  - `routes/console.php` (`Schedule::job()->withoutOverlapping()` idiom to reuse)
-  - `.planning/PROJECT.md` (v1.1 milestone requirements, QUAL test-protection precedent, strict-isolation constraint)
+- Direct codebase reads (HIGH confidence, current as of 2026-08-10): `app/Models/User.php`, `app/Enums/UserRole.php`, `app/Models/Scopes/CampaignMembershipScope.php`, `app/Models/Concerns/HasCampaignMembershipScope.php`, `database/seeders/RoleSeeder.php`, `database/migrations/2026_01_21_000002_add_coordinator_to_users_table.php`, `app/Filament/Resources/Coordinators/*`, `app/Filament/Resources/Leaders/*`, `app/Filament/Resources/Users/Tables/UsersTable.php`, `app/Filament/Resources/Gremios/*`, `app/Models/Gremio.php`, `database/migrations/2026_07_22_000001_create_gremios_table.php`, `app/Models/SurveyMetrics.php`/`MessageBatch.php`/`Message.php` (existing `'metadata' => 'array'` cast precedent), `app/Providers/Filament/AdminPanelProvider.php`, `app/Providers/Filament/CoordinatorPanelProvider.php`, `resources/views/livewire/coordinator/*`, `app/Exports/TopLeadersExport.php`, `config/permission.php` (`'teams' => false`), `.env` (`DB_CONNECTION=mysql`)
+- [Database: Query Builder | Laravel 12.x](https://laravel.com/docs/12.x/queries) — JSON Where Clauses section (arrow-syntax JSON querying, MySQL 8.0+ support) — MEDIUM-HIGH confidence for `orderBy` JSON-path support specifically (shared grammar mechanism with `where`, not separately demoed in this doc version)
+
+---
+*Architecture research for: SIGMA v1.2 (Articuladores + Metadata de Usuario)*
+*Researched: 2026-08-10*

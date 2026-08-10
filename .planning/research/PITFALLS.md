@@ -1,316 +1,265 @@
 # Pitfalls Research
 
-**Domain:** Offline data fallback + scheduled reconciliation + captcha-automated government scraping (SIGMA v1.1 "Consulta de Puesto de Votación Resiliente")
-**Researched:** 2026-07-24
-**Confidence:** HIGH on codebase-specific integration pitfalls (read the actual files); HIGH on Laravel/2captcha mechanics (verified against current docs); MEDIUM on Registraduría-specific behavior (live endpoints dead, `wsp.` subdomain unvalidated — flagged for the feasibility spike).
+**Domain:** Inserting a new role tier into an existing self-referencing hierarchy + adding a JSON metadata column with Filament v4 filter/sort, in a Laravel/Spatie political-campaign platform (SIGMA)
+**Researched:** 2026-08-10
+**Confidence:** HIGH (grounded directly in this codebase's existing files, not generic advice)
 
-> Scope note: this milestone does **not** build a fallback from scratch. A 3-tier cascade already exists in `app/Filament/Resources/Voters/Concerns/HasRegistraduriaPolling.php` (Redis → campaign-scoped `census_records` reconstruction → 2captcha live). The pitfalls below are specific to the *new* pieces: a national-scope snapshot table, a source-origin flag, and a scheduled reconciliation job — and how those integrate with the existing campaign-isolation and `ValidationHistory` audit patterns.
-
----
+This research was produced by reading the actual SIGMA codebase (`app/Models/User.php`, `CampaignMembershipScope`, `CoordinatorResource`/`LeaderResource`, `TopLeadersTable`/`TopCoordinatorsTable` widgets, `LeadersExportController`, `CreateCoordinator`/`CreateLeader`, `AuditObserver`, `CampaignUser` pivot, `Gremio`/`Subcategoria` catalogs) rather than from generic Laravel/Filament tutorials. Every pitfall below cites the exact file(s) where the risk pattern already exists today.
 
 ## Critical Pitfalls
 
-### Pitfall 1: The 2023 snapshot is silently treated as authoritative live data
+### Pitfall 1: `coordinator_user_id` is treated as "the top-of-tree parent FK" in ~6 places — all of them silently break or under-scope when articulador is inserted above it
 
 **What goes wrong:**
-The census CSV is dated `2023-10-21` (filename `censo_decoded_202310210734.csv`). By election day 2026 it is ~2.5 years stale: voters have moved, died, been re-assigned to new *puestos*, and new mesas have been created. If a fallback result renders identically to a live result, an operator (or a Day-D field worker) treats a stale polling place as current fact and sends a voter to the wrong location.
+Several existing surfaces assume "if the logged-in user has role `coordinator`, `coordinator_user_id = auth()->id()` is the correct scoping filter for their team." Concretely:
+- `app/Filament/Widgets/TopLeadersTable.php:46-49` — `->when($user?->hasRole(COORDINATOR), fn ($q) => $q->where('coordinator_user_id', $user->id))`
+- `app/Exports/TopLeadersExport.php:38` — identical pattern
+- `app/Http/Controllers/Coordinator/LeadersExportController.php:22` — identical pattern
+
+None of these know how to answer "show me all leaders under all coordinadores that belong to *this* articulador." When an articulador role is added, these surfaces will either (a) throw no error and just return an **empty result set** for an articulador (because an articulador's own `id` never equals any `coordinator_user_id`), which reads as "no data" rather than a visible failure, or (b) if someone naively adds `'articulador'` to the `hasRole()` check without changing the `where()` clause, will scope by the articulador's own id instead of the transitive set of coordinador ids they manage — also wrong, also silent.
 
 **Why it happens:**
-The existing `fillPollingPlaceFields()` writes snapshot data into the same `polling_place_id` / `polling_table_number` / `census_records` fields that a live lookup writes. Nothing downstream distinguishes them. The path of least resistance is to reuse that method verbatim for the fallback, which erases the origin distinction at the moment of write.
+The codebase was built around a strictly two-level tree (coordinator → leader), so "current user's own id = the parent FK value" was a correct shortcut at the time. Adding a third level breaks the shortcut, but the shortcut is duplicated (not centralized), so it's easy to fix it in one place and miss the others.
 
 **How to avoid:**
-Make the source flag a **first-class, non-null column on the write target** (e.g. `voters.polling_place_source` enum: `live` | `db_reconstruction` | `snapshot_2023` | `manual`, plus `polling_place_verified_at` timestamp). Set it in the *same* update that writes the polling place — never as a nullable afterthought. Surface the snapshot's as-of date (`2023-10-21`) in the UI, not just a generic "offline" label, so operators grasp *how* stale. Treat a missing/null source as "unknown, untrusted," not "live."
+Before writing the articulador feature, `grep -rn "coordinator_user_id.*Auth::\|coordinator_user_id.*\$user->id\|hasRole(UserRole::COORDINATOR" app` and treat every hit as a candidate that needs a "resolve my managed coordinador ids" step. Centralize that resolution in one place (e.g. a `$user->managedCoordinatorIds()` method or a scope) instead of re-deriving it inline at each call site — this is exactly the kind of logic that will need a third variant later and should not be copy-pasted a 7th time.
 
 **Warning signs:**
-Any code path that sets `polling_place_id` without also setting the source flag in the same statement. A UI where a snapshot result and a live result are pixel-identical.
+An articulador account logs in and sees zero leaders/coordinadores/apoyos in a dashboard widget or export that a coordinador would see data in. Empty state with no error is the signature of this bug — it will not show up in Filament's exception logs.
 
-**Phase to address:** Source-flagging phase (must land *with* the fallback-lookup phase, not after).
+**Phase to address:**
+Hierarchy/schema phase, before any UI work. The resolution helper must exist and be unit-tested against all three roles (coordinador, articulador, and — already-broken-today risk — a coordinador who is `also_leader`) before touching widgets/exports/resources.
 
 ---
 
-### Pitfall 2: The national snapshot table becomes a campaign-isolation leak
+### Pitfall 2: `coordinator_user_id` is an overloaded column (its meaning depends on the row's *role*, not just its presence) — reusing that pattern for articulador compounds the ambiguity
 
 **What goes wrong:**
-The snapshot CSV is **national and campaign-agnostic** (columns `divipol;codificado;cedula;dpto;…;puesto;nombre;mesa` — no `campaign_id`). This is intentional (one national census serves all campaigns). But the moment a fallback *reads* from it and *writes* campaign-scoped data (`census_records`, `voters`, `PollingPlace::firstOrCreate`), a bug can splice one campaign's cédula list against another's, or let Campaign A confirm a cédula exists in the national census that Campaign B never uploaded. SIGMA already had a real cross-campaign leak in a reassignment flow — this is the same failure class.
+On a `leader`-only user, `coordinator_user_id` means "my coordinator." On a `coordinator` user who is also flagged `also_leader` (`CreateCoordinator.php:40-43`), `coordinator_user_id` is a **self-reference** (`$this->record->update(['coordinator_user_id' => $this->record->id])`). On a plain coordinator, it's `NULL`. Any code that walks "one level up" by reading `coordinator_user_id` must already special-case this, and mostly doesn't (e.g. `User::leaders()` — `hasMany(User::class, 'coordinator_user_id')` — will include a self-referencing also-leader-coordinator as its "own leader" in counts like `leaders_count`).
+
+If the articulador→coordinador relation is modeled as "just add `articulador_user_id` and treat it the same generic way," the same self-loop trap will resurface for a coordinador who is also flagged as their own articulador equivalent, or worse, someone will be tempted to save time by reusing `coordinator_user_id` itself for the articulador link (e.g. "articulador's coordinador row points at the articulador via `coordinator_user_id`") — which would make `coordinator_user_id` mean three different things depending on role, and permanently poison every `leaders()`/`coordinator()` relationship call already in use across `VoterForm`, `LeaderForm`, `CreateLeader`, `TopLeadersTable`, etc.
 
 **Why it happens:**
-Developers reason "the snapshot is public national data, so isolation doesn't apply to it." True for the *lookup table* — but the derived writes (`CensusRecord::updateOrCreate` with `campaign_id`, `PollingPlace::firstOrCreate`) are campaign-scoped, and `fillPollingPlaceFields()` reads `CampaignContext::currentCampaignId()`. If that context is wrong/absent (see Pitfall 4), rows land under the wrong campaign.
+The self-loop was a pragmatic shortcut for "a coordinator who also acts as a leader" and was never meant to generalize. Under time pressure, the fastest-looking path for articulador is "reuse the FK pattern that already works," but that pattern only works because the two-level tree never needed to distinguish "my parent" from "myself."
 
 **How to avoid:**
-Keep the snapshot table strictly **read-only and lookup-only** (indexed on `cedula`, no `campaign_id`, no writes from campaign flows). Every write *derived* from a snapshot read must go through the existing campaign-scoping and must assert a non-null, correct `campaign_id`. Add a test: Campaign A performs a fallback lookup; assert nothing readable/writable appears under Campaign B. Do **not** add the snapshot to any global scope that campaign models share.
+Give articulador→coordinador its own, separate, dedicated FK column (e.g. `articulador_user_id` on `users`), with its own `belongsTo`/`hasMany` relation pair, and do **not** collapse it onto `coordinator_user_id`. If an articulador can also act as a coordinador (mirroring the existing `also_leader` flag), model that with an explicit boolean flag + explicit self-reference decision, tested the same way `also_leader` already is, rather than inferring it from FK equality.
 
 **Warning signs:**
-A `campaign_id` column creeping onto the snapshot table. A fallback write where `campaign_id` is derived from anything other than the authenticated request's active campaign. Snapshot rows appearing in a campaign-scoped report.
+Any query or relationship that assumes `coordinator_user_id IS NOT NULL` implies "this is a leader" — check this assumption doesn't silently start including/excluding coordinadores-who-are-also-leaders once a third tier exists.
 
-**Phase to address:** Snapshot-import phase (schema decision) + fallback-lookup phase (write-path isolation test).
+**Phase to address:**
+Schema/hierarchy design phase — this is a data-modeling decision, not a UI decision, and is expensive to reverse once leader/coordinator forms and exports depend on the column's exact semantics.
 
 ---
 
-### Pitfall 3: The reconciliation job has no human actor, breaking the ValidationHistory audit trail
+### Pitfall 3: No `UserPolicy`/`CoordinatorPolicy`/`LeaderPolicy` exists today — authorization is 100% implicit in `getEloquentQuery()` scoping, which is easy to bypass when new CRUD surfaces are added for articulador
 
 **What goes wrong:**
-`ValidationHistory.validated_by` is a **non-null FK to `users`** (see `FinalizeElectionEvent`, which always passes `$this->validatedByUserId`). A headless scheduled reconciliation job has no logged-in user. Cloning the `FinalizeElectionEvent` pattern naively either (a) crashes on the non-null FK, or (b) tempts a dev to skip writing history entirely — so a voter's polling place silently changes from snapshot→live with **no audit record of why/when**, violating SIGMA's "clear operational traceability" core value.
+`app/Policies/` only contains `InvitationPolicy.php` and `VoterPolicy.php`. `CoordinatorResource::getEloquentQuery()` (`role('coordinator')`) and `LeaderResource::getEloquentQuery()` (`role('leader')`) provide **no owner-scoping at all** today — they rely on the fact that only `coordinator`/`admin_campaign`/`super_admin` can reach the coordinator panel (`EnsureUserHasRole` middleware), and the coordinator panel currently registers no `Resource` classes at all (`CoordinatorPanelProvider` only registers `Dashboard`/`DiaD` pages + widgets, not `LeaderResource`). In other words, "a coordinador can only manage their own leaders" is **not currently enforced by any resource-level query** — it happens to be true only because the panel doesn't expose that resource yet.
 
-**Why it happens:**
-`FinalizeElectionEvent` gets its actor from the human who clicked "close event." The reconciliation job is autonomous — there is no such human. The audit pattern was never designed for a system actor.
+When articulador gets "create/manage coordinadores" as a first-class capability, the natural move is to add a Filament resource for it. If that resource's `getEloquentQuery()` copies the existing pattern (`role('coordinator')` with no owner filter, following `CoordinatorResource`'s exact precedent), **every articulador would see and be able to edit every coordinador in the campaign**, not just their own — a direct violation of the "one extra hierarchy level, no further nesting" requirement, and it would look identical to the working `CoordinatorResource` code, so it would pass a casual review.
 
 **How to avoid:**
-Decide the system-actor strategy **before** writing the job: either a dedicated `system`/`registraduria-bot` user seeded once and passed as `validated_by`, or make `validated_by` nullable + add a `validation_type = 'auto_reconciliation'` and record the source transition in `notes` (e.g. `"Reconciliación automática: snapshot_2023 → live (Registraduría respondió {timestamp})"`). Every silent upgrade must produce exactly one `ValidationHistory` row so the transition is queryable. This is a schema/seed decision, not a code detail — surface it in the reconciliation phase plan.
+Do not copy `CoordinatorResource::getEloquentQuery()` verbatim for the articulador-facing coordinador management surface. It must add `->where('articulador_user_id', Auth::id())` (or equivalent) unless the acting user is `admin_campaign`/`super_admin`. Additionally, create an explicit `UserPolicy` (or scoped policy) for "can this user create/edit/delete this specific subordinate" so the authorization rule exists once, independent of which panel/resource/relation-manager/API endpoint reaches the record — Filament's default route-model-binding respects `getEloquentQuery()`, but any hand-rolled `Select::make(...)->relationship(..., modifyQueryUsing: ...)` (as already seen in `LeaderForm.php:31-35` for the coordinator picker) is a second place the same scoping rule must be independently re-applied, and it is trivial to forget on the second (articulador→coordinador) picker.
 
 **Warning signs:**
-A reconciliation code path that updates a voter's polling place without a corresponding `ValidationHistory::create`. A hardcoded `validated_by => 1`. FK constraint violations in the job's `failed_jobs` entries.
+A `Select` field listing "which coordinador to assign a leader/metadata to" that isn't scoped to the acting articulador's own coordinadores — check every new `Select::make(...)->relationship('...')` and every `modifyQueryUsing` closure introduced for this milestone, not just the top-level resource query.
 
-**Phase to address:** Reconciliation-job phase (blocked by a schema/seed decision that should be made explicit in the plan).
+**Phase to address:**
+Authorization/policy phase, explicitly separated from the UI phase. Verification should include a test where an articulador is logged in and asserts they *cannot* see/edit a coordinador belonging to a different articulador — this exact test does not exist today for the coordinator→leader boundary either, so it should be added retroactively as part of this milestone's regression coverage.
 
 ---
 
-### Pitfall 4: The reconciliation job runs with no campaign context and writes to the wrong (or no) campaign
+### Pitfall 4: `campaign_user.role_id` and Spatie's `model_has_roles` are two separate, independently-writable sources of truth for "what role does this user have" — the articulador rollout must update both or they will disagree
 
 **What goes wrong:**
-`fillPollingPlaceFields()` — the method the reconciliation job will likely reuse to persist an upgraded result — calls `CampaignContext::currentCampaignId()`. In an HTTP request that's the operator's active campaign. In a **headless queued job there is no session and no active campaign**, so `currentCampaignId()` returns null (silently skipping the census enrichment via its `if ($cedula && $campaignId)` guard) or, worse, whatever a leaked singleton last held. A voter belongs to exactly one campaign, so the job must resolve campaign *from the voter row*, not from context.
-
-**Why it happens:**
-The existing write path was built for the interactive Filament flow where campaign context is always set. Reusing it in a job inherits an assumption that no longer holds.
+`CampaignUser` (the `campaign_user` pivot) has its own `role_id` column, separately populated in `CreateCoordinator::attachActiveCampaign()` (`'role_id' => Role::findByName(UserRole::COORDINATOR->value)->id`) — this is **in addition to** `$this->record->assignRole(UserRole::COORDINATOR->value)` (Spatie). These are two different tables (`campaign_user.role_id` vs. Spatie's `model_has_roles`) that happen to be kept in sync today by convention, not by a database constraint or a single write path. Any new articulador-creation flow that forgets to set `role_id` on the pivot (easy, since most `hasRole()`/`canAccessPanel()` checks throughout the app only read Spatie) will produce users who pass every `hasRole('articulador')` check but are invisible to anything that joins on `campaign_user.role_id` (e.g. future per-campaign role reporting).
 
 **How to avoid:**
-The reconciliation job must derive `campaign_id` **from each `$voter->campaign_id`** as it iterates (inside the `chunkById` loop), never from `CampaignContext`. Extract the persistence logic so it accepts an explicit `campaign_id` argument instead of reading ambient context. Add a test asserting the job writes each upgraded voter under that voter's own campaign.
+When adding the `articulador` role, update both write paths in the same transaction/method (mirror `CreateCoordinator::afterCreate()` + `attachActiveCampaign()` exactly), and add a test asserting `$user->hasRole('articulador')` and the pivot's `role_id` agree after creation. Do not introduce a third, independent write path.
 
 **Warning signs:**
-`CampaignContext::currentCampaignId()` reachable from the job. Reconciled `census_records` rows with null or mismatched `campaign_id`. Enrichment silently no-op'ing in production.
+A report or query joins `campaign_user` on `role_id` and gets a different headcount than `User::role('articulador')->count()`.
 
-**Phase to address:** Reconciliation-job phase (this is the #1 integration risk — call it out in the plan's first checklist item).
+**Phase to address:**
+Same phase as the role/migration work — this is a one-line omission risk that's cheap to prevent up front (checklist item in the plan) and annoying to detect later (requires a manual data reconciliation script).
 
 ---
 
-### Pitfall 5: The scheduled job silently blocks/hangs on a captcha step it can never complete headlessly
+### Pitfall 5: Adding `articulador` to `UserRole` enum and `EnsureUserHasRole` without deciding its `canAccessPanel()` behavior leaves the role either panel-locked-out or over-privileged
 
 **What goes wrong:**
-The live tier today is **partly human-driven**: `openRegistraduriaBrowser()` opens a Filament modal, and the result arrives via `#[On('registraduria-result')]` dispatched from Alpine.js after a human interacts. A scheduled, headless reconciliation job **cannot complete a lookup that requires a human click**. If the job calls the live path optimistically, each record either hangs waiting for a dispatch that never comes, times out, or throws — burning queue workers and captcha budget for zero upgrades.
-
-**Why it happens:**
-The `registraduria-service` Python microservice *is* designed to be fully automated (2captcha + Playwright, no human), but the *SIGMA-side* trigger flow (`HasRegistraduriaPolling`) is interactive. Whether the job can run non-interactively depends entirely on whether the `wsp.registraduria.gov.co` spike proves a **fully server-solvable** flow. Until then, "automate reconciliation" is gated.
+`User::canAccessPanel()` (`app/Models/User.php:215-224`) is a hardcoded `match` over panel id → allowed roles (`admin`, `leader`, `coordinator`, `reports`). There is no `articulador` panel today. If articulador is only added to the `UserRole` enum and given permissions but never added to any `match` arm, an articulador user can be created and assigned coordinadores in the admin panel (if `admin_campaign`/`super_admin` does it on their behalf) but **cannot log in anywhere themselves** — a "looks done but isn't" trap, since the enum/migration/Filament-resource work will all look complete while the actual login path 404s or 403s.
 
 **How to avoid:**
-Gate the reconciliation job on the feasibility spike outcome. If the live flow still needs a human step, the job must **detect that and flag records for manual review** (e.g. enqueue them into an operator worklist / set a `needs_manual_reverify` flag) rather than call an interactive path headlessly. Never let the job `dispatchSync` or block on a human-dependent step. Give the job a hard per-record timeout. The job's contract should be "attempt automated upgrade; if not automatable, flag and move on" — never "wait."
+Decide explicitly, as part of scoping this milestone (not as an implementation afterthought): does articulador get its own panel, reuse the `coordinator` panel with elevated resource visibility, or reuse `admin`? Whatever is decided, `canAccessPanel()` and `CoordinatorPanelProvider`/a new panel provider must be updated together with the role addition, and a login-smoke-test for the new role should exist before calling the role "done."
 
 **Warning signs:**
-Queue workers stuck in `waiting_result`. Jobs timing out at the queue's `retry_after`. Zero upgrades despite many runs. Any call from the job into the modal-triggering path (`registraduriaOpen = true`).
+`php artisan tinker` shows the articulador user has the role and permissions, but visiting any panel as that user redirects to a 403.
 
-**Phase to address:** Feasibility-spike phase (determines if the job is even automatable) → Reconciliation-job phase (must handle the "not automatable" branch explicitly).
+**Phase to address:**
+Same phase as role/permission setup — this is not a "later" concern, it blocks the entire feature from being usable.
 
 ---
 
-### Pitfall 6: The reconciliation job floods the 2captcha budget when Registraduría is down
+### Pitfall 6: JSON metadata filter/sort on unindexed `JSON_EXTRACT` will silently full-table-scan, and degrades exactly on the tables (`users`) that already have the most columns and widest usage across every panel
 
 **What goes wrong:**
-Every live lookup costs real money (2captcha). If the job retries *all* snapshot-flagged voters on every scheduled run, and Registraduría is down (its current state — both live domains are DNS-dead), the job spends the entire captcha budget on requests that all fail, every run, forever. At 216,528 potential snapshot rows this is a runaway cost, not a rounding error.
-
-**Why it happens:**
-The naive reconciliation loop is "for each snapshot voter, try live." Without a circuit breaker or per-record backoff, a persistent outage turns into a persistent spend. SIGMA's own `FinalizeElectionEvent` template has no rate limiting because it does free DB writes — cloning it directly inherits no budget guard.
+MySQL cannot index a `JSON` column directly. A naive Filament `Filter`/`SelectFilter`/sortable column built with `orderByRaw("JSON_EXTRACT(metadata, '$.biaticos') ...")` or `whereRaw` works correctly in dev with a handful of rows, then does a full table scan on `users` once real campaign data accumulates — and because `users` is already scoped by the global `CampaignMembershipScope` (a `whereHas('campaigns', ...)` subquery) on every single query, a second unindexed JSON scan stacked on top compounds cost on a table every panel touches (Users, Coordinators, Leaders resources, every dashboard widget that counts/lists users).
 
 **How to avoid:**
-Build the budget guard **from day one, not after the first bill**: (1) a **circuit breaker** — if N consecutive live attempts fail, stop the run and back off (the live source is down; don't hammer it); (2) **per-record exponential backoff** — a `last_reverify_attempt_at` + `reverify_attempts` column so a record isn't retried until its backoff window elapses; (3) a **per-run cap** (e.g. max 200 live attempts/run) so one run can't drain the budget; (4) a **global daily captcha ceiling** read from config. Probe cheaply first (an HTTP/DNS reachability check on the target domain) *before* spending a captcha solve.
+Do not filter/sort directly against `JSON_EXTRACT` on the raw `metadata` column for keys that need to be filterable/sortable in a Filament table. For each catalog key that must support filter/sort, add a MySQL **generated column** (`VIRTUAL` or `STORED`) extracting that key with an explicit index, and point the Filament `SelectFilter`/`TextColumn::sortable()` at the generated column, not at raw JSON functions. Since the metadata catalog is superadmin-managed and presumably small/bounded (a handful of keys like `biaticos`, `almuerzo`, `incentivo`), generated-column-per-key is tractable; it stops being tractable only if the catalog is expected to grow unbounded, in which case a normalized `user_metadata_values` table (one row per user/key/value, indexable on `key` + `value`) is the correct alternative to a JSON blob entirely — worth deciding explicitly rather than defaulting to JSON because the requirement says "JSON metadata column."
 
 **Warning signs:**
-2captcha balance dropping with zero successful upgrades. The same cédulas attempted every single run. No `reverify_attempts` / `last_reverify_attempt_at` columns in the design.
+A Filament table sort/filter on a metadata key works fine locally, then a `EXPLAIN` on the generated query shows `type: ALL` (full scan) instead of `ref`/`range`. Load-test or `EXPLAIN` any metadata sort/filter before shipping, don't just visually confirm it returns correct results.
 
-**Phase to address:** Reconciliation-job phase (backoff + circuit breaker + cap are non-negotiable day-one requirements, not follow-ups).
+**Phase to address:**
+Schema phase for the metadata catalog + column, verified with `EXPLAIN` before the Filament UI phase begins — retrofitting generated columns after the filter UI ships means re-touching every filter/column definition a second time.
 
 ---
 
-### Pitfall 7: The reconciliation job re-processes the same records forever (no terminal state)
+### Pitfall 7: Read-modify-write on the whole `metadata` JSON blob loses concurrent edits when two different superiors (e.g. a coordinador and an articulador, or two coordinadores under the same articulador editing different subordinates) save at nearly the same time
 
 **What goes wrong:**
-A record upgraded snapshot→live should stop being a reconciliation candidate. If the query is "all voters where source = snapshot" but the upgrade doesn't move them out of that set cleanly — or if `verified_at` isn't set — records either get re-queried forever (wasted work) or, if Registraduría *never* comes back, the never-resolvable set grows unbounded and every run scans all of it.
+The natural Filament implementation reads `$user->metadata` (full array), mutates the one key being edited in the form, and saves the whole column back (`$user->update(['metadata' => $fullArray])`). If two superiors independently open the same subordinate's metadata form and each save a different key (or even the same key) within the same request window, the second save overwrites the first save's array wholesale — the first superior's edit silently disappears with no error, no conflict message, and (depending on how the audit observer captures it) a confusing audit trail where the "old" value shown for the second write is not what the first superior actually set.
 
-**Why it happens:**
-Copying `FinalizeElectionEvent`'s `chunkById` over a broad `whereIn(status)` filter without a terminal-state column. There's no natural "done" for a record whose live source is permanently unreachable.
+**Why it's specifically likely here:** the requirement explicitly allows *any* superior in the chain (líder/coordinador/articulador/superadmin) to assign metadata to *their own* subordinates — but nothing in the requirement prevents two different superiors' subordinate sets from overlapping in edge cases (e.g. a coordinador who is `also_leader`, or a superadmin editing anyone), so "only one person can ever edit a given user's metadata" cannot be assumed.
 
 **How to avoid:**
-Define explicit terminal states: `live` (upgraded — leaves the candidate set), and a capped-retry exhaustion state (e.g. after `reverify_attempts >= MAX`, mark `reverify_exhausted` so it's excluded until an operator manually resets or the source is confirmed back). The candidate query must be `source = snapshot AND NOT exhausted AND backoff_elapsed`. Index those columns so the scan stays cheap as the table grows.
+Either (a) update the JSON column atomically at the database level per-key using MySQL `JSON_SET()` inside the update (`UPDATE users SET metadata = JSON_SET(metadata, '$.biaticos', ?) WHERE id = ?`) instead of a PHP read-modify-write of the whole array, or (b) if a normalized `user_metadata_values` table is used instead (see Pitfall 6), the race disappears naturally because each key is its own row and each write is a single-row `UPDATE`/`UPSERT`. Avoid `$user->update(['metadata' => $wholeArray])` as the save mechanism for anything more than single-superadmin-editing-alone use.
 
 **Warning signs:**
-Job runtime growing every run. The same record count processed indefinitely. No column that removes a record from the candidate set.
+Two superiors report "I set a value and it disappeared" with no error on screen. This is very hard to reproduce after the fact from a flat JSON blob, since the audit log (Pitfall 9) may only show "someone changed metadata" at the whole-column level, not which key.
 
-**Phase to address:** Reconciliation-job phase.
+**Phase to address:**
+Schema/data-access-layer phase — the write mechanism (atomic per-key vs. whole-column) is a foundational decision that determines whether this bug class can happen at all; it's not something a later UI polish pass can fix without re-touching every save path.
 
 ---
 
-### Pitfall 8: reCAPTCHA Enterprise token is "solved" but the lookup is still denied (score/env mismatch)
+### Pitfall 8: `AuditObserver` already exists and auto-fires on `User` model changes, but it captures whole-column diffs and resolves `campaign_id` from the *acting* user's active campaign context — both are wrong defaults for money-like metadata assigned across campaign/role boundaries
 
 **What goes wrong:**
-The existing scraper uses `method=userrecaptcha` (reCAPTCHA **v2**) against the now-dead `eleccionescolombia.registraduria.gov.co`. The new `wsp.registraduria.gov.co` uses **reCAPTCHA Enterprise (score-based)**. A solved token is **not** success: Registraduría's backend creates an assessment and can **reject a low-trust score even though the token is valid**. Verified current behavior: 2captcha only returns scores of ~0.1/0.3/0.9; tokens live ~2 minutes; and **any mismatch between the token-generation environment and the final request environment causes rejection**. Treating "2captcha returned a token" as "lookup will succeed" produces silent, intermittent failures that look like the source being flaky.
-
-**Why it happens:**
-v2 and Enterprise use different 2captcha parameters (Enterprise needs `enterprise=1`, sometimes action/min_score), and the failure mode moves server-side (risk score) where the client can't see why it was denied. The old code's success check (`result.get("status")`) won't distinguish "denied by score" from "cédula not found."
+`app/Observers/AuditObserver.php` is already registered on `User::observe(AuditObserver::class)` (`AppServiceProvider.php:68`) and will automatically log every `metadata` column change once it's added to `users`, using `old_values`/`new_values` = the model's `getChanges()`/`getOriginal()`. Two problems specific to this feature:
+1. **Whole-column granularity**: if `metadata` is a single JSON column, the audit log records "the whole JSON array changed from X to Y," not "coordinador Juan set `biaticos` = 50000 for leader María on 2026-08-10." For a money-like field, "who assigned *this specific value* when" is exactly the compliance question this milestone anticipates, and the existing generic observer cannot answer it at the granularity needed without per-key audit rows.
+2. **`campaign_id` resolution is wrong for cross-context edits**: `AuditObserver::resolveCampaignId()` falls back to `CampaignContext::currentCampaignId()` — i.e., **the acting user's own currently-selected active campaign**, not the campaign the *edited subordinate* actually belongs to. A `super_admin` (who can override active campaign) editing a subordinate's `biaticos` value while their own UI context is set to a different campaign than the subordinate's would produce an audit row tagged to the wrong campaign — a real gap for a money field where "which campaign approved this incentivo" matters for reconciliation.
 
 **How to avoid:**
-Treat this as a **spike with a live success/deny classifier**, not a docs exercise — the parallel research already flagged that server-side score acceptance can't be settled from docs. In the spike: send `enterprise=1`, start at score 0.3 and raise toward 0.9 only if >50% are denied, keep the browser fetch environment consistent (same UA/headers/origin the token was minted under, as the current code already tries), and use the token within its ~2-min TTL. Build an explicit outcome taxonomy: `success` vs `denied_by_score` vs `not_found` vs `source_unreachable` — and only `success` counts as an upgrade. Budget for a token-rejection rate; don't assume 1 solve = 1 result.
+Do not rely on the generic `AuditObserver` alone for metadata-value provenance. Add a dedicated, explicit audit trail for metadata assignments — either a `user_metadata_values` table with its own `assigned_by`/`assigned_at`/`previous_value` columns (mirroring the exact pattern SIGMA already uses for role assignment on `campaign_user.assigned_at`/`assigned_by` — `CampaignUser.php:19-20`), or a dedicated audit action/event fired explicitly at the point of assignment (not relying on the passive model-diff observer) that resolves campaign from the *subordinate's* campaign membership, not the actor's active context.
 
 **Warning signs:**
-High 2captcha success rate but low lookup success rate. Intermittent denials that correlate with nothing. Reusing the v2 `userrecaptcha` params against the Enterprise sitekey.
+Querying `audit_logs` for "who set biaticos to X on user Y" returns a JSON diff of the entire metadata blob rather than an isolated key change, or returns a `campaign_id` that doesn't match the subordinate's actual campaign.
 
-**Phase to address:** Feasibility-spike phase (this is the spike's core unknown; its result gates whether the live source and the automated reconciliation job are viable at all).
+**Phase to address:**
+This must be designed in the same phase as the metadata schema, before any UI ships — retrofitting per-key provenance after superiors have already been assigning values through a whole-column-diff-only audit trail means the historical data cannot be reconstructed with per-key attribution (see Recovery Strategies below).
 
 ---
 
-### Pitfall 9: Jurisdiction/divipol codes drift between the 2023 snapshot and today, corrupting dentro/fuera reports
+### Pitfall 9: Money-like fields (biáticos/incentivos) stored as untyped JSON values lose the type/precision guarantees the rest of the codebase already relies on for money — and sort as *strings*, not numbers, unless explicitly cast
 
 **What goes wrong:**
-SIGMA already ships a jurisdiction "dentro/fuera" report (Phase 04.1) that decides whether a voter's polling place is inside or outside the campaign's territory. If the 2023 snapshot's `divipol` / municipality codes (`dpto`, `mcpio`, `zona`, `puesto`) don't match today's `polling_places` / `divipole-nacional.json` seed — because municipalities merged, codes were reissued, or a puesto was renamed/relocated — a snapshot-sourced polling place resolves to the wrong municipality or fails the `PollingPlace` join, silently flipping a voter's dentro/fuera classification. Inaccurate operational numbers are explicitly "unacceptable" per project constraints.
-
-**Why it happens:**
-`resolveFromDatabase()` and `fillPollingPlaceFields()` match on `Municipality.code` and `PollingPlace.name` (a `whereRaw LOWER(name)` string match). Snapshot names/codes from 2023 won't always string-match the current seed. The join quietly returns null and the code falls through to partial data.
+The one existing money field in this codebase, `witness_payment_amount`, is a real `decimal:2` cast column (`User.php:76`) — not JSON. JSON has no native decimal type; PHP's `json_encode`/`json_decode` round-trips numbers as float/int, which is a well-known source of floating-point precision drift for currency values (e.g. `0.1 + 0.2` class errors) if any arithmetic is ever done on these values (totals, exports, reconciliation). Separately, if a metadata value is saved once as a number (`50000`) and later, for a different user or by a different superior, accidentally saved as a numeric string (`"50000"`) — which is trivial to happen from a Filament `TextInput` unless explicitly cast/validated server-side — MySQL's `JSON_EXTRACT`-based sort will order these inconsistently (numeric JSON values sort numerically, string JSON values sort lexicographically; `"9000"` can sort after `"50000"` as a string), silently corrupting any "sort leaders by biaticos amount" table column.
 
 **How to avoid:**
-During snapshot import, **validate the snapshot's codes against the current `polling_places`/`Municipality` seed** and report the unmatched percentage — don't import blind. For snapshot-sourced results, prefer **code-based joins over name string-matching**, and when a code doesn't resolve, mark the result as low-confidence rather than silently emitting partial fields. Never let a snapshot result feed the dentro/fuera report without the source flag propagating into that report so stale classifications are visibly caveated.
+Enforce a declared type per catalog key (the superadmin-managed key catalog should carry a `type` attribute — `numeric`/`text`/`boolean`/etc — not just a free key name), validate and coerce on save (cast to a fixed-precision representation, e.g. store money as integer cents rather than decimal JSON numbers, exactly the way currency is commonly stored to avoid float drift), and enforce that type consistently both in the Filament form (numeric input with min/step) and in the generated-column extraction used for sorting (`CAST(JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.biaticos')) AS UNSIGNED)` in the generated column definition, not a bare string extraction).
 
 **Warning signs:**
-Snapshot rows whose `mcpio`/`divipol` don't match any `polling_places` row. A jump in "fuera" classifications after enabling fallback. `PollingPlace::firstOrCreate` creating many new near-duplicate places from snapshot imports.
+A Filament table sorted by a money-like metadata key shows an order that doesn't match visual inspection of the values (a giveaway that string-sort is being applied to what looks like numbers).
 
-**Phase to address:** Snapshot-import phase (validation report) + must be re-checked wherever the dentro/fuera report consumes polling data.
-
----
-
-### Pitfall 10: The fallback clobbers fresher data (snapshot overwrites a good live/DB result)
-
-**What goes wrong:**
-`fillPollingPlaceFields()` unconditionally overwrites `polling_place_id`, `polling_table_number`, and `CensusRecord` via `updateOrCreate`. If the fallback path reuses it, a **stale 2023 snapshot can overwrite a previously-resolved live result** (e.g. operator re-opens a voter while Registraduría is briefly down, fallback fires, good live data is replaced with older snapshot data — a silent downgrade).
-
-**Why it happens:**
-The write path has no notion of source precedence; last-write-wins. The cache/DB tiers were all "equally trustworthy" before; introducing a *less*-trustworthy snapshot tier breaks that assumption.
-
-**How to avoid:**
-Establish a **source precedence order** (`live` > `db_reconstruction` > `snapshot_2023`) and **never downgrade**: a snapshot write must not overwrite a record already flagged `live` (or already `verified_at` within a freshness window) unless an operator explicitly forces it. Guard the write: only apply snapshot data if the existing source is null or lower-precedence.
-
-**Warning signs:**
-A voter's source flag going `live` → `snapshot_2023`. `verified_at` moving backwards. Operators reporting "the polling place changed to old data by itself."
-
-**Phase to address:** Fallback-lookup phase (precedence guard) — depends on the source flag from the source-flagging phase existing first.
-
----
-
-### Pitfall 11: `withoutOverlapping()` lock gets stuck and freezes reconciliation forever
-
-**What goes wrong:**
-The plan is to schedule via `Schedule::job(...)->withoutOverlapping()`. Verified current Laravel behavior: if a run dies without releasing the lock (fatal error, hard kill, server reboot, or a job that hangs on the captcha step per Pitfall 5), **the lock defaults to a 24-hour hold** and the reconciliation job silently won't run again until it expires — a silent scheduler failure with no error surfaced.
-
-**Why it happens:**
-`withoutOverlapping()` is correct for preventing double-runs, but its default lock TTL is long and stale locks aren't self-evident. A job that can hang (Pitfall 5) is exactly the kind that leaves stale locks.
-
-**How to avoid:**
-Always pass an explicit expiry sized to the job's realistic max runtime: `->withoutOverlapping($minutes)` for scheduled commands, or `(new WithoutOverlapping())->expireAfter($seconds)` for job middleware. Combine with a hard per-record timeout (Pitfall 5) so a run can't outlive its lock TTL. Document `schedule:clear-cache` as the recovery lever. Add monitoring/alerting on "last successful reconciliation run" age so a stuck lock is caught in hours, not on election day.
-
-**Warning signs:**
-Reconciliation "ran" per the scheduler but no rows changed and no errors logged. A 24h gap in the job's structured logs. `last_reverify_attempt_at` timestamps frozen across many scheduled ticks.
-
-**Phase to address:** Reconciliation-job phase.
+**Phase to address:**
+Catalog-design phase (the key catalog's schema needs a `type` column from day one) + schema phase (generated columns must cast, not just extract). Retrofitting a `type` onto an existing freeform key catalog after superiors have already entered mixed-type values for the same key is expensive (Pitfall/Recovery below).
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Reuse `fillPollingPlaceFields()` verbatim for the fallback | Fast; no new write path | Erases source origin, reads ambient `CampaignContext` (wrong in a job), clobbers fresher data | Never as-is — must be refactored to take explicit `campaign_id` + `source` args |
-| Skip the source flag in MVP, "add it later" | Ships fallback faster | Stale data becomes indistinguishable from live; can't build the reconciliation candidate query (it needs `source = snapshot`) | Never — the flag *is* the feature and the job's WHERE clause |
-| Retry all snapshot voters every run, no backoff | Simplest loop | Drains 2captcha budget during any outage; job runtime grows unbounded | Never for a paid external call |
-| Hardcode `validated_by => <some user id>` in the job | Satisfies the non-null FK quickly | Audit trail lies about who changed the record; no `system` actor concept | Only if that id is a real seeded `system`/bot user, documented as such |
-| Import the 216k-row CSV without code-validation against current seed | Fast import | Silent join failures corrupt dentro/fuera reports; duplicate polling places | Only with an unmatched-rows report reviewed before go-live |
-| String-match polling place by `LOWER(name)` for snapshot rows | Reuses existing code | 2023 names drift from current seed → nulls → partial data | Only as a fallback *after* a code-based join fails, flagged low-confidence |
+|----------|--------------------|-----------------|------------------|
+| Reuse `coordinator_user_id` semantics/self-loop pattern for articulador instead of a dedicated FK | Faster to ship, "looks the same as existing code" | Permanently ambiguous parent-resolution logic across 3 roles; every future `leaders()`/`coordinator()`-style relation needs role-aware special-casing | Never — the dedicated-FK cost is small and paid once |
+| Filter/sort JSON metadata via raw `JSON_EXTRACT`/`whereRaw` with no generated column | No migration needed, works immediately in dev | Full table scan on `users` at scale; SQL string-building from filter input is also an injection surface if any dynamic key name reaches raw SQL | Only acceptable for a temporary admin-only debug view never exposed as a real Filament table filter |
+| Whole-column JSON read-modify-write for metadata saves | Simplest Eloquent code (`$user->update(['metadata' => $array])`) | Race conditions between concurrent superiors; audit trail can't attribute a specific key change to a specific actor | Only acceptable if the product genuinely guarantees single-writer-per-subordinate (not true here — líder/coordinador/articulador/superadmin can all touch the same chain) |
+| Skip a dedicated `UserPolicy`/scoped authorization and rely purely on `getEloquentQuery()` copy-paste for the new articulador-facing coordinador resource | Fast, matches existing `CoordinatorResource`/`LeaderResource` pattern | Any hand-rolled `Select`/relation-manager/API path that doesn't independently re-apply the same scope becomes a silent cross-tenant leak | Never for this milestone — campaign isolation and hierarchy isolation are both explicit hard requirements |
+| Add `articulador` to the `UserRole` enum without deciding panel access in the same PR | Enum/migration work feels "done" quickly | Role exists but is unusable until `canAccessPanel()` is updated — creates a false sense of completion | Never — panel access must land with the role |
 
 ## Integration Gotchas
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| National snapshot table ↔ campaign-scoped models | Adding `campaign_id` to the snapshot or writing to it from campaign flows | Keep it read-only/lookup-only; derive campaign writes from `$voter->campaign_id`, assert non-null |
-| Reconciliation job ↔ `ValidationHistory` (non-null `validated_by` FK) | Skipping history writes or hardcoding a user id | Seed a `system` actor or make FK nullable + `validation_type='auto_reconciliation'`; one row per transition |
-| Reconciliation job ↔ `CampaignContext` singleton | Reusing the interactive write path that reads `currentCampaignId()` | Pass `campaign_id` explicitly per record; ban `CampaignContext` from the job |
-| Reconciliation job ↔ interactive captcha modal flow | Calling the modal-triggering live path headlessly; it hangs on a human dispatch | Only call a *fully server-solvable* path; if not automatable, flag for manual review |
-| 2captcha ↔ reCAPTCHA **Enterprise** (`wsp.` subdomain) | Using v2 `userrecaptcha` params; treating a token as success | `enterprise=1`, score 0.3→0.9, respect ~2-min TTL + env consistency; classify `denied_by_score` separately |
-| Snapshot import ↔ existing `polling_places` / `divipole-nacional.json` | Blind import; `firstOrCreate` spawning duplicate places | Validate codes against current seed; join by code first, report unmatched % |
-| `Schedule::job()->withoutOverlapping()` | Default 24h lock hold silently freezes the job after a crash/hang | Explicit `expireAfter`/minutes arg sized to max runtime; alert on stale last-run |
+Not a third-party-service integration in the traditional sense, but two *internal* systems this feature must integrate correctly with:
+
+| "Integration" | Common Mistake | Correct Approach |
+|----------------|-----------------|-------------------|
+| Spatie `HasRoles` + `campaign_user.role_id` pivot (dual role storage) | Update only the Spatie side when creating an articulador, forget the pivot `role_id` (or vice versa) | Write both in the same method, in the same transaction, mirroring `CreateCoordinator::afterCreate()` + `attachActiveCampaign()` exactly; add a test asserting both agree |
+| Existing `CampaignMembershipScope` global scope on `User` | Assume the scope already limits a Filament table to "my subordinates" — it only limits to "users in the currently active campaign," not to hierarchy | Layer an explicit hierarchy-scoping `where` (or a dedicated local scope) *on top of* the campaign scope for any articulador/coordinador-facing "my team" view; the two scopes solve different problems and neither substitutes for the other |
+| `AuditObserver` (already registered on `User`) | Assume it's sufficient audit coverage for metadata since "audit logging already exists" | It exists and will fire, but only at whole-column granularity with actor-context campaign resolution — insufficient for per-key, correctly-campaign-attributed provenance on money-like fields (see Pitfall 8); needs a dedicated audit path alongside it, not instead of it |
+| `Gremio`/`Subcategoria` catalog pattern (already-shipped precedent for "superadmin-managed predefined catalog") | Reinvent catalog management from scratch for metadata keys instead of following the existing, already-validated pattern | Model the metadata-key catalog as a real table (mirroring `Gremio`/`Subcategoria`: a Filament resource for CRUD, FK/lookup relation from usage), not as a hardcoded config array or freeform strings — this also gives a natural place to store the per-key `type` from Pitfall 9 |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Reconciliation scans all snapshot voters every run | Job runtime grows each tick | Terminal states + backoff columns in the candidate WHERE; index them | As soon as snapshot-flagged set grows into the thousands |
-| Snapshot lookup not indexed on `cedula` | Slow fallback on every miss | B-tree index on `cedula` at import (216,528 rows) | Immediately at national scale |
-| Per-run captcha attempts uncapped | Budget drained, queue saturated during an outage | Per-run cap + circuit breaker + reachability probe before solve | The first prolonged Registraduría outage |
-| `PollingPlace::firstOrCreate` per snapshot row | Table bloats with near-duplicates | Resolve by code; only create when genuinely new | During bulk snapshot-sourced resolution |
+|------|----------|------------|-----------------|
+| Sorting/filtering metadata via raw `JSON_EXTRACT` with no index | Filament table sort/filter feels instant in dev, degrades in prod | Generated + indexed column per filterable/sortable catalog key (Pitfall 6) | Breaks once `users` grows past the size where MySQL's query planner stops preferring a scan anyway — for this app's scale (campaign staff, likely low thousands of rows), this can already be noticeable, not a "someday" concern |
+| Stacking a JSON filter on top of the existing `CampaignMembershipScope` subquery (`whereHas('campaigns', ...)`) on every `User` query | Every users-listing page (already used heavily — Users/Coordinators/Leaders resources, multiple dashboard widgets) gets slower simultaneously | Keep the generated-column index tight (single key, correct type) so the optimizer can still use it despite the additional `whereHas` join | Compounds specifically because `users` is the most globally-scoped, most-queried table in the app — this is not an isolated feature table |
+| `withCount`/`counts()` patterns already used heavily for leaders/apoyos counts (`leaders_count`, `registered_voters_count`) extended naively to also aggregate JSON metadata per row | N+1-style subquery cost multiplies further once a third hierarchy tier's rollups (articulador-level totals) are added | Prefer a single well-indexed rollup query (or a scheduled aggregate) over stacking more `withCount` subqueries onto an already wide `User` query | Becomes visible once "cobertura" style dashboards (already shown to be the app's highest-risk report category per `TopCoordinatorsTable`) are extended to a third tier |
 
-## Security / Data-Integrity Mistakes
+## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| National snapshot readable/joinable across campaigns | Cross-campaign data leak (repeat of prior incident) | Read-only lookup table; isolation test A-vs-B on the fallback write path |
-| Stale snapshot written with no source flag | Voters sent to wrong polling place on Day D; untrustworthy reports | Non-null source flag + as-of date, set in the same write |
-| Silent snapshot→live upgrade with no audit row | No traceability of why/when a voter's place changed | Mandatory `ValidationHistory` row per transition |
-| Snapshot overwrites live data (downgrade) | Good data silently replaced with 2.5-year-old data | Source-precedence guard; never downgrade automatically |
-| Scraping a `.gov.co` site under automation | ToS/rate/legal exposure; IP bans killing the live tier | Rate-limit + backoff + circuit breaker; treat live source as best-effort, snapshot as the resilient floor |
-| 2captcha token treated as proof of a real voter | Confirming a cédula/place that doesn't reflect reality | `success` only on a real result payload, not on token receipt |
+| Building a Filament custom `Filter` that interpolates a user-selected metadata *key name* directly into raw SQL (`DB::raw("JSON_EXTRACT(metadata, '$.{$key}')")`) | SQL injection if the key ever originates from anything less trusted than a hardcoded, superadmin-curated enum (e.g. if the catalog is ever exposed as a free-text field, or if key names aren't validated against the catalog before being interpolated) | Only ever interpolate key names that are validated against the superadmin-managed catalog (allowlist, not just "assume it's from a dropdown" — validate server-side too); prefer parameterized `whereJsonContains`/generated-column `where` clauses over raw SQL string-building entirely |
+| Trusting the Filament form's `Select` scoping alone to prevent an articulador from assigning metadata to a coordinador/leader outside their managed chain | A crafted request (bypassing the rendered `Select` options) could still hit the underlying save action for an out-of-scope subordinate if the save action doesn't independently re-verify authorization | Re-verify "is this target user actually my subordinate" server-side in the save/action handler itself, not only in the option list the UI renders (same class of gap as Pitfall 3) |
+| Assuming `getEloquentQuery()` scoping on the new articulador-facing coordinador resource is sufficient without an explicit policy | Direct URL access to `edit/{record}` for a coordinador outside the articulador's managed set — protected today only if every entry point (resource route binding, relation managers, custom actions) independently re-applies the same scope | Add an explicit `UserPolicy::update()`/`view()` check as a second, independent layer, not just query-scoping (defense in depth, and the only layer that also protects any future non-Filament entry point, e.g. an API) |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Fallback result looks identical to a live result | Operator trusts stale data as current | Distinct visual treatment + explicit "Datos de censo 2023-10-21, no verificado en vivo" label |
-| Generic "offline mode" with no as-of date | Operator underestimates staleness | Show the snapshot date and "pendiente de re-verificación" |
-| Silent auto-upgrade with no operator-visible signal | Operator never learns the data was corrected | Reflect source + `verified_at` on the voter profile; it's already in `ValidationHistory` |
-| No indication a record is stuck needing manual re-verify | Records rot in limbo (source dead + not automatable) | Surface a "needs manual re-verification" worklist/badge |
-| dentro/fuera report shows snapshot-sourced rows uncaveated | Territorial decisions made on stale classification | Propagate the source flag into the report; caveat snapshot rows |
+|---------|-------------|-------------------|
+| Articulador logs in and existing dashboards/exports (`TopLeadersTable`, `TopCoordinatorsTable`, `LeadersExportController`) show empty or campaign-wide-unscoped data because the role wasn't added to their scoping logic (Pitfall 1) | Looks like a bug or "no data," undermines the exact "operational trust" value proposition this whole platform is built around per `PROJECT.md` | Explicitly inventory and update every existing coordinator-scoped widget/export as part of this milestone, don't treat them as "existing, not touched" |
+| A superior assigns a metadata value, another superior's earlier assignment silently disappears (Pitfall 7) with no on-screen indication anything was overwritten | Erodes trust in the exact category of data (money/incentivos) most likely to cause a real dispute between team members | Show "last updated by X at Y" directly in the metadata edit UI (which also requires Pitfall 8's per-key audit trail to exist) so a second editor sees they're overwriting a recent change before saving |
+| Metadata catalog keys are free-typed per row with no declared type, so the same key (`biaticos`) ends up with a mix of `"50000"`, `50000`, `"50,000"` across different users entered by different superiors over time | Sort/filter looks broken/inconsistent to end users, and totals (if ever computed) silently miscalculate | Enforce type at the catalog level and at form-input level from the start (Pitfall 9) |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Fallback lookup:** Often missing the **source flag written in the same statement** — verify no path sets `polling_place_id` without setting `polling_place_source`.
-- [ ] **Fallback lookup:** Often missing the **no-downgrade guard** — verify a snapshot write can't overwrite a `live`-flagged record.
-- [ ] **Snapshot table:** Often missing **campaign-isolation proof** — verify an A-vs-B test that Campaign A's fallback exposes nothing to Campaign B.
-- [ ] **Snapshot import:** Often missing **code-validation report** — verify the unmatched-against-current-seed percentage is known before go-live.
-- [ ] **Reconciliation job:** Often missing **system actor / audit row** — verify every upgrade writes exactly one `ValidationHistory`.
-- [ ] **Reconciliation job:** Often missing **campaign_id from the voter row** — verify `CampaignContext` is never called inside the job.
-- [ ] **Reconciliation job:** Often missing **backoff + circuit breaker + per-run cap** — verify a simulated outage doesn't drain the captcha budget.
-- [ ] **Reconciliation job:** Often missing **terminal/exhaustion state** — verify a never-resolvable record eventually leaves the candidate set.
-- [ ] **Reconciliation job:** Often missing **the "not automatable" branch** — verify it flags-and-skips instead of hanging on a human captcha step.
-- [ ] **Reconciliation job:** Often missing **explicit `withoutOverlapping` expiry** — verify a killed run doesn't freeze the schedule for 24h.
-- [ ] **Enterprise captcha spike:** Often missing **outcome classification** — verify `denied_by_score` vs `not_found` vs `unreachable` are distinguished, not lumped as "error."
-- [ ] **Feasibility gate:** Often missing — verify the reconciliation-job phase is explicitly **blocked** until the spike proves a server-solvable flow.
+- [ ] **Articulador role added:** Often missing `canAccessPanel()` wiring — verify an articulador user can actually log into *some* panel, not just that the role/permissions exist in the DB.
+- [ ] **Articulador→coordinador hierarchy:** Often missing updates to the ~6 existing "if hasRole(coordinator) then where coordinator_user_id = auth id" call sites — verify `TopLeadersTable`, `TopCoordinatorsExport`/`TopLeadersExport`, `LeadersExportController`, and any coordinator-scoped dashboard widget all correctly resolve an articulador's transitive team, not just a coordinador's direct team.
+- [ ] **Articulador-facing coordinador CRUD:** Often missing an explicit ownership scope (`articulador_user_id = auth id`) on the resource's `getEloquentQuery()` — verify by logging in as two different articuladores and confirming neither can see/edit the other's coordinadores.
+- [ ] **Metadata JSON column filter/sort:** Often missing an underlying indexed generated column — verify with `EXPLAIN` that the Filament table's filter/sort query doesn't full-scan `users`.
+- [ ] **Metadata value provenance:** Often missing per-key `assigned_by`/`assigned_at`/previous-value tracking — verify you can answer "who set biaticos to X for user Y and when" without reconstructing it from a whole-column JSON diff.
+- [ ] **Metadata value typing:** Often missing a declared type per catalog key — verify a money-like key can't be saved as a string in one place and a number in another, and that sorting behaves numerically, not lexicographically.
+- [ ] **Dual role storage sync:** Often missing the `campaign_user.role_id` pivot write when the Spatie role is assigned via a new (articulador) creation flow — verify both agree after creation.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| No source flag shipped | HIGH | Backfill is guesswork (can't retroactively know which rows were snapshot vs live); may require re-resolving all records |
-| Cross-campaign leak via snapshot | HIGH | Audit all derived writes, purge mis-scoped rows, add isolation test, incident review (as with the prior leak) |
-| Captcha budget drained | MEDIUM | Kill the schedule, add circuit breaker + cap + backoff, top up balance, re-enable behind a config ceiling |
-| `withoutOverlapping` lock stuck | LOW | `php artisan schedule:clear-cache`; then add explicit `expireAfter` |
-| Snapshot clobbered live data | MEDIUM | Re-resolve affected voters via live/DB; add precedence guard; use `ValidationHistory` to find affected rows |
-| Enterprise flow proves unviable in spike | LOW (if caught in spike) / HIGH (if built first) | Keep live tier human-driven; reconciliation flags-for-manual instead of auto-upgrading |
+|---------|----------------|-----------------|
+| Coordinator-scoped widgets/exports not updated for articulador (Pitfall 1) | LOW | Centralize the "resolve my managed coordinador/leader ids" helper and swap each call site to use it; no data migration needed, purely a query-logic fix |
+| `coordinator_user_id` reused/overloaded for articulador instead of a dedicated FK (Pitfall 2) | MEDIUM | Add the correct dedicated column, backfill it from the misused column where inferable, then stop writing the overloaded value going forward — requires careful backfill since the overloaded meaning can't always be disambiguated after the fact |
+| Missing policy/authorization layer discovered after ship (Pitfall 3) | LOW–MEDIUM | Add the policy/scope retroactively; audit `audit_logs` for any cross-tenant reads/writes that may have already occurred under the gap |
+| Whole-column JSON metadata with no per-key audit trail already in production before the gap is noticed (Pitfall 8) | HIGH | Historical per-key attribution generally **cannot be reconstructed** from whole-column diffs alone if multiple keys changed in the same save — this is the single most expensive pitfall to recover from and should be prevented up front, not patched later |
+| Mixed-type metadata values already saved inconsistently (Pitfall 9) | MEDIUM | Requires a one-time data-cleanup migration coercing existing values to the declared type per key, plus catalog-level type enforcement going forward — feasible but must be done carefully for money fields to avoid silently changing a value's meaning |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| 1. Stale snapshot treated as authoritative | Source-flagging (with fallback-lookup) | No write sets place without source; UI shows as-of date |
-| 2. National snapshot isolation leak | Snapshot-import + fallback-lookup | A-vs-B isolation test on the write path |
-| 3. Audit trail broken (no actor) | Reconciliation-job (schema/seed decision) | Every upgrade → one `ValidationHistory` row |
-| 4. Job runs with no/wrong campaign context | Reconciliation-job | `CampaignContext` absent from job; per-voter `campaign_id` test |
-| 5. Job hangs on human captcha step | Feasibility-spike → Reconciliation-job | Simulate non-automatable path → flags, never hangs |
-| 6. Captcha budget flooded | Reconciliation-job | Simulated outage stays under per-run/daily cap |
-| 7. Records re-processed forever | Reconciliation-job | Never-resolvable record exits candidate set after MAX attempts |
-| 8. Enterprise token accepted but denied | Feasibility-spike | Spike classifies success vs denied_by_score on live calls |
-| 9. Divipol/jurisdiction drift | Snapshot-import (+ dentro/fuera consumer) | Unmatched-code report; snapshot rows caveated in report |
-| 10. Fallback clobbers fresher data | Fallback-lookup (needs flag first) | No-downgrade guard test (live not overwritten by snapshot) |
-| 11. `withoutOverlapping` stale lock | Reconciliation-job | Explicit expiry set; killed-run doesn't freeze 24h |
+|---------|-------------------|----------------|
+| Coordinator-scoped call sites break for articulador (1) | Hierarchy/schema phase, before UI | Test: articulador sees correct transitive team data in every existing widget/export that a coordinador role currently reaches |
+| Overloaded `coordinator_user_id` reused for articulador (2) | Hierarchy/schema phase | Code review checklist: dedicated FK column exists, no self-loop reuse across roles |
+| No policy layer for articulador→coordinador CRUD (3) | Authorization/policy phase, separate from UI phase | Test: articulador A cannot view/edit coordinador belonging to articulador B, via both the resource UI and direct record access |
+| Dual role storage (Spatie vs. `campaign_user.role_id`) drifts (4) | Same phase as role/migration setup | Test: `hasRole('articulador')` and pivot `role_id` agree immediately after creation |
+| Articulador role has no panel access wired (5) | Same phase as role/migration setup | Manual login smoke test as a freshly-created articulador |
+| Unindexed JSON filter/sort (6) | Schema phase for metadata column/catalog, before Filament UI phase | `EXPLAIN` on every metadata filter/sort query shows an index is used, not a full scan |
+| Concurrent metadata write race (7) | Schema/data-access-layer phase | Test: two concurrent updates to different keys on the same user's metadata both persist (no lost update) |
+| Audit trail insufficient for per-key/per-campaign provenance (8) | Same phase as metadata schema, before UI ships | Test: can answer "who assigned key K to user U with value V and when" without ambiguity, and campaign attribution matches the subordinate's campaign, not the actor's active context |
+| Money-like values untyped/mis-sorting (9) | Catalog-design phase (type field) + schema phase (cast in generated column) | Test: sorting a numeric metadata key across mixed legacy/new rows produces numeric, not lexicographic, order |
 
 ## Sources
 
-- Codebase (HIGH): `app/Filament/Resources/Voters/Concerns/HasRegistraduriaPolling.php`, `app/Jobs/FinalizeElectionEvent.php`, `app/Models/ValidationHistory.php`, `registraduria-service/app.py`, `database/external-data/censo_decoded_202310210734.csv`, `.planning/PROJECT.md`.
-- 2captcha reCAPTCHA Enterprise / v3 score behavior (verified current): https://2captcha.com/h/how-to-bypass-recaptcha-v3-enterprise , https://2captcha.com/api-docs/recaptcha-v3 , https://www.capsolver.com/blog/reCAPTCHA/recaptcha-score-explained
-- Google reCAPTCHA Enterprise assessment/score docs: https://docs.cloud.google.com/recaptcha/docs/interpret-assessment-website
-- Laravel `withoutOverlapping` stale-lock behavior (verified current): https://github.com/laravel/framework/issues/37060 , https://msaied.com/articles/laravel-overlapping-scheduled-tasks-the-production-problem-nobody-talks-about , https://mozex.dev/blog/17-5-laravel-scheduler-failures-that-only-show-up-in-production
-- Parallel milestone research (confirmed context): existing 3-tier cascade, 2captcha Enterprise support with `enterprise=1`, `FinalizeElectionEvent` clone pattern, human-in-the-loop captcha gate.
+- Direct codebase inspection (HIGH confidence, primary source for all hierarchy/authorization/audit findings): `app/Models/User.php`, `app/Models/CampaignUser.php`, `app/Models/Scopes/CampaignMembershipScope.php`, `app/Models/Concerns/HasCampaignMembershipScope.php`, `app/Filament/Resources/Coordinators/*`, `app/Filament/Resources/Leaders/*`, `app/Filament/Resources/Users/*`, `app/Filament/Widgets/TopLeadersTable.php`, `app/Filament/Widgets/TopCoordinatorsTable.php`, `app/Exports/TopLeadersExport.php`, `app/Http/Controllers/Coordinator/LeadersExportController.php`, `app/Observers/AuditObserver.php`, `app/Models/AuditLog.php`, `app/Enums/UserRole.php`, `app/Http/Middleware/EnsureUserHasRole.php`, `database/migrations/2026_01_21_000002_add_coordinator_to_users_table.php`, `.planning/PROJECT.md`
+- [MySQL JSON Columns — PHP Architect](https://www.phparch.com/2026/06/mysql-json-columns/) — MEDIUM, corroborates generated-column indexing need
+- [MySQL 8.4 Reference Manual: Secondary Indexes and Generated Columns](https://dev.mysql.com/doc/refman/8.4/en/create-table-secondary-indexes.html) — HIGH, official docs on generated-column indexing for JSON
+- [MySQL: Indexing JSON documents via Virtual Columns (official blog)](https://dev.mysql.com/blog-archive/indexing-json-documents-via-virtual-columns/) — HIGH, official source
+- [A Practical Guide to Indexing JSON in MySQL — Pipedrive Engineering](https://medium.com/pipedrive-engineering/a-practical-guide-to-indexing-json-in-mysql-dccf10586204) — MEDIUM, corroborating community source
+- [How to index JSON columns using MySQL — Vlad Mihalcea](https://vladmihalcea.com/index-json-columns-mysql/) — MEDIUM, corroborating community source
+- General knowledge of MySQL `JSON_SET()` atomic partial updates and Laravel `lockForUpdate()`/optimistic-locking patterns for concurrent JSON writes — MEDIUM confidence (training-data-based, standard/well-documented MySQL behavior, not independently re-verified against a specific MySQL version doc page in this session)
 
 ---
-*Pitfalls research for: offline data fallback + scheduled reconciliation + captcha-automated government scraping (SIGMA v1.1)*
-*Researched: 2026-07-24*
+*Pitfalls research for: SIGMA v1.2 — Articuladores + Metadata de Usuario*
+*Researched: 2026-08-10*
