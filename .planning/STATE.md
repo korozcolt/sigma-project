@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: verifying
-stopped_at: Phase 14 context gathered
-last_updated: "2026-08-10T17:29:02.404Z"
+status: in_progress
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-08-10T18:05:00.000Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_plans: 6
+  completed_plans: 5
+  percent: 83
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 14 of 17 (articulador admin resource & hierarchy wiring)
-Plan: Not started
-Status: Phase 13 both plans complete — 13-01 wired `User::teamCoordinatorUserIds()` into TopLeadersTable/TopLeadersExport/LeadersExportController (AUTHZ-01); 13-02 added `CoordinatorPolicy` (view/update, 403+reason) registered globally for `User::class` (AUTHZ-02). Cross-campaign isolation (AUTHZ-03) confirmed by regression tests in both plans. All three requirements marked Done. Pending phase-goal verification.
+Plan: 14-01 complete, 14-02 pending
+Status: Plan 14-01 complete — `AreaCoordinatorResource` (Resource + 3 Pages + Form + Table) mirrors `CoordinatorResource` exactly minus the también-será-líder toggle (D-01), adds a `coordinators_count` list column (D-05); 5 new Pest tests cover creation+campaign attachment, list visibility, the count column, the no-active-campaign guard, and `CoordinatorPolicy` non-interference. ARTIC-01 NOT yet marked Done in REQUIREMENTS.md — this plan only implements the "create an Articulador" half; 14-02 (parallel wave-1 plan, own worktree) implements the coordinador→articulador assignment selector half. Sign-off deferred to phase completion, same precedent as Phase 05.1/10/12/13.
 Last activity: 2026-08-10
 
-Progress: [██████████] 100% (Phase 12: 2/2 plans, Phase 13: 2/2 plans complete)
+Progress: [████████░░] 83% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 1/2 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 14 Plan 01 decisions:
+
+- [Phase 14 Plan 01]: ARTIC-01 is NOT marked complete in REQUIREMENTS.md by this plan alone, despite being listed in this plan's frontmatter `requirements` field — the plan's own objective states it fulfills only "the 'create an Articulador' half of ARTIC-01"; the parallel wave-1 plan 14-02 (own worktree, `area_coordinator_user_id` Select on `CoordinatorForm`) implements the assignment half. Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent (Phase 05.1, 10, 12, 13).
+- [Phase 14 Plan 01]: Found and fixed two real bugs in the plan's own literal Task 3 test code during verification (both Rule 1 — auto-fixed, not architectural): (1) the `coordinators_count` assertion originally created 3 coordinator factories without attaching them to the active campaign — `User::coordinators()` (HasMany) carries `User`'s `CampaignMembershipScope` global scope, so unattached coordinators silently drop out of the `counts('coordinators')` aggregate, and separately `assertTableColumnStateSet` was passed the in-memory `$areaCoordinator` model instance rather than its key, which also independently returns a `null` state since Filament re-resolves records through the table's own query (where the count is applied) only when given a key; (2) the "super_admin is not blocked by CoordinatorPolicy" test's `$areaCoordinator` fixture used a bare `User::factory()->create()` without explicit `phone`/`document_number` — `UserFactory` nulls those ~20%/10% of the time by default, and `EditAreaCoordinator`'s `save()` re-validates both as required, causing an intermittent (~35% of runs) `assertHasNoFormErrors()` failure with zero code changes between runs. Fixed by attaching coordinators to the campaign, passing the record key instead of the instance, and setting `phone`/`document_number` explicitly (matching the existing `CoordinatorResourceCampaignTest`'s self-heal test precedent for the latter). Confirmed stable across 10 consecutive isolated runs post-fix.
+- [Phase 14 Plan 01]: Worktree (`agent-a0a54832e1200e119`) was behind `main` at session start, missing Phase 12/13/14's own PLAN.md files plus `vendor/`/`.env` — same recurring staleness class documented repeatedly above. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`. `gsd-tools init execute-phase 14` again confirmed the `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md updates for this plan were hand-edited directly in this worktree instead of via the CLI, per the established workaround.
+- [Phase 14 Plan 01]: Running the new test file's full suite alongside `CoordinatorResourceCampaignTest`/`CoordinatorPolicyTest` in one `php artisan test` invocation intermittently reproduced the already-documented pre-existing `CampaignContext` static-override test-pollution issue (unrelated tests fail only when run together). Confirmed not a regression from this plan: `CoordinatorPolicyTest` alone passes 10/10 in isolation, and `CoordinatorResourceCampaignTest` + `AreaCoordinatorResourceCampaignTest` together pass cleanly. Not fixed — matches the standing project-level deferred item below.
 
 Phase 13 Plan 01 decisions:
 
