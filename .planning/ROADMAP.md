@@ -110,8 +110,14 @@ Plans:
   1. An articulador logs into their own panel (`AreaCoordinatorPanelProvider`, mirroring `CoordinatorPanelProvider`) and sees only their own coordinadores, never another articulador's.
   2. An articulador creates a new coordinador via a form on their panel, and the new coordinador is automatically linked to them via `area_coordinator_user_id`.
   3. An articulador edits and manages their existing coordinadores entirely from their own panel, with no need for admin-panel access.
-**Plans**: TBD
+**Plans**: 4 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 15-01-PLAN.md — AreaCoordinatorPanelProvider + canAccessPanel() arm + RedirectBasedOnRole branch (ARTIC-02)
+- [ ] 15-02-PLAN.md — /articulador route group (3 routes) + coordinadores list Volt page, own-team scoping (ARTIC-02)
+- [ ] 15-03-PLAN.md — create-coordinator Volt page, auto-linked via area_coordinator_user_id, no OTP (ARTIC-02)
+- [ ] 15-04-PLAN.md — edit-coordinator Volt page, CoordinatorPolicy-gated ownership (ARTIC-02)
 
 ### Phase 16: Metadata Catalog UI & Assignment
 **Goal**: A superadmin manages a predefined metadata-key catalog, and any superior assigns auditable, atomic metadata values to their direct subordinates, individually or in bulk.
@@ -148,7 +154,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 12. Hierarchy & Metadata Schema Foundation | 2/2 | Complete    | 2026-08-10 |
 | 13. Hierarchy Authorization & Call-Site Audit | 1/2 | Complete    | 2026-08-10 |
 | 14. Articulador Admin Resource & Hierarchy Wiring | 1/2 | Complete    | 2026-08-10 |
-| 15. Articulador Self-Service Panel | 0/? | Not started | - |
+| 15. Articulador Self-Service Panel | 0/4 | Not started | - |
 | 16. Metadata Catalog UI & Assignment | 0/? | Not started | - |
 | 17. Filter/Sort/Export Surfaces | 0/? | Not started | - |
 
