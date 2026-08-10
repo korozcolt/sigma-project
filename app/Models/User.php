@@ -38,6 +38,7 @@ class User extends Authenticatable implements FilamentUser
         'address',
         'municipality_id',
         'coordinator_user_id',
+        'area_coordinator_user_id',
         'neighborhood_id',
         'profile_photo_path',
         'is_vote_recorder',
@@ -141,6 +142,16 @@ class User extends Authenticatable implements FilamentUser
     public function leaders(): HasMany
     {
         return $this->hasMany(User::class, 'coordinator_user_id');
+    }
+
+    public function areaCoordinator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'area_coordinator_user_id');
+    }
+
+    public function coordinators(): HasMany
+    {
+        return $this->hasMany(User::class, 'area_coordinator_user_id');
     }
 
     /**
