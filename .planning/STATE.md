@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: verifying
-stopped_at: Phase 14 context gathered
-last_updated: "2026-08-10T18:13:56.073Z"
-last_activity: 2026-08-10
+stopped_at: Quick task 260810-jma complete (Gestión sidebar navigationSort reorder)
+last_updated: "2026-08-10T19:12:27Z"
+last_activity: 2026-08-10 — Quick task 260810-jma: reordered Articuladores above Coordinadores in Gestión sidebar
 progress:
   total_phases: 6
   completed_phases: 3
@@ -298,6 +298,12 @@ Tracked in Blockers/Concerns above.
 | 260808-f0x | Fix ViewVoter's raw 'territory' validation-source string (now 'Reconciliación Territorial') + surface resolved PollingPlace name/mesa on the Apoyo view page | 2026-08-08 | de5387a, 68f6382 | [260808-f0x-arreglar-badge-territory-y-mostrar-puest](.planning/quick/260808-f0x-arreglar-badge-territory-y-mostrar-puest/) |
 | 260808-hx8 | Add "Municipio del Puesto de Votación" TextEntry to ViewVoter's infolist (`pollingPlace.municipality.name`), surfacing the discrepancy behind REJECTED_OUT_OF_SCOPE | 2026-08-08 | e10ab33 | [260808-hx8-mostrar-municipio-del-puesto-de-votacion](.planning/quick/260808-hx8-mostrar-municipio-del-puesto-de-votacion/) |
 | 260808-jsz | Fix PollingPlaceResolver::persist() to write voters.polling_table_number (sibling of the polling_place_id bug — real values always overwrite, single-mesa '1' default only fills nulls) + new census:backfill-polling-table-number command for historical apoyos | 2026-08-08 | 19ca5c4, de4a421 | [260808-jsz-persistir-polling-table-number-en-cascad](.planning/quick/260808-jsz-persistir-polling-table-number-en-cascad/) |
+| 260810-jma | Reorder "Gestión" sidebar navigationSort so Articuladores sits directly below Campañas (Campañas 1, Articuladores 2, Coordinadores 3, Líderes 4, Votantes 5, Invitaciones 6) | 2026-08-10 | 1d35204 | [260810-jma-a-nivel-visual-en-menu-los-articuladores](.planning/quick/260810-jma-a-nivel-visual-en-menu-los-articuladores/) |
+
+Quick task 260810-jma decisions:
+
+- Purely cosmetic single-line `$navigationSort` integer change on 5 Filament resources — no business logic, no tests needed/added (no existing tests reference `navigationSort`), matching the plan's explicit low-risk scope.
+- Worktree (`agent-ae2823b7219794b32`) was 5 commits behind `main` at session start — missing Phase 12/13/14's completed work plus this quick task's own PLAN.md, and missing `vendor/`, `.env`, `node_modules/`, `public/build` entirely. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`. `node_modules`/`public/build` were not needed for this backend-only change and were left unprovisioned.
 
 Quick task 260801-e79 decisions:
 
