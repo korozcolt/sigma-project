@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\UserRole;
+use App\Models\Campaign;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Role;
@@ -73,4 +74,27 @@ test('articulador viewing/editing a non-coordinador User record is unrestricted 
         ->and(Gate::forUser($areaCoordinator)->inspect('update', $someLeader)->allowed())->toBeTrue()
         ->and(Gate::forUser($areaCoordinator)->inspect('view', $anotherAreaCoordinator)->allowed())->toBeTrue()
         ->and(Gate::forUser($areaCoordinator)->inspect('update', $anotherAreaCoordinator)->allowed())->toBeTrue();
+});
+
+test('AUTHZ-03: articulador cannot view/edit their own coordinador if that coordinador belongs to a different campaign than the articulador is currently scoped to', function () {
+    $campaignA = Campaign::factory()->create(['status' => 'active']);
+    $campaignB = Campaign::factory()->create(['status' => 'active']);
+
+    $areaCoordinator = User::factory()->create();
+    $areaCoordinator->assignRole(UserRole::AREA_COORDINATOR->value);
+    $areaCoordinator->campaigns()->attach($campaignA->id);
+
+    $coordinatorInOtherCampaign = User::factory()->create(['area_coordinator_user_id' => $areaCoordinator->id]);
+    $coordinatorInOtherCampaign->assignRole(UserRole::COORDINATOR->value);
+    $coordinatorInOtherCampaign->campaigns()->attach($campaignB->id);
+
+    // Ownership is technically correct (area_coordinator_user_id matches), but Gate::before
+    // runs first and denies on campaign mismatch before CoordinatorPolicy::view/update ever run.
+    // Note: since $coordinatorInOtherCampaign is a User instance, Gate::before's User-branch
+    // fires (not the generic Model/campaign_id branch), producing the User-specific denial
+    // message — NOT the "pertenece a otra campaña" message used for non-User models like Voter.
+    $response = Gate::forUser($areaCoordinator)->inspect('view', $coordinatorInOtherCampaign);
+
+    expect($response->allowed())->toBeFalse()
+        ->and($response->message())->toBe('Este usuario no pertenece a la campaña activa.');
 });
