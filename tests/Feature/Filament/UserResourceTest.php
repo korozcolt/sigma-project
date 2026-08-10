@@ -96,6 +96,24 @@ test('can filter users by role', function () {
         ->assertCanNotSeeTableRecords([$leader]);
 });
 
+test('roles filter displays spanish labels instead of raw role names', function () {
+    $areaCoordinatorRole = Role::where('name', UserRole::AREA_COORDINATOR->value)->first();
+    $adminCampaignRole = Role::where('name', UserRole::ADMIN_CAMPAIGN->value)->first();
+
+    $livewire = Livewire::test(ListUsers::class)->instance();
+
+    $selectField = $livewire->getTableFiltersForm()
+        ->getComponentByStatePath('roles')
+        ->getChildSchema()
+        ->getFlatFields()['values'];
+
+    $options = $selectField->getOptions();
+
+    expect($options[$areaCoordinatorRole->id])->toBe(UserRole::AREA_COORDINATOR->getLabel())
+        ->and($options[$areaCoordinatorRole->id])->not->toBe(UserRole::AREA_COORDINATOR->value)
+        ->and($options[$adminCampaignRole->id])->toBe(UserRole::ADMIN_CAMPAIGN->getLabel());
+});
+
 test('can filter users by campaign', function () {
     $campaign = Campaign::factory()->create(['created_by' => $this->admin->id]);
 
