@@ -110,7 +110,7 @@ Plans:
   1. An articulador logs into their own panel (`AreaCoordinatorPanelProvider`, mirroring `CoordinatorPanelProvider`) and sees only their own coordinadores, never another articulador's.
   2. An articulador creates a new coordinador via a form on their panel, and the new coordinador is automatically linked to them via `area_coordinator_user_id`.
   3. An articulador edits and manages their existing coordinadores entirely from their own panel, with no need for admin-panel access.
-**Plans**: 4 plans
+**Plans**: 5 plans
 **UI hint**: yes
 
 Plans:
@@ -118,6 +118,7 @@ Plans:
 - [x] 15-02-PLAN.md — /articulador route group (3 routes) + coordinadores list Volt page, own-team scoping (ARTIC-02)
 - [x] 15-03-PLAN.md — create-coordinator Volt page, auto-linked via area_coordinator_user_id, no OTP (ARTIC-02)
 - [x] 15-04-PLAN.md — edit-coordinator Volt page, CoordinatorPolicy-gated ownership (ARTIC-02)
+- [ ] 15-05-PLAN.md — gap closure: panel NavigationItem + area_coordinator sidebar branch, makes the coordinadores pages reachable (ARTIC-02)
 
 ### Phase 16: Metadata Catalog UI & Assignment
 **Goal**: A superadmin manages a predefined metadata-key catalog, and any superior assigns auditable, atomic metadata values to their direct subordinates, individually or in bulk.
