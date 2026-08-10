@@ -40,10 +40,11 @@ Campaign teams can run critical voter and field operations from one place with t
 - ✓ An hourly, unattended, bounded (50 voters/run, ~500/day cap) scheduled job automatically re-attempts live lookup for fallback-sourced voters and upgrades them to `live` when the source succeeds, recording an auditable `resolved_via='reconciliation'` reason on every real transition; the job resolves each voter's campaign from the voter record with no ambient session dependency; a voter reaches a permanent exhaustion state after 5 consecutive failed live attempts (a snapshot fallthrough counts as failure, never success); and a stuck run cannot freeze reconciliation indefinitely (`withoutOverlapping(10)` minutes) - validated in Phase 11 (RECON-01 through RECON-06)
 - ✓ Schema/model layer structurally allows exactly one extra hierarchy level above coordinador (articulador → coordinador), with no relation or migration permitting articulador-of-articulador or coordinador-of-coordinador nesting, and no cap/counter/validation rule limits how many coordinadores one articulador can have - validated in Phase 12 (ARTIC-04, ARTIC-05)
 - ✓ Existing coordinador-scoped surfaces (`TopLeadersTable`, `TopLeadersExport`, `LeadersExportController`) correctly resolve an articulador's full transitive team via `User::teamCoordinatorUserIds()`; a dedicated `CoordinatorPolicy` denies an articulador from viewing/editing a coordinador that doesn't belong to them with a named 403 reason; cross-campaign isolation holds for the new role at both the query and direct-record level - validated in Phase 13 (AUTHZ-01, AUTHZ-02, AUTHZ-03)
+- ✓ A superadmin/admin_campaign creates and manages articulador users from a dedicated admin resource (`AreaCoordinatorResource`, mirroring `CoordinatorResource`), and assigns/reassigns coordinadores to an articulador via an optional, campaign-scoped `Select` on `CoordinatorForm`; a coordinador's own behavior is unaffected whether or not an articulador is assigned - validated in Phase 14 (ARTIC-01, ARTIC-03)
 
 ### Active
 
-- ARTIC-01, ARTIC-02, ARTIC-03 — articulador admin resource, self-service panel, coordinador behavior preservation (Phases 14-15)
+- ARTIC-02 — articulador self-service panel (Phase 15)
 - META-01 through META-06 — metadata catalog CRUD, freeform-prohibited assignment, bulk assignment, audit trail, atomic writes (Phase 16)
 - FILT-01, FILT-02, FILT-03 — Filament filter/sort/export by metadata (Phase 17)
 
@@ -95,6 +96,8 @@ Real users think in tasks rather than modules. They need to load voters, validat
 | `user_metadata_values` is append-only (no unique constraint on user_id+metadata_key_id) instead of a JSON column on `users` | Gives native per-assignment audit history for free (META-05) with no separate audit table, and makes future point-in-time value queries (v2 META-07/08) addable without a schema change | Implemented in Phase 12 (D-02) |
 | `CoordinatorPolicy` is a new, dedicated ownership-aware Policy (view/update only) rather than extending `VoterPolicy`'s role-only pattern | It's the first policy in the codebase to compare a per-record owner (`area_coordinator_user_id`) against the acting user, and stays purely additive — every other Filament ability on `User` falls through untouched | Implemented in Phase 13 |
 | Direct non-owned coordinador access returns 403 with a named reason, not a generic 403 or 404 | Matches the already-validated Phase 05.1 precedent (PERM-02: authorization denials name the specific reason) | Implemented in Phase 13 |
+| Articulador→coordinador assignment is a single optional `Select` on `CoordinatorForm`, not a dedicated reassignment Action or bulk-action | Simplicity — one place to set/change the relationship, mirroring the existing `municipality_id` Select UX; bulk-reassignment deferred as a future idea if operational need arises | Implemented in Phase 14 |
+| The articulador dropdown on `CoordinatorForm` needs no manual campaign-scoping closure | `User` already carries a global `CampaignMembershipScope` that restricts every `User` query (including `relationship()` Select queries) to the active campaign — simpler and more correct than mirroring `municipality_id`'s manual closure, which exists only because `Municipality` isn't globally scoped | Implemented in Phase 14 |
 
 ## Evolution
 
@@ -135,4 +138,4 @@ This document evolves at phase transitions and milestone boundaries.
 Not yet defined beyond v1.2.
 
 ---
-*Last updated: 2026-08-10 — Phase 13 complete (2/6 phases of v1.2)*
+*Last updated: 2026-08-10 — Phase 14 complete (3/6 phases of v1.2)*
