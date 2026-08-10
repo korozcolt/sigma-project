@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Consulta de Puesto de Votación Resiliente
-status: Phase complete — ready for verification
-stopped_at: "Quick task 260808-jsz (persistir polling_table_number en cascada de resolución): 2/2 tasks COMPLETE and committed (19ca5c4, de4a421) - PollingPlaceResolver::persist() now writes voters.polling_table_number for every automated resolution (real values always overwrite; single-mesa '1' default only fills a currently-null value), plus a new census:backfill-polling-table-number command to recover historical mesa numbers from local audit data. Verified via targeted suite (78 tests, 196 assertions), all passing; pint clean on all touched files. Backfill command intentionally NOT run against any real database, per plan scope boundary."
-last_updated: "2026-08-08T19:31:00.000Z"
+status: v1.1 milestone complete
+stopped_at: "Quick task 260808-hx8 (mostrar municipio del puesto de votación en ViewVoter): 1/1 task COMPLETE and committed (e10ab33) - ViewVoter's infolist now shows a new "Municipio del Puesto de Votación" TextEntry (pollingPlace.municipality.name) immediately after "Puesto de Votación", with a "Sin resolver" placeholder. Verified via full VoterResourceTest.php suite (60 tests, 148 assertions), all passing; pint clean. Manual browser verification still pending per standing project preference."
+last_updated: "2026-08-10T13:59:58.023Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -16,15 +16,16 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-24)
+See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 11 — scheduled-reconciliation-job
+**Current focus:** Planning next milestone (Articuladores + user metadata)
 
 ## Current Position
 
-Phase: 11 (scheduled-reconciliation-job) — EXECUTING
-Plan: 4 of 4
+Phase: Not started (defining requirements)
+Plan: —
+Status: v1.1 shipped 2026-08-10. Next milestone in definition.
 
 ## v1.1 Phase Map
 
@@ -61,7 +62,10 @@ Reset for v1.1. Historical v1.0 velocity data archived in `.planning/milestones/
 
 ### Decisions
 
-Full v1.0 decision log archived in `.planning/PROJECT.md` Key Decisions table and `.planning/milestones/v1.0-ROADMAP.md`. Cleared here for the next milestone.
+Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+<details>
+<summary>Archived v1.1 decision log (phases 6-11 + post-ship quick tasks, click to expand)</summary>
 
 v1.1 roadmap decisions:
 
@@ -162,7 +166,22 @@ Quick task 260808-jsz decisions:
 - Worktree (`agent-acda15161c21924ef`) was one fast-forward commit behind `main` at session start — missing this quick task's own PLAN.md, `vendor/`, and `.env`, the same recurring staleness class documented repeatedly above. Resolved with the established workaround: `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`. STATE.md/SUMMARY.md hand-edited directly in this worktree, per the established `gsd-tools findProjectRoot()` workaround (`gsd-tools init execute-phase quick-260808-jsz` again correctly reported `phase_found: false` for a non-numbered quick task, but `project_root` resolved to the main checkout, not this worktree — ROADMAP.md intentionally not touched, per this quick task's explicit constraints).
 - Confirmed (again) a pre-existing, unrelated test flake in `PollingPlaceResolverTest.php`: random `dane_department_code`/`code` generation in `PollingPlace::factory()`/`Department::factory()` (range 1-99) occasionally collides with the hardcoded `code: '28'` (SUCRE) set up in the file's `beforeEach`, causing an intermittent SQLite `UNIQUE constraint failed: departments.code` error on unrelated tests during full-suite runs. Confirmed not a regression from this task (reran the full targeted verification suite immediately after with zero code changes in between; all 78 tests passed cleanly the second time). Not fixed — out of scope per this task's boundary; same class of pre-existing flakiness as the already-documented `CampaignContext` test-pollution issue below.
 
+</details>
+
 ### Blockers/Concerns
+
+**Open — carried forward into next milestone:**
+
+- **`gsd-tools.cjs` root-resolution bug in git worktrees:** `findProjectRoot()` walks up from `cwd` and can redirect to an *ancestor* checkout's `.planning/` even when the worktree already has its own valid, independent `.planning/`. Recurred 6+ times across Phases 6-11 (every parallel-wave worktree). Workaround each time: hand-edit STATE.md/ROADMAP.md/REQUIREMENTS.md directly in the worktree instead of via the CLI. Worth a real fix (short-circuit `findProjectRoot` when `startDir` itself already has `.planning/`).
+- **Worktrees are frequently provisioned stale** (checked out behind `main`, missing `vendor/`/`.env`/`node_modules`/`public/build`), recurring 6+ times across Phases 6-11 and several post-ship quick tasks. Workaround each time: confirm fast-forward ancestry, `git merge --ff-only main`, copy `.env`, `composer install` (+ `npm install && npm run build` when Vite manifest is missing). Worth automating worktree provisioning (fast-forward + install steps) before an execute-phase/quick-task agent is spawned into one.
+- **`PollingPlaceResolver::startLiveLookup()` does not fall through to the next live adapter when a *reachable* adapter's `startLookup()` call itself throws** (`app/Services/PollingPlaceResolver.php` ~line 41-50). Caused a real 2026-07-31 production incident (ConsultaCensoService 404s against an un-redeployed internal proxy, uncaught up through `HasRegistraduriaPolling`, blocking the DB/snapshot fallback tiers even though they were available). Fixed the symptom via manual redeploy; the code gap itself is unfixed. **Recommended fix (not yet implemented):** catch a `startLookup()` failure on one adapter and continue to the next reachable one (bounded), mirroring `attemptLiveAutomated()`'s existing resilience.
+- **Pre-existing `CampaignContext` static-override test-pollution**: several test files (`IsElectionDayMiddlewareTest`, `Filament/UserResourceTest`, `tests/E2E/ChromeDevTools/*`, plus more discovered during 260730-cs3) call `CampaignContext::setCampaignId()` without resetting the static override, causing intermittent unrelated full-suite failures (always passing in isolation). Not fixed — recommended fix is resetting the static override in a shared `afterEach`/`TestCase::tearDown()`.
+- **Volt's `layout()` global helper has no effect on class-based full-page Volt components** in the installed `livewire/volt` version — every page silently renders with the default `components.layouts.app` regardless of what `layout(...)` specifies. Invisible everywhere except unauthenticated full-page routes (crashes on `auth()->user()->hasRole()` against a null user). Fixed only for the one page that hit it (`public.register-leader`, via Livewire's native `#[Layout(...)]` attribute instead). Every other existing `layout()` call project-wide is still affected but cosmetically harmless today.
+- **Three pending `checkpoint:human-verify` sign-offs** (all code complete, committed, and test-covered — only the real-browser confirmation step is outstanding): quick tasks `260801-hvd` (public leader self-registration + SMS OTP), `260804-i5f` (cross-coordinator data-leak fix, 4 UI surfaces), `260804-jbc` (second cross-coordinator leak fix, 6 scenarios). See each task's SUMMARY.md for the exact verification script.
+- **`sigma-registraduria` production container needs a manual Dokploy redeploy** to pick up the tini zombie-reaping fix (quick task 260804-kss) — `autoDeploy=false` on that service, not urgent (zombie leak, not user-facing).
+
+<details>
+<summary>Archived — resolved/historical blockers (click to expand)</summary>
 
 - **`gsd-tools.cjs` root-resolution bug when a git worktree owns its own `.planning/`:** `findProjectRoot()` (in `lib/core.cjs`) walks up from `cwd` and, upon finding an *ancestor* directory that also has `.planning/` plus a `.git` heuristic match, redirects `cwd` there — even when the original `cwd` already has its own valid, independent `.planning/`. In this session's worktree (`worktree-agent-ae9f012d50fef4e54`, which owns its own `.planning/`), every `gsd-tools state|roadmap|requirements` subcommand silently redirected reads/writes to the **main checkout's** `.planning/` instead of the worktree's. This was caught before real damage (the only accidental write to the main repo's `STATE.md` was reverted), but it means **`gsd-tools` CLI commands cannot be trusted to target a worktree's own `.planning/` in this repo layout** — STATE.md/ROADMAP.md/REQUIREMENTS.md updates for Phase 06 Plan 01 were made by hand-editing the worktree copies directly instead. Worth a fix in `gsd-tools` (short-circuit `findProjectRoot` when `startDir` itself already has `.planning/`) or at minimum a documented workaround for future phases executed in this worktree.
 - **Same `gsd-tools` root-resolution bug recurred during Phase 07 Plan 01 execution** (worktree `agent-ae0adbb8ac28629ba`, also stale — see below): `state advance-plan`/`update-progress` partially wrote to this worktree's own STATE.md (with an incorrect recalculation, e.g. `total_plans` dropped from 2 to 1), while `state record-metric`/`record-session` silently redirected to and modified the **main checkout's** `.planning/STATE.md` instead — mixed per-command routing, not consistently one or the other. The main checkout's accidental write was caught and reverted to its exact prior (dirty, uncommitted) content before this session ended. All STATE.md/ROADMAP.md/REQUIREMENTS.md updates for this plan were redone by hand-editing the worktree copies directly. This bug is confirmed to still be present and should be fixed in `gsd-tools` before the next phase relies on its CLI for state mutation inside a worktree.
@@ -185,6 +204,8 @@ Quick task 260808-jsz decisions:
 - **Quick task 260801-hvd's final `checkpoint:human-verify` task is pending** — all 6 automated tasks are complete, committed, and test-covered, but the plan's required manual browser verification (real SMS OTP round-trip on the new public leader self-registration link, confirming the created leader's role/coordinator/campaigns in the DB, confirming the link is single-use, and confirming the "Agregar Apoyo" flow + voter count update visually) has not been performed. See `.planning/quick/260801-hvd-enlaces-de-auto-registro-para-que-coordi/260801-hvd-SUMMARY.md` for the exact 5-step verification script (copied from the plan's checkpoint task). This quick task is intentionally NOT yet listed in the Quick Tasks Completed table below.
 - **Quick task 260804-i5f's final `checkpoint:human-verify` task is pending** — all 4 automated authorization fixes (LeadersExportController, leader-add-voter.blade.php, leader-voters.blade.php, TopLeadersExport) are complete, committed, and Pest-covered (each proving the real "same municipio + same campaña + different coordinator_user_id" gap is closed), but the plan's required real-browser confirmation across all 4 UI-facing surfaces (coordinator Excel export, "Agregar Apoyo"/"Apoyos" 403s for another coordinator's leader, dashboard "Ranking de Líderes" export, admin_campaign multi-coordinator export) has not been performed. See `.planning/quick/260804-i5f-corregir-fuga-de-datos-entre-coordinador/260804-i5f-SUMMARY.md` for the exact 4-step verification script. This quick task is intentionally NOT yet listed in the Quick Tasks Completed table below.
 - **Quick task 260804-jbc's final `checkpoint:human-verify` task is pending** — all 4 automated fixes (coordinator dashboard, DiaDStatsOverview, DiaDTerritorialProgressTable, DiaD.php dead-code removal) are complete, committed, and Pest-covered, but the plan's required real-browser confirmation across all 6 scenarios (both coordinators' dashboards, both Día D widgets, the untouched voting exception, admin/super_admin unrestricted view, and a view-source check that `$stats`/`refreshStats()` no longer appear in the wire:snapshot payload) has not been performed. See `.planning/quick/260804-jbc-corregir-fuga-de-datos-entre-coordinador/260804-jbc-SUMMARY.md` for the exact 6-step verification script. This quick task is intentionally NOT yet listed in the Quick Tasks Completed table below.
+
+</details>
 
 ### Pending Todos
 

@@ -41,7 +41,7 @@ Campaign teams can run critical voter and field operations from one place with t
 
 ### Active
 
-None — all v1.1 requirements validated. Ready for `/gsd:complete-milestone`.
+None yet — requirements for the next milestone not yet defined.
 
 ### Out of Scope
 
@@ -81,6 +81,12 @@ Real users think in tasks rather than modules. They need to load voters, validat
 | "Reasignar dueño de duplicado" performs a real ownership transfer (registered_by), not just a status-flag clear | Client's original written requirement said "reasignar la propiedad de la cédula al otro Líder" — literal ownership transfer, confirmed during Phase 02.1's gap closure (plan 02.1-11) after initial narrower reading was flagged by verification | Implemented in Phase 02.1 |
 | Coordinator coverage report shows no numeric "meta" (quota/goal) field | No quota/goal field exists anywhere in the schema; client confirmed during Phase 04.1 discuss-phase that leader-assignment coverage visibility (leaders count, apoyos/leader, zero-apoyo leaders) satisfies the original "meta vs. real" framing without adding new schema | Implemented in Phase 04.1 |
 | Duplicates report is the one intentional exception to strict campaign isolation | A duplicate cédula spanning two different campaigns IS the case that must be visible; every other widget/export in Phase 04.1 remains strictly campaign-scoped | Implemented in Phase 04.1 |
+| National census snapshot lives in its own cédula-indexed table, isolated from campaign-scoped data | It's shared reference data (one national snapshot), not owned by any single campaign — mirrors the existing `polling_places` reference-data pattern | Implemented in Phase 6 |
+| A single `PollingPlaceResolver` service owns the entire fallback cascade (campaign-DB → national snapshot → bounded live attempt), with a source-precedence no-downgrade guard | The cascade was previously duplicated across interactive/headless code paths; a live-verified result must never be silently overwritten by a staler snapshot/reconstruction result | Implemented in Phase 8, still the single point every new live adapter plugs into |
+| Live sources are pluggable via a `LiveSourceAdapter` interface tried in priority order | A new live source must be addable without redesigning the resolver | Implemented in Phase 8 — proven out repeatedly post-ship when infovotantes and consultacenso were added as additional adapters (quick tasks 260726-eu3, 260731-ezk) |
+| `wsp.registraduria.gov.co` feasibility spike quarantined as a non-blocking phase (9) | The deterministic snapshot/flag/resolver/reconcile core must never be gated on an unresolved captcha unknown | Implemented — Verdict: GO (29/30 real 2captcha-solved attempts) |
+| Reconciliation job's automated writes use `resolved_by = null` + `resolved_via = 'reconciliation'` instead of a seeded system/bot user | Phase 7 already made `resolved_by` nullable for exactly this case; avoids a fake user row for a headless actor | Implemented in Phase 11 |
+| Reconciliation job is bounded and circuit-breaker-gated with a defined per-voter exhaustion state | A prolonged live-source outage must not exhaust the paid captcha-solving budget or retry an unresolvable voter forever | Implemented in Phase 11 (RECON-04/05/06) |
 
 ## Evolution
 
@@ -103,22 +109,11 @@ This document evolves at phase transitions and milestone boundaries.
 
 **Shipped: v1.0 MVP Hardening (2026-07-24).** All 30 v1 requirements Done. See `.planning/milestones/v1.0-ROADMAP.md` and `.planning/milestones/v1.0-REQUIREMENTS.md` for the full archived record, and `.planning/MILESTONES.md` for the shipped summary.
 
-**v1.1 complete (2026-07-26):** All 6 phases (6-11) done — all 17 v1.1 requirements validated. The resilient polling-place resolution cascade (campaign DB → national snapshot → bounded live attempt), operator provenance/triage UI, and the hourly automated reconciliation job are all live in the codebase. Ready for `/gsd:complete-milestone`.
-
-## Current Milestone: v1.1 Consulta de Puesto de Votación Resiliente
-
-**Goal:** When live Registraduría lookup is unavailable, SIGMA still resolves a cédula's polling place using a local census snapshot, clearly marks the data's origin, and automatically reconciles against the live source once it's reachable again.
-
-**Target features:**
-- Feasibility spike: validate whether `wsp.registraduria.gov.co` (reCAPTCHA Enterprise) is viable as the live source, replacing or complementing the two confirmed-dead domains currently hardcoded in `registraduria-service/app.py`
-- Import `censo_decoded_202310210734.csv` into a cédula-indexed table, enriched via join against the existing `polling_places` table (already seeded from `divipole-nacional.json`)
-- Fallback lookup logic: attempt live Registraduría first, fall back to the local census snapshot on failure/unavailability
-- Explicit data-source flag (live vs. local-snapshot-fallback) visible on the voter's polling-place result
-- Scheduled reconciliation job that retries live lookup for snapshot-flagged voters and updates them when Registraduría responds again
+**Shipped: v1.1 Consulta de Puesto de Votación Resiliente (2026-08-10).** All 6 phases (6-11) done, all 17 v1.1 requirements validated. The resilient polling-place resolution cascade (campaign DB → national snapshot → bounded live attempt), operator provenance/triage UI, and the hourly automated reconciliation job are all live in the codebase. Since Phase 11 completed, ~50 follow-on quick tasks hardened and extended this cascade in production (additional live adapters, cost controls, a general audit-log system, a `reports_viewer` role, dashboard drill-throughs) — see `.planning/STATE.md`'s Quick Tasks Completed log. See `.planning/milestones/v1.1-ROADMAP.md` and `.planning/milestones/v1.1-REQUIREMENTS.md` for the full archived record.
 
 ## Next Milestone Goals
 
-Not yet defined beyond v1.1.
+**In definition:** A new "Articulador" role sitting above Coordinador (one extra hierarchy level; articuladores create/manage coordinadores, who continue working exactly as today), plus a predefined-catalog JSON metadata field on every user (líder/coordinador/articulador) that superiors can assign key/value pairs to (e.g. `biaticos`, `almuerzo`, `incentivo`) — filterable and sortable in Filament listings. Requirements and roadmap to be defined via `/gsd:new-milestone`.
 
 ---
-*Last updated: 2026-07-26 after Phase 11 completion (v1.1 milestone complete)*
+*Last updated: 2026-08-10 after v1.1 milestone completion*

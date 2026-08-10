@@ -42,6 +42,44 @@
 
 ---
 
+## Milestone: v1.1 — Consulta de Puesto de Votación Resiliente
+
+**Shipped:** 2026-08-10 (phases completed 2026-07-26; formal milestone close delayed ~2 weeks behind a large volume of post-ship production work)
+**Phases:** 6 (Phases 6-11) | **Plans:** 15 | **Timeline:** 2026-07-24 → 2026-07-26 (~2 days) for the roadmap itself
+
+### What Was Built
+- A national census snapshot fallback tier: the 216K-row snapshot imported into a cédula-indexed, divipol-enriched reference table (Phase 6), a first-class persisted+auditable `polling_place_source` on every voter (Phase 7), and a single `PollingPlaceResolver` service unifying the campaign-DB → snapshot → live cascade behind a no-downgrade guard (Phase 8).
+- A validated new live source: `wsp.registraduria.gov.co` (reCAPTCHA Enterprise) proven viable end-to-end via a quarantined, non-blocking spike (29/30 real 2captcha solves, Verdict: GO — Phase 9).
+- Operator-facing provenance controls (source badge, role-gated force-refresh, fallback-voters dashboard widget, all human-verified live — Phase 10) and an unattended hourly reconciliation job that upgrades fallback-sourced voters when the live source recovers, bounded and exhaustion-safe (Phase 11).
+
+### What Worked
+- **Quarantining the risky unknown (Phase 9's captcha spike) as a standalone non-blocking phase** meant the deterministic core (snapshot/flag/resolver/reconcile) never depended on an outcome nobody could guarantee in advance — it shipped regardless of the spike's result, and the spike came back GO.
+- **The `LiveSourceAdapter` interface paid for itself almost immediately** — designed in Phase 8 for one adapter, it absorbed two more real live sources (infovotantes, consultacenso) as post-ship quick tasks with zero resolver redesign, exactly as intended.
+- **The no-downgrade guard (source precedence enforced at the persistence layer, not just at read time)** prevented an entire class of "stale data silently wins" bugs across both the interactive and headless/reconciliation paths sharing one resolver.
+
+### What Was Inefficient
+- **Formal milestone closure lagged ~2 weeks behind actual completion.** Phases 6-11 finished 2026-07-26 and STATE.md said "Ready for `/gsd:complete-milestone`" the whole time, but ~50 quick tasks landed against production in the gap before anyone ran it — MILESTONES.md/PROJECT.md accuracy drifted the same way v1.0's roadmap status drifted (a repeat of a v1.0 "Key Lesson"). Close milestones promptly once phases finish, even if maintenance work is still flowing in.
+- **A git-worktree/`gsd-tools` root-resolution bug recurred 6+ times across Phases 6-11**, silently redirecting CLI state writes to the wrong `.planning/` or requiring hand-editing STATE.md/ROADMAP.md in the worktree every time. Never fixed at the source despite being diagnosed on the first occurrence (Phase 6) — logged as a recurring workaround instead of a one-time fix.
+- **Worktrees were provisioned stale (missing `vendor/`, `.env`, sometimes `node_modules`/`public/build`) on the same recurring basis**, adding a manual recovery ritual (fast-forward + composer install + env copy) to nearly every parallel-wave plan.
+- **Three `checkpoint:human-verify` sign-offs from post-ship quick tasks are still outstanding** at milestone close (260801-hvd, 260804-i5f, 260804-jbc) — code-complete and test-covered, but never given the real-browser confirmation the project's own standing preference requires before considering UI-facing fixes trustworthy.
+
+### Patterns Established
+- Quarantine a genuinely unknown external dependency (captcha/third-party feasibility) into its own non-blocking phase rather than a blocking prerequisite of the phase that needs it.
+- Design integration points as pluggable interfaces (`LiveSourceAdapter`) even for a single known implementation when "more sources later" is a stated future need — the second and third adapters proved the interface-first bet correct.
+- Enforce data-freshness/precedence guards (no-downgrade) at the persistence layer shared by every write path, not per-caller.
+
+### Key Lessons
+1. Run `/gsd:complete-milestone` promptly once phases finish — letting real, uncounted production work accumulate for weeks before formal close (repeat of v1.0's Key Lesson #1) makes the eventual archival/review step disproportionately large and risks losing context on what shipped when.
+2. A recurring tooling bug diagnosed once but "worked around" every subsequent time (the `gsd-tools` worktree root-resolution issue, 6+ occurrences) costs more in aggregate than fixing it at the source would have — treat the second occurrence of the same workaround as the trigger to fix it, not the tenth.
+3. Pluggable-adapter design for external integrations pays for itself fast when "more sources" is even loosely anticipated — verified twice here (infovotantes, consultacenso) within days of the interface shipping.
+4. Outstanding human-verification checkpoints should block milestone closure (or be explicitly accepted as a known gap), not silently roll forward past it — three carried into this closure without an explicit accept/reject decision.
+
+### Cost Observations
+- Model mix and per-session cost were not tracked for this milestone (same gap as v1.0).
+- Test suite reached 78+ targeted-suite passes on the final touched files at milestone close; full-suite runs remained subject to the known `CampaignContext` test-pollution flake, tracked as accepted pre-existing risk rather than blocking.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -49,14 +87,18 @@
 | Milestone | Active Days | Phases | Key Change |
 |-----------|-------------|--------|------------|
 | v1.0 | 9 | 8 (5 core + 3 inserted) | Introduced decimal phase insertion + audit-then-close pattern for stale roadmap reconciliation |
+| v1.1 | ~2 (roadmap execution) | 6 | Pluggable live-adapter interface + quarantined non-blocking feasibility spike pattern |
 
 ### Cumulative Quality
 
 | Milestone | Tests | Coverage | Zero-Dep Additions |
 |-----------|-------|----------|---------------------|
 | v1.0 | 892 | Not separately tracked | 0 (no new dependencies added) |
+| v1.1 | 78+ (targeted, final touched files) | Not separately tracked | 0 (no new Composer dependencies added) |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Audit-then-close beats blind re-execution when roadmap status is stale — verified once in v1.0 (Phase 05.1), watch for repeat need in future milestones.
 2. Live human-verify checkpoints on lockout/irreversible-risk features catch real bugs — verified once in v1.0 (kill switch checkpoint).
+3. Roadmap/milestone bookkeeping drifts from reality when incidental/urgent work lands outside the plan and isn't reconciled promptly — now verified **twice** (v1.0's multi-month drift, v1.1's ~2-week post-ship quick-task backlog). Close milestones and reconcile status as work lands, not in a single large catch-up pass.
+4. Pluggable-adapter design for external/third-party integrations pays for itself quickly once a second implementation is needed — verified once in v1.1 (`LiveSourceAdapter`, two more adapters added within days).

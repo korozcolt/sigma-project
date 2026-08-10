@@ -1,5 +1,22 @@
 # Milestones
 
+## v1.1 Consulta de Puesto de Votación Resiliente (Shipped: 2026-08-10)
+
+**Scope:** 6 roadmap phases (6-11), 15 plans, 29 tasks.
+**Timeline:** 2026-07-24 → 2026-07-26 (~2 days), 94 commits, 100 files changed (+229,065/-272 lines — includes the one-time 216K-row national census CSV data import).
+**Requirements:** 17/17 v1.1 requirements Done (CENSO-01/02/03, SRC-01..05, LIVE-01..03, RECON-01..06).
+
+**Key accomplishments:**
+
+- Imported the 216K-row national census snapshot into a cédula-indexed, divipol-enriched `national_census_records` table via `census:import-national`, reporting unmatched-divipol percentage instead of aborting on bad rows (Phase 6).
+- Made a voter's polling-place source a first-class, auditable attribute: `polling_place_source`/`polling_place_resolved_at` on `voters` plus an append-only `polling_place_resolutions` audit trail tolerating a nullable headless actor for automated writes (Phase 7).
+- Built the single `PollingPlaceResolver` service expressing SIGMA's entire fallback cascade (campaign-DB → national snapshot → bounded live attempt) with a no-downgrade guard so a live-verified result can never be silently overwritten by staler data, fully covered by 17 Pest tests (Phase 8).
+- Validated `wsp.registraduria.gov.co` (reCAPTCHA Enterprise) as a live-source adapter end-to-end — 29/30 real 2captcha-solved attempts succeeded across 3 test cédulas — documenting a **Verdict: GO** before the system was allowed to rely on it (Phase 9).
+- Shipped operator-facing provenance controls: a source badge on the voter edit form, a three-role gate on the paid force-refresh action, and a campaign-scoped fallback-voters dashboard widget — all human-verified live in the running Filament admin panel (Phase 10).
+- Delivered an unattended hourly `census:reconcile-live` job that safely re-attempts live lookup for fallback-sourced voters, bounded and circuit-breaker-gated so a prolonged outage can't self-flood, with a defined terminal/exhaustion state and a lock that can't be silently frozen — covering RECON-01 through RECON-06 (Phase 11).
+
+---
+
 ## v1.0 MVP Hardening (Shipped: 2026-07-24)
 
 **Scope:** 8 roadmap phases (5 core + 3 urgent insertions: 02.1, 04.1, 05.1), 25 formally-planned plans across the 3 insertion phases (66 tasks), core Phases 1-5 delivered via those insertions plus incidental work and closed out by Phase 05.1's gap audit.
