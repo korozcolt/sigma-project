@@ -1,15 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Consulta de Puesto de Votación Resiliente
-status: v1.1 milestone complete
-stopped_at: "Quick task 260808-hx8 (mostrar municipio del puesto de votación en ViewVoter): 1/1 task COMPLETE and committed (e10ab33) - ViewVoter's infolist now shows a new "Municipio del Puesto de Votación" TextEntry (pollingPlace.municipality.name) immediately after "Puesto de Votación", with a "Sin resolver" placeholder. Verified via full VoterResourceTest.php suite (60 tests, 148 assertions), all passing; pint clean. Manual browser verification still pending per standing project preference."
-last_updated: "2026-08-10T13:59:58.023Z"
+milestone: v1.2
+milestone_name: Articuladores + Metadata de Usuario
+status: Defining requirements
+last_updated: "2026-08-10T00:00:00.000Z"
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 15
-  completed_plans: 15
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,44 +18,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Planning next milestone (Articuladores + user metadata)
+**Current focus:** Milestone v1.2 — Articuladores + Metadata de Usuario
 
 ## Current Position
 
 Phase: Not started (defining requirements)
 Plan: —
-Status: v1.1 shipped 2026-08-10. Next milestone in definition.
+Status: Defining requirements
+Last activity: 2026-08-10 — Milestone v1.2 started
 
-## v1.1 Phase Map
+## v1.2 Phase Map
 
-| Phase | Requirements | Depends on |
-|-------|--------------|------------|
-| 6. National Census Snapshot Import | CENSO-02, CENSO-03 | none (parallel w/ 7) |
-| 7. Source-Flag Schema & Audit Trail | SRC-03 | none (parallel w/ 6) |
-| 8. Resilient PollingPlaceResolver Service | CENSO-01, SRC-02, LIVE-01, LIVE-03 | 6 + 7 |
-| 9. Live-Source Feasibility Spike | LIVE-02 | none (non-blocking; before 11) |
-| 10. Operator Provenance & Fallback Controls | SRC-01, SRC-04, SRC-05 | 8 |
-| 11. Scheduled Reconciliation Job | RECON-01..06 | 7 + 8 (informed by 9) |
+Not yet defined — populated when the roadmap is created.
 
 ## Performance Metrics
 
-Reset for v1.1. Historical v1.0 velocity data archived in `.planning/milestones/v1.0-ROADMAP.md` and phase SUMMARY.md files under `.planning/phases/`.
-
-| Phase-Plan | Duration | Tasks | Files |
-|------------|----------|-------|-------|
-| 08-01 | 15min | 2 | 8 |
-| Phase 08 P02 | 12min | 3 tasks | 3 files |
-| Phase 08 P03 | 12min | 2 tasks | 3 files |
-| Phase 09 P01 | 12min | 2 tasks | 2 files |
-| Phase 09 P02 | 22min | 2 tasks | 1 files |
-| Phase 10 P01 | 10min | 3 tasks | 3 files |
-| Phase 10 P02 | 10min | 2 tasks | 2 files |
-| Phase 10 P03 | 10min | 2 tasks | 3 files |
-| Phase 10 P04 | 5min | 1 task | 0 files |
-| Phase 11 P01 | 10min | 2 tasks | 5 files |
-| Phase 11 P03 | 16min | 2 tasks | 3 files |
-| Phase 11 P02 | 12min | 2 tasks | 2 files |
-| Phase 11 P04 | 18min | 3 tasks | 4 files |
+Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milestones/v1.0-ROADMAP.md`, `.planning/milestones/v1.1-ROADMAP.md`, and phase SUMMARY.md files under `.planning/milestones/v1.1-phases/`.
 
 ## Accumulated Context
 

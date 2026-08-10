@@ -111,9 +111,20 @@ This document evolves at phase transitions and milestone boundaries.
 
 **Shipped: v1.1 Consulta de Puesto de Votación Resiliente (2026-08-10).** All 6 phases (6-11) done, all 17 v1.1 requirements validated. The resilient polling-place resolution cascade (campaign DB → national snapshot → bounded live attempt), operator provenance/triage UI, and the hourly automated reconciliation job are all live in the codebase. Since Phase 11 completed, ~50 follow-on quick tasks hardened and extended this cascade in production (additional live adapters, cost controls, a general audit-log system, a `reports_viewer` role, dashboard drill-throughs) — see `.planning/STATE.md`'s Quick Tasks Completed log. See `.planning/milestones/v1.1-ROADMAP.md` and `.planning/milestones/v1.1-REQUIREMENTS.md` for the full archived record.
 
+## Current Milestone: v1.2 Articuladores + Metadata de Usuario
+
+**Goal:** Articuladores organize a set of coordinadores (creating and managing them, one extra hierarchy level, no further nesting), and any superior (líder/coordinador/articulador/superadmin) can assign values from a superadmin-predefined key catalog (e.g. `biaticos`, `almuerzo`, `incentivo`) to their subordinates — filterable and sortable in Filament listings.
+
+**Target features:**
+- New `articulador` role (Spatie) above `coordinator`, able to create/manage coordinadores (no hard limit enforced)
+- New articulador→coordinador hierarchy relation (mirrors the existing `coordinator_user_id` self-referencing FK pattern); coordinadores keep working exactly as today, no coordinador→coordinador nesting
+- Superadmin-managed predefined catalog of metadata keys (new table/config), not freeform
+- JSON metadata column on `users` + UI for superiors to assign values to subordinates against that catalog
+- Filter and sort by metadata key/value in the Filament tables for users/coordinators/leaders/articuladores
+
 ## Next Milestone Goals
 
-**In definition:** A new "Articulador" role sitting above Coordinador (one extra hierarchy level; articuladores create/manage coordinadores, who continue working exactly as today), plus a predefined-catalog JSON metadata field on every user (líder/coordinador/articulador) that superiors can assign key/value pairs to (e.g. `biaticos`, `almuerzo`, `incentivo`) — filterable and sortable in Filament listings. Requirements and roadmap to be defined via `/gsd:new-milestone`.
+Not yet defined beyond v1.2.
 
 ---
-*Last updated: 2026-08-10 after v1.1 milestone completion*
+*Last updated: 2026-08-10 — milestone v1.2 started*
