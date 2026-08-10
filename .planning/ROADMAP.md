@@ -66,7 +66,11 @@ This milestone adds two related but separable capabilities on top of SIGMA's exi
   2. The schema and model relations structurally allow only one extra hierarchy level — an articulador has coordinadores, and coordinadores keep their existing leader relation — with no relation or migration that would let an articulador have another articulador, or a coordinador have sub-coordinadores (ARTIC-04).
   3. No cap, counter column, or validation rule limits how many coordinadores an articulador can have — assigning any number of coordinadores to one articulador succeeds with no backend-enforced limit, verified via tinker (ARTIC-05).
   4. `metadata_keys` (with a `type` column: numeric/text/date/select) and `user_metadata_values` (id, user_id, metadata_key_id, value, assigned_by, assigned_at) tables exist with correct FK and uniqueness constraints, verified via tinker — no JSON column is added to `users`.
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — area_coordinator role + area_coordinator_user_id hierarchy FK/relations (ARTIC-04, ARTIC-05)
+- [ ] 12-02-PLAN.md — metadata_keys + user_metadata_values catalog schema (append-only, D-02)
 
 ### Phase 13: Hierarchy Authorization & Call-Site Audit
 **Goal**: Existing hierarchy-scoped surfaces correctly resolve an articulador's transitive team, and an explicit ownership policy prevents cross-boundary access, before any new UI is built on top of the new role.
@@ -133,7 +137,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 |-------|----------------|--------|-----------|
 | 1-5.1. v1.0 MVP Hardening | 25/25 | Complete | 2026-07-24 |
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
-| 12. Hierarchy & Metadata Schema Foundation | 0/? | Not started | - |
+| 12. Hierarchy & Metadata Schema Foundation | 0/2 | Planned | - |
 | 13. Hierarchy Authorization & Call-Site Audit | 0/? | Not started | - |
 | 14. Articulador Admin Resource & Hierarchy Wiring | 0/? | Not started | - |
 | 15. Articulador Self-Service Panel | 0/? | Not started | - |
