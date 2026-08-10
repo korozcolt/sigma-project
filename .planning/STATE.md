@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: verifying
-stopped_at: Quick task 260810-jma complete (Gestión sidebar navigationSort reorder)
-last_updated: "2026-08-10T19:12:27Z"
-last_activity: 2026-08-10 — Quick task 260810-jma: reordered Articuladores above Coordinadores in Gestión sidebar
+stopped_at: Quick task 260810-jp4 complete (Usuarios Rol filter Spanish labels fix)
+last_updated: "2026-08-10T19:17:46Z"
+last_activity: 2026-08-10 — Quick task 260810-jp4: fixed Usuarios "Rol" table filter to render Spanish UserRole labels instead of raw Spatie role names
 progress:
   total_phases: 6
   completed_phases: 3
@@ -299,6 +299,15 @@ Tracked in Blockers/Concerns above.
 | 260808-hx8 | Add "Municipio del Puesto de Votación" TextEntry to ViewVoter's infolist (`pollingPlace.municipality.name`), surfacing the discrepancy behind REJECTED_OUT_OF_SCOPE | 2026-08-08 | e10ab33 | [260808-hx8-mostrar-municipio-del-puesto-de-votacion](.planning/quick/260808-hx8-mostrar-municipio-del-puesto-de-votacion/) |
 | 260808-jsz | Fix PollingPlaceResolver::persist() to write voters.polling_table_number (sibling of the polling_place_id bug — real values always overwrite, single-mesa '1' default only fills nulls) + new census:backfill-polling-table-number command for historical apoyos | 2026-08-08 | 19ca5c4, de4a421 | [260808-jsz-persistir-polling-table-number-en-cascad](.planning/quick/260808-jsz-persistir-polling-table-number-en-cascad/) |
 | 260810-jma | Reorder "Gestión" sidebar navigationSort so Articuladores sits directly below Campañas (Campañas 1, Articuladores 2, Coordinadores 3, Líderes 4, Votantes 5, Invitaciones 6) | 2026-08-10 | 1d35204 | [260810-jma-a-nivel-visual-en-menu-los-articuladores](.planning/quick/260810-jma-a-nivel-visual-en-menu-los-articuladores/) |
+| 260810-jp4 | Fix Usuarios "Rol" table filter rendering raw Spatie role names instead of Spanish UserRole labels (Filament v4 relationship()+options() dead-code trap, fixed via getOptionLabelFromRecordUsing()) | 2026-08-10 | 819c80b, 7f75170 | [260810-jp4-el-filtro-rol-en-usuarios-userstable-mue](.planning/quick/260810-jp4-el-filtro-rol-en-usuarios-userstable-mue/) |
+
+Quick task 260810-jp4 decisions:
+
+- `SelectFilter::make('roles')->relationship('roles', 'name')->options(...)` is a Filament v4 dead-code trap: once `->relationship()` is set on a table `SelectFilter`, `getFormField()` takes a separate code path that plucks the raw related-model column as the option label and silently ignores any manual `->options()` closure — fixed by supplying `->getOptionLabelFromRecordUsing(fn (Role $record): string => UserRole::tryFrom($record->name)?->getLabel() ?? $record->name)` instead, which Filament does consult. `->relationship()`, `->multiple()`, `->preload()` and the underlying filter values (role primary keys) were left completely unchanged.
+- Audited (`grep -rn "relationship('roles'" app/Filament/`) and confirmed no other Filament resource table has the same unfixed pattern — the only other hit is `UserForm.php`'s form-field `Select` (out of scope, form-field `relationship()` resolves labels correctly via the title attribute already).
+- Placed the new `use Spatie\Permission\Models\Role;` import in true alphabetical order (last, after `Filament\Tables\Table`) rather than the plan's own literal "before `Filament\Actions\*`" instruction — App < Filament < Spatie alphabetically, matching CLAUDE.md/Pint's mandated alphabetical `use`-statement convention; confirmed via `vendor/bin/pint` passing clean.
+- Full `UserResourceTest.php` run showed 28/29 passing; the sole failure (`can update user campaigns`) is the already-documented pre-existing `CampaignContext` static-override test-pollution flake — re-ran in isolation immediately after and it passed, confirming no regression from this change.
+- Worktree (`agent-a4fdae389dd0214e0`) was one fast-forward commit behind `main` at session start — missing this quick task's own PLAN.md, `vendor/`, and `.env`, the same recurring staleness class documented repeatedly above. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`. STATE.md/SUMMARY.md hand-edited directly in this worktree, per the established `gsd-tools findProjectRoot()` workaround (not re-invoked via CLI this session, per the standing precedent — ROADMAP.md intentionally not touched, per this quick task's explicit constraints).
 
 Quick task 260810-jma decisions:
 
