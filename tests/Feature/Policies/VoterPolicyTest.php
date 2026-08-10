@@ -87,7 +87,13 @@ it('allows every mutating ability on Voter for every other role (no regression)'
     expect($user->can('forceDeleteAny', Voter::class))->toBeTrue();
     expect($user->can('replicate', $voter))->toBeTrue();
     expect($user->can('reorder', Voter::class))->toBeTrue();
-})->with(collect(UserRole::cases())->reject(fn (UserRole $role) => $role === UserRole::REPORTS_VIEWER)->all());
+})->with(collect(UserRole::cases())->reject(fn (UserRole $role) => in_array($role, [
+    UserRole::REPORTS_VIEWER,
+    // AREA_COORDINATOR is a new role (Phase 12-01) not yet wired into any
+    // authorization policy — VoterPolicy's role allow-lists are Phase 13's
+    // scope (hierarchy authorization & call-site audit).
+    UserRole::AREA_COORDINATOR,
+], true))->all());
 
 it('allows every mutating ability on Voter for a user holding super_admin AND reports_viewer together', function () {
     $campaign = Campaign::factory()->create(['status' => 'active']);
