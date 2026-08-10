@@ -100,7 +100,7 @@ Plans:
 
 Plans:
 - [x] 14-01-PLAN.md — AreaCoordinatorResource admin resource (Resource, Pages, Form, Table) (ARTIC-01)
-- [ ] 14-02-PLAN.md — area_coordinator_user_id Select on CoordinatorForm, campaign-scoped (ARTIC-01, ARTIC-03)
+- [x] 14-02-PLAN.md — area_coordinator_user_id Select on CoordinatorForm, campaign-scoped (ARTIC-01, ARTIC-03)
 
 ### Phase 15: Articulador Self-Service Panel
 **Goal**: An articulador manages their own coordinadores from a dedicated self-service panel, mirroring the existing coordinador self-service experience.

@@ -10,6 +10,7 @@ use App\Models\Campaign;
 use App\Models\Municipality;
 use App\Models\User;
 use App\Services\CampaignContext;
+use Filament\Forms\Components\Select;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
@@ -111,4 +112,62 @@ test('editing a coordinator without campaign attachment self-heals under the sin
     $coordinator->refresh();
 
     expect($coordinator->campaigns->pluck('id'))->toContain($activeCampaign->id);
+});
+
+test('admin can assign an articulador to a coordinador via CoordinatorForm select', function () {
+    CampaignContext::setCampaignId($this->campaign->id);
+
+    $areaCoordinator = User::factory()->create();
+    $areaCoordinator->assignRole(UserRole::AREA_COORDINATOR->value);
+    $areaCoordinator->campaigns()->attach($this->campaign->id);
+
+    Livewire::test(CreateCoordinator::class)
+        ->fillForm(coordinatorFormData($this->municipality, [
+            'area_coordinator_user_id' => $areaCoordinator->id,
+        ]))
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $coordinator = User::where('email', 'coordinador@example.com')->first();
+
+    expect($coordinator->area_coordinator_user_id)->toBe($areaCoordinator->id);
+});
+
+test('coordinador without an articulador assigned saves successfully (ARTIC-03, no regression)', function () {
+    CampaignContext::setCampaignId($this->campaign->id);
+
+    Livewire::test(CreateCoordinator::class)
+        ->fillForm(coordinatorFormData($this->municipality))
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $coordinator = User::where('email', 'coordinador@example.com')->first();
+
+    expect($coordinator->area_coordinator_user_id)->toBeNull();
+    expect($coordinator->hasRole(UserRole::COORDINATOR->value))->toBeTrue();
+    expect($coordinator->campaigns->pluck('id'))->toContain($this->campaign->id);
+});
+
+test('articulador dropdown on CoordinatorForm only shows articuladores from the active campaign', function () {
+    $campaignB = Campaign::factory()->create(['created_by' => $this->admin->id]);
+
+    $areaCoordinatorA = User::factory()->create(['name' => 'Articulador Campaña A']);
+    $areaCoordinatorA->assignRole(UserRole::AREA_COORDINATOR->value);
+    CampaignContext::setCampaignId($this->campaign->id);
+    $areaCoordinatorA->campaigns()->attach($this->campaign->id);
+
+    $areaCoordinatorB = User::factory()->create(['name' => 'Articulador Campaña B']);
+    $areaCoordinatorB->assignRole(UserRole::AREA_COORDINATOR->value);
+    CampaignContext::setCampaignId($campaignB->id);
+    $areaCoordinatorB->campaigns()->attach($campaignB->id);
+
+    CampaignContext::setCampaignId($this->campaign->id);
+
+    Livewire::test(CreateCoordinator::class)
+        ->assertFormFieldExists('area_coordinator_user_id', function (Select $field) use ($areaCoordinatorA, $areaCoordinatorB): bool {
+            $options = $field->getOptions();
+
+            return array_key_exists($areaCoordinatorA->id, $options)
+                && ! array_key_exists($areaCoordinatorB->id, $options);
+        });
 });

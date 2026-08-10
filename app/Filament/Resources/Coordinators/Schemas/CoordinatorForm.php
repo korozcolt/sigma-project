@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Coordinators\Schemas;
 
+use App\Enums\UserRole;
 use App\Services\CampaignContext;
 use App\Services\IdentityLookupService;
 use Filament\Actions\Action;
@@ -154,6 +155,17 @@ class CoordinatorForm
                         ->searchable()
                         ->preload()
                         ->disabled(fn (Get $get): bool => ! $get('municipality_id')),
+
+                    Select::make('area_coordinator_user_id')
+                        ->label('Articulador')
+                        ->relationship(
+                            name: 'areaCoordinator',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: fn (Builder $query) => $query->role(UserRole::AREA_COORDINATOR->value)->orderBy('name'),
+                        )
+                        ->searchable()
+                        ->preload()
+                        ->helperText('Opcional. Filtrado automáticamente a los articuladores de la campaña activa.'),
                 ])
                 ->columns(2),
 
