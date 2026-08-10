@@ -95,6 +95,13 @@ Route::middleware(['auth', 'role:coordinator,admin_campaign,super_admin'])->pref
     Route::get('leaders/export', [\App\Http\Controllers\Coordinator\LeadersExportController::class, '__invoke'])->name('leaders.export');
 });
 
+// Articulador routes
+Route::middleware(['auth', 'role:area_coordinator,admin_campaign,super_admin'])->prefix('articulador')->name('articulador.')->group(function () {
+    Volt::route('coordinadores', 'articulador.coordinators')->name('coordinadores');
+    Volt::route('coordinadores/create', 'articulador.create-coordinator')->name('coordinadores.create');
+    Volt::route('coordinadores/{coordinator}/edit', 'articulador.edit-coordinator')->name('coordinadores.edit');
+});
+
 // Leader routes
 Route::middleware(['auth', 'role:leader'])->prefix('leader')->name('leader.')->group(function () {
     Route::redirect('/', '/leader/dashboard');
