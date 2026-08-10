@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: verifying
-stopped_at: Quick task 260810-jp4 complete (Usuarios Rol filter Spanish labels fix)
-last_updated: "2026-08-10T19:17:46Z"
-last_activity: 2026-08-10 — Quick task 260810-jp4: fixed Usuarios "Rol" table filter to render Spanish UserRole labels instead of raw Spatie role names
+stopped_at: Phase 15 context gathered
+last_updated: "2026-08-10T19:27:02.466Z"
+last_activity: 2026-08-10
 progress:
   total_phases: 6
   completed_phases: 3
@@ -506,6 +506,6 @@ Quick task 260808-hx8 decisions:
 
 ## Session Continuity
 
-Last session: 2026-08-10T17:29:02.392Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-articulador-admin-resource-hierarchy-wiring/14-CONTEXT.md
+Last session: 2026-08-10T19:27:02.461Z
+Stopped at: Phase 15 context gathered
+Resume file: .planning/phases/15-articulador-self-service-panel/15-CONTEXT.md
