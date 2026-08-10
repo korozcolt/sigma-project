@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: "Phase 12 in progress — both plans complete, pending verification"
-stopped_at: Completed 12-01-PLAN.md and 12-02-PLAN.md (Wave 1)
-last_updated: "2026-08-10T15:35:00Z"
-last_activity: 2026-08-10 — Phase 12 Wave 1 complete (area_coordinator role + hierarchy FK, ARTIC-04/05; metadata_keys + user_metadata_values schema)
+status: completed
+stopped_at: Phase 12 context gathered
+last_updated: "2026-08-10T15:50:10.327Z"
+last_activity: 2026-08-10
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
   completed_plans: 2
   percent: 100
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 12 of 17 (Hierarchy & Metadata Schema Foundation) — Wave 1 complete, pending phase verification
-Plan: 12-01 and 12-02 both complete (2/2)
+Phase: 13 of 17 (hierarchy authorization & call site audit)
+Plan: Not started
 Status: Phase 12 Wave 1 complete — area_coordinator role + hierarchy FK (ARTIC-04/05) and metadata_keys/user_metadata_values schema both done
-Last activity: 2026-08-10 — Phase 12 Wave 1 complete (both plans)
+Last activity: 2026-08-10
 
 Progress: [██████████] 100% (Phase 12: 2/2 plans)
 
