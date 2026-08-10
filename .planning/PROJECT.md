@@ -41,10 +41,10 @@ Campaign teams can run critical voter and field operations from one place with t
 - ✓ Schema/model layer structurally allows exactly one extra hierarchy level above coordinador (articulador → coordinador), with no relation or migration permitting articulador-of-articulador or coordinador-of-coordinador nesting, and no cap/counter/validation rule limits how many coordinadores one articulador can have - validated in Phase 12 (ARTIC-04, ARTIC-05)
 - ✓ Existing coordinador-scoped surfaces (`TopLeadersTable`, `TopLeadersExport`, `LeadersExportController`) correctly resolve an articulador's full transitive team via `User::teamCoordinatorUserIds()`; a dedicated `CoordinatorPolicy` denies an articulador from viewing/editing a coordinador that doesn't belong to them with a named 403 reason; cross-campaign isolation holds for the new role at both the query and direct-record level - validated in Phase 13 (AUTHZ-01, AUTHZ-02, AUTHZ-03)
 - ✓ A superadmin/admin_campaign creates and manages articulador users from a dedicated admin resource (`AreaCoordinatorResource`, mirroring `CoordinatorResource`), and assigns/reassigns coordinadores to an articulador via an optional, campaign-scoped `Select` on `CoordinatorForm`; a coordinador's own behavior is unaffected whether or not an articulador is assigned - validated in Phase 14 (ARTIC-01, ARTIC-03)
+- ✓ An articulador manages their own coordinadores entirely from a dedicated self-service panel (`AreaCoordinatorPanelProvider`, mirroring `CoordinatorPanelProvider`), seeing only their own team via `area_coordinator_user_id` scoping, creating coordinadores auto-linked to themselves (no OTP, no user-facing FK field), and editing/managing them under `CoordinatorPolicy`-enforced ownership; navigation to these pages exists on both the Filament panel and the shared Volt sidebar, mirroring the coordinador's own nav group - validated in Phase 15 (ARTIC-02), gap-closed via plan 15-05 after initial verification found the CRUD pages built but unreachable through the UI
 
 ### Active
 
-- ARTIC-02 — articulador self-service panel (Phase 15)
 - META-01 through META-06 — metadata catalog CRUD, freeform-prohibited assignment, bulk assignment, audit trail, atomic writes (Phase 16)
 - FILT-01, FILT-02, FILT-03 — Filament filter/sort/export by metadata (Phase 17)
 
@@ -98,6 +98,7 @@ Real users think in tasks rather than modules. They need to load voters, validat
 | Direct non-owned coordinador access returns 403 with a named reason, not a generic 403 or 404 | Matches the already-validated Phase 05.1 precedent (PERM-02: authorization denials name the specific reason) | Implemented in Phase 13 |
 | Articulador→coordinador assignment is a single optional `Select` on `CoordinatorForm`, not a dedicated reassignment Action or bulk-action | Simplicity — one place to set/change the relationship, mirroring the existing `municipality_id` Select UX; bulk-reassignment deferred as a future idea if operational need arises | Implemented in Phase 14 |
 | The articulador dropdown on `CoordinatorForm` needs no manual campaign-scoping closure | `User` already carries a global `CampaignMembershipScope` that restricts every `User` query (including `relationship()` Select queries) to the active campaign — simpler and more correct than mirroring `municipality_id`'s manual closure, which exists only because `Municipality` isn't globally scoped | Implemented in Phase 14 |
+| Articulador's Filament panel gets a real `NavigationItem` linking to the Volt CRUD pages, deliberately diverging from Phase 15's original D-06 ("no structural link between the Filament panel and Volt pages, exactly how /coordinator works today") | The coordinador lands on the Volt `/coordinator/dashboard` post-login, where the sidebar (and its nav) already lives; the articulador lands on the Filament panel dashboard instead (because D-06 itself forbade a Volt dashboard route for articulador), so a sidebar-only fix would leave the panel a dead end | Implemented in Phase 15 gap closure (plan 15-05), after initial verification found the CRUD pages built but reachable only by typing the URL |
 
 ## Evolution
 
@@ -127,7 +128,7 @@ This document evolves at phase transitions and milestone boundaries.
 **Goal:** Articuladores organize a set of coordinadores (creating and managing them, one extra hierarchy level, no further nesting), and any superior (líder/coordinador/articulador/superadmin) can assign values from a superadmin-predefined key catalog (e.g. `biaticos`, `almuerzo`, `incentivo`) to their subordinates — filterable and sortable in Filament listings.
 
 **Target features:**
-- New `articulador` role (Spatie) above `coordinator`, able to create/manage coordinadores (no hard limit enforced) — **schema landed in Phase 12**
+- New `articulador` role (Spatie) above `coordinator`, able to create/manage coordinadores (no hard limit enforced) — **schema landed in Phase 12, self-service panel landed in Phase 15**
 - New articulador→coordinador hierarchy relation (mirrors the existing `coordinator_user_id` self-referencing FK pattern); coordinadores keep working exactly as today, no coordinador→coordinador nesting — **schema landed in Phase 12**
 - Superadmin-managed predefined catalog of metadata keys (new table/config), not freeform — **schema landed in Phase 12**
 - Append-only `user_metadata_values` table (not a JSON column on `users` — revised during Phase 12 planning, D-02) + UI for superiors to assign values to subordinates against that catalog; every assignment is its own row, giving native per-assignment audit history for free
@@ -138,4 +139,4 @@ This document evolves at phase transitions and milestone boundaries.
 Not yet defined beyond v1.2.
 
 ---
-*Last updated: 2026-08-10 — Phase 14 complete (3/6 phases of v1.2)*
+*Last updated: 2026-08-10 — Phase 15 complete (4/6 phases of v1.2)*
