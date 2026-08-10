@@ -80,8 +80,12 @@ Plans:
   1. `TopLeadersTable`, `TopLeadersExport`, `LeadersExportController` (and equivalent widgets/exports/dashboards that assume coordinador is the top of the hierarchy) correctly include an articulador's full transitive team instead of returning empty or incomplete results (AUTHZ-01).
   2. An explicit policy denies an articulador from viewing or editing a coordinador that does not belong to them, with a clear denial reason rather than a silent empty result (AUTHZ-02).
   3. Campaign-scoped queries for the new role continue to respect `CampaignMembershipScope` — an articulador in Campaign A cannot see coordinadores or data belonging to Campaign B (AUTHZ-03).
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 13-01-PLAN.md — User::teamCoordinatorUserIds() helper + wire TopLeadersTable/TopLeadersExport/LeadersExportController (AUTHZ-01, AUTHZ-03)
+- [ ] 13-02-PLAN.md — CoordinatorPolicy ownership check + AuthServiceProvider registration (AUTHZ-02, AUTHZ-03)
 
 ### Phase 14: Articulador Admin Resource & Hierarchy Wiring
 **Goal**: A superadmin/admin_campaign can create and manage articulador users from the admin panel and wire coordinadores to them, while existing coordinador behavior is fully preserved whether or not an articulador is assigned.
@@ -138,7 +142,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 1-5.1. v1.0 MVP Hardening | 25/25 | Complete | 2026-07-24 |
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
 | 12. Hierarchy & Metadata Schema Foundation | 2/2 | Complete    | 2026-08-10 |
-| 13. Hierarchy Authorization & Call-Site Audit | 0/? | Not started | - |
+| 13. Hierarchy Authorization & Call-Site Audit | 0/2 | Not started | - |
 | 14. Articulador Admin Resource & Hierarchy Wiring | 0/? | Not started | - |
 | 15. Articulador Self-Service Panel | 0/? | Not started | - |
 | 16. Metadata Catalog UI & Assignment | 0/? | Not started | - |
