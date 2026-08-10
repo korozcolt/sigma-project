@@ -32,6 +32,10 @@ beforeEach(function () {
     $this->municipality = Municipality::factory()->create();
 });
 
+afterEach(function () {
+    CampaignContext::setCampaignId(null);
+});
+
 function coordinatorFormData(Municipality $municipality, array $overrides = []): array
 {
     return array_merge([
