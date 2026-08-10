@@ -7,7 +7,7 @@
         <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
-            <a href="{{ auth()->user()->hasRole('admin_campaign') ? route('campaign-admin.dashboard') : (auth()->user()->hasRole('coordinator') ? route('coordinator.dashboard') : route('dashboard')) }}" class="me-5 flex items-center gap-3" wire:navigate>
+            <a href="{{ auth()->user()->hasRole('admin_campaign') ? route('campaign-admin.dashboard') : (auth()->user()->hasRole('coordinator') ? route('coordinator.dashboard') : (auth()->user()->hasRole('area_coordinator') ? route('filament.area_coordinator.pages.dashboard') : route('dashboard'))) }}" class="me-5 flex items-center gap-3" wire:navigate>
                 @php
                     $campaign = auth()->user()->campaigns->first();
                 @endphp
@@ -22,6 +22,8 @@
                             <span class="text-xs text-zinc-500 dark:text-zinc-400">Administrador de Campaña</span>
                         @elseif(auth()->user()->hasRole('coordinator'))
                             <span class="text-xs text-zinc-500 dark:text-zinc-400">Coordinador</span>
+                        @elseif(auth()->user()->hasRole('area_coordinator'))
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400">Articulador</span>
                         @endif
                     </div>
                 @else
@@ -39,6 +41,12 @@
                         <flux:navlist.item icon="home" :href="route('coordinator.dashboard')" :current="request()->routeIs('coordinator.dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
                         <flux:navlist.item icon="users" :href="route('coordinator.leaders')" :current="request()->routeIs('coordinator.leaders*')" wire:navigate>{{ __('Líderes') }}</flux:navlist.item>
                         <flux:navlist.item icon="bolt" href="/coordinator/dia-d" :current="request()->is('coordinator/dia-d')" wire:navigate>{{ __('Día D') }}</flux:navlist.item>
+                    </flux:navlist.group>
+                @elseif(auth()->user()->hasRole('area_coordinator'))
+                    <flux:navlist.group :heading="__('Articulación')" class="grid">
+                        <flux:navlist.item icon="home" :href="route('filament.area_coordinator.pages.dashboard')" :current="request()->routeIs('filament.area_coordinator.pages.dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
+                        <flux:navlist.item icon="users" :href="route('articulador.coordinadores')" :current="request()->routeIs('articulador.coordinadores*')" wire:navigate>{{ __('Coordinadores') }}</flux:navlist.item>
+                        <flux:navlist.item icon="bolt" href="/articulador/dia-d" :current="request()->is('articulador/dia-d')" wire:navigate>{{ __('Día D') }}</flux:navlist.item>
                     </flux:navlist.group>
                 @else
                     <flux:navlist.group :heading="__('Platform')" class="grid">
