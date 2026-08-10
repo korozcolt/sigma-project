@@ -222,6 +222,46 @@ test('RedirectBasedOnRole redirects coordinator to coordinator dashboard', funct
     expect($response->getTargetUrl())->toContain('coordinator/dashboard');
 });
 
+test('RedirectBasedOnRole redirects articulador to their own filament panel dashboard', function () {
+    $user = User::factory()->create();
+    $user->assignRole('area_coordinator');
+
+    $request = Request::create('/dashboard', 'GET');
+    $request->setUserResolver(fn () => $user);
+    $request->setRouteResolver(function () {
+        $route = new \Illuminate\Routing\Route(['GET'], '/dashboard', fn () => '');
+        $route->name('dashboard');
+
+        return $route;
+    });
+
+    $middleware = new RedirectBasedOnRole;
+    $response = $middleware->handle($request, fn () => new Response('success'));
+
+    expect($response)->toBeInstanceOf(\Illuminate\Http\RedirectResponse::class);
+    expect($response->getTargetUrl())->toContain('articulador');
+});
+
+test('RedirectBasedOnRole does not redirect articulador already on their own panel route', function () {
+    $user = User::factory()->create();
+    $user->assignRole('area_coordinator');
+
+    $this->actingAs($user);
+
+    $request = Request::create('/articulador', 'GET');
+    $request->setRouteResolver(function () {
+        $route = new \Illuminate\Routing\Route(['GET'], '/articulador', fn () => '');
+        $route->name('filament.area_coordinator.pages.dashboard');
+
+        return $route;
+    });
+
+    $middleware = new RedirectBasedOnRole;
+    $response = $middleware->handle($request, fn () => new Response('success'));
+
+    expect($response->getContent())->toBe('success');
+});
+
 test('RedirectBasedOnRole redirects leader to leader dashboard', function () {
     Route::get('/leader/dashboard', fn () => 'leader')->name('leader.dashboard');
 

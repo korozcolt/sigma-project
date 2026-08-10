@@ -37,6 +37,10 @@ class RedirectBasedOnRole
             return redirect()->route('coordinator.dashboard');
         }
 
+        if ($request->user()->hasRole(UserRole::AREA_COORDINATOR->value)) {
+            return redirect()->route('filament.area_coordinator.pages.dashboard');
+        }
+
         if ($request->user()->hasRole(UserRole::LEADER->value)) {
             return redirect()->route('leader.dashboard');
         }
@@ -54,6 +58,7 @@ class RedirectBasedOnRole
             UserRole::SUPER_ADMIN->value => ['filament.admin.pages.dashboard', 'filament.admin.*'],
             UserRole::ADMIN_CAMPAIGN->value => ['campaign-admin.dashboard', 'campaign-admin.*'],
             UserRole::COORDINATOR->value => ['coordinator.dashboard', 'coordinator.*'],
+            UserRole::AREA_COORDINATOR->value => ['filament.area_coordinator.pages.dashboard', 'filament.area_coordinator.*'],
             UserRole::LEADER->value => ['leader.dashboard', 'leader.*'],
         ];
 
