@@ -250,6 +250,7 @@ class User extends Authenticatable implements FilamentUser
             'admin' => $this->hasAnyRole(['super_admin', 'admin_campaign', 'reviewer']),
             'leader' => $this->hasAnyRole(['leader', 'admin_campaign', 'super_admin']),
             'coordinator' => $this->hasAnyRole(['coordinator', 'admin_campaign', 'super_admin']),
+            'area_coordinator' => $this->hasAnyRole(['area_coordinator', 'admin_campaign', 'super_admin']),
             'reports' => $this->hasRole('reports_viewer'),
             default => false,
         };
