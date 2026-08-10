@@ -95,8 +95,12 @@ Plans:
   1. Superadmin/admin_campaign can create a user with the Articulador role from the admin panel (`AreaCoordinatorResource`), and assign or reassign coordinadores to that articulador via a new selector on `CoordinatorForm` (ARTIC-01).
   2. A coordinador with no articulador assigned continues to function identically to today — own panel, own leaders/apoyos, dashboards, exports — no regression (ARTIC-03).
   3. A coordinador with an articulador assigned also continues to function identically day to day — assigning an articulador is purely organizational and changes nothing about the coordinador's own experience (ARTIC-03).
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 14-01-PLAN.md — AreaCoordinatorResource admin resource (Resource, Pages, Form, Table) (ARTIC-01)
+- [ ] 14-02-PLAN.md — area_coordinator_user_id Select on CoordinatorForm, campaign-scoped (ARTIC-01, ARTIC-03)
 
 ### Phase 15: Articulador Self-Service Panel
 **Goal**: An articulador manages their own coordinadores from a dedicated self-service panel, mirroring the existing coordinador self-service experience.
@@ -143,7 +147,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
 | 12. Hierarchy & Metadata Schema Foundation | 2/2 | Complete    | 2026-08-10 |
 | 13. Hierarchy Authorization & Call-Site Audit | 1/2 | Complete    | 2026-08-10 |
-| 14. Articulador Admin Resource & Hierarchy Wiring | 0/? | Not started | - |
+| 14. Articulador Admin Resource & Hierarchy Wiring | 0/2 | Not started | - |
 | 15. Articulador Self-Service Panel | 0/? | Not started | - |
 | 16. Metadata Catalog UI & Assignment | 0/? | Not started | - |
 | 17. Filter/Sort/Export Surfaces | 0/? | Not started | - |
