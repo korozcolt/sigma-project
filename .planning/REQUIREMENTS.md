@@ -10,7 +10,7 @@ Requirements for the "Articuladores + Metadata de Usuario" milestone. Each maps 
 ### Jerarquía de Articulador (ARTIC)
 
 - [x] **ARTIC-01**: Superadmin/admin_campaign puede crear un usuario con rol Articulador (`area_coordinator`)
-- [ ] **ARTIC-02**: Articulador crea y gestiona coordinadores desde su propio panel de auto-gestión (mirroring el panel de auto-gestión que ya tiene coordinador)
+- [x] **ARTIC-02**: Articulador crea y gestiona coordinadores desde su propio panel de auto-gestión (mirroring el panel de auto-gestión que ya tiene coordinador)
 - [x] **ARTIC-03**: Coordinador sigue funcionando exactamente igual que hoy, tenga o no un articulador asignado
 - [x] **ARTIC-04**: Sin anidamiento adicional — no existe articulador de articuladores, ni coordinador con sub-coordinadores
 - [x] **ARTIC-05**: Sin límite duro de coordinadores por articulador — es solo organizativo, no se valida en backend
@@ -61,7 +61,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | ARTIC-01 | Phase 14 | Done |
-| ARTIC-02 | Phase 15 | Pending |
+| ARTIC-02 | Phase 15 | Done |
 | ARTIC-03 | Phase 14 | Done |
 | ARTIC-04 | Phase 12 | Done |
 | ARTIC-05 | Phase 12 | Done |
