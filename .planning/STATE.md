@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: verifying
-stopped_at: Phase 13 context gathered
-last_updated: "2026-08-10T16:58:17.334Z"
+stopped_at: Phase 14 context gathered
+last_updated: "2026-08-10T17:29:02.404Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
@@ -477,6 +477,6 @@ Quick task 260808-hx8 decisions:
 
 ## Session Continuity
 
-Last session: 2026-08-10T16:15:12.312Z
-Stopped at: Phase 13 context gathered
-Resume file: .planning/phases/13-hierarchy-authorization-call-site-audit/13-CONTEXT.md
+Last session: 2026-08-10T17:29:02.392Z
+Stopped at: Phase 14 context gathered
+Resume file: .planning/phases/14-articulador-admin-resource-hierarchy-wiring/14-CONTEXT.md
