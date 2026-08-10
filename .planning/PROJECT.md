@@ -38,10 +38,14 @@ Campaign teams can run critical voter and field operations from one place with t
 - ✓ Feasibility of `wsp.registraduria.gov.co` (reCAPTCHA checkbox, possibly Enterprise-registered on Google's backend) as a live polling-place lookup source is validated end-to-end with a documented go/no-go decision - **Verdict: GO** (29/30 real 2captcha-solved attempts across 3 known cédulas succeeded; the plain non-Enterprise checkbox solve was sufficient, the `enterprise=1` escalation path exists but was never needed) - validated in Phase 9 (LIVE-02); production wiring (reachability probe fix + HTML-to-structured-fields parser) completed in Phase 11
 - ✓ The data source behind every polling-place result (live / database reconstruction / local snapshot / manual) is visibly shown to the operator on the voters table, view page, and edit form via a color-coded badge, an operator can filter/triage voters currently on fallback-sourced data (table filter + a campaign-scoped dashboard widget), and the pre-existing manual re-check action remains available to every role while the paid, cache-bypassing "Actualizar datos" force-refresh is now restricted to admin/coordinator/super-admin roles - validated in Phase 10 (SRC-01, SRC-04, SRC-05), confirmed by human visual verification of all surfaces in the running app
 - ✓ An hourly, unattended, bounded (50 voters/run, ~500/day cap) scheduled job automatically re-attempts live lookup for fallback-sourced voters and upgrades them to `live` when the source succeeds, recording an auditable `resolved_via='reconciliation'` reason on every real transition; the job resolves each voter's campaign from the voter record with no ambient session dependency; a voter reaches a permanent exhaustion state after 5 consecutive failed live attempts (a snapshot fallthrough counts as failure, never success); and a stuck run cannot freeze reconciliation indefinitely (`withoutOverlapping(10)` minutes) - validated in Phase 11 (RECON-01 through RECON-06)
+- ✓ Schema/model layer structurally allows exactly one extra hierarchy level above coordinador (articulador → coordinador), with no relation or migration permitting articulador-of-articulador or coordinador-of-coordinador nesting, and no cap/counter/validation rule limits how many coordinadores one articulador can have - validated in Phase 12 (ARTIC-04, ARTIC-05)
 
 ### Active
 
-None yet — requirements for the next milestone not yet defined.
+- ARTIC-01, ARTIC-02, ARTIC-03 — articulador admin resource, self-service panel, coordinador behavior preservation (Phases 14-15)
+- AUTHZ-01, AUTHZ-02, AUTHZ-03 — hierarchy-scoped surfaces resolve articulador's transitive team, ownership policy, campaign isolation (Phase 13)
+- META-01 through META-06 — metadata catalog CRUD, freeform-prohibited assignment, bulk assignment, audit trail, atomic writes (Phase 16)
+- FILT-01, FILT-02, FILT-03 — Filament filter/sort/export by metadata (Phase 17)
 
 ### Out of Scope
 
@@ -87,6 +91,8 @@ Real users think in tasks rather than modules. They need to load voters, validat
 | `wsp.registraduria.gov.co` feasibility spike quarantined as a non-blocking phase (9) | The deterministic snapshot/flag/resolver/reconcile core must never be gated on an unresolved captcha unknown | Implemented — Verdict: GO (29/30 real 2captcha-solved attempts) |
 | Reconciliation job's automated writes use `resolved_by = null` + `resolved_via = 'reconciliation'` instead of a seeded system/bot user | Phase 7 already made `resolved_by` nullable for exactly this case; avoids a fake user row for a headless actor | Implemented in Phase 11 |
 | Reconciliation job is bounded and circuit-breaker-gated with a defined per-voter exhaustion state | A prolonged live-source outage must not exhaust the paid captcha-solving budget or retry an unresolvable voter forever | Implemented in Phase 11 (RECON-04/05/06) |
+| `area_coordinator_user_id` is a dedicated self-referencing FK, never a reuse of `coordinator_user_id` | Overloading the existing column would conflate two different hierarchy semantics and make the "no further nesting" invariant impossible to enforce structurally | Implemented in Phase 12 |
+| `user_metadata_values` is append-only (no unique constraint on user_id+metadata_key_id) instead of a JSON column on `users` | Gives native per-assignment audit history for free (META-05) with no separate audit table, and makes future point-in-time value queries (v2 META-07/08) addable without a schema change | Implemented in Phase 12 (D-02) |
 
 ## Evolution
 
@@ -116,10 +122,10 @@ This document evolves at phase transitions and milestone boundaries.
 **Goal:** Articuladores organize a set of coordinadores (creating and managing them, one extra hierarchy level, no further nesting), and any superior (líder/coordinador/articulador/superadmin) can assign values from a superadmin-predefined key catalog (e.g. `biaticos`, `almuerzo`, `incentivo`) to their subordinates — filterable and sortable in Filament listings.
 
 **Target features:**
-- New `articulador` role (Spatie) above `coordinator`, able to create/manage coordinadores (no hard limit enforced)
-- New articulador→coordinador hierarchy relation (mirrors the existing `coordinator_user_id` self-referencing FK pattern); coordinadores keep working exactly as today, no coordinador→coordinador nesting
-- Superadmin-managed predefined catalog of metadata keys (new table/config), not freeform
-- JSON metadata column on `users` + UI for superiors to assign values to subordinates against that catalog
+- New `articulador` role (Spatie) above `coordinator`, able to create/manage coordinadores (no hard limit enforced) — **schema landed in Phase 12**
+- New articulador→coordinador hierarchy relation (mirrors the existing `coordinator_user_id` self-referencing FK pattern); coordinadores keep working exactly as today, no coordinador→coordinador nesting — **schema landed in Phase 12**
+- Superadmin-managed predefined catalog of metadata keys (new table/config), not freeform — **schema landed in Phase 12**
+- Append-only `user_metadata_values` table (not a JSON column on `users` — revised during Phase 12 planning, D-02) + UI for superiors to assign values to subordinates against that catalog; every assignment is its own row, giving native per-assignment audit history for free
 - Filter and sort by metadata key/value in the Filament tables for users/coordinators/leaders/articuladores
 
 ## Next Milestone Goals
@@ -127,4 +133,4 @@ This document evolves at phase transitions and milestone boundaries.
 Not yet defined beyond v1.2.
 
 ---
-*Last updated: 2026-08-10 — milestone v1.2 started*
+*Last updated: 2026-08-10 — Phase 12 complete (1/6 phases of v1.2)*
