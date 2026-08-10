@@ -49,7 +49,7 @@ Shipped summary: `.planning/MILESTONES.md`
 This milestone adds two related but separable capabilities on top of SIGMA's existing hierarchy: a new `articulador` (`area_coordinator`) role above `coordinador`, mirroring the existing `coordinator_user_id` self-referencing pattern, and a superadmin-managed, typed metadata-key catalog with per-subordinate value assignment, auditability, and Filament filter/sort/export support. Schema and authorization land first so the UI phases build on a correct, non-leaking foundation.
 
 - [x] **Phase 12: Hierarchy & Metadata Schema Foundation** - Additive schema/model layer for the articulador tier and the metadata catalog, with no UI yet (completed 2026-08-10)
-- [ ] **Phase 13: Hierarchy Authorization & Call-Site Audit** - Existing coordinator-scoped surfaces resolve an articulador's full team, with an explicit ownership policy
+- [x] **Phase 13: Hierarchy Authorization & Call-Site Audit** - Existing coordinator-scoped surfaces resolve an articulador's full team, with an explicit ownership policy (completed 2026-08-10)
 - [ ] **Phase 14: Articulador Admin Resource & Hierarchy Wiring** - Superadmin/admin_campaign manages articuladores from the admin panel, coordinador behavior unchanged
 - [ ] **Phase 15: Articulador Self-Service Panel** - Articulador manages their own coordinadores from a dedicated self-service panel
 - [ ] **Phase 16: Metadata Catalog UI & Assignment** - Superadmin manages the metadata catalog; superiors assign auditable, atomic values to subordinates
@@ -85,7 +85,7 @@ Plans:
 
 Plans:
 - [x] 13-01-PLAN.md — User::teamCoordinatorUserIds() helper + wire TopLeadersTable/TopLeadersExport/LeadersExportController (AUTHZ-01, AUTHZ-03)
-- [ ] 13-02-PLAN.md — CoordinatorPolicy ownership check + AuthServiceProvider registration (AUTHZ-02, AUTHZ-03)
+- [x] 13-02-PLAN.md — CoordinatorPolicy ownership check + AuthServiceProvider registration (AUTHZ-02, AUTHZ-03)
 
 ### Phase 14: Articulador Admin Resource & Hierarchy Wiring
 **Goal**: A superadmin/admin_campaign can create and manage articulador users from the admin panel and wire coordinadores to them, while existing coordinador behavior is fully preserved whether or not an articulador is assigned.
@@ -142,7 +142,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 1-5.1. v1.0 MVP Hardening | 25/25 | Complete | 2026-07-24 |
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
 | 12. Hierarchy & Metadata Schema Foundation | 2/2 | Complete    | 2026-08-10 |
-| 13. Hierarchy Authorization & Call-Site Audit | 1/2 | In progress | - |
+| 13. Hierarchy Authorization & Call-Site Audit | 1/2 | Complete    | 2026-08-10 |
 | 14. Articulador Admin Resource & Hierarchy Wiring | 0/? | Not started | - |
 | 15. Articulador Self-Service Panel | 0/? | Not started | - |
 | 16. Metadata Catalog UI & Assignment | 0/? | Not started | - |

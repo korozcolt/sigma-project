@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: "Phase 13 plans complete — pending verification"
-stopped_at: Phase 13 plans 01 and 02 complete (both parallel wave-1 plans merged)
-last_updated: "2026-08-10T16:55:00.000Z"
-last_activity: 2026-08-10 — Phase 13 Plan 01 (team resolution) and Plan 02 (CoordinatorPolicy) complete; AUTHZ-01/02/03 all Done
+status: verifying
+stopped_at: Phase 13 context gathered
+last_updated: "2026-08-10T16:58:17.334Z"
+last_activity: 2026-08-10
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
   completed_plans: 4
   percent: 100
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 13 of 17 (hierarchy authorization & call site audit)
-Plan: 02 of 2 complete (both parallel wave-1 plans merged)
+Phase: 14 of 17 (articulador admin resource & hierarchy wiring)
+Plan: Not started
 Status: Phase 13 both plans complete — 13-01 wired `User::teamCoordinatorUserIds()` into TopLeadersTable/TopLeadersExport/LeadersExportController (AUTHZ-01); 13-02 added `CoordinatorPolicy` (view/update, 403+reason) registered globally for `User::class` (AUTHZ-02). Cross-campaign isolation (AUTHZ-03) confirmed by regression tests in both plans. All three requirements marked Done. Pending phase-goal verification.
 Last activity: 2026-08-10
 
