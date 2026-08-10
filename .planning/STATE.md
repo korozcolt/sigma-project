@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: Phase 15 complete, ready for Phase 16
-stopped_at: Completed 15-05-PLAN.md (gap closure)
-last_updated: "2026-08-10T23:49:04Z"
+status: verifying
+stopped_at: Phase 15 context gathered
+last_updated: "2026-08-10T23:57:07.976Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 15 of 17 (articulador self service panel) — COMPLETE, ready to move to Phase 16
-Plan: 5 of 5 complete (wave 1 — 15-01, 15-02; wave 2 — 15-03, 15-04; gap closure — 15-05)
+Phase: 16 of 17 (metadata catalog ui & assignment)
+Plan: Not started
 Status: All 5 plans complete. 15-01/15-02 (wave 1): `AreaCoordinatorPanelProvider` + route group + own-team-scoped coordinadores list Volt page. 15-03 (wave 2): `articulador.create-coordinator` Volt page — full `CoordinatorForm` field set, IdentityLookupService document-number autofill/name-lock reused verbatim from `create-leader.blade.php`, NO OTP step (D-04), NO `area_coordinator_user_id` form field (D-03 — computed inline in `save()`), campaign-scoped municipality select. 11 tests, 29 assertions, all passing. Found (but did not fix, out of scope) a pre-existing bug in `App\Models\CampaignUser`'s `HasCampaignContext` trait that forcibly overwrites `campaign_id` on every pivot attach/sync with the actor's current-context campaign, silently corrupting multi-campaign attach calls across the whole app — logged as a blocker below. 15-04 (wave 2): `articulador/coordinadores/{coordinator}/edit` Volt page, authorization enforced via `CoordinatorPolicy::update()` (`auth()->user()->can('update', $coordinator)`) rather than a hand-rolled FK check — resolves RESEARCH.md's Open Question 1. 10 Pest tests cover load/save/password/ownership-denial/cross-role-passthrough/middleware-block. 15-05 (gap closure, wave 1): closed the sole `15-VERIFICATION.md` FAILED truth (Truth 10 — reachability) by adding a Filament `NavigationItem` on the `/articulador` panel plus an `area_coordinator` branch + role label in the shared Volt sidebar, so the three coordinador-management pages are reachable by clicking instead of typing a URL. 6 new Pest tests; full phase regression suite (66 tests) green. ARTIC-02 is now closed (checklist `[x]` + traceability `Done`) — Phase 15 is fully complete.
 Last activity: 2026-08-10
 
