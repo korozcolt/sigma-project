@@ -7,11 +7,12 @@ use App\Filament\Resources\AreaCoordinators\Pages\ListAreaCoordinators;
 use App\Filament\Resources\Coordinators\Pages\ListCoordinators;
 use App\Filament\Resources\Leaders\Pages\ListLeaders;
 use App\Filament\Resources\Users\Pages\ListUsers;
+use App\Models\Campaign;
 use App\Models\MetadataKey;
 use App\Models\User;
 use App\Models\UserMetadataValue;
+use App\Services\CampaignContext;
 use App\Services\MetadataAssignmentService;
-use Illuminate\Support\Facades\Session;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
@@ -21,6 +22,18 @@ beforeEach(function () {
     collect(UserRole::values())->each(
         fn ($role) => Role::firstOrCreate(['name' => $role, 'guard_name' => 'web'])
     );
+
+    // CampaignContext keeps its selection in private statics that survive across
+    // test files in the same process (app/Services/CampaignContext.php) — pin an
+    // explicit campaign here (mirroring FilamentMetadataSectionTest) instead of
+    // relying on the Session facade's campaign_context mode key alone, which cannot
+    // clear a leaked static override left by an earlier test file.
+    $this->campaign = Campaign::factory()->create(['status' => 'active']);
+    CampaignContext::setCampaignId($this->campaign->id);
+});
+
+afterEach(function () {
+    CampaignContext::setCampaignId(null);
 });
 
 function bulkMetadataSuperAdmin(): User
@@ -30,9 +43,9 @@ function bulkMetadataSuperAdmin(): User
         'phone' => '3001234567',
     ]);
     $user->assignRole(UserRole::SUPER_ADMIN->value);
+    $user->campaigns()->attach(test()->campaign->id);
 
     actingAs($user);
-    Session::put('campaign_context.mode', 'all');
 
     return $user;
 }
@@ -47,6 +60,7 @@ function bulkMetadataUser(?string $role = null): User
         'document_number' => (string) fake()->unique()->numerify('##########'),
         'phone' => fake()->numerify('3#########'),
     ]);
+    $user->campaigns()->attach(test()->campaign->id);
 
     if ($role !== null) {
         $user->assignRole($role);
