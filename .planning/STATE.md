@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: Executing Phase 16
-stopped_at: Both Phase 16 gap closure plans complete (16-07, 16-08) — Phase 16 fully executed, pending re-verification
-last_updated: "2026-08-11T05:20:00.000Z"
+status: verifying
+stopped_at: Completed 16-03-PLAN.md
+last_updated: "2026-08-11T05:22:14.644Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 19
   completed_plans: 19
   percent: 100
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 16 of 17 (metadata catalog ui & assignment)
-Plan: 8 of 8 complete — 16-VERIFICATION.md found 2 gaps, both closed (16-07, 16-08 both merged)
+Phase: 17 of 17 (filter/sort/export surfaces)
+Plan: Not started
 Status: 16-01 through 16-06 complete (see prior session notes). 16-VERIFICATION.md found Gap 1 (Filament admin-panel `assignMetadata` section action + bulk action had zero actor-authorization check, letting a `reviewer` — permitted on the `admin` panel by `User::canAccessPanel()` — write metadata rows despite resolving to zero direct subordinates) and Gap 2 (5 `FilamentMetadataBulkActionTest` tests fail + 1 is flaky under a full-suite `php artisan test tests/Feature` run, due to `CampaignContext`'s private-static campaign selection leaking across test files, plus `MetadataKeyFactory` producing an internally-invalid `select`-typed row with `options=null`). Both gaps closed via 2 parallel gap-closure plans: 16-07 closed Gap 1 — `MetadataAssignment::section()`'s `assignMetadata` Action now gates on `canAssignTo()` via both `->visible()` and a write-time `abort_unless()`; `MetadataAssignment::bulkAction()` now re-filters `$records` through `subordinatesByIds()` before writing, with a Spanish danger notification replacing the prior misleading success notification on a zero-target resolution. New `FilamentMetadataAuthorizationTest.php` (3 tests, 16 assertions) proves a reviewer is blocked on both write paths while `admin_campaign` (not just `super_admin`) remains fully unrestricted per D-02. 16-08 closed Gap 2 — `FilamentMetadataBulkActionTest` pins `CampaignContext::setCampaignId()` explicitly per test (beforeEach/afterEach), matching `FilamentMetadataSectionTest`'s already-correct pattern, instead of relying on `Session::put('campaign_context.mode', 'all')` alone (which cannot clear a static-override leak from an earlier test file in the same process); `MetadataKeyFactory` no longer randomizes `type` into `select` (which always paired with `options => null`, an internally-invalid combination the `MetadataKeyForm` Repeater's `minItems(1)` rule would itself reject) — a dedicated `select()` state now supplies `type` + non-empty `options` together. Both merged into main from parallel worktrees with no file overlap. Full `tests/Feature/Metadata` suite green both in isolation and inside a full `tests/Feature` run per each plan's own verification. META-03 and META-06 marked Done. META-04 now safe to close — both plans that gated its sign-off (16-07's authorization gate, 16-08's test stability) are complete; needs a final requirements sweep. All 8 Phase 16 plans complete — next step is re-running phase-goal verification.
 Last activity: 2026-08-11
 

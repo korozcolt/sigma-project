@@ -52,7 +52,7 @@ This milestone adds two related but separable capabilities on top of SIGMA's exi
 - [x] **Phase 13: Hierarchy Authorization & Call-Site Audit** - Existing coordinator-scoped surfaces resolve an articulador's full team, with an explicit ownership policy (completed 2026-08-10)
 - [x] **Phase 14: Articulador Admin Resource & Hierarchy Wiring** - Superadmin/admin_campaign manages articuladores from the admin panel, coordinador behavior unchanged (completed 2026-08-10)
 - [x] **Phase 15: Articulador Self-Service Panel** - Articulador manages their own coordinadores from a dedicated self-service panel (completed 2026-08-10)
-- [ ] **Phase 16: Metadata Catalog UI & Assignment** - Superadmin manages the metadata catalog; superiors assign auditable, atomic values to subordinates
+- [x] **Phase 16: Metadata Catalog UI & Assignment** - Superadmin manages the metadata catalog; superiors assign auditable, atomic values to subordinates (completed 2026-08-11)
 - [ ] **Phase 17: Filter/Sort/Export Surfaces** - Filament tables filter/sort by metadata with correct numeric ordering, exports include metadata columns
 
 ## Phase Details
@@ -166,7 +166,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 13. Hierarchy Authorization & Call-Site Audit | 1/2 | Complete    | 2026-08-10 |
 | 14. Articulador Admin Resource & Hierarchy Wiring | 1/2 | Complete    | 2026-08-10 |
 | 15. Articulador Self-Service Panel | 5/5 | Complete    | 2026-08-10 |
-| 16. Metadata Catalog UI & Assignment | 8/8 | Complete | - |
+| 16. Metadata Catalog UI & Assignment | 8/8 | Complete    | 2026-08-11 |
 | 17. Filter/Sort/Export Surfaces | 0/? | Not started | - |
 
 ---
