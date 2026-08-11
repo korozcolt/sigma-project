@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AreaCoordinators\Tables;
 
+use App\Filament\Schemas\MetadataAssignment;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -54,6 +55,7 @@ class AreaCoordinatorsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    MetadataAssignment::bulkAction(),
                     DeleteBulkAction::make(),
                 ]),
             ])

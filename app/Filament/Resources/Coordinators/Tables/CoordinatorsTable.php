@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Coordinators\Tables;
 
+use App\Filament\Schemas\MetadataAssignment;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -56,6 +57,7 @@ class CoordinatorsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    MetadataAssignment::bulkAction(),
                     DeleteBulkAction::make(),
                 ]),
             ])
