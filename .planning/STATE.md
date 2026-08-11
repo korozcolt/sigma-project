@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 16
-stopped_at: Completed 16-03-PLAN.md, 16-04-PLAN.md, and 16-05-PLAN.md
+stopped_at: All 6 phase 16 plans complete, execution finished
 last_updated: "2026-08-11T04:15:00.000Z"
-last_activity: 2026-08-10
+last_activity: 2026-08-11
 progress:
   total_phases: 6
   completed_phases: 4
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 16 of 17 (metadata catalog ui & assignment)
-Plan: 5 of 6 complete (wave 1 done — 16-01, 16-02; wave 2 — 16-03, 16-04, 16-05 done; 16-06 up next)
-Status: Wave 1 complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` — superadmin-only Filament catalog CRUD, META-01/META-02 marked Done. 16-03: `MetadataAssignment::section()` wired into `CoordinatorForm`, `LeaderForm`, `AreaCoordinatorForm`, and `UserForm` — the admin-panel third of D-05's "3 places" requirement; `UserForm`'s inclusion satisfies D-02. 16-04: `MetadataAssignment::bulkAction()` registered on the 4 admin tables; `UsersTable`'s deprecated `->bulkActions()` replaced with `->toolbarActions()`. 16-05: `App\Livewire\MetadataAssignmentPanel` — the Flux/Volt-side individual assignment UI, sharing logic with 16-03 through `MetadataAssignmentService`, nested into `coordinator/edit-leader.blade.php` and `articulador/edit-coordinator.blade.php`. `mount()` never aborts — ownership is a computed `getCanAssignProperty()` render-time gate (panel renders empty rather than 403ing a parent page a route permits), with the only hard `abort_unless()` inside `assign()`. META-03/META-05 are NOT marked Done yet — both are now covered on all 3 panels (admin/coordinador/articulador) but sign-off is deferred to phase completion per split-requirement precedent. META-04 needs 16-06's Volt bulk UI, the only plan remaining.
-Last activity: 2026-08-10
+Plan: 6 of 6 complete — all Phase 16 plans executed and merged
+Status: All 6 plans complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` — superadmin-only Filament catalog CRUD, META-01/META-02 marked Done. 16-03: `MetadataAssignment::section()` wired into `CoordinatorForm`, `LeaderForm`, `AreaCoordinatorForm`, and `UserForm` — the admin-panel third of D-05's "3 places" requirement. 16-04: `MetadataAssignment::bulkAction()` registered on the 4 admin tables; `UsersTable`'s deprecated `->bulkActions()` replaced with `->toolbarActions()`. 16-05: `App\Livewire\MetadataAssignmentPanel` — the Flux/Volt-side individual assignment UI, nested into `coordinator/edit-leader.blade.php` and `articulador/edit-coordinator.blade.php`; `mount()` never aborts, ownership is a computed `getCanAssignProperty()` render-time gate, with the only hard `abort_unless()` inside `assign()`. 16-06: row selection + one-key/one-value bulk metadata modal added to both non-Filament Volt list pages (`coordinator/leaders.blade.php`, `articulador/coordinators.blade.php`); every bulk write re-filters client-posted ids through `MetadataAssignmentService::subordinatesByIds()` before touching the database. META-03/META-04/META-05 are now covered on all required surfaces (admin/coordinador/articulador, individual + bulk) — phase-level requirement sign-off and goal verification are next.
+Last activity: 2026-08-11
 
-Progress: [█████████·] 94% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 5/6 plans complete)
+Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 6/6 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 16 Plan 06 decisions:
+
+- [Phase 16 Plan 06]: META-03/META-04 are NOT marked complete in REQUIREMENTS.md by this plan alone, despite being listed in this plan's frontmatter `requirements` field — both are split across parallel Phase 16 plans (16-01 built the `subordinatesByIds()`/`assignMany()` foundation this plan calls; 16-03/16-05 build the individual-assignment UI in the Filament/Volt edit forms per D-04; 16-04 builds the Filament-native bulk action on the four admin tables; this plan builds the Volt-native equivalent for the two panels with no native Filament `BulkAction` available). Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent (Phase 05.1, 10, 11, 12, 13, 14, 15).
+- [Phase 16 Plan 06]: `updatedSelectAllOnPage()` re-derives "ids on this page" by re-running the extracted `leadersQuery()`/`coordinatorsQuery()` server-side rather than trusting client DOM checkbox state — applying the same principle as the mandatory `subordinatesByIds()` write-time re-filter to the read/select-all path, so a paginated or filtered page can never select rows outside the actor's own scope.
+- [Phase 16 Plan 06]: Investigated (not a bug — a test-only finding) why `Volt::test(...)->assertSessionHas('success')` failed immediately after a successful `assignBulkMetadata()` call on the same chain, despite `assertHasNoErrors()`/`assertSet(...)` passing on that same chain: Livewire's `RequestBroker::temporarilyDisableExceptionHandlingAndMiddleware()` disables the `StartSession` middleware on every `SubsequentRender` (i.e. every chained `->set()`/`->call()`), so session-facade assertions do not reliably reflect state set mid-chain even though the flash genuinely exists in that render. Fixed by asserting against the component's own rendered `html()` output instead of the session facade.
+- [Phase 16 Plan 06]: Worktree (`agent-a2708849edd27f6bc`) was stale at session start — missing Phase 16 entirely (16-01 through 16-05's completed work, including the `MetadataAssignmentService` this plan depends on), plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, `npm install && npm run build`. `gsd-tools state advance-plan` / `roadmap update-plan-progress` / `requirements mark-complete` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (writes landed in the main checkout, not this worktree, confirmed via `git status --short` showing no diff in this worktree after each command) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's copies directly.
 
 Phase 16 Plan 05 decisions:
 
