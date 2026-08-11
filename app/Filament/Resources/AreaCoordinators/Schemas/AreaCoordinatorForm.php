@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AreaCoordinators\Schemas;
 
+use App\Filament\Schemas\MetadataAssignment;
 use App\Services\CampaignContext;
 use App\Services\IdentityLookupService;
 use Filament\Actions\Action;
@@ -165,6 +166,7 @@ class AreaCoordinatorForm
                         ->minLength(8),
                 ])
                 ->columns(2),
+            MetadataAssignment::section(),
         ]);
     }
 }

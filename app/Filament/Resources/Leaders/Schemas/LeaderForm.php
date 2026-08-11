@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Leaders\Schemas;
 
 use App\Enums\UserRole;
+use App\Filament\Schemas\MetadataAssignment;
 use App\Models\User;
 use App\Services\IdentityLookupService;
 use Filament\Actions\Action;
@@ -177,6 +178,7 @@ class LeaderForm
                         ->minLength(8),
                 ])
                 ->columns(2),
+            MetadataAssignment::section(),
         ]);
     }
 }
