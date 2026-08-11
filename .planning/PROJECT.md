@@ -42,10 +42,10 @@ Campaign teams can run critical voter and field operations from one place with t
 - ✓ Existing coordinador-scoped surfaces (`TopLeadersTable`, `TopLeadersExport`, `LeadersExportController`) correctly resolve an articulador's full transitive team via `User::teamCoordinatorUserIds()`; a dedicated `CoordinatorPolicy` denies an articulador from viewing/editing a coordinador that doesn't belong to them with a named 403 reason; cross-campaign isolation holds for the new role at both the query and direct-record level - validated in Phase 13 (AUTHZ-01, AUTHZ-02, AUTHZ-03)
 - ✓ A superadmin/admin_campaign creates and manages articulador users from a dedicated admin resource (`AreaCoordinatorResource`, mirroring `CoordinatorResource`), and assigns/reassigns coordinadores to an articulador via an optional, campaign-scoped `Select` on `CoordinatorForm`; a coordinador's own behavior is unaffected whether or not an articulador is assigned - validated in Phase 14 (ARTIC-01, ARTIC-03)
 - ✓ An articulador manages their own coordinadores entirely from a dedicated self-service panel (`AreaCoordinatorPanelProvider`, mirroring `CoordinatorPanelProvider`), seeing only their own team via `area_coordinator_user_id` scoping, creating coordinadores auto-linked to themselves (no OTP, no user-facing FK field), and editing/managing them under `CoordinatorPolicy`-enforced ownership; navigation to these pages exists on both the Filament panel and the shared Volt sidebar, mirroring the coordinador's own nav group - validated in Phase 15 (ARTIC-02), gap-closed via plan 15-05 after initial verification found the CRUD pages built but unreachable through the UI
+- ✓ A superadmin manages a predefined metadata-key catalog (name + type: numeric/text/date/select-with-options) from a dedicated `MetadataKeyResource`, with no freeform key-entry surface anywhere else in the app; any superior (líder/coordinador/articulador/superadmin) assigns a catalog value to a direct subordinate — individually or in bulk — via a form/action scoped to both the catalog and their own subordinates, on both the Filament admin panel and the Volt coordinador/articulador panels; every assignment is append-only and records who/whom/what/when for audit; writes are atomic per key with zero update-style calls in the write path - validated in Phase 16 (META-01 through META-06), gap-closed via plans 16-07 (Filament actor-authorization gate, closing a hole where the `reviewer` role could otherwise write metadata rows) and 16-08 (test-suite stability under a full-suite run) after initial verification found both gaps
 
 ### Active
 
-- META-01 through META-06 — metadata catalog CRUD, freeform-prohibited assignment, bulk assignment, audit trail, atomic writes (Phase 16)
 - FILT-01, FILT-02, FILT-03 — Filament filter/sort/export by metadata (Phase 17)
 
 ### Out of Scope
@@ -130,8 +130,8 @@ This document evolves at phase transitions and milestone boundaries.
 **Target features:**
 - New `articulador` role (Spatie) above `coordinator`, able to create/manage coordinadores (no hard limit enforced) — **schema landed in Phase 12, self-service panel landed in Phase 15**
 - New articulador→coordinador hierarchy relation (mirrors the existing `coordinator_user_id` self-referencing FK pattern); coordinadores keep working exactly as today, no coordinador→coordinador nesting — **schema landed in Phase 12**
-- Superadmin-managed predefined catalog of metadata keys (new table/config), not freeform — **schema landed in Phase 12**
-- Append-only `user_metadata_values` table (not a JSON column on `users` — revised during Phase 12 planning, D-02) + UI for superiors to assign values to subordinates against that catalog; every assignment is its own row, giving native per-assignment audit history for free
+- Superadmin-managed predefined catalog of metadata keys (new table/config), not freeform — **schema landed in Phase 12, UI landed in Phase 16**
+- Append-only `user_metadata_values` table (not a JSON column on `users` — revised during Phase 12 planning, D-02) + UI for superiors to assign values to subordinates against that catalog; every assignment is its own row, giving native per-assignment audit history for free — **landed in Phase 16**
 - Filter and sort by metadata key/value in the Filament tables for users/coordinators/leaders/articuladores
 
 ## Next Milestone Goals
@@ -139,4 +139,4 @@ This document evolves at phase transitions and milestone boundaries.
 Not yet defined beyond v1.2.
 
 ---
-*Last updated: 2026-08-10 — Phase 15 complete (4/6 phases of v1.2)*
+*Last updated: 2026-08-11 — Phase 16 complete (5/6 phases of v1.2)*
