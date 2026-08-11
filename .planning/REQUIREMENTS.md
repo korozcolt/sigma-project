@@ -25,7 +25,7 @@ Requirements for the "Articuladores + Metadata de Usuario" milestone. Each maps 
 
 - [x] **META-01**: Superadmin puede crear/editar/desactivar llaves del catálogo de metadata (nombre + tipo: numérico, texto, fecha, selección con opciones)
 - [x] **META-02**: Las llaves de metadata no se pueden crear libremente fuera del catálogo (freeform prohibido)
-- [ ] **META-03**: Un superior (líder/coordinador/articulador/superadmin) puede asignar un valor de una llave del catálogo a uno de sus subordinados directos
+- [x] **META-03**: Un superior (líder/coordinador/articulador/superadmin) puede asignar un valor de una llave del catálogo a uno de sus subordinados directos
 - [ ] **META-04**: Un superior puede asignar el mismo valor de metadata a varios subordinados a la vez (asignación masiva)
 - [ ] **META-05**: Cada asignación de metadata queda auditada (quién asignó qué valor, a quién, cuándo)
 - [ ] **META-06**: Las escrituras de metadata son atómicas por llave (sin condiciones de carrera entre asignaciones concurrentes al mismo usuario)
@@ -70,8 +70,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTHZ-03 | Phase 13 | Done |
 | META-01 | Phase 16 | Done |
 | META-02 | Phase 16 | Done |
-| META-03 | Phase 16 | Pending |
-| META-04 | Phase 16 | Pending |
+| META-03 | Phase 16 | Done |
+| META-04 | Phase 16 | Pending (blocked on 16-08 test-stability gap closure, running in parallel) |
 | META-05 | Phase 16 | Pending |
 | META-06 | Phase 16 | Pending |
 | FILT-01 | Phase 17 | Pending |

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 16
-stopped_at: All 6 phase 16 plans complete, execution finished
-last_updated: "2026-08-11T04:15:00.000Z"
+stopped_at: Completed 16-07-PLAN.md (gap closure 1 of 2)
+last_updated: "2026-08-11T05:00:00.000Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 17
-  completed_plans: 15
-  percent: 88
+  total_plans: 19
+  completed_plans: 18
+  percent: 95
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 16 of 17 (metadata catalog ui & assignment)
-Plan: 6 of 6 complete — all Phase 16 plans executed and merged
-Status: All 6 plans complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` — superadmin-only Filament catalog CRUD, META-01/META-02 marked Done. 16-03: `MetadataAssignment::section()` wired into `CoordinatorForm`, `LeaderForm`, `AreaCoordinatorForm`, and `UserForm` — the admin-panel third of D-05's "3 places" requirement. 16-04: `MetadataAssignment::bulkAction()` registered on the 4 admin tables; `UsersTable`'s deprecated `->bulkActions()` replaced with `->toolbarActions()`. 16-05: `App\Livewire\MetadataAssignmentPanel` — the Flux/Volt-side individual assignment UI, nested into `coordinator/edit-leader.blade.php` and `articulador/edit-coordinator.blade.php`; `mount()` never aborts, ownership is a computed `getCanAssignProperty()` render-time gate, with the only hard `abort_unless()` inside `assign()`. 16-06: row selection + one-key/one-value bulk metadata modal added to both non-Filament Volt list pages (`coordinator/leaders.blade.php`, `articulador/coordinators.blade.php`); every bulk write re-filters client-posted ids through `MetadataAssignmentService::subordinatesByIds()` before touching the database. META-03/META-04/META-05 are now covered on all required surfaces (admin/coordinador/articulador, individual + bulk) — phase-level requirement sign-off and goal verification are next.
+Plan: 7 of 8 complete — 16-VERIFICATION.md found 2 gaps, adding 2 gap-closure plans (16-07, 16-08); 16-07 done, 16-08 in progress (parallel worktree)
+Status: 16-01 through 16-06 complete (see prior session notes). 16-VERIFICATION.md found Gap 1 (Filament admin-panel `assignMetadata` section action + bulk action had zero actor-authorization check, letting a `reviewer` — permitted on the `admin` panel by `User::canAccessPanel()` — write metadata rows despite resolving to zero direct subordinates) and Gap 2 (5 `FilamentMetadataBulkActionTest` tests fail + 1 is flaky under a full-suite `php artisan test tests/Feature` run, due to `CampaignContext`'s private-static campaign selection leaking across test files, plus `MetadataKeyFactory` producing an internally-invalid `select`-typed row with `options=null`). 16-07 (this session) closed Gap 1: `MetadataAssignment::section()`'s `assignMetadata` Action now gates on `canAssignTo()` via both `->visible()` and a write-time `abort_unless()`; `MetadataAssignment::bulkAction()` now re-filters `$records` through `subordinatesByIds()` before writing, with a Spanish danger notification replacing the prior misleading success notification on a zero-target resolution. New `FilamentMetadataAuthorizationTest.php` (3 tests, 16 assertions) proves a reviewer is blocked on both write paths while `admin_campaign` (not just `super_admin`) remains fully unrestricted per D-02. Full `tests/Feature/Metadata` suite: 61/61 passing, zero regressions. META-03 marked Done (16-07 was its sole remaining open plan). META-04 left Pending — 16-08 (Gap 2, running in a parallel worktree) also explicitly claims META-04 via its `FilamentMetadataBulkActionTest.php` fix, so sign-off deferred per the project's established split-requirement precedent. 16-08 (test-suite stability) is next/parallel.
 Last activity: 2026-08-11
 
-Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 6/6 plans complete)
+Progress: [█████████░] 95% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 7/8 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 16 Plan 07 decisions (gap closure — Filament actor authorization):
+
+- [Phase 16 Plan 07]: Closed `16-VERIFICATION.md`'s Gap 1 — `MetadataAssignment::section()`'s individual `assignMetadata` Action and `MetadataAssignment::bulkAction()` previously called `MetadataAssignmentService::assign()`/`assignMany()` with zero actor-authorization check, letting a `reviewer` (permitted on the `admin` panel by `User::canAccessPanel()`, but resolving to zero direct subordinates in the service) write audited `user_metadata_values` rows. Individual action now gated with both a `->visible()` hide (UX) and a write-time `abort_unless(canAssignTo(...))` (defense-in-depth, mirroring `MetadataAssignmentPanel::assign()`'s already-correct Volt pattern). Bulk action now re-filters Filament's resolved `$records` through `subordinatesByIds()` before any write (mirroring `leaders.blade.php`'s `assignBulkMetadata()`), and shows a Spanish danger notification instead of a misleading success notification when zero authorized targets resolve.
+- [Phase 16 Plan 07]: META-03 marked Done in REQUIREMENTS.md — this plan was its sole remaining open plan (16-08, the other pending Phase 16 plan, does not list META-03 in its frontmatter). META-04 left Pending — 16-08 (Gap 2, test-suite stability) also explicitly claims META-04 via a fix to `FilamentMetadataBulkActionTest.php`, so sign-off deferred to phase completion per the project's established split-requirement precedent, especially since 16-08 was running in a parallel sibling worktree at the same time as this plan.
+- [Phase 16 Plan 07]: New `FilamentMetadataAuthorizationTest.php` (3 tests, 16 assertions) explicitly exercises `admin_campaign` as the acting superior for the first time in the Filament metadata suites (the pre-existing `FilamentMetadataSectionTest`/`FilamentMetadataBulkActionTest` only ever exercised `super_admin`), proving D-02's "super_admin/admin_campaign unrestricted" rule holds on both the individual and bulk paths now that the authorization gate exists.
+- [Phase 16 Plan 07]: Worktree (`agent-af5d3dd48c7dd00c1`) was stale at session start — missing Phase 16 entirely (`.planning/phases/16-metadata-catalog-ui-assignment/` did not exist), plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry (`git merge-base --is-ancestor HEAD main`), `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install && npm run build` (the Vite manifest was missing, initially failing `MetadataKeyResourceTest`'s full-page `assertOk()` test with 3 failures — unrelated to this plan's own files, confirmed resolved by the build alone). `gsd-tools init execute-phase 16` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's copies directly instead of via the CLI, per the established workaround.
 
 Phase 16 Plan 06 decisions:
 

@@ -130,7 +130,7 @@ Plans:
   3. A superior selects multiple subordinates at once and assigns the same metadata value to all of them in a single bulk action (META-04).
   4. Every metadata assignment records who assigned it, to whom, what value, and when, and this is visible in an audit trail (META-05).
   5. Two concurrent assignments to different keys on the same subordinate never clobber each other — writes are atomic per key, verified against a race-condition test (META-06).
-**Plans**: 6/8 plans executed (2 gap closure plans added after 16-VERIFICATION.md found 2 blocking gaps)
+**Plans**: 7/8 plans executed (2 gap closure plans added after 16-VERIFICATION.md found 2 blocking gaps)
 **UI hint**: yes
 
 Plans:
@@ -140,7 +140,7 @@ Plans:
 - [x] 16-04-PLAN.md — Asignar metadata bulk action on the four admin tables (META-04)
 - [x] 16-05-PLAN.md — MetadataAssignmentPanel Flux component embedded in both Volt edit pages (META-02, META-03, META-05)
 - [x] 16-06-PLAN.md — Volt row selection + bulk metadata modal on the líderes and coordinadores lists (META-03, META-04)
-- [ ] 16-07-PLAN.md — Gap closure: actor authorization gate on the Filament individual + bulk assignment actions (META-03, META-04)
+- [x] 16-07-PLAN.md — Gap closure: actor authorization gate on the Filament individual + bulk assignment actions (META-03, META-04)
 - [ ] 16-08-PLAN.md — Gap closure: CampaignContext test pinning + MetadataKeyFactory fix for full-suite test stability (META-01, META-04, META-06)
 
 ### Phase 17: Filter/Sort/Export Surfaces
