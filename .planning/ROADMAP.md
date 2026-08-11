@@ -130,8 +130,16 @@ Plans:
   3. A superior selects multiple subordinates at once and assigns the same metadata value to all of them in a single bulk action (META-04).
   4. Every metadata assignment records who assigned it, to whom, what value, and when, and this is visible in an audit trail (META-05).
   5. Two concurrent assignments to different keys on the same subordinate never clobber each other — writes are atomic per key, verified against a race-condition test (META-06).
-**Plans**: TBD
+**Plans**: 6 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 16-01-PLAN.md — MetadataAssignmentService (D-03 direct subordinates, append-only write, id-tiebreak current value) + User::metadataValues() + shared Filament schema builder (META-02, META-03, META-05, META-06)
+- [ ] 16-02-PLAN.md — MetadataKeyResource: superadmin-only catalog CRUD with type-conditional options repeater (META-01, META-02)
+- [ ] 16-03-PLAN.md — Metadata section on the Coordinator/Leader/AreaCoordinator/User Filament edit forms (META-03, META-05)
+- [ ] 16-04-PLAN.md — Asignar metadata bulk action on the four admin tables (META-04)
+- [ ] 16-05-PLAN.md — MetadataAssignmentPanel Flux component embedded in both Volt edit pages (META-02, META-03, META-05)
+- [ ] 16-06-PLAN.md — Volt row selection + bulk metadata modal on the líderes and coordinadores lists (META-03, META-04)
 
 ### Phase 17: Filter/Sort/Export Surfaces
 **Goal**: Operators can filter, sort, and export by any assigned metadata value across the relevant Filament tables, with correct numeric ordering for numeric keys.
