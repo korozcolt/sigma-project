@@ -137,7 +137,7 @@ Plans:
 - [x] 16-01-PLAN.md — MetadataAssignmentService (D-03 direct subordinates, append-only write, id-tiebreak current value) + User::metadataValues() + shared Filament schema builder (META-02, META-03, META-05, META-06)
 - [x] 16-02-PLAN.md — MetadataKeyResource: superadmin-only catalog CRUD with type-conditional options repeater (META-01, META-02)
 - [ ] 16-03-PLAN.md — Metadata section on the Coordinator/Leader/AreaCoordinator/User Filament edit forms (META-03, META-05)
-- [ ] 16-04-PLAN.md — Asignar metadata bulk action on the four admin tables (META-04)
+- [x] 16-04-PLAN.md — Asignar metadata bulk action on the four admin tables (META-04)
 - [ ] 16-05-PLAN.md — MetadataAssignmentPanel Flux component embedded in both Volt edit pages (META-02, META-03, META-05)
 - [ ] 16-06-PLAN.md — Volt row selection + bulk metadata modal on the líderes and coordinadores lists (META-03, META-04)
 
@@ -164,7 +164,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 13. Hierarchy Authorization & Call-Site Audit | 1/2 | Complete    | 2026-08-10 |
 | 14. Articulador Admin Resource & Hierarchy Wiring | 1/2 | Complete    | 2026-08-10 |
 | 15. Articulador Self-Service Panel | 5/5 | Complete    | 2026-08-10 |
-| 16. Metadata Catalog UI & Assignment | 2/6 | In Progress | - |
+| 16. Metadata Catalog UI & Assignment | 3/6 | In Progress | - |
 | 17. Filter/Sort/Export Surfaces | 0/? | Not started | - |
 
 ---

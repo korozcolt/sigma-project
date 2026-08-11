@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 16
-stopped_at: Completed 16-01-PLAN.md
-last_updated: "2026-08-11T03:30:00.000Z"
+stopped_at: Completed 16-04-PLAN.md
+last_updated: "2026-08-11T04:15:00.000Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 17
-  completed_plans: 14
-  percent: 82
+  completed_plans: 15
+  percent: 88
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 16 of 17 (metadata catalog ui & assignment)
-Plan: 2 of 6 complete (wave 1 done — 16-01, 16-02; wave 2 — 16-03..16-06 — up next)
-Status: Wave 1 complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder (`app/Filament/Schemas/MetadataAssignment.php`) — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` built — superadmin-only Filament resource (Resource/Schemas/Tables/Pages split mirroring `GremioResource`) gated via `canAccess() => CampaignContext::isSuperAdmin()`, in the `Configuración` nav group. `MetadataKeyForm` has key/label/type/options/is_active, with a `Repeater::make('options')->simple(TextInput::make('option'))` visible only when `type === 'select'`. `MetadataKeysTable` exposes a `values_count` column and an `is_active` ternary filter. No `MetadataKeySeeder` created (by design — META-01 requires UI-driven creation). META-01 and META-02 marked Done. Wave 2 (16-03 Filament forms, 16-04 Filament bulk action, 16-05 Volt panel, 16-06 Volt bulk) is next.
+Plan: 3 of 6 complete (wave 1 done — 16-01, 16-02; wave 2 — 16-04 done, 16-03/16-05/16-06 in flight in parallel worktrees)
+Status: Wave 1 complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder (`app/Filament/Schemas/MetadataAssignment.php`) — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` built — superadmin-only Filament resource (Resource/Schemas/Tables/Pages split mirroring `GremioResource`) gated via `canAccess() => CampaignContext::isSuperAdmin()`, in the `Configuración` nav group. `MetadataKeyForm` has key/label/type/options/is_active, with a `Repeater::make('options')->simple(TextInput::make('option'))` visible only when `type === 'select'`. `MetadataKeysTable` exposes a `values_count` column and an `is_active` ternary filter. No `MetadataKeySeeder` created (by design — META-01 requires UI-driven creation). META-01 and META-02 marked Done. 16-04: `MetadataAssignment::bulkAction()` (built by 16-01) registered on `CoordinatorsTable`, `LeadersTable`, `AreaCoordinatorsTable` and `UsersTable` bulk-action groups; `UsersTable`'s deprecated `->bulkActions()` replaced with `->toolbarActions()`. META-04 NOT marked Done by this plan alone — 16-06 (Volt bulk UI for coordinador/articulador panels) still owes the non-admin half. Remaining wave-2 plans (16-03 Filament forms, 16-05 Volt panel, 16-06 Volt bulk) are next/in flight.
 Last activity: 2026-08-10
 
-Progress: [████████··] 82% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 2/6 plans complete)
+Progress: [████████·] 88% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 3/6 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 16 Plan 04 decisions:
+
+- [Phase 16 Plan 04]: Registered `App\Filament\Schemas\MetadataAssignment::bulkAction()` (built by plan 16-01) as the first entry inside the existing `BulkActionGroup` on `CoordinatorsTable`, `LeadersTable`, `AreaCoordinatorsTable` and `UsersTable`, so `DeleteBulkAction` stays last/destructive-at-the-bottom on all four. `UsersTable`'s deprecated v3 `->bulkActions()` was replaced with `->toolbarActions()` in the same edit (Filament v4.2.0 marks `bulkActions()` `@deprecated`), bringing it in line with the other three tables which already used the correct v4 API — no columns, filters, `defaultSort`, or session-persistence calls were touched.
+- [Phase 16 Plan 04]: META-04 is NOT marked complete in REQUIREMENTS.md by this plan alone — this plan only builds the admin-panel half (Filament `BulkAction` on the four admin tables); plan 16-06's hand-rolled Livewire bulk-selection UI on the coordinador/articulador Volt panels still owes the non-admin half, per the phase's own objective statement and the project's established split-requirement precedent.
+- [Phase 16 Plan 04]: The plan's own `<interfaces>` block specified a `livewire(...)` global test helper for `callTableBulkAction`/`assertTableBulkActionVisible`, but no such helper is registered in this repo (no `pestphp/pest-plugin-livewire` dependency, confirmed via `composer.json` and a repo-wide grep for `function livewire(`) — used `Livewire\Livewire::test(...)` instead, matching the exact convention already used by `MetadataKeyResourceTest.php` and `CoordinatorResourceCampaignTest.php`. The bulk-action testing macros (`callTableBulkAction`, `assertTableBulkActionVisible`) are mixed into the `Testable` returned by `Livewire::test()` regardless of which entry-point syntax is used, so no behavior was lost.
+- [Phase 16 Plan 04]: Worktree (`agent-a3ea9c85e3017e94b`) was stale at session start — missing the entire Phase 16 planning corpus (`16-CONTEXT.md`, `16-RESEARCH.md`, all six `16-*-PLAN.md` files) plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction` (Pest-only scope, no frontend asset changes, so no `npm run build` was needed). `gsd-tools init execute-phase 16` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md updated by hand-editing this worktree's copies directly instead of via the CLI, per the established workaround.
 
 Phase 16 Plan 02 decisions:
 
