@@ -93,8 +93,15 @@ class MetadataAssignment
                     ->icon('heroicon-o-tag')
                     ->modalHeading('Asignar metadata')
                     ->modalSubmitActionLabel('Asignar')
+                    ->visible(fn (?User $record): bool => $record instanceof User
+                        && app(MetadataAssignmentService::class)->canAssignTo(auth()->user(), $record))
                     ->schema(static::modalSchema())
                     ->action(function (array $data, User $record): void {
+                        abort_unless(
+                            app(MetadataAssignmentService::class)->canAssignTo(auth()->user(), $record),
+                            403,
+                        );
+
                         app(MetadataAssignmentService::class)->assign(
                             subject: $record,
                             key: MetadataKey::findOrFail($data['metadata_key_id']),
@@ -116,11 +123,25 @@ class MetadataAssignment
             ->modalSubmitActionLabel('Asignar')
             ->schema(static::modalSchema())
             ->action(function (Collection $records, array $data): void {
-                $assigned = app(MetadataAssignmentService::class)->assignMany(
-                    subjects: $records,
+                $service = app(MetadataAssignmentService::class);
+                $actor = auth()->user();
+
+                $targets = $service->subordinatesByIds($actor, $records->pluck('id')->all());
+
+                if ($targets->isEmpty()) {
+                    Notification::make()
+                        ->title('No tienes autorización para asignar metadata a los usuarios seleccionados.')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $assigned = $service->assignMany(
+                    subjects: $targets,
                     key: MetadataKey::findOrFail($data['metadata_key_id']),
                     value: (string) $data['value'],
-                    assignedBy: auth()->user(),
+                    assignedBy: $actor,
                 );
 
                 Notification::make()
