@@ -155,6 +155,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(User::class, 'area_coordinator_user_id');
     }
 
+    public function metadataValues(): HasMany
+    {
+        return $this->hasMany(UserMetadataValue::class);
+    }
+
     /**
      * Resolve the coordinator_user_id values whose leaders should be visible to
      * this user for "my team" scoped queries (TopLeadersTable, TopLeadersExport,
