@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 16
-stopped_at: Completed 16-01-PLAN.md
-last_updated: "2026-08-11T03:30:00.000Z"
+stopped_at: Completed 16-03-PLAN.md
+last_updated: "2026-08-11T03:39:08.000Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 17
-  completed_plans: 14
-  percent: 82
+  completed_plans: 15
+  percent: 88
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 16 of 17 (metadata catalog ui & assignment)
-Plan: 2 of 6 complete (wave 1 done — 16-01, 16-02; wave 2 — 16-03..16-06 — up next)
-Status: Wave 1 complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder (`app/Filament/Schemas/MetadataAssignment.php`) — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` built — superadmin-only Filament resource (Resource/Schemas/Tables/Pages split mirroring `GremioResource`) gated via `canAccess() => CampaignContext::isSuperAdmin()`, in the `Configuración` nav group. `MetadataKeyForm` has key/label/type/options/is_active, with a `Repeater::make('options')->simple(TextInput::make('option'))` visible only when `type === 'select'`. `MetadataKeysTable` exposes a `values_count` column and an `is_active` ternary filter. No `MetadataKeySeeder` created (by design — META-01 requires UI-driven creation). META-01 and META-02 marked Done. Wave 2 (16-03 Filament forms, 16-04 Filament bulk action, 16-05 Volt panel, 16-06 Volt bulk) is next.
+Plan: 3 of 6 complete (wave 1 done — 16-01, 16-02; wave 2 in progress — 16-03 done, 16-04..16-06 running in parallel worktrees)
+Status: Wave 1 complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder (`app/Filament/Schemas/MetadataAssignment.php`) — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` built — superadmin-only Filament resource (Resource/Schemas/Tables/Pages split mirroring `GremioResource`) gated via `canAccess() => CampaignContext::isSuperAdmin()`, in the `Configuración` nav group. `MetadataKeyForm` has key/label/type/options/is_active, with a `Repeater::make('options')->simple(TextInput::make('option'))` visible only when `type === 'select'`. `MetadataKeysTable` exposes a `values_count` column and an `is_active` ternary filter. No `MetadataKeySeeder` created (by design — META-01 requires UI-driven creation). META-01 and META-02 marked Done. 16-03 (wave 2): `MetadataAssignment::section()` wired into `CoordinatorForm`, `LeaderForm`, `AreaCoordinatorForm`, and `UserForm` as a 2-line edit-only addition per form (import + `MetadataAssignment::section()` appended last) — the admin-panel third of D-05's "3 places" requirement. `UserForm`'s inclusion satisfies D-02 (superadmin/admin_campaign can assign to any user in the active campaign). 8 new Pest tests (44 assertions) prove edit-only visibility, create-form absence, and the audited write path across all four forms. META-03/META-05 are NOT marked Done yet — D-05 requires the coordinador panel (16-05) and articulador panel (16-06) surfaces too, still outstanding. 16-04 (bulk action), 16-05 (Volt coordinador panel), 16-06 (Volt articulador panel) still outstanding, running in parallel worktrees.
 Last activity: 2026-08-10
 
-Progress: [████████··] 82% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 2/6 plans complete)
+Progress: [█████████·] 88% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 3/6 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 16 Plan 03 decisions:
+
+- [Phase 16 Plan 03]: `MetadataAssignment::section()` (built in 16-01) appended as the last element of `CoordinatorForm`, `LeaderForm`, `AreaCoordinatorForm`, and `UserForm`'s components array — a 2-line change per file (1 import + 1 call), no blank line, matching the plan's exact acceptance criteria (`git diff --stat` = 2 insertions/0 deletions per file, 8 total). No existing field, validation rule, or hook was touched in any of the four files.
+- [Phase 16 Plan 03]: META-03 and META-05 are NOT marked complete in REQUIREMENTS.md by this plan alone, despite being listed in this plan's frontmatter `requirements` field — D-05 requires the assignment capability in 3 places (admin panel done here; coordinador panel is 16-05; articulador panel is 16-06), so both requirements stay Pending until those two Volt-panel plans land too. This plan's own `gsd-tools requirements mark-complete META-03 META-05` call incorrectly marked both `Done`/`Complete` in the shared main-checkout `REQUIREMENTS.md` (see below) — corrected via `sed` back to `[ ]`/`Pending` immediately after, since the CLI has no per-requirement "split across plans" awareness.
+- [Phase 16 Plan 03]: Worktree (`agent-a8f4563353faa009e`) was stale at session start — checked out at the Phase 15 completion commit (`6dd2f24`), missing all of Phase 16 (16-01 and 16-02's merged work, plus every phase-16 planning doc) and `.env`/`vendor/`/`node_modules/`/`public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, `npm install && npm run build` (the missing Vite manifest was initially causing 2 spurious `MetadataKeyResourceTest` failures, unrelated to this plan's own files — resolved by the build, not a code fix). `gsd-tools state`/`roadmap`/`requirements` commands this time actually resolved `project_root` to the shared main checkout and wrote there directly (not silently no-op'ing as in prior sessions), which surfaced the requirements-marking issue above — confirmed via `grep`/`Read` against the main checkout's `.planning/REQUIREMENTS.md` before and after each command. STATE.md/ROADMAP.md in this worktree hand-edited directly afterward, per the established workaround, since parallel sibling agents (16-04/16-05/16-06) are concurrently racing the same shared-checkout files.
 
 Phase 16 Plan 02 decisions:
 
@@ -558,6 +564,6 @@ Quick task 260808-hx8 decisions:
 
 ## Session Continuity
 
-Last session: 2026-08-11T03:30:00.000Z
-Stopped at: Completed 16-01-PLAN.md
-Resume file: .planning/phases/16-metadata-catalog-ui-assignment/16-02-PLAN.md
+Last session: 2026-08-11T03:39:08.000Z
+Stopped at: Completed 16-03-PLAN.md
+Resume file: .planning/phases/16-metadata-catalog-ui-assignment/16-04-PLAN.md
