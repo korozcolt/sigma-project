@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 16
-stopped_at: Completed 16-03-PLAN.md and 16-04-PLAN.md
+stopped_at: Completed 16-03-PLAN.md, 16-04-PLAN.md, and 16-05-PLAN.md
 last_updated: "2026-08-11T04:15:00.000Z"
 last_activity: 2026-08-10
 progress:
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 16 of 17 (metadata catalog ui & assignment)
-Plan: 4 of 6 complete (wave 1 done — 16-01, 16-02; wave 2 — 16-03, 16-04 done; 16-05, 16-06 in flight in parallel worktrees)
-Status: Wave 1 complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder (`app/Filament/Schemas/MetadataAssignment.php`) — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` built — superadmin-only Filament resource (Resource/Schemas/Tables/Pages split mirroring `GremioResource`), META-01/META-02 marked Done. 16-03: `MetadataAssignment::section()` wired into `CoordinatorForm`, `LeaderForm`, `AreaCoordinatorForm`, and `UserForm` as a 2-line edit-only addition per form — the admin-panel third of D-05's "3 places" requirement; `UserForm`'s inclusion satisfies D-02. 8 new Pest tests prove edit-only visibility and the audited write path. 16-04: `MetadataAssignment::bulkAction()` registered on `CoordinatorsTable`, `LeadersTable`, `AreaCoordinatorsTable` and `UsersTable`; `UsersTable`'s deprecated `->bulkActions()` replaced with `->toolbarActions()`. META-03/META-05/META-04 are NOT marked Done yet — D-05 requires the coordinador panel (16-05) and articulador panel (16-06) surfaces too, and META-04 needs 16-06's Volt bulk UI, both still outstanding.
+Plan: 5 of 6 complete (wave 1 done — 16-01, 16-02; wave 2 — 16-03, 16-04, 16-05 done; 16-06 up next)
+Status: Wave 1 complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` — superadmin-only Filament catalog CRUD, META-01/META-02 marked Done. 16-03: `MetadataAssignment::section()` wired into `CoordinatorForm`, `LeaderForm`, `AreaCoordinatorForm`, and `UserForm` — the admin-panel third of D-05's "3 places" requirement; `UserForm`'s inclusion satisfies D-02. 16-04: `MetadataAssignment::bulkAction()` registered on the 4 admin tables; `UsersTable`'s deprecated `->bulkActions()` replaced with `->toolbarActions()`. 16-05: `App\Livewire\MetadataAssignmentPanel` — the Flux/Volt-side individual assignment UI, sharing logic with 16-03 through `MetadataAssignmentService`, nested into `coordinator/edit-leader.blade.php` and `articulador/edit-coordinator.blade.php`. `mount()` never aborts — ownership is a computed `getCanAssignProperty()` render-time gate (panel renders empty rather than 403ing a parent page a route permits), with the only hard `abort_unless()` inside `assign()`. META-03/META-05 are NOT marked Done yet — both are now covered on all 3 panels (admin/coordinador/articulador) but sign-off is deferred to phase completion per split-requirement precedent. META-04 needs 16-06's Volt bulk UI, the only plan remaining.
 Last activity: 2026-08-10
 
-Progress: [█████████·] 88% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 4/6 plans complete)
+Progress: [█████████·] 94% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 5/6 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 16 Plan 05 decisions:
+
+- [Phase 16 Plan 05]: `mount()` never calls `abort_unless()` — ownership is enforced only via a computed `getCanAssignProperty()` (render-time gate, panel renders an empty `<div>` when false) plus a hard `abort_unless()` inside `assign()` (write-time gate). This is a deliberate design carried over verbatim from the plan text: an `abort()` inside a nested child component's `mount()` would take down the whole parent Volt page for any role the route middleware permits (e.g. `admin_campaign`/`super_admin` with a mismatched active-campaign context) but whose `canAssignTo()` happens to be false for this specific record — a regression this plan's own test 9b exists to prevent.
+- [Phase 16 Plan 05]: [Rule 1 - Bug] `Livewire::test(...)->set('user', $foreignUser)` could not be used to simulate mid-test subject tampering on a typed Eloquent-model public property — the write returned HTTP 200 instead of the expected 403, i.e. the swap silently did not take effect through the test harness's public API. Followed the plan's own explicitly pre-documented fallback: mounted a second, independent `Livewire::test(MetadataAssignmentPanel::class, ['user' => $foreignLeader])` instance directly and asserted `assign()` still forbids the write with zero rows persisted. This still proves the requirement (assign() re-checks the record actually bound to the component, not a decision cached at mount time).
+- [Phase 16 Plan 05]: META-02/META-03/META-05 are NOT marked complete in REQUIREMENTS.md by this plan alone — the same requirement IDs are also claimed by the sibling wave-2 plans (16-03 Filament forms, 16-04 Filament bulk action, 16-06 Volt bulk), all executing in parallel worktrees not visible from this one. Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent.
+- [Phase 16 Plan 05]: Worktree (`agent-af0734ebed56c73af`) was 2 commits behind `main` and completely missing Phase 16 (`.planning/phases/16-metadata-catalog-ui-assignment/` did not exist, nor did `app/Services/MetadataAssignmentService.php`, `vendor/`, `.env`, `node_modules/`, `public/build/`). Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, `npm install && npm run build`. `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug — it silently wrote to the main checkout's `.planning/STATE.md` (bumping its `Current Plan` from 3 to 4) instead of this worktree's copy; this worktree's own `STATE.md`/`ROADMAP.md`/`REQUIREMENTS.md` were hand-edited directly instead, per the established workaround, and the accidental main-checkout mutation was left as-is (no git access to the main checkout from this sandboxed worktree agent to revert it, and prior phases' precedent is to not attempt a cross-worktree revert).
 
 Phase 16 Plan 04 decisions:
 
