@@ -10,7 +10,8 @@ progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 17
-  completed_plans: 13
+  completed_plans: 14
+  percent: 82
 ---
 
 # Project State
@@ -24,8 +25,12 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 16 (metadata-catalog-ui-assignment) — EXECUTING
-Plan: 1 of 6 complete (16-01 done; 16-02..16-06 run in parallel worktrees — see their own SUMMARY.md files for status)
+Phase: 16 of 17 (metadata catalog ui & assignment)
+Plan: 2 of 6 complete (wave 1 done — 16-01, 16-02; wave 2 — 16-03..16-06 — up next)
+Status: Wave 1 complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder (`app/Filament/Schemas/MetadataAssignment.php`) — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` built — superadmin-only Filament resource (Resource/Schemas/Tables/Pages split mirroring `GremioResource`) gated via `canAccess() => CampaignContext::isSuperAdmin()`, in the `Configuración` nav group. `MetadataKeyForm` has key/label/type/options/is_active, with a `Repeater::make('options')->simple(TextInput::make('option'))` visible only when `type === 'select'`. `MetadataKeysTable` exposes a `values_count` column and an `is_active` ternary filter. No `MetadataKeySeeder` created (by design — META-01 requires UI-driven creation). META-01 and META-02 marked Done. Wave 2 (16-03 Filament forms, 16-04 Filament bulk action, 16-05 Volt panel, 16-06 Volt bulk) is next.
+Last activity: 2026-08-10
+
+Progress: [████████··] 82% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 2/6 plans complete)
 
 ## v1.2 Phase Map
 
@@ -49,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 16 Plan 02 decisions:
+
+- [Phase 16 Plan 02]: No `MetadataKeySeeder` created, per the plan's explicit instruction — META-01's success criterion requires the superadmin to *create* keys through the `MetadataKeyResource` UI; a seeder would hardcode client business vocabulary (biáticos, almuerzo, incentivo) into the repo and make the criterion untestable by observation.
+- [Phase 16 Plan 02]: META-01 and META-02 marked complete by this plan alone (not split across Phase 16's other plans) — the plan's own objective states `MetadataKeyResource` is both the full META-01 CRUD surface and the structural guarantee behind META-02 (no freeform key-creation surface exists anywhere else in the app), independent of what the parallel wave-1/wave-2 assignment-UI plans (16-01, 16-03 through 16-06) build.
+- [Phase 16 Plan 02]: [Rule 1 - Bug] Testing the type-conditional `Repeater::make('options')->simple(...)` via `->fillForm(['options' => ['si', 'no']])` produced spurious required-field validation errors — Filament's `fillFormDataForTesting` flattens the whole state via `Arr::dot()`, which conflicts with a `->simple()` repeater's internal item-keyed (`['option' => value]`) state shape, and also failed to replace (only merged with) the repeater's own `defaultItems(2)` pre-populated empty items. Fixed by using a follow-up `->set('data.options', [['option' => 'si'], ['option' => 'no']])` call instead, which atomically replaces the whole array in the shape the repeater expects. Confirmed the persisted `MetadataKey.options` array cast still equals the plan-specified flat `['si', 'no']` shape.
+- [Phase 16 Plan 02]: Worktree (`agent-a037ab2b91c28b3ca`) was stale at session start — missing Phase 16's own PLAN/CONTEXT/RESEARCH files plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, and copied `public/build/` from the main checkout (this plan makes no frontend asset changes, so no `npm run build` was needed). `gsd-tools init execute-phase`/`state`/`requirements` commands again confirmed the recurring `findProjectRoot()` worktree-redirection bug (writes landed in the main checkout, not this worktree, confirmed via `git status --short` showing no diff after each command) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's copies directly.
 
 Phase 16 Plan 01 decisions:
 
