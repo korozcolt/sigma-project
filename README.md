@@ -3,27 +3,30 @@
 [![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?style=flat-square)](https://www.php.net/)
 [![Laravel](https://img.shields.io/badge/Laravel-12-FF2D20?style=flat-square)](https://laravel.com/)
 [![Filament](https://img.shields.io/badge/Filament-4-FDAE4B?style=flat-square)](https://filamentphp.com/)
-[![Tests](https://img.shields.io/badge/Tests-650+_Passing-22C55E?style=flat-square)](https://pestphp.com/)
+[![Pest](https://img.shields.io/badge/Tests-Pest_4-22C55E?style=flat-square)](https://pestphp.com/)
 
-Plataforma completa para gestión y análisis de campañas políticas, desde el registro de votantes hasta el análisis post-electoral.
+Plataforma de gestión de operaciones electorales: organización territorial, ciclo de vida del votante ("Apoyo"), validación contra el censo, comunicaciones, reportería y ejecución de Día D, con aislamiento estricto de datos por campaña y control de acceso por rol.
 
 ---
 
 ## 🎯 Estado del Proyecto
 
-**Progreso:** 95% Completado | **Tests:** 650+ pasando | **Estado:** ✅ LISTO PARA PRODUCCIÓN
+**v1.0 MVP Hardening** y **v1.1 Consulta de Puesto de Votación Resiliente** — enviados y en producción.
+**v1.2 Articuladores + Metadata de Usuario** — en progreso (fases 12-15 de 17 completadas).
+
+Ver `.planning/PROJECT.md` para el estado detallado y decisiones vigentes, `CHANGELOG.md` para el historial de cambios, y `.planning/MILESTONES.md` para el detalle de lo ya enviado.
 
 ### Características Principales
 
-- ✅ Sistema multi-campaña con aislamiento estricto por campaña
-- ✅ Gestión de usuarios con 5 roles (Super Admin, Admin Campaña, Coordinador, Líder, Revisor)
+- ✅ Sistema multi-campaña con aislamiento estricto por campaña (scopes globales, gate de acceso cruzado)
+- ✅ Gestión de usuarios con 7 roles: Super Admin, Admin Campaña, Coordinador, Articulador, Líder, Revisor, Analista de Reportes
+- ✅ Jerarquía de dos niveles: articulador → coordinador → líder, con autorización explícita por propiedad (`CoordinatorPolicy`)
 - ✅ Base de datos electoral completa (33 departamentos, 1,123 municipios)
-- ✅ Registro y validación de votantes contra censo
-- ✅ Sistema de encuestas personalizado
-- ✅ Call center con tracking de llamadas
-- ✅ Mensajería SMS automatizada (Hablame API)
-- ✅ Sistema Día D con evidencia obligatoria (VoteRecord + foto + GPS)
-- ✅ 3 paneles Filament (Admin, Líderes, Coordinadores)
+- ✅ Registro y validación de Apoyos contra el censo electoral, con manejo de cédulas duplicadas
+- ✅ Resolución resiliente de puesto de votación: BD de campaña → snapshot nacional → intento en vivo, con reconciliación automática horaria
+- ✅ Sistema de encuestas, call center con tracking de llamadas, y mensajería SMS automatizada (Hablame API)
+- ✅ Sistema Día D con evidencia obligatoria (VoteRecord + foto + GPS) y prevención de doble-voto a nivel de BD
+- ✅ 5 paneles Filament: Admin, Reportes, Coordinador, Articulador, Líder — cada uno auto-gestionado por su rol
 
 ---
 
@@ -61,10 +64,12 @@ php artisan serve
 ### Acceso
 
 - **Panel Admin:** http://localhost:8000/admin
-- **Panel Líderes:** http://localhost:8000/leader
+- **Panel Reportes:** http://localhost:8000/reports
 - **Panel Coordinadores:** http://localhost:8000/coordinator
+- **Panel Articuladores:** http://localhost:8000/articulador
+- **Panel Líderes:** http://localhost:8000/leader
 
-**Usuario por defecto:** Ver seeders para credenciales
+**Usuario por defecto:** Ver seeders (`RoleSeeder`, `DatabaseSeeder`) para credenciales
 
 ---
 
@@ -72,9 +77,9 @@ php artisan serve
 
 | Categoría | Tecnología |
 |-----------|------------|
-| **Backend** | Laravel 12, PHP 8.4, SQLite/MySQL |
+| **Backend** | Laravel 12, PHP 8.4, MySQL/SQLite |
 | **Frontend** | Filament 4, Livewire 3, Volt, Flux UI, Tailwind CSS 4 |
-| **Testing** | Pest 4 (650+ tests), PHPUnit 12 |
+| **Testing** | Pest 4, PHPUnit 12, Playwright (E2E + visual regression) |
 | **Autenticación** | Laravel Fortify (2FA incluido) |
 | **Permisos** | Spatie Laravel Permission |
 | **DevOps** | Laravel Herd, Vite, Pint |
@@ -85,10 +90,12 @@ php artisan serve
 
 | Documento | Descripción |
 |-----------|-------------|
-| **[PROGRESO.md](PROGRESO.md)** | 📊 Tracking diario, estadísticas, próximos pasos |
-| **[CLAUDE.md](CLAUDE.md)** | 🤖 Guidelines de desarrollo y mejores prácticas |
-| **[docs/DECISIONES.md](docs/DECISIONES.md)** | 📋 Architecture Decision Records (ADR) |
-| **[docs/REGLAS_NEGOCIO.md](docs/REGLAS_NEGOCIO.md)** | ✅ Reglas de negocio + base para regresión |
+| **[.planning/PROJECT.md](.planning/PROJECT.md)** | 📊 Estado actual, requisitos validados/activos, decisiones clave |
+| **[CHANGELOG.md](CHANGELOG.md)** | 📋 Historial de cambios por versión |
+| **[.planning/MILESTONES.md](.planning/MILESTONES.md)** | 🚀 Resumen de milestones ya enviados (v1.0, v1.1) |
+| **[CLAUDE.md](CLAUDE.md)** | 🤖 Guidelines de desarrollo y convenciones del proyecto |
+| **[docs/REGLAS_NEGOCIO.md](docs/REGLAS_NEGOCIO.md)** | ✅ Reglas de negocio vigentes |
+| **[docs/deploy/docker-volumes.md](docs/deploy/docker-volumes.md)** | 🐳 Configuración de volúmenes persistentes para deploy |
 
 ---
 
@@ -105,8 +112,6 @@ php artisan test --filter=VoterTest
 php artisan test --coverage
 ```
 
-**Cobertura actual:** ~85% | **Pass rate:** 98.5%
-
 ---
 
 ## 💻 Comandos Útiles
@@ -114,8 +119,8 @@ php artisan test --coverage
 ```bash
 # Desarrollo
 npm run dev                    # Hot reload frontend
-vendor/bin/pint               # Formatear código
-php artisan test --filter=X   # Tests específicos
+vendor/bin/pint --dirty        # Formatear código modificado
+php artisan test --filter=X    # Tests específicos
 
 # Producción
 npm run build                 # Compilar assets
@@ -129,38 +134,15 @@ php artisan db:seed --class=RoleSeeder  # Crear roles
 
 ---
 
-## 📊 Módulos Completados
-
-- ✅ Autenticación completa (Login, 2FA, Reset Password)
-- ✅ Sistema de roles y permisos
-- ✅ Estructura territorial (Department → Municipality → Neighborhood)
-- ✅ Sistema multi-campaña con scopes
-- ✅ Gestión de usuarios y asignaciones territoriales
-- ✅ Módulo de votantes (8 estados)
-- ✅ Validación contra censo electoral
-- ✅ Sistema de encuestas (5 tipos de preguntas)
-- ✅ Call Center funcional
-- ✅ Mensajería SMS (Hablame API)
-- ✅ Sistema Día D con VoteRecord
-- ✅ 12 widgets para dashboards
-- ✅ Traducción completa al español
-
----
-
 ## 🤝 Contribución
 
-1. Leer [CLAUDE.md](CLAUDE.md) para guidelines
-2. Crear branch feature
-3. Escribir tests (obligatorio)
-4. Ejecutar `vendor/bin/pint`
-5. Actualizar [PROGRESO.md](PROGRESO.md)
-6. Commit semántico: `feat(scope): descripción`
+Este proyecto usa el workflow **GSD** (Get Shit Done) para planificación y ejecución estructurada por fases — ver `.planning/` para el roadmap, estado y planes activos.
 
----
-
-## 📞 Soporte
-
-Para preguntas o issues, consultar la documentación en `/docs` o revisar [PROGRESO.md](PROGRESO.md) para estado actual.
+1. Leer [CLAUDE.md](CLAUDE.md) para guidelines de código y convenciones del proyecto
+2. Trabajar dentro de un flujo GSD (`/gsd:quick`, `/gsd:debug`, `/gsd:execute-phase`) — no editar directamente fuera de un plan salvo excepción explícita
+3. Escribir tests (obligatorio — todo cambio requiere cobertura)
+4. Ejecutar `vendor/bin/pint --dirty` antes de finalizar
+5. Commit semántico: `feat(scope): descripción`
 
 ---
 
