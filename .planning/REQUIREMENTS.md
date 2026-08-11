@@ -28,7 +28,7 @@ Requirements for the "Articuladores + Metadata de Usuario" milestone. Each maps 
 - [ ] **META-03**: Un superior (líder/coordinador/articulador/superadmin) puede asignar un valor de una llave del catálogo a uno de sus subordinados directos
 - [ ] **META-04**: Un superior puede asignar el mismo valor de metadata a varios subordinados a la vez (asignación masiva)
 - [ ] **META-05**: Cada asignación de metadata queda auditada (quién asignó qué valor, a quién, cuándo)
-- [ ] **META-06**: Las escrituras de metadata son atómicas por llave (sin condiciones de carrera entre asignaciones concurrentes al mismo usuario)
+- [x] **META-06**: Las escrituras de metadata son atómicas por llave (sin condiciones de carrera entre asignaciones concurrentes al mismo usuario)
 
 ### Filtro, Orden y Exportación (FILT)
 
@@ -73,7 +73,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | META-03 | Phase 16 | Pending |
 | META-04 | Phase 16 | Pending |
 | META-05 | Phase 16 | Pending |
-| META-06 | Phase 16 | Pending |
+| META-06 | Phase 16 | Done |
 | FILT-01 | Phase 17 | Pending |
 | FILT-02 | Phase 17 | Pending |
 | FILT-03 | Phase 17 | Pending |

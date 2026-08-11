@@ -130,7 +130,7 @@ Plans:
   3. A superior selects multiple subordinates at once and assigns the same metadata value to all of them in a single bulk action (META-04).
   4. Every metadata assignment records who assigned it, to whom, what value, and when, and this is visible in an audit trail (META-05).
   5. Two concurrent assignments to different keys on the same subordinate never clobber each other — writes are atomic per key, verified against a race-condition test (META-06).
-**Plans**: 6/8 plans executed (2 gap closure plans added after 16-VERIFICATION.md found 2 blocking gaps)
+**Plans**: 7/8 plans executed (2 gap closure plans added after 16-VERIFICATION.md found 2 blocking gaps)
 **UI hint**: yes
 
 Plans:
@@ -141,7 +141,7 @@ Plans:
 - [x] 16-05-PLAN.md — MetadataAssignmentPanel Flux component embedded in both Volt edit pages (META-02, META-03, META-05)
 - [x] 16-06-PLAN.md — Volt row selection + bulk metadata modal on the líderes and coordinadores lists (META-03, META-04)
 - [ ] 16-07-PLAN.md — Gap closure: actor authorization gate on the Filament individual + bulk assignment actions (META-03, META-04)
-- [ ] 16-08-PLAN.md — Gap closure: CampaignContext test pinning + MetadataKeyFactory fix for full-suite test stability (META-01, META-04, META-06)
+- [x] 16-08-PLAN.md — Gap closure: CampaignContext test pinning + MetadataKeyFactory fix for full-suite test stability (META-01, META-04, META-06)
 
 ### Phase 17: Filter/Sort/Export Surfaces
 **Goal**: Operators can filter, sort, and export by any assigned metadata value across the relevant Filament tables, with correct numeric ordering for numeric keys.
@@ -166,7 +166,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 13. Hierarchy Authorization & Call-Site Audit | 1/2 | Complete    | 2026-08-10 |
 | 14. Articulador Admin Resource & Hierarchy Wiring | 1/2 | Complete    | 2026-08-10 |
 | 15. Articulador Self-Service Panel | 5/5 | Complete    | 2026-08-10 |
-| 16. Metadata Catalog UI & Assignment | 6/8 | In Progress | - |
+| 16. Metadata Catalog UI & Assignment | 7/8 | In Progress | - |
 | 17. Filter/Sort/Export Surfaces | 0/? | Not started | - |
 
 ---

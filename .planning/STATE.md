@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 16
-stopped_at: All 6 phase 16 plans complete, execution finished
-last_updated: "2026-08-11T04:15:00.000Z"
+stopped_at: 16-08 gap closure plan complete (test-suite flakiness); 16-07 (Filament authorization gap) still outstanding
+last_updated: "2026-08-11T05:15:00.000Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 17
-  completed_plans: 15
-  percent: 88
+  total_plans: 19
+  completed_plans: 16
+  percent: 84
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 16 of 17 (metadata catalog ui & assignment)
-Plan: 6 of 6 complete — all Phase 16 plans executed and merged
-Status: All 6 plans complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` — superadmin-only Filament catalog CRUD, META-01/META-02 marked Done. 16-03: `MetadataAssignment::section()` wired into `CoordinatorForm`, `LeaderForm`, `AreaCoordinatorForm`, and `UserForm` — the admin-panel third of D-05's "3 places" requirement. 16-04: `MetadataAssignment::bulkAction()` registered on the 4 admin tables; `UsersTable`'s deprecated `->bulkActions()` replaced with `->toolbarActions()`. 16-05: `App\Livewire\MetadataAssignmentPanel` — the Flux/Volt-side individual assignment UI, nested into `coordinator/edit-leader.blade.php` and `articulador/edit-coordinator.blade.php`; `mount()` never aborts, ownership is a computed `getCanAssignProperty()` render-time gate, with the only hard `abort_unless()` inside `assign()`. 16-06: row selection + one-key/one-value bulk metadata modal added to both non-Filament Volt list pages (`coordinator/leaders.blade.php`, `articulador/coordinators.blade.php`); every bulk write re-filters client-posted ids through `MetadataAssignmentService::subordinatesByIds()` before touching the database. META-03/META-04/META-05 are now covered on all required surfaces (admin/coordinador/articulador, individual + bulk) — phase-level requirement sign-off and goal verification are next.
+Plan: 7 of 8 complete — 16-07 (Filament actor-authorization gap closure) still outstanding
+Status: 16-01 through 16-06 complete (see prior entries). `16-VERIFICATION.md` then found 2 blocking gaps and spawned 2 gap-closure plans: 16-07 (Gap 1 — Filament individual/bulk assignment actions perform no actor-authorization check, letting a `reviewer` write metadata rows; blocks META-03/META-04) and 16-08 (Gap 2 — full-suite test flakiness). 16-08 (this plan) is now complete: `FilamentMetadataBulkActionTest` pins `CampaignContext::setCampaignId()` explicitly per test (beforeEach/afterEach), matching `FilamentMetadataSectionTest`'s already-correct pattern, instead of relying on `Session::put('campaign_context.mode', 'all')` alone (which cannot clear a static-override leak from an earlier test file in the same process); `MetadataKeyFactory` no longer randomizes `type` into `select` (which always paired with `options => null`, an internally-invalid combination the `MetadataKeyForm` Repeater's `minItems(1)` rule would itself reject) — a dedicated `select()` state now supplies `type` + non-empty `options` together. Verified: full `tests/Feature/Metadata` suite (58 tests) green both in isolation and inside a full `tests/Feature` run (zero Metadata-namespace failures; the 19 failures present are all pre-existing, out-of-scope, non-Metadata files), and 10/10 consecutive isolated runs of the previously-flaky "keeps assignment history when a key is deactivated" test passed. META-06 marked Done (already assessed "safe to close" by `16-VERIFICATION.md`, independent of Gap 1). META-04 intentionally NOT marked Done — `16-VERIFICATION.md` explicitly flags it unsafe to close until `16-07` closes Gap 1. Phase 16 is not yet fully complete; `16-07` remains outstanding.
 Last activity: 2026-08-11
 
-Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 6/6 plans complete)
+Progress: [█████████·] 88% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 7/8 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 16 Plan 08 decisions (gap closure — test-suite flakiness):
+
+- [Phase 16 Plan 08]: Reworded the plan's own suggested explanatory comment in `FilamentMetadataBulkActionTest` to avoid the literal substring `Session::put` — the plan's suggested comment text itself contained that substring, which would have failed the plan's own acceptance criterion requiring `grep -c "Session::put"` to return `0`.
+- [Phase 16 Plan 08]: META-04 is NOT marked complete in REQUIREMENTS.md by this plan alone, despite being listed in this plan's frontmatter `requirements` field — `16-VERIFICATION.md` explicitly states META-04 is "not safe to close yet" pending Gap 1 (the Filament individual/bulk assignment actions performing no actor-authorization check, letting a `reviewer` write metadata rows), which is `16-07`'s scope, not this plan's Gap 2 (test flakiness). Deferred to phase completion, matching the project's established split-requirement precedent.
+- [Phase 16 Plan 08]: META-06 marked Done — `16-VERIFICATION.md` already assessed it as satisfied and safe to close independent of Gap 1 (pure-INSERT write path, no `updateOrCreate`/`upsert` anywhere in the metadata write path, `orderByDesc('assigned_at')->orderByDesc('id')` tiebreak); this plan's full-suite stability proof directly reinforces that closure by proving the relevant regression tests no longer flake.
+- [Phase 16 Plan 08]: Worktree (`agent-aad182f121e039b3d`) was 1 commit behind `main` at session start — missing this phase's own `16-07`/`16-08` PLAN.md files plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, `public/build/` copy from the main checkout (Vite manifest was missing, causing 3 spurious `MetadataKeyResourceTest` failures until copied). `gsd-tools init execute-phase 16` again confirmed the `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's copies directly.
 
 Phase 16 Plan 06 decisions:
 
