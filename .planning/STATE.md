@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: verifying
-stopped_at: Phase 16 context gathered
-last_updated: "2026-08-11T02:20:13.709Z"
+status: Executing Phase 16
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-08-11T03:30:00.000Z"
 last_activity: 2026-08-10
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
-  percent: 100
+  total_plans: 17
+  completed_plans: 13
 ---
 
 # Project State
@@ -21,16 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Milestone v1.2 — Articuladores + Metadata de Usuario
+**Current focus:** Phase 16 — metadata-catalog-ui-assignment
 
 ## Current Position
 
-Phase: 16 of 17 (metadata catalog ui & assignment)
-Plan: Not started
-Status: All 5 plans complete. 15-01/15-02 (wave 1): `AreaCoordinatorPanelProvider` + route group + own-team-scoped coordinadores list Volt page. 15-03 (wave 2): `articulador.create-coordinator` Volt page — full `CoordinatorForm` field set, IdentityLookupService document-number autofill/name-lock reused verbatim from `create-leader.blade.php`, NO OTP step (D-04), NO `area_coordinator_user_id` form field (D-03 — computed inline in `save()`), campaign-scoped municipality select. 11 tests, 29 assertions, all passing. Found (but did not fix, out of scope) a pre-existing bug in `App\Models\CampaignUser`'s `HasCampaignContext` trait that forcibly overwrites `campaign_id` on every pivot attach/sync with the actor's current-context campaign, silently corrupting multi-campaign attach calls across the whole app — logged as a blocker below. 15-04 (wave 2): `articulador/coordinadores/{coordinator}/edit` Volt page, authorization enforced via `CoordinatorPolicy::update()` (`auth()->user()->can('update', $coordinator)`) rather than a hand-rolled FK check — resolves RESEARCH.md's Open Question 1. 10 Pest tests cover load/save/password/ownership-denial/cross-role-passthrough/middleware-block. 15-05 (gap closure, wave 1): closed the sole `15-VERIFICATION.md` FAILED truth (Truth 10 — reachability) by adding a Filament `NavigationItem` on the `/articulador` panel plus an `area_coordinator` branch + role label in the shared Volt sidebar, so the three coordinador-management pages are reachable by clicking instead of typing a URL. 6 new Pest tests; full phase regression suite (66 tests) green. ARTIC-02 is now closed (checklist `[x]` + traceability `Done`) — Phase 15 is fully complete.
-Last activity: 2026-08-10
-
-Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5 plans complete)
+Phase: 16 (metadata-catalog-ui-assignment) — EXECUTING
+Plan: 1 of 6 complete (16-01 done; 16-02..16-06 run in parallel worktrees — see their own SUMMARY.md files for status)
 
 ## v1.2 Phase Map
 
@@ -54,6 +49,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 16 Plan 01 decisions:
+
+- [Phase 16 Plan 01]: `MetadataAssignmentService` built as a plain `App\Services\*` class resolved via `app(...)`, mirroring the existing `IdentityLookupService` cross-boundary precedent — one shared logic layer consumed by both the Filament schema builder (this plan) and the Volt panels (plans 16-05/16-06).
+- [Phase 16 Plan 01]: [Rule 3 - Blocking] The plan's own `<action>` mandated two inline comments containing the literal substrings `teamCoordinatorUserIds` and `updateOrCreate`, but the same task's `<acceptance_criteria>` required `grep -c` on those exact substrings to return `0` — a direct self-conflict in the plan text. Reworded both comments to preserve their intent (D-03 direct-vs-transitive distinction; META-06 insert-only guarantee) without the banned literal substrings, so both the comment's purpose and the acceptance grep are satisfied.
+- [Phase 16 Plan 01]: `META-02`/`META-03`/`META-05`/`META-06` requirements are claimed by this plan's frontmatter but this is the shared-foundation plan only (service + Filament schema builder, no UI surface yet) — full requirement sign-off should wait for the fan-out plans (16-02..16-06) that actually wire the assignment UI into the admin/coordinador/articulador panels, per the project's established split-requirement precedent.
+- [Phase 16 Plan 01]: Worktree (`agent-a050f554045e1c8e3`) was at the same commit as `origin/main` but was missing the entire phase 16 planning corpus (`16-CONTEXT.md`, `16-RESEARCH.md`, `16-01..06-PLAN.md`), because those files existed only as uncommitted files in the main repo's working tree — a variant of the recurring worktree-staleness class, not simple git lag. Also missing `vendor/` and `.env`. Resolved by copying the 9 `16-*.md` files plus `.env` from the main checkout, then `composer install`. `gsd-tools state`/`roadmap` commands again confirmed the recurring `findProjectRoot()` bug (writes landed in the main checkout's `.planning/`, not this worktree's, and were additionally being raced by the other parallel 16-02..16-06 agents writing to that same shared file) — STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead, per the established workaround.
 
 Phase 15 Plan 05 decisions (gap closure — navigation reachability):
 
@@ -544,6 +546,6 @@ Quick task 260808-hx8 decisions:
 
 ## Session Continuity
 
-Last session: 2026-08-11T02:20:13.704Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-metadata-catalog-ui-assignment/16-CONTEXT.md
+Last session: 2026-08-11T03:30:00.000Z
+Stopped at: Completed 16-01-PLAN.md
+Resume file: .planning/phases/16-metadata-catalog-ui-assignment/16-02-PLAN.md

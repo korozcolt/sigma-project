@@ -134,7 +134,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 16-01-PLAN.md — MetadataAssignmentService (D-03 direct subordinates, append-only write, id-tiebreak current value) + User::metadataValues() + shared Filament schema builder (META-02, META-03, META-05, META-06)
+- [x] 16-01-PLAN.md — MetadataAssignmentService (D-03 direct subordinates, append-only write, id-tiebreak current value) + User::metadataValues() + shared Filament schema builder (META-02, META-03, META-05, META-06)
 - [ ] 16-02-PLAN.md — MetadataKeyResource: superadmin-only catalog CRUD with type-conditional options repeater (META-01, META-02)
 - [ ] 16-03-PLAN.md — Metadata section on the Coordinator/Leader/AreaCoordinator/User Filament edit forms (META-03, META-05)
 - [ ] 16-04-PLAN.md — Asignar metadata bulk action on the four admin tables (META-04)
@@ -164,7 +164,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 13. Hierarchy Authorization & Call-Site Audit | 1/2 | Complete    | 2026-08-10 |
 | 14. Articulador Admin Resource & Hierarchy Wiring | 1/2 | Complete    | 2026-08-10 |
 | 15. Articulador Self-Service Panel | 5/5 | Complete    | 2026-08-10 |
-| 16. Metadata Catalog UI & Assignment | 0/? | Not started | - |
+| 16. Metadata Catalog UI & Assignment | 1/6 | In Progress | - |
 | 17. Filter/Sort/Export Surfaces | 0/? | Not started | - |
 
 ---
