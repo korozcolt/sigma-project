@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Coordinators\Schemas;
 
 use App\Enums\UserRole;
+use App\Filament\Schemas\MetadataAssignment;
 use App\Services\CampaignContext;
 use App\Services\IdentityLookupService;
 use Filament\Actions\Action;
@@ -187,6 +188,7 @@ class CoordinatorForm
                         ->default(false),
                 ])
                 ->columns(2),
+            MetadataAssignment::section(),
         ]);
     }
 }

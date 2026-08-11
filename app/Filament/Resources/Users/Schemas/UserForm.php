@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Schemas;
 
 use App\Enums\UserRole;
+use App\Filament\Schemas\MetadataAssignment;
 use App\Models\Campaign;
 use App\Services\CampaignContext;
 use Filament\Forms\Components\DatePicker;
@@ -301,6 +302,7 @@ class UserForm
                     ])
                     ->collapsible()
                     ->collapsed(),
+                MetadataAssignment::section(),
             ]);
     }
 }
