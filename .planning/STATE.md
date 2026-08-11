@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 16
-stopped_at: Completed 16-01-PLAN.md
-last_updated: "2026-08-11T03:30:00.000Z"
-last_activity: 2026-08-10
+stopped_at: Completed 16-06-PLAN.md
+last_updated: "2026-08-11T03:43:33Z"
+last_activity: 2026-08-11
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 17
-  completed_plans: 14
-  percent: 82
+  completed_plans: 15
+  percent: 88
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 16 of 17 (metadata catalog ui & assignment)
-Plan: 2 of 6 complete (wave 1 done — 16-01, 16-02; wave 2 — 16-03..16-06 — up next)
-Status: Wave 1 complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder (`app/Filament/Schemas/MetadataAssignment.php`) — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` built — superadmin-only Filament resource (Resource/Schemas/Tables/Pages split mirroring `GremioResource`) gated via `canAccess() => CampaignContext::isSuperAdmin()`, in the `Configuración` nav group. `MetadataKeyForm` has key/label/type/options/is_active, with a `Repeater::make('options')->simple(TextInput::make('option'))` visible only when `type === 'select'`. `MetadataKeysTable` exposes a `values_count` column and an `is_active` ternary filter. No `MetadataKeySeeder` created (by design — META-01 requires UI-driven creation). META-01 and META-02 marked Done. Wave 2 (16-03 Filament forms, 16-04 Filament bulk action, 16-05 Volt panel, 16-06 Volt bulk) is next.
-Last activity: 2026-08-10
+Plan: 3 of 6 complete from this worktree's vantage point (16-01, 16-02, 16-06 done; 16-03/16-04/16-05 are parallel wave-2 siblings running in separate worktrees — their completion status is not visible from here)
+Status: Wave 1 complete. 16-01: `MetadataAssignmentService` (direct-subordinate resolution per D-03, catalog lookup, append-only create-only write, id-tiebreak current-value resolution) + `User::metadataValues()` + shared Filament schema builder (`app/Filament/Schemas/MetadataAssignment.php`) — the foundation every wave-2 plan consumes. 16-02: `MetadataKeyResource` built — superadmin-only Filament resource (Resource/Schemas/Tables/Pages split mirroring `GremioResource`) gated via `canAccess() => CampaignContext::isSuperAdmin()`, in the `Configuración` nav group. `MetadataKeyForm` has key/label/type/options/is_active, with a `Repeater::make('options')->simple(TextInput::make('option'))` visible only when `type === 'select'`. `MetadataKeysTable` exposes a `values_count` column and an `is_active` ternary filter. No `MetadataKeySeeder` created (by design — META-01 requires UI-driven creation). META-01 and META-02 marked Done. 16-06 (this session): row selection + one-key/one-value bulk metadata modal added to both non-Filament Volt list pages (`coordinator/leaders.blade.php`, `articulador/coordinators.blade.php`) — the two pages with no native Filament `BulkAction` available. Every bulk write re-filters client-posted ids through `MetadataAssignmentService::subordinatesByIds()` before touching the database (mandatory per D-03/D-07, closes the same cross-team leak class as quick tasks 260804-i5f/260804-jbc). 11 new Pest tests, all passing; full pre-existing Coordinator/Articulador regression suites (95 tests) confirmed the `with()` → `leadersQuery()`/`coordinatorsQuery()` extraction is behavior-neutral. META-03/META-04 are NOT marked complete in REQUIREMENTS.md by this plan alone — both are split across parallel Phase 16 plans (16-01 foundation, 16-03/16-05 individual assignment via edit forms, 16-04 Filament bulk action, this plan's Volt bulk) per the project's established split-requirement precedent; deferred sign-off to phase completion. 16-03/16-04/16-05 status unknown from this worktree.
+Last activity: 2026-08-11
 
-Progress: [████████··] 82% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 2/6 plans complete)
+Progress: [████████··] 82% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 3/6 plans complete from this worktree's vantage point)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 16 Plan 06 decisions:
+
+- [Phase 16 Plan 06]: META-03/META-04 are NOT marked complete in REQUIREMENTS.md by this plan alone, despite being listed in this plan's frontmatter `requirements` field — both are split across parallel Phase 16 plans (16-01 built the `subordinatesByIds()`/`assignMany()` foundation this plan calls; 16-03/16-05 build the individual-assignment UI in the Filament/Volt edit forms per D-04; 16-04 builds the Filament-native bulk action on the four admin tables; this plan builds the Volt-native equivalent for the two panels with no native Filament `BulkAction` available). Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent (Phase 05.1, 10, 11, 12, 13, 14, 15).
+- [Phase 16 Plan 06]: `updatedSelectAllOnPage()` re-derives "ids on this page" by re-running the extracted `leadersQuery()`/`coordinatorsQuery()` server-side rather than trusting client DOM checkbox state — applying the same principle as the mandatory `subordinatesByIds()` write-time re-filter to the read/select-all path, so a paginated or filtered page can never select rows outside the actor's own scope.
+- [Phase 16 Plan 06]: Investigated (not a bug — a test-only finding) why `Volt::test(...)->assertSessionHas('success')` failed immediately after a successful `assignBulkMetadata()` call on the same chain, despite `assertHasNoErrors()`/`assertSet(...)` passing on that same chain: Livewire's `RequestBroker::temporarilyDisableExceptionHandlingAndMiddleware()` disables the `StartSession` middleware on every `SubsequentRender` (i.e. every chained `->set()`/`->call()`), so session-facade assertions do not reliably reflect state set mid-chain even though the flash genuinely exists in that render. Fixed by asserting against the component's own rendered `html()` output instead of the session facade.
+- [Phase 16 Plan 06]: Worktree (`agent-a2708849edd27f6bc`) was stale at session start — missing Phase 16 entirely (16-01 through 16-05's completed work, including the `MetadataAssignmentService` this plan depends on), plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, `npm install && npm run build`. `gsd-tools state advance-plan` / `roadmap update-plan-progress` / `requirements mark-complete` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (writes landed in the main checkout, not this worktree, confirmed via `git status --short` showing no diff in this worktree after each command) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's copies directly.
 
 Phase 16 Plan 02 decisions:
 
