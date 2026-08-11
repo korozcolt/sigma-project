@@ -216,5 +216,6 @@ new class extends Component {
             </flux:button>
         </div>
     </form>
+    <livewire:metadata-assignment-panel :user="$leader" wire:key="metadata-panel-{{ $leader->id }}" />
 </div>
 
