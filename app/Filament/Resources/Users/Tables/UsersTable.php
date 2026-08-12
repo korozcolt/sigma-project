@@ -4,6 +4,9 @@ namespace App\Filament\Resources\Users\Tables;
 
 use App\Enums\UserRole;
 use App\Filament\Schemas\MetadataAssignment;
+use App\Filament\Schemas\MetadataTableColumns;
+use App\Filament\Schemas\MetadataTableFilter;
+use App\Services\MetadataAssignmentService;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -14,6 +17,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\Models\Role;
 
 class UsersTable
@@ -21,6 +25,7 @@ class UsersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => app(MetadataAssignmentService::class)->withCurrentValueSelects($query))
             ->columns([
                 ImageColumn::make('profile_photo_path')
                     ->label('Foto')
@@ -125,6 +130,8 @@ class UsersTable
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                ...MetadataTableColumns::make(),
             ])
             ->filters([
                 SelectFilter::make('roles')
@@ -184,6 +191,8 @@ class UsersTable
                         false: fn ($query) => $query->where('is_special_coordinator', false),
                         blank: fn ($query) => $query,
                     ),
+
+                MetadataTableFilter::make(),
             ])
             ->recordActions([
                 ViewAction::make(),
