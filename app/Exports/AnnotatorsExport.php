@@ -3,7 +3,9 @@
 namespace App\Exports;
 
 use App\Models\User;
+use App\Services\MetadataAssignmentService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -19,9 +21,12 @@ class AnnotatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
 
     protected ?Builder $queryBuilder = null;
 
+    protected Collection $activeMetadataKeys;
+
     public function __construct(?Builder $queryBuilder = null)
     {
         $this->queryBuilder = $queryBuilder;
+        $this->activeMetadataKeys = app(MetadataAssignmentService::class)->activeKeys();
     }
 
     public function query(): Builder
@@ -34,7 +39,7 @@ class AnnotatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
             $builder->voteRecorders();
         }
 
-        return $builder;
+        return app(MetadataAssignmentService::class)->withCurrentValueSelects($builder, $this->activeMetadataKeys);
     }
 
     public function headings(): array
@@ -47,6 +52,7 @@ class AnnotatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
             'Municipio',
             'Apoyos Registrados',
             'Fecha de Creación',
+            ...$this->activeMetadataKeys->pluck('label')->all(),
         ];
     }
 
@@ -62,6 +68,7 @@ class AnnotatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
             $user->municipality?->name ?? 'N/A',
             $votersCount,
             $user->created_at?->format('d/m/Y H:i'),
+            ...$this->activeMetadataKeys->map(fn ($key) => $user->{"metadata_{$key->id}"} ?? '')->all(),
         ];
     }
 
