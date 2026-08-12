@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: in_progress
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-08-12T03:01:54.000Z"
+stopped_at: Completed 17-03-PLAN.md
+last_updated: "2026-08-12T03:11:11.000Z"
 last_activity: 2026-08-12
 progress:
   total_phases: 6
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 17 of 17 (filter/sort/export surfaces)
-Plan: 01 of 03 complete
-Status: Phase 16 (metadata catalog UI & assignment) fully complete — all 8 plans, META-03/META-04/META-06 closed (see prior session notes archived below). Phase 17 (filter/sort/export surfaces, wave 1 of 2) plan 17-01 complete: built the ONE shared query-scale mechanism Wave 2 wiring plans (17-02 table wiring, 17-03 export wiring) will consume. `MetadataAssignmentService::withCurrentValueSelects()` attaches one `addSelect` correlated subquery per active metadata key (CAST-ed to DECIMAL for numeric-typed keys so `->sortable()` sorts numerically, not lexicographically); `::applyMetadataFilter()` filters a query to only rows whose current value for a key exactly matches, excluding stale/superseded historical rows. `MetadataTableColumns::make()`/`MetadataTableFilter::make()` are the two Filament schema-builder classes (mirroring Phase 16's `MetadataAssignment.php` per-type field-dispatch pattern) ready to wire into the four admin tables (Users/Coordinators/Leaders/AreaCoordinators) and four in-scope exports. 6 new Pest tests (4 service-level: numeric sort, id-tiebreak, null-when-unassigned, stale-value exclusion; 2 schema-shape: column naming/toggleable/sortable, filter naming). Worktree was stale at session start (missing Phases 16-17 entirely) — resolved via the established fast-forward + `.env` copy + `composer install` + `npm install && npm run build` workaround; confirmed the recurring `findProjectRoot()` worktree-redirection bug again (`gsd-tools state advance-plan` updated the main checkout's STATE.md, not this worktree's) — STATE.md updated by hand-editing this worktree's copy directly. FILT-01/FILT-02 NOT yet marked Done — the mechanism exists but isn't wired into any table UI until 17-02; FILT-03 remains for 17-03.
+Plan: 03 of 03 complete (this worktree's view — 17-02 status not visible here, likely completed by a parallel agent in its own worktree)
+Status: Phase 16 (metadata catalog UI & assignment) fully complete — all 8 plans, META-03/META-04/META-06 closed (see prior session notes archived below). Phase 17 (filter/sort/export surfaces) plan 17-03 complete: added one export column per active metadata key to the four in-scope CSV/xlsx exports (`CoordinatorsExport`, `LeadersExport`, `AnnotatorsExport`, `WitnessesExport`), reusing `MetadataAssignmentService::withCurrentValueSelects()`/`::activeKeys()` (built in 17-01) verbatim — no per-row N+1 queries, no PHP-side grouping, identical current-value semantics to the on-screen tables (17-02). Each export's constructor now resolves `activeMetadataKeys`, `query()` applies the shared subselect helper, and `headings()`/`map()` spread one heading + one mapped cell per active key. 8 new Pest tests (`MetadataExportColumnsTest.php`, 2 `it()` blocks × 4-export datasets) prove: active keys become headings, inactive keys never appear, missing values render blank, and the current (not stale historical) value is shown. FILT-03 is now Done. Worktree was stale at session start (missing Phases 16-17 entirely, including this plan's own dependency 17-01) — resolved via the established fast-forward + `.env` copy + `composer install` + `npm install && npm run build` workaround; confirmed the recurring `findProjectRoot()` worktree-redirection bug again (`gsd-tools state advance-plan`/`add-decision`/`roadmap update-plan-progress`/`requirements mark-complete` all wrote to the main checkout's `.planning/` files, not this worktree's) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's copies directly, per the established workaround.
 Last activity: 2026-08-12
 
-Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 8/8, Phase 17: 1/3 plans complete)
+Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 8/8, Phase 17: 2/3 plans complete in this worktree's view — 17-01 and 17-03 have SUMMARY.md; 17-02 not present here)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 17 Plan 03 decisions:
+
+- [Phase 17 Plan 03]: Reused `MetadataAssignmentService::withCurrentValueSelects()`/`::activeKeys()` (built in 17-01) verbatim across `CoordinatorsExport`, `LeadersExport`, `AnnotatorsExport`, `WitnessesExport` rather than a second current-value resolution mechanism — keeps on-screen table (17-02) and downloaded-export semantics identical, no per-row N+1 queries, no PHP-side grouping.
+- [Phase 17 Plan 03]: [Rule 1 - Bug] Fixed two bugs in the plan's own literal `MetadataExportColumnsTest.php` test code (not production code): (1) `end($export->map($row))` throws `ErrorException: Only variables should be passed by reference` — `end()` requires a variable, not a function-return expression; assigned to a local `$mapped` variable first. (2) The plan's hardcoded `->toBe('50000')` numeric-column expectation assumed `CAST(value AS DECIMAL(20,4))` always returns a formatted decimal string; under sqlite (the actual test connection per `phpunit.xml`), this cast returns a native PHP `int` (`50000`), not a string — confirmed via a disposable debug test before editing. Fixed by casting the mapped value to `(string)` before comparison, making the assertion DB-agnostic; `withCurrentValueSelects()` itself (17-01's code, out of this plan's scope) was left untouched.
+- [Phase 17 Plan 03]: Worktree (`agent-aa9256e64092b2eec`) was stale at session start — missing Phases 16 and 17 entirely (including this plan's own dependency, 17-01), plus `vendor/`, `.env`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, `npm install && npm run build` (missing Vite manifest initially caused 3 spurious `MetadataKeyResourceTest` failures, confirmed not a regression — all 75 metadata tests green after building assets). `gsd-tools state advance-plan`/`add-decision`/`roadmap update-plan-progress`/`requirements mark-complete` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (all wrote to the main checkout's `.planning/` files instead of this worktree's) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's copies directly, per the established workaround.
 
 Phase 17 Plan 01 decisions:
 
