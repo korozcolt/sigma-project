@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 19
-stopped_at: Completed 19-01-PLAN.md and 19-02-PLAN.md (Wave 1 complete)
-last_updated: "2026-08-12T05:04:00.000Z"
+stopped_at: Completed 19-04-PLAN.md
+last_updated: "2026-08-12T04:51:00.000Z"
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 29
-  completed_plans: 25
+  completed_plans: 26
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 19 (articulador-panel-human-uat-closure) — EXECUTING
-Plan: 2 of 6 complete (Wave 1 done: 19-01, 19-02. Wave 2 next: 19-03, 19-04, 19-05)
+Plan: 3 of 6 complete (Wave 1 done: 19-01, 19-02. Wave 2: 19-04 done; 19-03, 19-05 may still be executing in parallel worktrees. Wave 3 next: 19-06)
 
 ## v1.2 Phase Map
 
@@ -48,6 +48,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 19 Plan 04 decisions:
+
+- [Phase 19 Plan 04]: Closed Human-UAT item 2 from `15-HUMAN-UAT.md` ("Cédula autofill lock/unlock on create-coordinador form") with a real Pest v4 Browser test (`tests/Browser/ArticuladorCreateCoordinatorAutofillTest.php`) — a Chromium session proving `create-coordinator.blade.php`'s `updatedDocumentNumber()`/`unlockName()`/`nameLocked` logic behaves identically to `create-leader.blade.php`'s already-covered pattern. Both tests (match -> autofill+lock+unlock; no-match -> empty+unlocked, no unlock button) passed on the first run; the plan's documented fallback (inspecting rendered `outerHTML` for a field-selector mismatch) was never needed since `assertValue`/`assertDisabled`/`assertEnabled` against the Livewire property names worked directly.
+- [Phase 19 Plan 04]: Full Browser suite regression (`php artisan test tests/Browser/`) in this worktree only contained this plan's new file plus the pre-existing `RegistraduriaPollingResilienceTest.php` — 19-03's `ArticuladorDashboardWidgetScopingTest.php` was not present since that plan executes in a separate parallel wave-2 worktree not yet merged into `main`. Coexistence with the shared `loginRealBrowserUser()` helper was still proven for the two files present (4 passed, 8 assertions, zero "cannot redeclare function" errors).
+- [Phase 19 Plan 04]: Worktree (`agent-a4bd0b479b481d691`) was stale at session start — checked out at the Phase 15 completion commit (`6dd2f24`), missing Phases 16-19 entirely (including this plan's own PLAN.md), plus `vendor/`, `.env`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install` (Playwright driver dependency for Browser tests — cached Chromium 1.58.2 binary already matched, no reinstall needed), and copied `public/build/` from the main checkout (this plan makes no frontend asset changes, so `npm run build` was not needed). `gsd-tools state add-decision` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (wrote to the main checkout's `.planning/STATE.md`, not this worktree's, confirmed via `git status --short` showing no diff in this worktree after the call) — STATE.md/ROADMAP.md updated by hand-editing this worktree's copies directly.
 
 Phase 19 Plan 01 decisions:
 
