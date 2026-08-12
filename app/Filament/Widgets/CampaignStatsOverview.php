@@ -9,6 +9,7 @@ use App\Models\Campaign;
 use App\Models\User;
 use App\Models\Voter;
 use App\Services\CampaignContext;
+use Filament\Facades\Filament;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,7 +53,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
             ->descriptionIcon('heroicon-m-user-group')
             ->color('primary')
             ->chart($this->getVotersGrowthChart($activeCampaign->id))
-            ->url(VoterResource::getUrl('index'));
+            ->url($this->getVoterResourceUrl('index'));
     }
 
     protected function getConfirmedVotersStat(): Stat
@@ -80,7 +81,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
             ->description(round($percentage, 1).'% del total')
             ->descriptionIcon('heroicon-m-check-circle')
             ->color($color)
-            ->url(VoterResource::getUrl('index', [
+            ->url($this->getVoterResourceUrl('index', [
                 'tableFilters' => [
                     'status' => ['values' => [VoterStatus::CONFIRMED->value]],
                 ],
@@ -221,6 +222,25 @@ class CampaignStatsOverview extends StatsOverviewWidget
         }
 
         return $days;
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     *
+     * VoterResource is only registered on panels that explicitly discover/register it
+     * (e.g. the admin panel). This widget is also shared on the coordinator and
+     * area_coordinator panels, which have no VoterResource route registered — generating
+     * a URL there via VoterResource::getUrl() would throw a RouteNotFoundException because
+     * Filament resolves the route name from the CURRENT panel context, not VoterResource's
+     * own panel. Return null (no link) when the current panel can't resolve this route.
+     */
+    private function getVoterResourceUrl(string $name, array $parameters = []): ?string
+    {
+        if (! in_array(VoterResource::class, Filament::getCurrentOrDefaultPanel()->getResources(), true)) {
+            return null;
+        }
+
+        return VoterResource::getUrl($name, $parameters);
     }
 
     private function scopedVoterQuery(Campaign $campaign): Builder
