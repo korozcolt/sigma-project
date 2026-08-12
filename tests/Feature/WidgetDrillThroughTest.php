@@ -239,14 +239,62 @@ test('apoyos lideres coordinadores table rows link to the voter view page', func
     expect($recordUrl)->toBe($expectedUrl);
 });
 
-test('duplicates report table rows have no drill-through, by design', function () {
-    $voter = Voter::factory()->create([
+test('duplicates report table rows link to the voter view page when the record belongs to the active campaign', function () {
+    $voterX = Voter::factory()->create([
         'campaign_id' => $this->campaign->id,
         'municipality_id' => $this->municipality->id,
+        'document_number' => '5559999999',
+        'duplicate_sequence' => 0,
     ]);
 
+    $campaignB = Campaign::factory()->create(['status' => 'active']);
+    Session::put('campaign_context.campaign_id', $campaignB->id);
+    Session::put('campaign_context.mode', 'single');
+
+    Voter::factory()->create([
+        'campaign_id' => $campaignB->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '5559999999',
+        'duplicate_sequence' => 1,
+        'status' => VoterStatus::DUPLICATE,
+    ]);
+
+    Session::put('campaign_context.campaign_id', $this->campaign->id);
+    Session::put('campaign_context.mode', 'single');
+
     $component = Livewire::test(DuplicatesReportTable::class);
-    $recordUrl = $component->instance()->getTable()->getRecordUrl($voter);
+    $recordUrl = $component->instance()->getTable()->getRecordUrl($voterX);
+
+    $expectedUrl = VoterResource::getUrl('view', ['record' => $voterX->id]);
+
+    expect($recordUrl)->toBe($expectedUrl);
+});
+
+test('duplicates report table rows have no drill-through when the record belongs to a different campaign (D-06 exception)', function () {
+    $voterX = Voter::factory()->create([
+        'campaign_id' => $this->campaign->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '5559999999',
+        'duplicate_sequence' => 0,
+    ]);
+
+    $campaignB = Campaign::factory()->create(['status' => 'active']);
+    Session::put('campaign_context.campaign_id', $campaignB->id);
+    Session::put('campaign_context.mode', 'single');
+
+    $voterY = Voter::factory()->create([
+        'campaign_id' => $campaignB->id,
+        'municipality_id' => $this->municipality->id,
+        'document_number' => '5559999999',
+        'duplicate_sequence' => 1,
+        'status' => VoterStatus::DUPLICATE,
+    ]);
+
+    Session::put('campaign_context.campaign_id', $this->campaign->id);
+    Session::put('campaign_context.mode', 'single');
+
+    $component = Livewire::test(DuplicatesReportTable::class);
+    $recordUrl = $component->instance()->getTable()->getRecordUrl($voterY);
 
     expect($recordUrl)->toBeNull();
 });
