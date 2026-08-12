@@ -169,7 +169,10 @@ Plans:
   1. The `coordinator.leaders.export` route's role middleware includes `area_coordinator`, alongside the existing `coordinator`/`admin_campaign`/`super_admin` roles.
   2. A UI trigger exists somewhere in the articulador panel (e.g. an export action alongside `TopLeadersTable`) that an articulador can click to download their own transitive líder team as CSV/xlsx.
   3. A regression test proves an articulador can reach and successfully download this export, scoped to their own transitive team only (no cross-articulador/cross-campaign leakage).
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 18-01-PLAN.md — route middleware split (area_coordinator reachability) + TopLeadersTable export trigger + regression test (AUTHZ-01)
 
 ### Phase 19: Articulador Panel Human-UAT Closure
 **Goal**: Phase 15's 3 pending human-verification items are closed with automated Pest v4 Browser coverage, replacing manual-only verification.
@@ -198,7 +201,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17 → 18 �
 | 15. Articulador Self-Service Panel | 5/5 | Complete    | 2026-08-10 |
 | 16. Metadata Catalog UI & Assignment | 8/8 | Complete    | 2026-08-11 |
 | 17. Filter/Sort/Export Surfaces | 3/3 | Complete    | 2026-08-12 |
-| 18. Articulador Líder-Export Reachability | 0/? | Not started | - |
+| 18. Articulador Líder-Export Reachability | 0/1 | Not started | - |
 | 19. Articulador Panel Human-UAT Closure | 0/? | Not started | - |
 
 ---
