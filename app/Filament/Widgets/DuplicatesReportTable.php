@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Enums\UserRole;
 use App\Exports\DuplicatesExport;
+use App\Filament\Resources\Voters\VoterResource;
 use App\Models\Voter;
 use App\Services\CampaignContext;
 use Filament\Actions\Action;
@@ -85,6 +86,16 @@ class DuplicatesReportTable extends TableWidget
                     ->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new DuplicatesExport)->download('informe-duplicados.xlsx')),
-            ]);
+            ])
+            ->recordUrl(function (Voter $record) use ($activeCampaign): ?string {
+                // D-06: sibling rows within a shown duplicate group can belong to a
+                // DIFFERENT campaign than the active one — only link when this specific
+                // row's own campaign matches, never route into another campaign's data.
+                if (! $activeCampaign || $record->campaign_id !== $activeCampaign->id) {
+                    return null;
+                }
+
+                return VoterResource::getUrl('view', ['record' => $record]);
+            });
     }
 }
