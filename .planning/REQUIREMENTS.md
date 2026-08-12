@@ -17,7 +17,7 @@ Requirements for the "Articuladores + Metadata de Usuario" milestone. Each maps 
 
 ### Autorización y Continuidad de Jerarquía (AUTHZ)
 
-- [ ] **AUTHZ-01**: Los widgets/exports/dashboards existentes que asumen que el coordinador es el tope de la jerarquía (p. ej. TopLeadersTable, TopLeadersExport, LeadersExportController) se actualizan para resolver correctamente el equipo transitivo de un articulador (query correcta desde Fase 13; alcanzabilidad de `LeadersExportController` para el rol articulador pendiente — ver Fase 18)
+- [x] **AUTHZ-01**: Los widgets/exports/dashboards existentes que asumen que el coordinador es el tope de la jerarquía (p. ej. TopLeadersTable, TopLeadersExport, LeadersExportController) se actualizan para resolver correctamente el equipo transitivo de un articulador (query correcta desde Fase 13; alcanzabilidad de `LeadersExportController` para el rol articulador pendiente — ver Fase 18)
 - [x] **AUTHZ-02**: Existe una política explícita que impide que un articulador vea/edite coordinadores que no le pertenecen
 - [x] **AUTHZ-03**: El nuevo rol respeta el aislamiento de campaña existente (`CampaignMembershipScope`)
 
@@ -65,7 +65,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ARTIC-03 | Phase 14 | Done |
 | ARTIC-04 | Phase 12 | Done |
 | ARTIC-05 | Phase 12 | Done |
-| AUTHZ-01 | Phase 13 (query logic), Phase 18 (reachability gap closure) | Pending |
+| AUTHZ-01 | Phase 13 (query logic), Phase 18 (reachability gap closure) | Complete |
 | AUTHZ-02 | Phase 13 | Done |
 | AUTHZ-03 | Phase 13 | Done |
 | META-01 | Phase 16 | Done |
@@ -82,8 +82,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 - v1.2 requirements: 17 total
 - Mapped to phases: 17
 - Unmapped: 0 ✓
-- Pending (gap closure): 1 (AUTHZ-01 — Phase 18)
+- Pending (gap closure): 0 — AUTHZ-01 closed via Phase 18
 
 ---
 *Requirements defined: 2026-08-10*
-*Last updated: 2026-08-10 — roadmap created, all 17 v1.2 requirements mapped to Phases 12-17*
+*Last updated: 2026-08-12 — AUTHZ-01 gap closure completed via Phase 18 Plan 01*

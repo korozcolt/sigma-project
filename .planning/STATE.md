@@ -2,16 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: planning
-stopped_at: Phase 17 context gathered
-last_updated: "2026-08-12T03:30:48.832Z"
-last_activity: 2026-08-12
+status: Phase complete — ready for verification
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-08-12T04:00:42.591Z"
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 22
-  completed_plans: 22
-  percent: 100
+  total_phases: 8
+  completed_phases: 7
+  total_plans: 23
+  completed_plans: 23
 ---
 
 # Project State
@@ -21,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 17 — filter-sort-export-surfaces
+**Current focus:** Phase 18 — articulador-lider-export-reachability
 
 ## Current Position
 
-Phase: 17 of 17 (filter/sort/export surfaces)
-Plan: Not started
-Status: Phase 17 all 3 plans complete. 17-02 wired 17-01's query-scale mechanism into all four admin-panel Filament tables: `UsersTable`, `CoordinatorsTable`, `LeadersTable`, `AreaCoordinatorsTable` all now call `->modifyQueryUsing(fn (Builder $query) => app(MetadataAssignmentService::class)->withCurrentValueSelects($query))`, append `...MetadataTableColumns::make()` to their `->columns([...])`, and expose `MetadataTableFilter::make()` via `->filters([...])` (appended to Users' pre-existing filters array; a brand-new first `->filters()` call added to Coordinators/Leaders/AreaCoordinators). New `tests/Feature/Filament/MetadataTableFilterAndSortTest.php` (10 tests, 23 assertions) proves exact-value filtering, filter+column existence, numeric-not-lexicographic sort (2 before 10), and current-(latest)-value rendering on all 4 tables. FILT-01/FILT-02 now Done. 17-03 (parallel to 17-02) added one export column per active metadata key to the four in-scope CSV/xlsx exports (`CoordinatorsExport`, `LeadersExport`, `AnnotatorsExport`, `WitnessesExport`), reusing `MetadataAssignmentService::withCurrentValueSelects()`/`::activeKeys()` verbatim — no per-row N+1 queries, no PHP-side grouping, identical current-value semantics to the on-screen tables. Each export's constructor resolves `activeMetadataKeys`, `query()` applies the shared subselect helper, `headings()`/`map()` spread one heading + one mapped cell per active key. 8 new Pest tests (`MetadataExportColumnsTest.php`) prove active keys become headings, inactive keys never appear, missing values render blank, current (not stale) value shown. FILT-03 now Done. All 3 requirements (FILT-01, FILT-02, FILT-03) satisfied — Phase 17 and v1.2 milestone complete. Both 17-02 and 17-03 executed in parallel worktrees (`agent-ab5abe09224a52926`, `agent-aa9256e64092b2eec`) off the same 17-01 base commit; merged into main via fast-forward (17-02) then a 3-way merge with manual conflict resolution limited entirely to `.planning/{STATE,ROADMAP,REQUIREMENTS}.md` (code files — 4 `*Table.php`, 4 `*Export.php`, 2 test files — merged with zero conflicts, confirming the plans' file-disjointness held). Both worktrees hit the recurring `findProjectRoot()` bug (gsd-tools CLI state/roadmap/requirements writes redirected to the main checkout instead of the worktree) — orchestrator discarded the stray uncommitted main-checkout writes before merging (each worktree's own hand-edited copies, committed on their own branch, were authoritative).
-Last activity: 2026-08-12
-
-Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 8/8, Phase 17: 3/3 plans complete)
+Phase: 18 (articulador-lider-export-reachability) — EXECUTING
+Plan: 1 of 1
 
 ## v1.2 Phase Map
 
@@ -307,6 +301,8 @@ Quick task 260808-jsz decisions:
 - Confirmed (again) a pre-existing, unrelated test flake in `PollingPlaceResolverTest.php`: random `dane_department_code`/`code` generation in `PollingPlace::factory()`/`Department::factory()` (range 1-99) occasionally collides with the hardcoded `code: '28'` (SUCRE) set up in the file's `beforeEach`, causing an intermittent SQLite `UNIQUE constraint failed: departments.code` error on unrelated tests during full-suite runs. Confirmed not a regression from this task (reran the full targeted verification suite immediately after with zero code changes in between; all 78 tests passed cleanly the second time). Not fixed — out of scope per this task's boundary; same class of pre-existing flakiness as the already-documented `CampaignContext` test-pollution issue below.
 
 </details>
+
+- [Phase 18]: [Phase 18 Plan 01]: leaders/export split out of the shared coordinator role group into its own Route::middleware() block (role:coordinator,area_coordinator,admin_campaign,super_admin) instead of broadening the shared group, to avoid opening the rest of the coordinador panel to articuladores.
 
 ### Blockers/Concerns
 
@@ -616,8 +612,10 @@ Quick task 260808-hx8 decisions:
 - Followed the plan's exact interface spec: `Components\TextEntry::make('pollingPlace.municipality.name')` inserted between the existing `pollingPlace.name` and `polling_table_number` entries, using Filament's dot-notation relationship traversal (no new accessor/computed field needed).
 - **Worktree staleness recurred yet again** (worktree `agent-a810c65e2c9741fbd`): missing this task's own PLAN.md commit (`844b73c`, created directly on `main`) plus `vendor/` and `.env` entirely. `node_modules/`/`public/build/` were not needed (backend/infolist-only change). Resolved with the established workaround: confirmed fast-forward ancestry via `git merge-base --is-ancestor HEAD main`, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`. STATE.md/SUMMARY.md updates hand-edited directly in the worktree per the established workaround (not re-verified via `gsd-tools` this session).
 
+| Phase 18 P01 | 20min | 3 tasks | 3 files |
+
 ## Session Continuity
 
-Last session: 2026-08-12T02:31:50.286Z
-Stopped at: Phase 17 context gathered
-Resume file: .planning/phases/17-filter-sort-export-surfaces/17-CONTEXT.md
+Last session: 2026-08-12T04:00:42.586Z
+Stopped at: Completed 18-01-PLAN.md
+Resume file: None

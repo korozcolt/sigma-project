@@ -54,7 +54,7 @@ This milestone adds two related but separable capabilities on top of SIGMA's exi
 - [x] **Phase 15: Articulador Self-Service Panel** - Articulador manages their own coordinadores from a dedicated self-service panel (completed 2026-08-10)
 - [x] **Phase 16: Metadata Catalog UI & Assignment** - Superadmin manages the metadata catalog; superiors assign auditable, atomic values to subordinates (completed 2026-08-11)
 - [x] **Phase 17: Filter/Sort/Export Surfaces** - Filament tables filter/sort by metadata with correct numeric ordering, exports include metadata columns (completed 2026-08-12)
-- [ ] **Phase 18: Articulador Líder-Export Reachability** - AUTHZ-01 gap closure: an articulador can reach and trigger LeadersExportController for their own transitive team
+- [x] **Phase 18: Articulador Líder-Export Reachability** - AUTHZ-01 gap closure: an articulador can reach and trigger LeadersExportController for their own transitive team (completed 2026-08-12)
 - [ ] **Phase 19: Articulador Panel Human-UAT Closure** - Automated Pest v4 Browser coverage replacing Phase 15's 3 pending manual verification items
 
 ## Phase Details
@@ -172,7 +172,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 18-01-PLAN.md — route middleware split (area_coordinator reachability) + TopLeadersTable export trigger + regression test (AUTHZ-01)
+- [x] 18-01-PLAN.md — route middleware split (area_coordinator reachability) + TopLeadersTable export trigger + regression test (AUTHZ-01)
 
 ### Phase 19: Articulador Panel Human-UAT Closure
 **Goal**: Phase 15's 3 pending human-verification items are closed with automated Pest v4 Browser coverage, replacing manual-only verification.
@@ -201,7 +201,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17 → 18 �
 | 15. Articulador Self-Service Panel | 5/5 | Complete    | 2026-08-10 |
 | 16. Metadata Catalog UI & Assignment | 8/8 | Complete    | 2026-08-11 |
 | 17. Filter/Sort/Export Surfaces | 3/3 | Complete    | 2026-08-12 |
-| 18. Articulador Líder-Export Reachability | 0/1 | Not started | - |
+| 18. Articulador Líder-Export Reachability | 1/1 | Complete   | 2026-08-12 |
 | 19. Articulador Panel Human-UAT Closure | 0/? | Not started | - |
 
 ---
