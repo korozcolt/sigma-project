@@ -253,6 +253,13 @@ class CampaignStatsOverview extends StatsOverviewWidget
 
     /**
      * @param  array<string, mixed>  $parameters
+     *
+     * VoterResource is only registered on panels that explicitly discover/register it
+     * (e.g. the admin panel). This widget is also shared on the coordinator and
+     * area_coordinator panels, which have no VoterResource route registered — generating
+     * a URL there via VoterResource::getUrl() would throw a RouteNotFoundException because
+     * Filament resolves the route name from the CURRENT panel context, not VoterResource's
+     * own panel. Return null (no link) when the current panel can't resolve this route.
      */
     private function voterResourceUrl(string $name, array $parameters = []): ?string
     {

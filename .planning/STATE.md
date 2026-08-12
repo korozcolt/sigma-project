@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 19
-stopped_at: Completed 19-03-PLAN.md and 19-04-PLAN.md (Wave 2, 2 of 3 done)
-last_updated: "2026-08-12T05:04:00.000Z"
+stopped_at: Completed 19-03-PLAN.md, 19-04-PLAN.md, and 19-05-PLAN.md (Wave 2 complete)
+last_updated: "2026-08-12T05:10:00.000Z"
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 29
-  completed_plans: 27
+  completed_plans: 28
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 19 (articulador-panel-human-uat-closure) — EXECUTING
-Plan: 4 of 6 complete (Wave 1 done: 19-01, 19-02. Wave 2: 19-03, 19-04 done; 19-05 pending merge. Wave 3 next: 19-06)
+Plan: 5 of 6 complete (Wave 1 done: 19-01, 19-02. Wave 2 done: 19-03, 19-04, 19-05. Wave 3 next: 19-06)
 
 ## v1.2 Phase Map
 
@@ -76,6 +76,14 @@ Phase 19 Plan 02 decisions:
 - [Phase 19 Plan 02]: Did not modify `phpunit.xml` to add a missing `Browser` testsuite entry (only `Unit`/`Feature` are defined there; Pest's `->in('Browser')` grouping is a separate mechanism), even though the plan's own literal verify command (`php artisan test --testsuite=Browser`) silently no-ops with "No tests found". Verified instead via `php artisan test tests/Browser/RegistraduriaPollingResilienceTest.php` directly (2 passed, 2 assertions, no fatal). Logged as a deferred, out-of-scope pre-existing gap in `.planning/phases/19-articulador-panel-human-uat-closure/deferred-items.md`.
 - [Phase 19 Plan 02]: [Rule 3 - Blocking] This worktree's freshly-installed `node_modules`/Playwright package (1.58.2) didn't match its cached Chromium browser binary, causing both Browser tests to fail with `PlaywrightOutdatedException`. Fixed by running `npx playwright install chromium`, per `19-RESEARCH.md`'s documented Pitfall 3.
 - [Phase 19 Plan 02]: Worktree (`agent-ab63a345731d70ca2`) was 78 commits behind `main` at session start — missing Phases 16/17/18 entirely plus this phase's own PLAN.md files, `.env`, `vendor/`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, `npm install && npm run build`, `npx playwright install chromium`. `php artisan migrate:status` showed zero pending migrations (already applied by a prior parallel-worktree session against the shared `sigma_betha_backup` DB). `gsd-tools init execute-phase 19` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout) — a subsequent exploratory `gsd-tools state advance-plan` call (run twice, once mistakenly believing `--dry-run` was supported) incorrectly bumped the main checkout's `.planning/STATE.md` `Current Plan` counter from 2→3→4 with a stale `total_plans: 29`. This stray main-checkout mutation was discarded by the orchestrator before merging this worktree's branch (confirmed via `git checkout -- .planning/STATE.md` against a clean, uncommitted diff) — no lasting effect. STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead, per the established workaround.
+
+Phase 19 Plan 05 decisions:
+
+- [Phase 19 Plan 05]: [Rule 1 - Bug] `DiaD::canAccess()` was missing the `area_coordinator` role entirely, even though `AreaCoordinatorPanelProvider` registers `DiaD::class` as one of its own panel pages and the shared Volt sidebar links every articulador to `/articulador/dia-d` — every articulador clicking their own Día D nav link got a hard 403. Added `'area_coordinator'` to the `hasRole([...])` array. Found because it blocked this plan's own browser test's click-through from ever completing.
+- [Phase 19 Plan 05]: [Rule 1 - Bug] `CampaignStatsOverview`'s "Total de Apoyos"/"Apoyos Confirmados" stat links called `VoterResource::getUrl()`, which resolves its route name from `Filament::getCurrentOrDefaultPanel()` (the CURRENT panel context), not `VoterResource`'s own registered panel. `VoterResource` is only auto-discovered on the `admin` panel — never on `coordinator` or `area_coordinator` — so rendering this shared widget on either of those panels threw `RouteNotFoundException` and broke the entire Dashboard page render (not just the stat card). Added a `getVoterResourceUrl()` helper that checks `Filament::getCurrentOrDefaultPanel()->getResources()` and returns `null` (no link) instead of crashing when `VoterResource` isn't registered on the current panel. Verified via the full pre-existing `DashboardWidgetsTest`/`OwnershipScopedWidgetsTest`/`WidgetDrillThroughTest` suites (39 tests) passing unchanged, including the admin-panel drill-through test which still gets a real link.
+- [Phase 19 Plan 05]: Followed the Plan 19-02-established precedent for the pre-existing, out-of-scope `phpunit.xml` gap (`php artisan test --testsuite=Browser` silently reports "No tests found" — no `Browser` testsuite entry exists). Verified Task 2's actual intent by running all `tests/Browser/*.php` files directly in one process instead — 4 passed, no redeclare errors, no cross-test pollution.
+- [Phase 19 Plan 05]: Three Playwright strict-mode "resolved to N elements" selector-ambiguity fixes in the test itself (not production code): scoped `li:has(...)` to `li.fi-sidebar-item:has(...)` (the bare selector also matched the wrapping `.fi-sidebar-group`), and scoped `a[href=...]` clicks/assertions to structural markers (`a[data-flux-navlist-item]` on the shared Volt sidebar, `a.fi-sidebar-item-btn` on Filament's own sidebar) since both sidebars render a brand-logo anchor sharing the same href as the actual nav item.
+- [Phase 19 Plan 05]: This worktree (`agent-ae1ce010ceba500b2`) was on a stale Phase-15 commit at session start — missing Phases 16-19 entirely, plus `vendor/`, `.env`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry against `refs/heads/main` (this repo's own main worktree shares the object store), `git merge --ff-only refs/heads/main`, `.env` copy from the main checkout, `composer install`, `npm install`, `npm run build`. `gsd-tools state advance-plan`/`update-progress`/`record-metric`/`add-decision`/`record-session`/`roadmap update-plan-progress` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (all wrote to the main checkout's `.planning/` files instead of this worktree's, confirmed via `git status --short` showing no diff in this worktree after each call) — the accidental main-checkout mutations were left as-is (no git access from this sandboxed worktree agent to revert them, and prior phases' established precedent is to not attempt a cross-worktree revert); STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead.
 
 Phase 17 Plan 02 decisions:
 

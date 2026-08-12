@@ -344,6 +344,6 @@ class DiaD extends Page
 
     public static function canAccess(): bool
     {
-        return Auth::user()?->hasRole(['coordinator', 'leader', 'admin_campaign', 'super_admin']) ?? false;
+        return Auth::user()?->hasRole(['coordinator', 'leader', 'admin_campaign', 'super_admin', 'area_coordinator']) ?? false;
     }
 }
