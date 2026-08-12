@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: verifying
-stopped_at: Completed 16-03-PLAN.md
-last_updated: "2026-08-11T05:22:14.644Z"
+stopped_at: Phase 17 context gathered
+last_updated: "2026-08-12T02:31:50.298Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 6
@@ -599,6 +599,6 @@ Quick task 260808-hx8 decisions:
 
 ## Session Continuity
 
-Last session: 2026-08-11T03:39:08.000Z
-Stopped at: Completed 16-03-PLAN.md
-Resume file: .planning/phases/16-metadata-catalog-ui-assignment/16-04-PLAN.md
+Last session: 2026-08-12T02:31:50.286Z
+Stopped at: Phase 17 context gathered
+Resume file: .planning/phases/17-filter-sort-export-surfaces/17-CONTEXT.md
