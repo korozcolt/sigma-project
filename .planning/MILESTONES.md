@@ -1,5 +1,22 @@
 # Milestones
 
+## v1.2 Articuladores + Metadata de Usuario (Shipped: 2026-08-12)
+
+**Scope:** 8 roadmap phases (12-19, includes 2 milestone-audit gap-closure phases), 29 plans, 67 tasks.
+**Timeline:** 2026-08-10 → 2026-08-12 (~2 days), 87 PHP files changed (+6,516/-62 lines).
+**Requirements:** 17/17 v1.2 requirements Done (ARTIC-01..05, AUTHZ-01..03, META-01..06, FILT-01..03).
+
+**Key accomplishments:**
+
+- New `articulador` (`area_coordinator`) hierarchy tier — a dedicated `area_coordinator_user_id` self-referencing FK (structurally independent of `coordinator_user_id`, no backend-enforced cap), a Filament admin resource for superadmin/admin_campaign management, and a full self-service panel (`AreaCoordinatorPanelProvider` at `/articulador`) mirroring the existing coordinador experience — create/edit coordinadores, own-team scoping, no OTP (Phases 12, 14, 15).
+- Existing coordinador-scoped surfaces (`TopLeadersTable`, `TopLeadersExport`, `LeadersExportController`, and later `CampaignStatsOverview`/`TerritorialDistributionChart`) correctly resolve an articulador's full transitive team via a centralized `User::teamCoordinatorUserIds()` helper, with a new `CoordinatorPolicy` denying cross-boundary view/edit access with a named 403 reason (Phase 13, closed end-to-end in Phase 18).
+- Superadmin-managed, typed metadata-key catalog (`MetadataKeyResource`: numeric/text/date/select) with atomic, append-only, fully audited per-subordinate value assignment — individual and bulk — reachable from both the Filament admin panel and the Volt coordinador/articulador panels, gated so a `reviewer` role can no longer write metadata rows with zero authorization check (Phase 16).
+- All four Filament admin tables (Usuarios, Coordinadores, Líderes, Articuladores) filter and sort by any assigned metadata value with correct numeric ordering (not alphabetical), and the four matching CSV/xlsx exports gained the same metadata columns — one shared SQL-scale `withCurrentValueSelects()`/`applyMetadataFilter()` mechanism, zero N+1 queries (Phase 17).
+- A post-ship milestone audit found and closed two real gaps with dedicated phases: an unreachable export route for articuladores (`LeadersExportController`'s route excluded `area_coordinator`, fixed with a narrowly-scoped route split — Phase 18), and a genuine cross-articulador dashboard data leak where `CampaignStatsOverview`/`TerritorialDistributionChart` showed full-campaign totals instead of the articulador's own team (Phase 19).
+- Phase 15's 3 manual-only UAT items (dashboard widget scoping, cédula autofill lock/unlock, sidebar navigation) were replaced with real Pest v4 Browser test coverage against a genuine Chromium session — which itself caught and fixed 2 more live bugs along the way: a 403 on Día D navigation (`DiaD::canAccess()` missing `area_coordinator`) and a dashboard-crashing `RouteNotFoundException` from `VoterResource::getUrl()` called outside the admin panel (Phase 19).
+
+---
+
 ## v1.1 Consulta de Puesto de Votación Resiliente (Shipped: 2026-08-10)
 
 **Scope:** 6 roadmap phases (6-11), 15 plans, 29 tasks.

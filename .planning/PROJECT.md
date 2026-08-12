@@ -48,7 +48,7 @@ Campaign teams can run critical voter and field operations from one place with t
 
 ### Active
 
-None — all v1.2 requirements validated. v1.2 milestone ready to close via `/gsd:complete-milestone`.
+None — v1.2 shipped 2026-08-12. No milestone currently in progress; run `/gsd:new-milestone` to scope the next one.
 
 ### Out of Scope
 
@@ -66,6 +66,8 @@ The most fragile workflow for the next milestone is the voter operations chain b
 A concrete example of this fragility is the production `CallQueueTable` widget failure in the admin panel, where a widget closure typed for `Illuminate\\Database\\Eloquent\\Builder` received a `HasMany` relation instead. Issues like this directly undermine operator trust because they interrupt follow-up operations in a critical workflow.
 
 Real users think in tasks rather than modules. They need to load voters, validate census status, understand territory ownership, segment contacts, trigger calls or messages, and know who is ready for election day without having to understand SIGMA's internal structure.
+
+**Post-v1.2 state (2026-08-12):** The hierarchy is now 4 levels deep — superadmin/admin_campaign → articulador → coordinador → líder — with the articulador tier and a general-purpose typed metadata catalog both fully shipped. Known tech debt (non-blocking, tracked in `.planning/milestones/v1.2-MILESTONE-AUDIT.md`): a recurring `gsd-tools` `findProjectRoot()` bug that misdirects CLI writes from parallel git worktrees back to the main checkout (worked around manually every time it recurs, never root-caused); a pre-existing `CampaignContext` static-override test-pollution issue that produces a non-deterministic failure set on full-suite runs (100% pass rate in isolation, unrelated to any specific feature); and one widget (`TerritorialDistributionChart`) whose non-articulador role branches lack explicit Feature test coverage even though the code path is shared with an already-tested widget.
 
 ## Constraints
 
@@ -128,22 +130,11 @@ This document evolves at phase transitions and milestone boundaries.
 
 **Shipped: v1.1 Consulta de Puesto de Votación Resiliente (2026-08-10).** All 6 phases (6-11) done, all 17 v1.1 requirements validated. The resilient polling-place resolution cascade (campaign DB → national snapshot → bounded live attempt), operator provenance/triage UI, and the hourly automated reconciliation job are all live in the codebase. Since Phase 11 completed, ~50 follow-on quick tasks hardened and extended this cascade in production (additional live adapters, cost controls, a general audit-log system, a `reports_viewer` role, dashboard drill-throughs) — see `.planning/STATE.md`'s Quick Tasks Completed log. See `.planning/milestones/v1.1-ROADMAP.md` and `.planning/milestones/v1.1-REQUIREMENTS.md` for the full archived record.
 
-## Current Milestone: v1.2 Articuladores + Metadata de Usuario
-
-**Goal:** Articuladores organize a set of coordinadores (creating and managing them, one extra hierarchy level, no further nesting), and any superior (líder/coordinador/articulador/superadmin) can assign values from a superadmin-predefined key catalog (e.g. `biaticos`, `almuerzo`, `incentivo`) to their subordinates — filterable and sortable in Filament listings.
-
-**Target features:**
-- New `articulador` role (Spatie) above `coordinator`, able to create/manage coordinadores (no hard limit enforced) — **schema landed in Phase 12, self-service panel landed in Phase 15**
-- New articulador→coordinador hierarchy relation (mirrors the existing `coordinator_user_id` self-referencing FK pattern); coordinadores keep working exactly as today, no coordinador→coordinador nesting — **schema landed in Phase 12**
-- Superadmin-managed predefined catalog of metadata keys (new table/config), not freeform — **schema landed in Phase 12, UI landed in Phase 16**
-- Append-only `user_metadata_values` table (not a JSON column on `users` — revised during Phase 12 planning, D-02) + UI for superiors to assign values to subordinates against that catalog; every assignment is its own row, giving native per-assignment audit history for free — **landed in Phase 16**
-- Filter and sort by metadata key/value in the Filament tables for users/coordinators/leaders/articuladores — **landed in Phase 17**
-
-**Status: all 6 phases (12-17) complete, all 17 v1.2 requirements validated.**
+**Shipped: v1.2 Articuladores + Metadata de Usuario (2026-08-12).** All 8 phases (12-19, including 2 post-audit gap-closure phases) done, all 17 v1.2 requirements validated by both phase-level VERIFICATION.md files and an independent cross-phase milestone audit (`.planning/milestones/v1.2-MILESTONE-AUDIT.md`). Delivered: the `articulador` hierarchy tier (schema + admin management + self-service panel), a typed superadmin-managed metadata catalog with atomic audited per-subordinate assignment, and Filament filter/sort/export support for that metadata across all 4 admin tables and exports. The milestone audit itself found and closed 2 real gaps before shipping — an unreachable export route for articuladores, and a genuine cross-articulador dashboard data leak — both fixed with real code changes in dedicated phases, not just documented. See `.planning/milestones/v1.2-ROADMAP.md` and `.planning/milestones/v1.2-REQUIREMENTS.md` for the full archived record, and `.planning/MILESTONES.md` for the shipped summary.
 
 ## Next Milestone Goals
 
-Not yet defined beyond v1.2.
+Not yet defined. Run `/gsd:new-milestone` to scope the next milestone (questioning → research → requirements → roadmap).
 
 ---
-*Last updated: 2026-08-12 — Phase 19 complete (both v1.2 milestone-audit gap-closure phases done: AUTHZ-01 route-reachability closed in Phase 18, Phase 15's 3 pending human-UAT items closed with real Pest v4 Browser coverage in Phase 19, plus a real cross-articulador dashboard data-scoping bug found and fixed along the way). All 8 phases (12-19) of v1.2 complete — ready for a fresh `/gsd:audit-milestone` before `/gsd:complete-milestone`.*
+*Last updated: 2026-08-12 — v1.2 shipped (8/8 phases complete, milestone audit passed, archived to `.planning/milestones/`).*
