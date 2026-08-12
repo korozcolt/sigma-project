@@ -3,7 +3,9 @@
 namespace App\Exports;
 
 use App\Models\User;
+use App\Services\MetadataAssignmentService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -23,6 +25,8 @@ class CoordinatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, Wit
 
     protected ?Builder $queryBuilder = null;
 
+    protected Collection $activeMetadataKeys;
+
     public function __construct(
         array|int|null $campaignId = null,
         array|int|null $municipalityId = null,
@@ -31,6 +35,7 @@ class CoordinatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, Wit
         $this->campaignIds = is_null($campaignId) ? null : (is_array($campaignId) ? $campaignId : [$campaignId]);
         $this->municipalityIds = is_null($municipalityId) ? null : (is_array($municipalityId) ? $municipalityId : [$municipalityId]);
         $this->queryBuilder = $queryBuilder;
+        $this->activeMetadataKeys = app(MetadataAssignmentService::class)->activeKeys();
     }
 
     public function query(): Builder
@@ -46,7 +51,7 @@ class CoordinatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, Wit
                 ->role('coordinator');
         }
 
-        return $builder;
+        return app(MetadataAssignmentService::class)->withCurrentValueSelects($builder, $this->activeMetadataKeys);
     }
 
     public function headings(): array
@@ -61,6 +66,7 @@ class CoordinatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, Wit
             'Campañas',
             'Apoyos Registrados',
             'Fecha de Creación',
+            ...$this->activeMetadataKeys->pluck('label')->all(),
         ];
     }
 
@@ -78,6 +84,7 @@ class CoordinatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, Wit
             $coordinator->campaigns_count ?? $coordinator->campaigns()->count(),
             $votersCount,
             $coordinator->created_at?->format('d/m/Y H:i'),
+            ...$this->activeMetadataKeys->map(fn ($key) => $coordinator->{"metadata_{$key->id}"} ?? '')->all(),
         ];
     }
 
