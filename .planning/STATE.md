@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: Ready to plan
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-08-12T04:03:27.919Z"
+status: executing
+stopped_at: Completed 19-02-PLAN.md
+last_updated: "2026-08-12T04:43:01Z"
 progress:
   total_phases: 8
   completed_phases: 7
-  total_plans: 23
-  completed_plans: 23
+  total_plans: 24
+  completed_plans: 24
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 18 — articulador-lider-export-reachability
+**Current focus:** Phase 19 — articulador-panel-human-uat-closure
 
 ## Current Position
 
-Phase: 19
-Plan: Not started
+Phase: 19 (articulador-panel-human-uat-closure) — EXECUTING
+Plan: 2 of 6 complete (parallel wave; 19-01/19-03/19-04/19-05/19-06 tracked independently in their own worktrees)
 
 ## v1.2 Phase Map
 
@@ -48,6 +48,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 19 Plan 02 decisions:
+
+- [Phase 19 Plan 02]: Promoted `loginRealBrowserUser()` from a file-local function in `tests/Browser/RegistraduriaPollingResilienceTest.php` into a shared, parameterized `loginRealBrowserUser(User $user, string $password = 'password')` global function in `tests/Pest.php`'s `Functions` section — unblocks every later Wave-2 Browser test in this phase (19-03/04/05) from needing a specific fixture role login without a "cannot redeclare function" fatal when the whole Browser suite runs in one process. Left the pre-existing placeholder `function something() {}` untouched (zero call sites, out of scope).
+- [Phase 19 Plan 02]: Did not modify `phpunit.xml` to add a missing `Browser` testsuite entry (only `Unit`/`Feature` are defined there; Pest's `->in('Browser')` grouping is a separate mechanism), even though the plan's own literal verify command (`php artisan test --testsuite=Browser`) silently no-ops with "No tests found". Verified instead via `php artisan test tests/Browser/RegistraduriaPollingResilienceTest.php` directly (2 passed, 2 assertions, no fatal). Logged as a deferred, out-of-scope pre-existing gap in `.planning/phases/19-articulador-panel-human-uat-closure/deferred-items.md`.
+- [Phase 19 Plan 02]: [Rule 3 - Blocking] This worktree's freshly-installed `node_modules`/Playwright package (1.58.2) didn't match its cached Chromium browser binary, causing both Browser tests to fail with `PlaywrightOutdatedException`. Fixed by running `npx playwright install chromium`, per `19-RESEARCH.md`'s documented Pitfall 3.
+- [Phase 19 Plan 02]: Worktree (`agent-ab63a345731d70ca2`) was 78 commits behind `main` at session start — missing Phases 16/17/18 entirely plus this phase's own PLAN.md files, `.env`, `vendor/`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, `npm install && npm run build`, `npx playwright install chromium`. `php artisan migrate:status` showed zero pending migrations (already applied by a prior parallel-worktree session against the shared `sigma_betha_backup` DB). `gsd-tools init execute-phase 19` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout) — a subsequent exploratory `gsd-tools state advance-plan` call (run twice, once mistakenly believing `--dry-run` was supported) incorrectly bumped the main checkout's `.planning/STATE.md` `Current Plan` counter from 2→3→4 with a stale `total_plans: 29`. Per the established precedent documented repeatedly elsewhere in this log (e.g. Phase 16 Plan 05), this stray main-checkout mutation was left as-is — this sandboxed worktree agent has no git access to the main checkout to revert it, and prior sessions establish the orchestrator reconciles state across parallel worktrees rather than individual agents attempting cross-worktree fixes. STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead, per the established workaround.
 
 Phase 17 Plan 02 decisions:
 
