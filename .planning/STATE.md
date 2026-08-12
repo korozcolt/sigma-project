@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 19
-stopped_at: Completed 19-01-PLAN.md and 19-02-PLAN.md (Wave 1 complete)
+stopped_at: Completed 19-03-PLAN.md (Wave 2, in progress)
 last_updated: "2026-08-12T05:04:00.000Z"
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 29
-  completed_plans: 25
+  completed_plans: 26
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 19 (articulador-panel-human-uat-closure) — EXECUTING
-Plan: 2 of 6 complete (Wave 1 done: 19-01, 19-02. Wave 2 next: 19-03, 19-04, 19-05)
+Plan: 3 of 6 complete (Wave 1 done: 19-01, 19-02. Wave 2: 19-03 done, 19-04/19-05 in progress)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,15 @@ Phase 19 Plan 01 decisions:
 - [Phase 19 Plan 01]: Closed the real `AREA_COORDINATOR` scoping gap in `CampaignStatsOverview` (`scopedVoterQuery()` + `getActiveLeadersStat()`) and `TerritorialDistributionChart` (`getData()`) — both previously fell through to full-campaign totals for an articulador, unlike the already-correct `TopLeadersTable`. Extended `User::teamCoordinatorUserIds()` scoping to both, collapsing `scopedVoterQuery()`'s `COORDINATOR`-only branch into a single `hasAnyRole([COORDINATOR, AREA_COORDINATOR])` branch (behaviorally identical for a lone coordinador), while keeping `getActiveLeadersStat()`'s `AREA_COORDINATOR` branch separate per the plan's literal interface spec.
 - [Phase 19 Plan 01]: `TerritorialDistributionChart::getData()` is `protected` (base Filament `ChartWidget` signature) — the plan's literal test spec (`->instance()->getData()`) doesn't work as written since Livewire's `Testable` magic `__call` only proxies to public methods; used `ReflectionMethod::setAccessible(true)` to invoke it directly instead, preserving the assertion's intent.
 - [Phase 19 Plan 01]: Worktree (`agent-ad9f562568ebe9940`) was stale at session start — checked out at the Phase 15 completion commit (`6dd2f24`), missing Phases 16-19 entirely (including this plan's own PLAN.md), plus `vendor/`, `.env`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, and copied `public/build/` from the main checkout (this plan makes no frontend asset changes, so `npm run build` was not needed — the copy alone resolved 1 spurious `AreaCoordinatorPanelAccessTest` "Vite manifest not found" failure during the Task 2 regression run). `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (wrote to the main checkout's `.planning/STATE.md`, not this worktree's, confirmed via `git status --short` showing no diff in this worktree after the call) — STATE.md/ROADMAP.md updated by hand-editing this worktree's copies directly.
+
+Phase 19 Plan 03 decisions:
+
+- [Phase 19 Plan 03]: Closed Human-UAT item 1 from `15-HUMAN-UAT.md` with `tests/Browser/ArticuladorDashboardWidgetScopingTest.php` — two real-Chromium `it(...)` tests (one per articulador) proving `/articulador`'s dashboard is genuinely scoped to the logged-in articulador's own transitive team, not the full campaign or another articulador's team.
+- [Phase 19 Plan 03]: [Rule 1 - Bug] Found and fixed a real, previously-undetected production bug while writing the browser test: `CampaignStatsOverview` and `TopLeadersTable` both eagerly call `VoterResource::getUrl(...)`, but `VoterResource` is only registered in the Admin/Reports panels — every real visit to the Coordinador, Líder, or Articulador dashboard with an active campaign crashed with a `RouteNotFoundException`. Prior `Livewire::test()`-level widget coverage never caught this because it never sets an HTTP-routed active panel, so `Filament::getCurrentOrDefaultPanel()` silently fell back to `admin` (where the route exists). Fixed with a shared `voterResourceUrl()` guard (`Route::has()` check against the current-or-default panel) on both widgets that omits the link instead of crashing.
+- [Phase 19 Plan 03]: The first guard attempt used `Filament::getCurrentPanel()` (null outside a real HTTP-routed panel request), which broke 2 pre-existing `WidgetDrillThroughTest` assertions relying on Filament's own default-panel URL-generation fallback. Corrected to `Filament::getCurrentOrDefaultPanel()`, matching Filament's internal `Resource::getUrl()`/`getRouteBaseName()` resolution exactly — found via a full-suite regression sweep after Task 1, fixed in a second commit before Task 2 closed.
+- [Phase 19 Plan 03]: [Rule 1 - Bug] Pinned deterministic, digit-4-free `phone`/`email` on the fixture leader users instead of leaving them to Faker's random generator — Playwright's `assertDontSee(4)` does a visible-text substring match, and a random phone number rendered in the `TopLeadersTable` row intermittently produced a false-positive digit collision unrelated to the actual voter-count scoping under test.
+- [Phase 19 Plan 03]: Full-suite `php artisan test` run showed the same 17 pre-existing `CampaignContext` test-pollution failures already documented below (unrelated widgets: jurisdiction/rejections/top-coordinators/top-polling-places/voter-resource/polling-place-resolver) — confirmed unrelated via isolated re-run (all pass alone). Not fixed (out of scope, pre-existing).
+- [Phase 19 Plan 03]: Worktree (`agent-aeef34f1cb5ba1c41`) was 78 commits behind `main` at session start — missing Phases 16-19 entirely (including this plan's own PLAN.md), plus `vendor/`, `.env`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install`, copied `public/build/` from the main checkout (no frontend asset changes in this plan). Playwright's Chromium cache is a global, non-worktree-scoped resource and was already present, so no `npx playwright install` was needed. `npm install` regenerated a spurious `package-lock.json` `name` field change (worktree directory name) — reverted via `git checkout -- package-lock.json` before committing. `gsd-tools init execute-phase 19` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout) — STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly, per the established workaround.
 
 Phase 19 Plan 02 decisions:
 
