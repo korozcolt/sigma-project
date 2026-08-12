@@ -151,7 +151,12 @@ Plans:
   1. The Users, Coordinators, Leaders, and Articuladores Filament tables can be filtered by a chosen metadata key and value (FILT-01).
   2. The same tables can be sorted by a metadata key's value, with numeric-typed keys sorting numerically (10 > 2) rather than alphabetically (FILT-02).
   3. Existing CSV exports for users/coordinadores/leaders include columns for each assigned metadata key (FILT-03).
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — MetadataAssignmentService query-scale helpers (withCurrentValueSelects, applyMetadataFilter) + MetadataTableColumns/MetadataTableFilter Filament schema classes (FILT-01, FILT-02)
+- [ ] 17-02-PLAN.md — Wire metadata filter + dynamic columns into UsersTable/CoordinatorsTable/LeadersTable/AreaCoordinatorsTable (FILT-01, FILT-02)
+- [ ] 17-03-PLAN.md — Dynamic per-active-key columns on CoordinatorsExport/LeadersExport/AnnotatorsExport/WitnessesExport (FILT-03)
 
 ## Progress
 
@@ -167,7 +172,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 14. Articulador Admin Resource & Hierarchy Wiring | 1/2 | Complete    | 2026-08-10 |
 | 15. Articulador Self-Service Panel | 5/5 | Complete    | 2026-08-10 |
 | 16. Metadata Catalog UI & Assignment | 8/8 | Complete    | 2026-08-11 |
-| 17. Filter/Sort/Export Surfaces | 0/? | Not started | - |
+| 17. Filter/Sort/Export Surfaces | 0/3 | Not started | - |
 
 ---
 
