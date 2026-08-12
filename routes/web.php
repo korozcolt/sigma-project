@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CampaignContextController;
+use App\Http\Controllers\Coordinator\LeadersExportController;
 use App\Http\Controllers\PublicCampaignLogoController;
 use App\Http\Controllers\PublicPollingPlaceOptionsController;
 use App\Http\Controllers\PublicVoterRegistrationController;
@@ -91,9 +92,18 @@ Route::middleware(['auth', 'role:coordinator,admin_campaign,super_admin'])->pref
     Volt::route('leaders/{leader}/edit', 'coordinator.edit-leader')->name('leaders.edit');
     Volt::route('leaders/{leader}/voters', 'coordinator.leader-voters')->name('leaders.voters');
     Volt::route('leaders/{leader}/voters/create', 'coordinator.leader-add-voter')->name('leaders.voters.create');
-
-    Route::get('leaders/export', [\App\Http\Controllers\Coordinator\LeadersExportController::class, '__invoke'])->name('leaders.export');
 });
+
+// Leaders export: kept outside the coordinator-only role group above so this single route can also
+// grant area_coordinator access (their own transitive líder team, resolved by
+// User::teamCoordinatorUserIds() — Phase 13) without opening the rest of the coordinador panel to
+// articuladores. AUTHZ-01 reachability gap closure (Phase 18).
+Route::middleware(['auth', 'role:coordinator,area_coordinator,admin_campaign,super_admin'])
+    ->prefix('coordinator')
+    ->name('coordinator.')
+    ->group(function () {
+        Route::get('leaders/export', [LeadersExportController::class, '__invoke'])->name('leaders.export');
+    });
 
 // Articulador routes
 Route::middleware(['auth', 'role:area_coordinator,admin_campaign,super_admin'])->prefix('articulador')->name('articulador.')->group(function () {
