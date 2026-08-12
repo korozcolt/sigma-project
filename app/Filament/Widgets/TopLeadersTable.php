@@ -130,7 +130,7 @@ class TopLeadersTable extends TableWidget
      */
     private function voterResourceUrl(string $name, array $parameters = []): ?string
     {
-        $panelId = Filament::getCurrentPanel()?->getId();
+        $panelId = Filament::getCurrentOrDefaultPanel()?->getId();
 
         if (! $panelId || ! Route::has("filament.{$panelId}.resources.voters.{$name}")) {
             return null;
