@@ -108,6 +108,12 @@ class TopLeadersTable extends TableWidget
                     ->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->action(fn () => (new TopLeadersExport($activeCampaign?->id))->download('ranking-lideres.xlsx')),
+
+                Action::make('exportTeam')
+                    ->label('Exportar Equipo Completo')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
+                    ->url(fn (): string => route('coordinator.leaders.export')),
             ])
             ->recordUrl(fn (User $record) => VoterResource::getUrl('index', [
                 'tableFilters' => [
