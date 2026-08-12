@@ -156,7 +156,7 @@ Plans:
 Plans:
 - [x] 17-01-PLAN.md — MetadataAssignmentService query-scale helpers (withCurrentValueSelects, applyMetadataFilter) + MetadataTableColumns/MetadataTableFilter Filament schema classes (FILT-01, FILT-02)
 - [x] 17-02-PLAN.md — Wire metadata filter + dynamic columns into UsersTable/CoordinatorsTable/LeadersTable/AreaCoordinatorsTable (FILT-01, FILT-02)
-- [ ] 17-03-PLAN.md — Dynamic per-active-key columns on CoordinatorsExport/LeadersExport/AnnotatorsExport/WitnessesExport (FILT-03)
+- [x] 17-03-PLAN.md — Dynamic per-active-key columns on CoordinatorsExport/LeadersExport/AnnotatorsExport/WitnessesExport (FILT-03)
 
 ## Progress
 
@@ -172,7 +172,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 14. Articulador Admin Resource & Hierarchy Wiring | 1/2 | Complete    | 2026-08-10 |
 | 15. Articulador Self-Service Panel | 5/5 | Complete    | 2026-08-10 |
 | 16. Metadata Catalog UI & Assignment | 8/8 | Complete    | 2026-08-11 |
-| 17. Filter/Sort/Export Surfaces | 2/3 | In progress | - |
+| 17. Filter/Sort/Export Surfaces | 3/3 | Complete    | 2026-08-11 |
 
 ---
 

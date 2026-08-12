@@ -3,7 +3,9 @@
 namespace App\Exports;
 
 use App\Models\User;
+use App\Services\MetadataAssignmentService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -19,9 +21,12 @@ class WitnessesExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMa
 
     protected ?Builder $queryBuilder = null;
 
+    protected Collection $activeMetadataKeys;
+
     public function __construct(?Builder $queryBuilder = null)
     {
         $this->queryBuilder = $queryBuilder;
+        $this->activeMetadataKeys = app(MetadataAssignmentService::class)->activeKeys();
     }
 
     public function query(): Builder
@@ -34,7 +39,7 @@ class WitnessesExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMa
             $builder->witnesses();
         }
 
-        return $builder;
+        return app(MetadataAssignmentService::class)->withCurrentValueSelects($builder, $this->activeMetadataKeys);
     }
 
     public function headings(): array
@@ -48,6 +53,7 @@ class WitnessesExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMa
             'Mesa Asignada',
             'Pago (COP)',
             'Fecha de Creación',
+            ...$this->activeMetadataKeys->pluck('label')->all(),
         ];
     }
 
@@ -62,6 +68,7 @@ class WitnessesExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMa
             $user->witness_assigned_station ?? 'N/A',
             $user->witness_payment_amount ?? '0.00',
             $user->created_at?->format('d/m/Y H:i'),
+            ...$this->activeMetadataKeys->map(fn ($key) => $user->{"metadata_{$key->id}"} ?? '')->all(),
         ];
     }
 
