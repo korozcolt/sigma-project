@@ -9,11 +9,13 @@ use App\Filament\Resources\Voters\VoterResource;
 use App\Models\User;
 use App\Services\CampaignContext;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 class TopLeadersTable extends TableWidget
 {
@@ -115,11 +117,25 @@ class TopLeadersTable extends TableWidget
                     ->visible(fn (): bool => ! (auth()->user()?->hasRole(UserRole::REPORTS_VIEWER->value) ?? false))
                     ->url(fn (): string => route('coordinator.leaders.export')),
             ])
-            ->recordUrl(fn (User $record) => VoterResource::getUrl('index', [
+            ->recordUrl(fn (User $record) => $this->voterResourceUrl('index', [
                 'tableFilters' => [
                     'registered_by' => ['values' => [$record->id]],
                 ],
             ]))
             ->paginated(false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     */
+    private function voterResourceUrl(string $name, array $parameters = []): ?string
+    {
+        $panelId = Filament::getCurrentPanel()?->getId();
+
+        if (! $panelId || ! Route::has("filament.{$panelId}.resources.voters.{$name}")) {
+            return null;
+        }
+
+        return VoterResource::getUrl($name, $parameters);
     }
 }
