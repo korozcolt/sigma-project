@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: in_progress
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-08-12T03:01:54.000Z"
+stopped_at: Completed 17-02-PLAN.md
+last_updated: "2026-08-12T03:29:00.000Z"
 last_activity: 2026-08-12
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 20
-  completed_plans: 20
+  total_plans: 21
+  completed_plans: 21
   percent: 100
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 17 of 17 (filter/sort/export surfaces)
-Plan: 01 of 03 complete
-Status: Phase 16 (metadata catalog UI & assignment) fully complete — all 8 plans, META-03/META-04/META-06 closed (see prior session notes archived below). Phase 17 (filter/sort/export surfaces, wave 1 of 2) plan 17-01 complete: built the ONE shared query-scale mechanism Wave 2 wiring plans (17-02 table wiring, 17-03 export wiring) will consume. `MetadataAssignmentService::withCurrentValueSelects()` attaches one `addSelect` correlated subquery per active metadata key (CAST-ed to DECIMAL for numeric-typed keys so `->sortable()` sorts numerically, not lexicographically); `::applyMetadataFilter()` filters a query to only rows whose current value for a key exactly matches, excluding stale/superseded historical rows. `MetadataTableColumns::make()`/`MetadataTableFilter::make()` are the two Filament schema-builder classes (mirroring Phase 16's `MetadataAssignment.php` per-type field-dispatch pattern) ready to wire into the four admin tables (Users/Coordinators/Leaders/AreaCoordinators) and four in-scope exports. 6 new Pest tests (4 service-level: numeric sort, id-tiebreak, null-when-unassigned, stale-value exclusion; 2 schema-shape: column naming/toggleable/sortable, filter naming). Worktree was stale at session start (missing Phases 16-17 entirely) — resolved via the established fast-forward + `.env` copy + `composer install` + `npm install && npm run build` workaround; confirmed the recurring `findProjectRoot()` worktree-redirection bug again (`gsd-tools state advance-plan` updated the main checkout's STATE.md, not this worktree's) — STATE.md updated by hand-editing this worktree's copy directly. FILT-01/FILT-02 NOT yet marked Done — the mechanism exists but isn't wired into any table UI until 17-02; FILT-03 remains for 17-03.
+Plan: 02 of 03 complete
+Status: Phase 17 plan 17-02 complete: wired 17-01's query-scale mechanism into all four admin-panel Filament tables. `UsersTable`, `CoordinatorsTable`, `LeadersTable`, `AreaCoordinatorsTable` all now call `->modifyQueryUsing(fn (Builder $query) => app(MetadataAssignmentService::class)->withCurrentValueSelects($query))`, append `...MetadataTableColumns::make()` to their `->columns([...])`, and expose `MetadataTableFilter::make()` via `->filters([...])` (appended to Users' pre-existing filters array; a brand-new first `->filters()` call added to Coordinators/Leaders/AreaCoordinators). New `tests/Feature/Filament/MetadataTableFilterAndSortTest.php` (10 tests, 23 assertions) proves exact-value filtering on all 4 tables, filter+column existence on all 4 tables, numeric-not-lexicographic sort (2 before 10), and current-(latest)-value rendering. FILT-01 and FILT-02 are now fully satisfied end to end and should be marked Done. Full regression pass (61 tests, 263 assertions across 9 related Filament/Metadata test files) confirms zero existing columns/filters/bulk actions were removed. One test-only Rule-1 bug fix: `assertTableColumnStateSet()` needed the record's key, not the Model instance, to re-resolve state through the table's augmented query (same precedent as Phase 14 Plan 01). Worktree was stale at session start (missing Phases 16-17 entirely) — resolved via the established fast-forward + `.env` copy + `composer install` workaround (no `npm run build` needed, pure PHP/Pest plan); confirmed the recurring `findProjectRoot()` worktree-redirection bug again (`gsd-tools state advance-plan` updated nothing in this worktree — verified via `git status` showing no diff) — STATE.md updated by hand-editing this worktree's copy directly. 17-03 (export wiring, FILT-03) remains, targeting the same 17-01 foundation applied to export classes instead of table UI.
 Last activity: 2026-08-12
 
-Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 8/8, Phase 17: 1/3 plans complete)
+Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 8/8, Phase 17: 2/3 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 17 Plan 02 decisions:
+
+- [Phase 17 Plan 02]: `UsersTable`, `CoordinatorsTable`, `LeadersTable`, `AreaCoordinatorsTable` all gained `->modifyQueryUsing(fn (Builder $query) => app(MetadataAssignmentService::class)->withCurrentValueSelects($query))` plus `...MetadataTableColumns::make()` appended to `->columns([...])` plus `MetadataTableFilter::make()` exposed via `->filters([...])` — the latter three tables' first ever `->filters()` call. FILT-01/FILT-02 now marked Done — this plan is what made the requirements' literal wording ("las tablas Filament ... permiten filtrar/ordenar") observably true, completing the mechanism 17-01 built.
+- [Phase 17 Plan 02]: [Rule 1 - Bug] Fixed the plan's own literal test code for `assertTableColumnStateSet()` — it passed the in-memory `$coordinador` Model instance instead of its key, which Filament's testing harness uses directly (bypassing the table's `->modifyQueryUsing()`-augmented query), leaving the `metadata_{id}` attribute unset (null) on the plain factory model. Fixed by passing `$coordinador->getKey()` instead — matches the identical precedent already documented under Phase 14 Plan 01 in this file.
+- [Phase 17 Plan 02]: Worktree (`agent-ab5abe09224a52926`) was stale at session start — missing Phases 16 and 17 entirely (including this plan's own PLAN.md), plus `vendor/`, `.env`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction` (no `npm run build` needed — pure PHP/Filament/Pest plan, no frontend asset changes). `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (verified via `git status --short` showing zero diff in this worktree's `.planning/STATE.md` after the call) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's copies directly.
 
 Phase 17 Plan 01 decisions:
 

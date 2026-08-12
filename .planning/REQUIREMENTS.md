@@ -32,8 +32,8 @@ Requirements for the "Articuladores + Metadata de Usuario" milestone. Each maps 
 
 ### Filtro, Orden y Exportación (FILT)
 
-- [ ] **FILT-01**: Las tablas Filament de usuarios/coordinadores/líderes/articuladores permiten filtrar por llave y valor de metadata
-- [ ] **FILT-02**: Las mismas tablas permiten ordenar por valor de una llave de metadata, con orden numérico correcto para llaves tipo número (no alfabético)
+- [x] **FILT-01**: Las tablas Filament de usuarios/coordinadores/líderes/articuladores permiten filtrar por llave y valor de metadata
+- [x] **FILT-02**: Las mismas tablas permiten ordenar por valor de una llave de metadata, con orden numérico correcto para llaves tipo número (no alfabético)
 - [ ] **FILT-03**: Los exports CSV existentes de usuarios/coordinadores/líderes incluyen las columnas de metadata asignada
 
 ## v2 Requirements
@@ -74,8 +74,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | META-04 | Phase 16 | Done |
 | META-05 | Phase 16 | Done |
 | META-06 | Phase 16 | Done |
-| FILT-01 | Phase 17 | Pending |
-| FILT-02 | Phase 17 | Pending |
+| FILT-01 | Phase 17 | Done |
+| FILT-02 | Phase 17 | Done |
 | FILT-03 | Phase 17 | Pending |
 
 **Coverage:**
