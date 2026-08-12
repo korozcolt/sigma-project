@@ -55,7 +55,7 @@ This milestone adds two related but separable capabilities on top of SIGMA's exi
 - [x] **Phase 16: Metadata Catalog UI & Assignment** - Superadmin manages the metadata catalog; superiors assign auditable, atomic values to subordinates (completed 2026-08-11)
 - [x] **Phase 17: Filter/Sort/Export Surfaces** - Filament tables filter/sort by metadata with correct numeric ordering, exports include metadata columns (completed 2026-08-12)
 - [x] **Phase 18: Articulador Líder-Export Reachability** - AUTHZ-01 gap closure: an articulador can reach and trigger LeadersExportController for their own transitive team (completed 2026-08-12)
-- [ ] **Phase 19: Articulador Panel Human-UAT Closure** - Automated Pest v4 Browser coverage replacing Phase 15's 3 pending manual verification items
+- [x] **Phase 19: Articulador Panel Human-UAT Closure** - Automated Pest v4 Browser coverage replacing Phase 15's 3 pending manual verification items (completed 2026-08-12)
 
 ## Phase Details
 
@@ -192,7 +192,7 @@ Plans:
 - [x] 19-03-PLAN.md — Browser test: articulador dashboard widget scoping (criterion 1)
 - [x] 19-04-PLAN.md — Browser test: cédula autofill lock/unlock on create-coordinador (criterion 2)
 - [x] 19-05-PLAN.md — Browser test: sidebar navigation click-through (criterion 3)
-- [ ] 19-06-PLAN.md — Close 15-HUMAN-UAT.md (criterion 4)
+- [x] 19-06-PLAN.md — Close 15-HUMAN-UAT.md (criterion 4)
 
 ## Progress
 
@@ -210,7 +210,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17 → 18 �
 | 16. Metadata Catalog UI & Assignment | 8/8 | Complete    | 2026-08-11 |
 | 17. Filter/Sort/Export Surfaces | 3/3 | Complete    | 2026-08-12 |
 | 18. Articulador Líder-Export Reachability | 1/1 | Complete    | 2026-08-12 |
-| 19. Articulador Panel Human-UAT Closure | 5/6 | In progress | - |
+| 19. Articulador Panel Human-UAT Closure | 6/6 | Complete   | 2026-08-12 |
 
 ---
 
