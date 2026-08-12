@@ -9,11 +9,13 @@ use App\Models\Campaign;
 use App\Models\User;
 use App\Models\Voter;
 use App\Services\CampaignContext;
+use Filament\Facades\Filament;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 
 class CampaignStatsOverview extends StatsOverviewWidget
 {
@@ -47,12 +49,17 @@ class CampaignStatsOverview extends StatsOverviewWidget
             ->whereBetween('created_at', [now()->subWeek(), now()])
             ->count();
 
-        return Stat::make('Total de Apoyos', number_format($total))
+        $stat = Stat::make('Total de Apoyos', number_format($total))
             ->description($lastWeek.' nuevos esta semana')
             ->descriptionIcon('heroicon-m-user-group')
             ->color('primary')
-            ->chart($this->getVotersGrowthChart($activeCampaign->id))
-            ->url(VoterResource::getUrl('index'));
+            ->chart($this->getVotersGrowthChart($activeCampaign->id));
+
+        if ($url = $this->voterResourceUrl('index')) {
+            $stat->url($url);
+        }
+
+        return $stat;
     }
 
     protected function getConfirmedVotersStat(): Stat
@@ -76,15 +83,20 @@ class CampaignStatsOverview extends StatsOverviewWidget
             default => 'danger',
         };
 
-        return Stat::make('Apoyos Confirmados', number_format($confirmed))
+        $stat = Stat::make('Apoyos Confirmados', number_format($confirmed))
             ->description(round($percentage, 1).'% del total')
             ->descriptionIcon('heroicon-m-check-circle')
-            ->color($color)
-            ->url(VoterResource::getUrl('index', [
-                'tableFilters' => [
-                    'status' => ['values' => [VoterStatus::CONFIRMED->value]],
-                ],
-            ]));
+            ->color($color);
+
+        if ($url = $this->voterResourceUrl('index', [
+            'tableFilters' => [
+                'status' => ['values' => [VoterStatus::CONFIRMED->value]],
+            ],
+        ])) {
+            $stat->url($url);
+        }
+
+        return $stat;
     }
 
     protected function getActiveLeadersStat(): Stat
@@ -237,5 +249,19 @@ class CampaignStatsOverview extends StatsOverviewWidget
         }
 
         return $query;
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     */
+    private function voterResourceUrl(string $name, array $parameters = []): ?string
+    {
+        $panelId = Filament::getCurrentOrDefaultPanel()?->getId();
+
+        if (! $panelId || ! Route::has("filament.{$panelId}.resources.voters.{$name}")) {
+            return null;
+        }
+
+        return VoterResource::getUrl($name, $parameters);
     }
 }

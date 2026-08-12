@@ -189,7 +189,7 @@ Plans:
 Plans:
 - [x] 19-01-PLAN.md — Fix AREA_COORDINATOR scoping gap on CampaignStatsOverview + TerritorialDistributionChart widgets
 - [x] 19-02-PLAN.md — Promote loginRealBrowserUser() into tests/Pest.php, shared across Browser tests
-- [ ] 19-03-PLAN.md — Browser test: articulador dashboard widget scoping (criterion 1)
+- [x] 19-03-PLAN.md — Browser test: articulador dashboard widget scoping (criterion 1)
 - [x] 19-04-PLAN.md — Browser test: cédula autofill lock/unlock on create-coordinador (criterion 2)
 - [ ] 19-05-PLAN.md — Browser test: sidebar navigation click-through (criterion 3)
 - [ ] 19-06-PLAN.md — Close 15-HUMAN-UAT.md (criterion 4)
@@ -210,7 +210,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17 → 18 �
 | 16. Metadata Catalog UI & Assignment | 8/8 | Complete    | 2026-08-11 |
 | 17. Filter/Sort/Export Surfaces | 3/3 | Complete    | 2026-08-12 |
 | 18. Articulador Líder-Export Reachability | 1/1 | Complete    | 2026-08-12 |
-| 19. Articulador Panel Human-UAT Closure | 3/6 | In progress | - |
+| 19. Articulador Panel Human-UAT Closure | 4/6 | In progress | - |
 
 ---
 
