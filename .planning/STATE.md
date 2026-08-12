@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: Phase 19 complete — ready for verification
+status: Milestone complete
 stopped_at: Completed 19-06-PLAN.md (Phase 19 complete, 6/6 plans)
-last_updated: "2026-08-12T05:12:43.707Z"
+last_updated: "2026-08-12T05:17:24.877Z"
 progress:
   total_phases: 8
   completed_phases: 8
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 19 (articulador-panel-human-uat-closure) — COMPLETE
-Plan: 6 of 6 complete (Wave 1 done: 19-01, 19-02. Wave 2 done: 19-03, 19-04, 19-05. Wave 3 done: 19-06)
+Phase: 19
+Plan: Not started
 
 ## v1.2 Phase Map
 
