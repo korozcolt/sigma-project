@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -56,4 +58,18 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+// Real Pest v4 Browser tests run every request through the real Laravel HTTP kernel
+// (Pest\Browser\Drivers\LaravelHttpServer), so actingAs() never authenticates the
+// real browser session — only a genuine /login form submission does. Shared here
+// (not per-test-file) so multiple Browser test files can use it without a PHP
+// "cannot redeclare function" fatal when the whole Browser suite runs together.
+function loginRealBrowserUser(User $user, string $password = 'password'): void
+{
+    $page = visit('/login');
+    $page->type('email', $user->email);
+    $page->type('password', $password);
+    $page->click('Ingresar');
+    $page->wait(1);
 }

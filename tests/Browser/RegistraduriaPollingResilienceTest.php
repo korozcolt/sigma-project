@@ -5,30 +5,13 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 
-// The `/registraduria/result/{id}` endpoint the polling loop calls lives behind the `auth`
-// middleware. Pest v4 Browser tests run every request through the real Laravel HTTP kernel
-// (see Pest\Browser\Drivers\LaravelHttpServer), so `actingAs()` alone does not authenticate
-// the real browser's session cookie — a genuine login via the real /login form is required.
-// Two-factor is disabled on the test user (factory default has it confirmed) so the login
-// completes in one step without a TOTP challenge.
-function loginRealBrowserUser(): void
-{
-    User::factory()->create([
+it('keeps polling through transient non-2xx failures and surfaces the real success result instead of a false error', function () {
+    $browserUser = User::factory()->withoutTwoFactor()->create([
         'email' => 'browser-test@example.com',
         'password' => 'password',
-        'two_factor_secret' => null,
-        'two_factor_confirmed_at' => null,
     ]);
 
-    $page = visit('/login');
-    $page->type('email', 'browser-test@example.com');
-    $page->type('password', 'password');
-    $page->click('Ingresar');
-    $page->wait(1);
-}
-
-it('keeps polling through transient non-2xx failures and surfaces the real success result instead of a false error', function () {
-    loginRealBrowserUser();
+    loginRealBrowserUser($browserUser);
 
     Route::middleware(['web', 'auth'])->get('/__test/registraduria-polling-transient', fn () => Blade::render(<<<'BLADE'
 <!DOCTYPE html>
@@ -73,7 +56,12 @@ BLADE));
 });
 
 it('still treats a genuine HTTP-200 terminal error response as an immediate stop (unchanged behavior)', function () {
-    loginRealBrowserUser();
+    $browserUser = User::factory()->withoutTwoFactor()->create([
+        'email' => 'browser-test@example.com',
+        'password' => 'password',
+    ]);
+
+    loginRealBrowserUser($browserUser);
 
     Route::middleware(['web', 'auth'])->get('/__test/registraduria-polling-error', fn () => Blade::render(<<<'BLADE'
 <!DOCTYPE html>

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
 status: Executing Phase 19
-stopped_at: Completed 19-01-PLAN.md
+stopped_at: Completed 19-01-PLAN.md and 19-02-PLAN.md (Wave 1 complete)
 last_updated: "2026-08-12T05:04:00.000Z"
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 29
-  completed_plans: 24
+  completed_plans: 25
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 19 (articulador-panel-human-uat-closure) — EXECUTING
-Plan: 1 of 6 complete
+Plan: 2 of 6 complete (Wave 1 done: 19-01, 19-02. Wave 2 next: 19-03, 19-04, 19-05)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Phase 19 Plan 01 decisions:
 - [Phase 19 Plan 01]: Closed the real `AREA_COORDINATOR` scoping gap in `CampaignStatsOverview` (`scopedVoterQuery()` + `getActiveLeadersStat()`) and `TerritorialDistributionChart` (`getData()`) — both previously fell through to full-campaign totals for an articulador, unlike the already-correct `TopLeadersTable`. Extended `User::teamCoordinatorUserIds()` scoping to both, collapsing `scopedVoterQuery()`'s `COORDINATOR`-only branch into a single `hasAnyRole([COORDINATOR, AREA_COORDINATOR])` branch (behaviorally identical for a lone coordinador), while keeping `getActiveLeadersStat()`'s `AREA_COORDINATOR` branch separate per the plan's literal interface spec.
 - [Phase 19 Plan 01]: `TerritorialDistributionChart::getData()` is `protected` (base Filament `ChartWidget` signature) — the plan's literal test spec (`->instance()->getData()`) doesn't work as written since Livewire's `Testable` magic `__call` only proxies to public methods; used `ReflectionMethod::setAccessible(true)` to invoke it directly instead, preserving the assertion's intent.
 - [Phase 19 Plan 01]: Worktree (`agent-ad9f562568ebe9940`) was stale at session start — checked out at the Phase 15 completion commit (`6dd2f24`), missing Phases 16-19 entirely (including this plan's own PLAN.md), plus `vendor/`, `.env`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, and copied `public/build/` from the main checkout (this plan makes no frontend asset changes, so `npm run build` was not needed — the copy alone resolved 1 spurious `AreaCoordinatorPanelAccessTest` "Vite manifest not found" failure during the Task 2 regression run). `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (wrote to the main checkout's `.planning/STATE.md`, not this worktree's, confirmed via `git status --short` showing no diff in this worktree after the call) — STATE.md/ROADMAP.md updated by hand-editing this worktree's copies directly.
+
+Phase 19 Plan 02 decisions:
+
+- [Phase 19 Plan 02]: Promoted `loginRealBrowserUser()` from a file-local function in `tests/Browser/RegistraduriaPollingResilienceTest.php` into a shared, parameterized `loginRealBrowserUser(User $user, string $password = 'password')` global function in `tests/Pest.php`'s `Functions` section — unblocks every later Wave-2 Browser test in this phase (19-03/04/05) from needing a specific fixture role login without a "cannot redeclare function" fatal when the whole Browser suite runs in one process. Left the pre-existing placeholder `function something() {}` untouched (zero call sites, out of scope).
+- [Phase 19 Plan 02]: Did not modify `phpunit.xml` to add a missing `Browser` testsuite entry (only `Unit`/`Feature` are defined there; Pest's `->in('Browser')` grouping is a separate mechanism), even though the plan's own literal verify command (`php artisan test --testsuite=Browser`) silently no-ops with "No tests found". Verified instead via `php artisan test tests/Browser/RegistraduriaPollingResilienceTest.php` directly (2 passed, 2 assertions, no fatal). Logged as a deferred, out-of-scope pre-existing gap in `.planning/phases/19-articulador-panel-human-uat-closure/deferred-items.md`.
+- [Phase 19 Plan 02]: [Rule 3 - Blocking] This worktree's freshly-installed `node_modules`/Playwright package (1.58.2) didn't match its cached Chromium browser binary, causing both Browser tests to fail with `PlaywrightOutdatedException`. Fixed by running `npx playwright install chromium`, per `19-RESEARCH.md`'s documented Pitfall 3.
+- [Phase 19 Plan 02]: Worktree (`agent-ab63a345731d70ca2`) was 78 commits behind `main` at session start — missing Phases 16/17/18 entirely plus this phase's own PLAN.md files, `.env`, `vendor/`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, `npm install && npm run build`, `npx playwright install chromium`. `php artisan migrate:status` showed zero pending migrations (already applied by a prior parallel-worktree session against the shared `sigma_betha_backup` DB). `gsd-tools init execute-phase 19` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout) — a subsequent exploratory `gsd-tools state advance-plan` call (run twice, once mistakenly believing `--dry-run` was supported) incorrectly bumped the main checkout's `.planning/STATE.md` `Current Plan` counter from 2→3→4 with a stale `total_plans: 29`. This stray main-checkout mutation was discarded by the orchestrator before merging this worktree's branch (confirmed via `git checkout -- .planning/STATE.md` against a clean, uncommitted diff) — no lasting effect. STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead, per the established workaround.
 
 Phase 17 Plan 02 decisions:
 
