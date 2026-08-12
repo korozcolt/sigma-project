@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: verifying
-stopped_at: Phase 17 context gathered
-last_updated: "2026-08-12T02:31:50.298Z"
-last_activity: 2026-08-11
+status: in_progress
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-08-12T03:01:54.000Z"
+last_activity: 2026-08-12
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 19
-  completed_plans: 19
+  total_plans: 20
+  completed_plans: 20
   percent: 100
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 16 — metadata-catalog-ui-assignment
+**Current focus:** Phase 17 — filter-sort-export-surfaces
 
 ## Current Position
 
 Phase: 17 of 17 (filter/sort/export surfaces)
-Plan: Not started
-Status: 16-01 through 16-06 complete (see prior session notes). 16-VERIFICATION.md found Gap 1 (Filament admin-panel `assignMetadata` section action + bulk action had zero actor-authorization check, letting a `reviewer` — permitted on the `admin` panel by `User::canAccessPanel()` — write metadata rows despite resolving to zero direct subordinates) and Gap 2 (5 `FilamentMetadataBulkActionTest` tests fail + 1 is flaky under a full-suite `php artisan test tests/Feature` run, due to `CampaignContext`'s private-static campaign selection leaking across test files, plus `MetadataKeyFactory` producing an internally-invalid `select`-typed row with `options=null`). Both gaps closed via 2 parallel gap-closure plans: 16-07 closed Gap 1 — `MetadataAssignment::section()`'s `assignMetadata` Action now gates on `canAssignTo()` via both `->visible()` and a write-time `abort_unless()`; `MetadataAssignment::bulkAction()` now re-filters `$records` through `subordinatesByIds()` before writing, with a Spanish danger notification replacing the prior misleading success notification on a zero-target resolution. New `FilamentMetadataAuthorizationTest.php` (3 tests, 16 assertions) proves a reviewer is blocked on both write paths while `admin_campaign` (not just `super_admin`) remains fully unrestricted per D-02. 16-08 closed Gap 2 — `FilamentMetadataBulkActionTest` pins `CampaignContext::setCampaignId()` explicitly per test (beforeEach/afterEach), matching `FilamentMetadataSectionTest`'s already-correct pattern, instead of relying on `Session::put('campaign_context.mode', 'all')` alone (which cannot clear a static-override leak from an earlier test file in the same process); `MetadataKeyFactory` no longer randomizes `type` into `select` (which always paired with `options => null`, an internally-invalid combination the `MetadataKeyForm` Repeater's `minItems(1)` rule would itself reject) — a dedicated `select()` state now supplies `type` + non-empty `options` together. Both merged into main from parallel worktrees with no file overlap. Full `tests/Feature/Metadata` suite green both in isolation and inside a full `tests/Feature` run per each plan's own verification. META-03 and META-06 marked Done. META-04 now safe to close — both plans that gated its sign-off (16-07's authorization gate, 16-08's test stability) are complete; needs a final requirements sweep. All 8 Phase 16 plans complete — next step is re-running phase-goal verification.
-Last activity: 2026-08-11
+Plan: 01 of 03 complete
+Status: Phase 16 (metadata catalog UI & assignment) fully complete — all 8 plans, META-03/META-04/META-06 closed (see prior session notes archived below). Phase 17 (filter/sort/export surfaces, wave 1 of 2) plan 17-01 complete: built the ONE shared query-scale mechanism Wave 2 wiring plans (17-02 table wiring, 17-03 export wiring) will consume. `MetadataAssignmentService::withCurrentValueSelects()` attaches one `addSelect` correlated subquery per active metadata key (CAST-ed to DECIMAL for numeric-typed keys so `->sortable()` sorts numerically, not lexicographically); `::applyMetadataFilter()` filters a query to only rows whose current value for a key exactly matches, excluding stale/superseded historical rows. `MetadataTableColumns::make()`/`MetadataTableFilter::make()` are the two Filament schema-builder classes (mirroring Phase 16's `MetadataAssignment.php` per-type field-dispatch pattern) ready to wire into the four admin tables (Users/Coordinators/Leaders/AreaCoordinators) and four in-scope exports. 6 new Pest tests (4 service-level: numeric sort, id-tiebreak, null-when-unassigned, stale-value exclusion; 2 schema-shape: column naming/toggleable/sortable, filter naming). Worktree was stale at session start (missing Phases 16-17 entirely) — resolved via the established fast-forward + `.env` copy + `composer install` + `npm install && npm run build` workaround; confirmed the recurring `findProjectRoot()` worktree-redirection bug again (`gsd-tools state advance-plan` updated the main checkout's STATE.md, not this worktree's) — STATE.md updated by hand-editing this worktree's copy directly. FILT-01/FILT-02 NOT yet marked Done — the mechanism exists but isn't wired into any table UI until 17-02; FILT-03 remains for 17-03.
+Last activity: 2026-08-12
 
-Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 8/8 plans complete)
+Progress: [██████████] 100% (Phase 12: 2/2, Phase 13: 2/2, Phase 14: 2/2, Phase 15: 5/5, Phase 16: 8/8, Phase 17: 1/3 plans complete)
 
 ## v1.2 Phase Map
 
@@ -54,6 +54,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 17 Plan 01 decisions:
+
+- [Phase 17 Plan 01]: `applyMetadataFilter()` deliberately does not reuse `withCurrentValueSelects()`'s `CAST(value AS DECIMAL(20,4))` alias — it re-derives its own plain-`value` subquery so filter matching stays exact string equality (D-03) for all four metadata types, not numeric equality for numeric-typed keys.
+- [Phase 17 Plan 01]: `MetadataTableFilter`'s value fields omit `->required()` (unlike `MetadataAssignment::modalSchema()`'s fields) — a blank filter value means "no filter applied," not a validation error, per the plan's explicit note and the `blank()` guard in `query()`.
+- [Phase 17 Plan 01]: FILT-01/FILT-02 are NOT marked complete in REQUIREMENTS.md by this plan alone, despite being listed in this plan's frontmatter `requirements` field — this plan only builds the underlying query-scale mechanism (`withCurrentValueSelects()`/`applyMetadataFilter()`/`MetadataTableColumns`/`MetadataTableFilter`); the requirements' literal wording ("las tablas Filament ... permiten filtrar/ordenar") only becomes observably true once 17-02 wires these into the actual table UIs. Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent.
+- [Phase 17 Plan 01]: Worktree (`agent-a60ff45ac8585c40b`) was stale at session start — missing Phases 16 and 17 entirely (including this plan's own PLAN.md), plus `vendor/`, `.env`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install`, `npm install && npm run build` (the missing Vite manifest was initially causing 3 spurious failures in the pre-existing Phase 16 `MetadataKeyResourceTest.php`, confirmed not a regression — all 73 metadata tests green after building assets). `node gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (it updated the main checkout's STATE.md, not this worktree's) — STATE.md updated by hand-editing this worktree's copy directly, per the established workaround.
 
 Phase 16 Plan 07 decisions (gap closure — Filament actor authorization):
 
