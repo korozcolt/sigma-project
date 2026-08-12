@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: Phase complete — ready for verification
+status: Ready to plan
 stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-08-12T04:00:42.591Z"
+last_updated: "2026-08-12T04:03:27.919Z"
 progress:
   total_phases: 8
   completed_phases: 7
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 18 (articulador-lider-export-reachability) — EXECUTING
-Plan: 1 of 1
+Phase: 19
+Plan: Not started
 
 ## v1.2 Phase Map
 
