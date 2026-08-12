@@ -184,7 +184,15 @@ Plans:
   2. A Pest v4 Browser test confirms the cédula autofill lock/unlock interaction on the create-coordinador form behaves identically to `create-leader.blade.php`'s established pattern.
   3. A Pest v4 Browser test confirms sidebar navigation click-through (Dashboard → Coordinadores → Día D, plus the panel's own "Coordinadores" nav item) lands on the correct page every time with the correct item highlighted as current.
   4. `15-HUMAN-UAT.md`'s 3 items are updated from `pending` to `passed` (or superseded by the new automated coverage, per this project's UAT conventions).
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — Fix AREA_COORDINATOR scoping gap on CampaignStatsOverview + TerritorialDistributionChart widgets
+- [ ] 19-02-PLAN.md — Promote loginRealBrowserUser() into tests/Pest.php, shared across Browser tests
+- [ ] 19-03-PLAN.md — Browser test: articulador dashboard widget scoping (criterion 1)
+- [ ] 19-04-PLAN.md — Browser test: cédula autofill lock/unlock on create-coordinador (criterion 2)
+- [ ] 19-05-PLAN.md — Browser test: sidebar navigation click-through (criterion 3)
+- [ ] 19-06-PLAN.md — Close 15-HUMAN-UAT.md (criterion 4)
 
 ## Progress
 
@@ -202,7 +210,7 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17 → 18 �
 | 16. Metadata Catalog UI & Assignment | 8/8 | Complete    | 2026-08-11 |
 | 17. Filter/Sort/Export Surfaces | 3/3 | Complete    | 2026-08-12 |
 | 18. Articulador Líder-Export Reachability | 1/1 | Complete    | 2026-08-12 |
-| 19. Articulador Panel Human-UAT Closure | 0/? | Not started | - |
+| 19. Articulador Panel Human-UAT Closure | 0/6 | Not started | - |
 
 ---
 
