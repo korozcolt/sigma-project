@@ -54,6 +54,8 @@ This milestone adds two related but separable capabilities on top of SIGMA's exi
 - [x] **Phase 15: Articulador Self-Service Panel** - Articulador manages their own coordinadores from a dedicated self-service panel (completed 2026-08-10)
 - [x] **Phase 16: Metadata Catalog UI & Assignment** - Superadmin manages the metadata catalog; superiors assign auditable, atomic values to subordinates (completed 2026-08-11)
 - [x] **Phase 17: Filter/Sort/Export Surfaces** - Filament tables filter/sort by metadata with correct numeric ordering, exports include metadata columns (completed 2026-08-12)
+- [ ] **Phase 18: Articulador Líder-Export Reachability** - AUTHZ-01 gap closure: an articulador can reach and trigger LeadersExportController for their own transitive team
+- [ ] **Phase 19: Articulador Panel Human-UAT Closure** - Automated Pest v4 Browser coverage replacing Phase 15's 3 pending manual verification items
 
 ## Phase Details
 
@@ -158,10 +160,33 @@ Plans:
 - [x] 17-02-PLAN.md — Wire metadata filter + dynamic columns into UsersTable/CoordinatorsTable/LeadersTable/AreaCoordinatorsTable (FILT-01, FILT-02)
 - [x] 17-03-PLAN.md — Dynamic per-active-key columns on CoordinatorsExport/LeadersExport/AnnotatorsExport/WitnessesExport (FILT-03)
 
+### Phase 18: Articulador Líder-Export Reachability
+**Goal**: An articulador can reach and successfully trigger `LeadersExportController` for their own transitive líder team — closing the AUTHZ-01 partial finding from the v1.2 milestone audit.
+**Depends on**: Phase 13 (the transitive-team query logic this phase makes reachable already exists and is correct — `User::teamCoordinatorUserIds()`)
+**Requirements**: AUTHZ-01 (reachability half — the query-correctness half was already satisfied in Phase 13)
+**Gap Closure**: Closes gaps from `.planning/v1.2-MILESTONE-AUDIT.md` — `LeadersExportController`'s route (`coordinator.leaders.export`) excludes the `area_coordinator` role from its middleware, and no UI in the articulador panel links to it, so an articulador cannot trigger this export even though its query resolves their team correctly.
+**Success Criteria** (what must be TRUE):
+  1. The `coordinator.leaders.export` route's role middleware includes `area_coordinator`, alongside the existing `coordinator`/`admin_campaign`/`super_admin` roles.
+  2. A UI trigger exists somewhere in the articulador panel (e.g. an export action alongside `TopLeadersTable`) that an articulador can click to download their own transitive líder team as CSV/xlsx.
+  3. A regression test proves an articulador can reach and successfully download this export, scoped to their own transitive team only (no cross-articulador/cross-campaign leakage).
+**Plans**: TBD
+
+### Phase 19: Articulador Panel Human-UAT Closure
+**Goal**: Phase 15's 3 pending human-verification items are closed with automated Pest v4 Browser coverage, replacing manual-only verification.
+**Depends on**: Phase 15 (the panel/pages under test already exist)
+**Requirements**: None new — closes outstanding tech debt from `15-HUMAN-UAT.md`, not a new REQ-ID
+**Gap Closure**: Closes tech debt from `.planning/v1.2-MILESTONE-AUDIT.md` — 3 items in `.planning/phases/15-articulador-self-service-panel/15-HUMAN-UAT.md` have sat at `status: pending` since 2026-08-10, never manually browser-tested.
+**Success Criteria** (what must be TRUE):
+  1. A Pest v4 Browser test confirms the articulador panel dashboard widgets (CampaignStatsOverview, TerritorialDistributionChart, TopLeadersTable) render only campaign/team-appropriate data with no cross-articulador or cross-campaign leakage.
+  2. A Pest v4 Browser test confirms the cédula autofill lock/unlock interaction on the create-coordinador form behaves identically to `create-leader.blade.php`'s established pattern.
+  3. A Pest v4 Browser test confirms sidebar navigation click-through (Dashboard → Coordinadores → Día D, plus the panel's own "Coordinadores" nav item) lands on the correct page every time with the correct item highlighted as current.
+  4. `15-HUMAN-UAT.md`'s 3 items are updated from `pending` to `passed` (or superseded by the new automated coverage, per this project's UAT conventions).
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
+Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17 → 18 → 19
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -173,6 +198,8 @@ Phases execute in numeric order: 12 → 13 → 14 → 15 → 16 → 17
 | 15. Articulador Self-Service Panel | 5/5 | Complete    | 2026-08-10 |
 | 16. Metadata Catalog UI & Assignment | 8/8 | Complete    | 2026-08-11 |
 | 17. Filter/Sort/Export Surfaces | 3/3 | Complete    | 2026-08-12 |
+| 18. Articulador Líder-Export Reachability | 0/? | Not started | - |
+| 19. Articulador Panel Human-UAT Closure | 0/? | Not started | - |
 
 ---
 
