@@ -9,6 +9,7 @@ use App\Models\UserMetadataValue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class MetadataAssignmentService
@@ -147,5 +148,44 @@ class MetadataAssignmentService
             ->orderByDesc('assigned_at')
             ->orderByDesc('id')
             ->first();
+    }
+
+    public function withCurrentValueSelects(Builder $query, ?Collection $keys = null): Builder
+    {
+        $keys ??= $this->activeKeys();
+        $table = $query->getModel()->getTable();
+
+        foreach ($keys as $key) {
+            $valueExpression = $key->type === 'numeric'
+                ? DB::raw('CAST(value AS DECIMAL(20,4))')
+                : 'value';
+
+            $query->addSelect([
+                "metadata_{$key->id}" => UserMetadataValue::query()
+                    ->select($valueExpression)
+                    ->whereColumn('user_id', "{$table}.id")
+                    ->where('metadata_key_id', $key->id)
+                    ->orderByDesc('assigned_at')
+                    ->orderByDesc('id')
+                    ->limit(1),
+            ]);
+        }
+
+        return $query;
+    }
+
+    public function applyMetadataFilter(Builder $query, MetadataKey $key, string $value): Builder
+    {
+        $table = $query->getModel()->getTable();
+
+        $latestValue = UserMetadataValue::query()
+            ->select('value')
+            ->whereColumn('user_id', "{$table}.id")
+            ->where('metadata_key_id', $key->id)
+            ->orderByDesc('assigned_at')
+            ->orderByDesc('id')
+            ->limit(1);
+
+        return $query->where($latestValue, '=', $value);
     }
 }
