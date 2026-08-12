@@ -17,7 +17,7 @@ Requirements for the "Articuladores + Metadata de Usuario" milestone. Each maps 
 
 ### Autorización y Continuidad de Jerarquía (AUTHZ)
 
-- [x] **AUTHZ-01**: Los widgets/exports/dashboards existentes que asumen que el coordinador es el tope de la jerarquía (p. ej. TopLeadersTable, TopLeadersExport, LeadersExportController) se actualizan para resolver correctamente el equipo transitivo de un articulador (query correcta desde Fase 13; alcanzabilidad de `LeadersExportController` para el rol articulador pendiente — ver Fase 18)
+- [x] **AUTHZ-01**: Los widgets/exports/dashboards existentes que asumen que el coordinador es el tope de la jerarquía (p. ej. TopLeadersTable, TopLeadersExport, LeadersExportController) se actualizan para resolver correctamente el equipo transitivo de un articulador (query correcta desde Fase 13; alcanzabilidad de `LeadersExportController` para el rol articulador cerrada en Fase 18)
 - [x] **AUTHZ-02**: Existe una política explícita que impide que un articulador vea/edite coordinadores que no le pertenecen
 - [x] **AUTHZ-03**: El nuevo rol respeta el aislamiento de campaña existente (`CampaignMembershipScope`)
 
