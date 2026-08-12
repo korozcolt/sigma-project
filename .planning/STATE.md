@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: in_progress
-stopped_at: Completed 17-02-PLAN.md and 17-03-PLAN.md (Phase 17 all plans complete)
-last_updated: "2026-08-12T03:29:00.000Z"
+status: planning
+stopped_at: Phase 17 context gathered
+last_updated: "2026-08-12T03:30:48.832Z"
 last_activity: 2026-08-12
 progress:
   total_phases: 6
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 17 of 17 (filter/sort/export surfaces)
-Plan: 03 of 03 complete — Phase 17 fully executed
+Plan: Not started
 Status: Phase 17 all 3 plans complete. 17-02 wired 17-01's query-scale mechanism into all four admin-panel Filament tables: `UsersTable`, `CoordinatorsTable`, `LeadersTable`, `AreaCoordinatorsTable` all now call `->modifyQueryUsing(fn (Builder $query) => app(MetadataAssignmentService::class)->withCurrentValueSelects($query))`, append `...MetadataTableColumns::make()` to their `->columns([...])`, and expose `MetadataTableFilter::make()` via `->filters([...])` (appended to Users' pre-existing filters array; a brand-new first `->filters()` call added to Coordinators/Leaders/AreaCoordinators). New `tests/Feature/Filament/MetadataTableFilterAndSortTest.php` (10 tests, 23 assertions) proves exact-value filtering, filter+column existence, numeric-not-lexicographic sort (2 before 10), and current-(latest)-value rendering on all 4 tables. FILT-01/FILT-02 now Done. 17-03 (parallel to 17-02) added one export column per active metadata key to the four in-scope CSV/xlsx exports (`CoordinatorsExport`, `LeadersExport`, `AnnotatorsExport`, `WitnessesExport`), reusing `MetadataAssignmentService::withCurrentValueSelects()`/`::activeKeys()` verbatim — no per-row N+1 queries, no PHP-side grouping, identical current-value semantics to the on-screen tables. Each export's constructor resolves `activeMetadataKeys`, `query()` applies the shared subselect helper, `headings()`/`map()` spread one heading + one mapped cell per active key. 8 new Pest tests (`MetadataExportColumnsTest.php`) prove active keys become headings, inactive keys never appear, missing values render blank, current (not stale) value shown. FILT-03 now Done. All 3 requirements (FILT-01, FILT-02, FILT-03) satisfied — Phase 17 and v1.2 milestone complete. Both 17-02 and 17-03 executed in parallel worktrees (`agent-ab5abe09224a52926`, `agent-aa9256e64092b2eec`) off the same 17-01 base commit; merged into main via fast-forward (17-02) then a 3-way merge with manual conflict resolution limited entirely to `.planning/{STATE,ROADMAP,REQUIREMENTS}.md` (code files — 4 `*Table.php`, 4 `*Export.php`, 2 test files — merged with zero conflicts, confirming the plans' file-disjointness held). Both worktrees hit the recurring `findProjectRoot()` bug (gsd-tools CLI state/roadmap/requirements writes redirected to the main checkout instead of the worktree) — orchestrator discarded the stray uncommitted main-checkout writes before merging (each worktree's own hand-edited copies, committed on their own branch, were authoritative).
 Last activity: 2026-08-12
 
