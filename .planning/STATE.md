@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Articuladores + Metadata de Usuario
-status: Ready to plan
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-08-12T04:03:27.919Z"
+status: Executing Phase 19
+stopped_at: Completed 19-01-PLAN.md
+last_updated: "2026-08-12T05:04:00.000Z"
 progress:
   total_phases: 8
   completed_phases: 7
-  total_plans: 23
-  completed_plans: 23
+  total_plans: 29
+  completed_plans: 24
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 18 — articulador-lider-export-reachability
+**Current focus:** Phase 19 — articulador-panel-human-uat-closure
 
 ## Current Position
 
-Phase: 19
-Plan: Not started
+Phase: 19 (articulador-panel-human-uat-closure) — EXECUTING
+Plan: 1 of 6 complete
 
 ## v1.2 Phase Map
 
@@ -48,6 +48,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 19 Plan 01 decisions:
+
+- [Phase 19 Plan 01]: Closed the real `AREA_COORDINATOR` scoping gap in `CampaignStatsOverview` (`scopedVoterQuery()` + `getActiveLeadersStat()`) and `TerritorialDistributionChart` (`getData()`) — both previously fell through to full-campaign totals for an articulador, unlike the already-correct `TopLeadersTable`. Extended `User::teamCoordinatorUserIds()` scoping to both, collapsing `scopedVoterQuery()`'s `COORDINATOR`-only branch into a single `hasAnyRole([COORDINATOR, AREA_COORDINATOR])` branch (behaviorally identical for a lone coordinador), while keeping `getActiveLeadersStat()`'s `AREA_COORDINATOR` branch separate per the plan's literal interface spec.
+- [Phase 19 Plan 01]: `TerritorialDistributionChart::getData()` is `protected` (base Filament `ChartWidget` signature) — the plan's literal test spec (`->instance()->getData()`) doesn't work as written since Livewire's `Testable` magic `__call` only proxies to public methods; used `ReflectionMethod::setAccessible(true)` to invoke it directly instead, preserving the assertion's intent.
+- [Phase 19 Plan 01]: Worktree (`agent-ad9f562568ebe9940`) was stale at session start — checked out at the Phase 15 completion commit (`6dd2f24`), missing Phases 16-19 entirely (including this plan's own PLAN.md), plus `vendor/`, `.env`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, and copied `public/build/` from the main checkout (this plan makes no frontend asset changes, so `npm run build` was not needed — the copy alone resolved 1 spurious `AreaCoordinatorPanelAccessTest` "Vite manifest not found" failure during the Task 2 regression run). `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (wrote to the main checkout's `.planning/STATE.md`, not this worktree's, confirmed via `git status --short` showing no diff in this worktree after the call) — STATE.md/ROADMAP.md updated by hand-editing this worktree's copies directly.
 
 Phase 17 Plan 02 decisions:
 
