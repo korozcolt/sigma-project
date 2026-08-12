@@ -3,18 +3,23 @@
 namespace App\Filament\Resources\Leaders\Tables;
 
 use App\Filament\Schemas\MetadataAssignment;
+use App\Filament\Schemas\MetadataTableColumns;
+use App\Filament\Schemas\MetadataTableFilter;
+use App\Services\MetadataAssignmentService;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class LeadersTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => app(MetadataAssignmentService::class)->withCurrentValueSelects($query))
             ->columns([
                 TextColumn::make('name')
                     ->label('Nombre')
@@ -48,6 +53,11 @@ class LeadersTable
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                ...MetadataTableColumns::make(),
+            ])
+            ->filters([
+                MetadataTableFilter::make(),
             ])
             ->recordActions([
                 EditAction::make(),
