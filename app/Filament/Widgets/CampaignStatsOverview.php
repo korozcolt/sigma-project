@@ -119,6 +119,21 @@ class CampaignStatsOverview extends StatsOverviewWidget
                 ->color('success');
         }
 
+        if ($user?->hasRole(UserRole::AREA_COORDINATOR->value)) {
+            $teamCoordinatorIds = $user->teamCoordinatorUserIds();
+            $leadersCount = User::whereIn('coordinator_user_id', $teamCoordinatorIds)->count();
+            $totalVotersForLeaders = Voter::where('campaign_id', $activeCampaign->id)
+                ->whereIn('registered_by', User::whereIn('coordinator_user_id', $teamCoordinatorIds)->pluck('id'))
+                ->count();
+
+            $avgVoters = $leadersCount > 0 ? $totalVotersForLeaders / $leadersCount : 0;
+
+            return Stat::make('Líderes Activos', number_format($leadersCount))
+                ->description(round($avgVoters, 1).' apoyos/líder promedio')
+                ->descriptionIcon('heroicon-m-star')
+                ->color('success');
+        }
+
         // Líderes son usuarios que tienen apoyos registrados
         $leadersCount = User::query()
             ->whereHas('campaigns', fn ($q) => $q->where('campaigns.id', $activeCampaign->id))
@@ -217,8 +232,8 @@ class CampaignStatsOverview extends StatsOverviewWidget
             return $query->where('registered_by', $user->id);
         }
 
-        if ($user?->hasRole(UserRole::COORDINATOR->value)) {
-            return $query->whereIn('registered_by', $user->leaders()->pluck('id'));
+        if ($user?->hasAnyRole([UserRole::COORDINATOR->value, UserRole::AREA_COORDINATOR->value])) {
+            return $query->whereIn('registered_by', User::whereIn('coordinator_user_id', $user->teamCoordinatorUserIds())->pluck('id'));
         }
 
         return $query;

@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\UserRole;
+use App\Models\User;
 use App\Models\Voter;
 use App\Services\CampaignContext;
 use Filament\Widgets\ChartWidget;
@@ -48,8 +49,8 @@ class TerritorialDistributionChart extends ChartWidget
                 fn ($q) => $q->where('voters.registered_by', Auth::id())
             )
             ->when(
-                $user?->hasRole(UserRole::COORDINATOR->value),
-                fn ($q) => $q->whereIn('voters.registered_by', $user->leaders()->pluck('id'))
+                $user?->hasAnyRole([UserRole::COORDINATOR->value, UserRole::AREA_COORDINATOR->value]),
+                fn ($q) => $q->whereIn('voters.registered_by', User::whereIn('coordinator_user_id', $user->teamCoordinatorUserIds())->pluck('id'))
             )
             ->groupBy('municipalities.id', 'municipalities.name')
             ->orderByDesc('total')

@@ -2,6 +2,7 @@
 
 use App\Enums\UserRole;
 use App\Filament\Widgets\CampaignStatsOverview;
+use App\Filament\Widgets\TerritorialDistributionChart;
 use App\Filament\Widgets\TopLeadersTable;
 use App\Models\Campaign;
 use App\Models\User;
@@ -59,6 +60,16 @@ beforeEach(function () {
         'campaign_id' => $this->campaign->id,
         'registered_by' => $this->leaderB2->id,
     ]);
+
+    $this->areaCoordinatorA = User::factory()->create();
+    $this->areaCoordinatorA->assignRole(UserRole::AREA_COORDINATOR->value);
+    $this->areaCoordinatorA->campaigns()->attach($this->campaign);
+    $this->coordinatorA->update(['area_coordinator_user_id' => $this->areaCoordinatorA->id]);
+
+    $this->areaCoordinatorB = User::factory()->create();
+    $this->areaCoordinatorB->assignRole(UserRole::AREA_COORDINATOR->value);
+    $this->areaCoordinatorB->campaigns()->attach($this->campaign);
+    $this->coordinatorB->update(['area_coordinator_user_id' => $this->areaCoordinatorB->id]);
 });
 
 function actAsWithCampaign(User $user, Campaign $campaign): void
@@ -131,4 +142,42 @@ test('admin sees campaign-wide total in CampaignStatsOverview, unchanged', funct
     Livewire::test(CampaignStatsOverview::class)
         ->assertOk()
         ->assertSeeText(number_format($campaignTotal));
+});
+
+test('articulador sees only their team\'s registered voters in CampaignStatsOverview', function () {
+    actAsWithCampaign($this->areaCoordinatorA, $this->campaign);
+
+    $teamTotal = 8; // leaderA1 (3) + leaderA2 (5)
+    $campaignTotal = $this->campaign->voters()->count(); // 3+5+2+7 = 17
+
+    Livewire::test(CampaignStatsOverview::class)
+        ->assertOk()
+        ->assertSeeText(number_format($teamTotal))
+        ->assertDontSeeText(number_format($campaignTotal));
+});
+
+test('a second articulador does not see the first articulador\'s team total in CampaignStatsOverview', function () {
+    actAsWithCampaign($this->areaCoordinatorB, $this->campaign);
+
+    $teamTotalB = 9; // leaderB1 (2) + leaderB2 (7)
+    $teamTotalA = 8; // leaderA1 (3) + leaderA2 (5)
+
+    Livewire::test(CampaignStatsOverview::class)
+        ->assertOk()
+        ->assertSeeText(number_format($teamTotalB))
+        ->assertDontSeeText(number_format($teamTotalA));
+});
+
+test('articulador sees only their team\'s municipalities in TerritorialDistributionChart', function () {
+    actAsWithCampaign($this->areaCoordinatorA, $this->campaign);
+
+    $instance = Livewire::test(TerritorialDistributionChart::class)->instance();
+
+    // getData() is protected on the base Filament ChartWidget, so it is invoked
+    // via reflection rather than a direct method call.
+    $method = new ReflectionMethod($instance, 'getData');
+    $method->setAccessible(true);
+    $data = $method->invoke($instance);
+
+    expect(array_sum($data['datasets'][0]['data']))->toBe(8);
 });
