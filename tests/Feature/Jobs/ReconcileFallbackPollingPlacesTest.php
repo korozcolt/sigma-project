@@ -6,6 +6,7 @@ use App\Jobs\ReconcileFallbackPollingPlaces;
 use App\Models\Campaign;
 use App\Models\NationalCensusRecord;
 use App\Models\PollingPlace;
+use App\Models\RegistraduriaLiveSession;
 use App\Models\Voter;
 use App\Services\LiveSourceAdapter;
 use App\Services\PollingPlaceResolver;
@@ -293,6 +294,50 @@ test('processes voters across multiple campaigns without any authenticated/ambie
 
     expect($voterA->fresh()->reconciliation_attempts)->toBe(1)
         ->and($voterB->fresh()->reconciliation_attempts)->toBe(1);
+});
+
+// 2captcha-duplicate-spend: an artificial ~40s sync timeout must never be counted as a
+// genuine reconciliation failure when the real (already-paid-for) attempt is still
+// being collected in the background — see .planning/debug/resolved/2captcha-duplicate-spend.md
+test('does not bump reconciliation_attempts when a RegistraduriaLiveSession claim exists for the voter (pending background collection)', function () {
+    $adapter = new class implements LiveSourceAdapter
+    {
+        public function startLookup(string $cedula): string
+        {
+            return 'session-should-not-be-called';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'done', 'data' => [], 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+    bindResolverWithAdapter($adapter);
+
+    $voter = Voter::factory()->create([
+        'document_number' => '6000000001',
+        'polling_place_source' => PollingPlaceSource::SNAPSHOT,
+        'reconciliation_attempts' => 2,
+    ]);
+
+    // Simulates a session already claimed elsewhere (this run's own dispatched
+    // collector, the sibling census:reconcile-validation cron, or an interactive
+    // lookup) — resolveAutomated() will skip live entirely for this cédula (claim
+    // fails) and fall through, but that must not count as a genuine failure.
+    RegistraduriaLiveSession::factory()->create([
+        'document_number' => '6000000001',
+        'expires_at' => now()->addMinutes(5),
+    ]);
+
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
+
+    expect($voter->fresh()->reconciliation_attempts)->toBe(2)
+        ->and($voter->fresh()->reconciliation_exhausted_at)->toBeNull();
 });
 
 // RECON-06: correctly-unitted lock expiry

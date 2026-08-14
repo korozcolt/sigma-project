@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Enums\PollingPlaceSource;
+use App\Models\RegistraduriaLiveSession;
 use App\Models\Voter;
 use App\Services\PollingPlaceResolver;
 use App\Services\VoterValidationService;
@@ -43,6 +44,7 @@ class ReconcileFallbackPollingPlaces implements ShouldQueue
         $upgraded = 0;
         $failed = 0;
         $newlyExhausted = 0;
+        $pendingCollection = 0;
 
         foreach ($voters as $voter) {
             $result = $resolver->resolveAutomated($voter->document_number, $voter, resolvedVia: 'reconciliation');
@@ -63,6 +65,23 @@ class ReconcileFallbackPollingPlaces implements ShouldQueue
                 $validationService->updateVoterStatus($voter, found: true);
 
                 $upgraded++;
+
+                continue;
+            }
+
+            // A RegistraduriaLiveSession row means a real (already-paid-for) live attempt
+            // for this document_number is still being collected in the background —
+            // either PollingPlaceResolver just dispatched CollectRegistraduriaLookupResult
+            // for THIS run's synchronous timeout, or another concurrent attempt (the
+            // sibling census:reconcile-validation cron, or an interactive lookup) already
+            // claimed it. Either way, this run's null/non-LIVE result was NOT a genuine
+            // failure — don't burn a reconciliation attempt on it. The collector job (or
+            // whichever process holds the claim) applies the bump itself once it reaches a
+            // true terminal outcome or its collection window expires. See
+            // .planning/debug/resolved/2captcha-duplicate-spend.md.
+            if (RegistraduriaLiveSession::where('document_number', $voter->document_number)->exists()) {
+                $pendingCollection++;
+                Log::info('census.reconcile.voter_pending_collection', ['voter_id' => $voter->id]);
 
                 continue;
             }
@@ -88,6 +107,7 @@ class ReconcileFallbackPollingPlaces implements ShouldQueue
             'upgraded' => $upgraded,
             'failed' => $failed,
             'newly_exhausted' => $newlyExhausted,
+            'pending_collection' => $pendingCollection,
         ]);
     }
 

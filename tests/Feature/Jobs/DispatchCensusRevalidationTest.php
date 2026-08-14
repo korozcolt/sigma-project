@@ -3,6 +3,7 @@
 use App\Enums\VoterStatus;
 use App\Jobs\DispatchCensusRevalidation;
 use App\Models\NationalIdentityRecord;
+use App\Models\RegistraduriaLiveSession;
 use App\Models\RevalidationRun;
 use App\Models\User;
 use App\Models\ValidationHistory;
@@ -117,6 +118,29 @@ test('a found resolution resets reconciliation_attempts to 0 and reconciliation_
     $fresh = $voter->fresh();
 
     expect($fresh->reconciliation_attempts)->toBe(0)
+        ->and($fresh->reconciliation_exhausted_at)->toBeNull();
+});
+
+// 2captcha-duplicate-spend: mirrors ReconcileFallbackPollingPlacesTest's identical
+// coverage for this job's sibling bump logic — see
+// .planning/debug/resolved/2captcha-duplicate-spend.md
+test('does not bump reconciliation_attempts when a RegistraduriaLiveSession claim exists for the voter (pending background collection)', function () {
+    $voter = Voter::factory()->create([
+        'document_number' => '6000000002',
+        'status' => VoterStatus::PENDING_REVIEW,
+        'reconciliation_attempts' => 2,
+    ]);
+
+    RegistraduriaLiveSession::factory()->create([
+        'document_number' => '6000000002',
+        'expires_at' => now()->addMinutes(5),
+    ]);
+
+    (new DispatchCensusRevalidation)->handle();
+
+    $fresh = $voter->fresh();
+
+    expect($fresh->reconciliation_attempts)->toBe(2)
         ->and($fresh->reconciliation_exhausted_at)->toBeNull();
 });
 

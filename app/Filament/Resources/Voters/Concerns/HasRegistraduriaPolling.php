@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Voters\Concerns;
 
 use App\Enums\PollingPlaceSource;
+use App\Exceptions\RegistraduriaLookupInProgressException;
 use App\Models\CensusRecord;
 use App\Models\Department;
 use App\Models\Municipality;
@@ -77,10 +78,23 @@ trait HasRegistraduriaPolling
 
         // D-01/D-04: attempt live first, but only when reachable and not kill-switched.
         if ($resolver->isLiveReachable()) {
+            $voter = ($this instanceof EditRecord) ? $this->record : null;
+
             try {
-                $sessionId = $resolver->startLiveLookup($cedula);
+                $sessionId = $resolver->startLiveLookup(
+                    $cedula,
+                    voterId: $voter?->id,
+                    campaignId: CampaignContext::currentCampaignId(),
+                    resolvedVia: 'interactive',
+                );
                 $this->registraduriaSessionId = $sessionId;
                 $this->registraduriaOpen = true;
+            } catch (RegistraduriaLookupInProgressException $e) {
+                Notification::make()
+                    ->title('Consulta en curso')
+                    ->body($e->getMessage())
+                    ->warning()
+                    ->send();
             } catch (\Exception $e) {
                 Notification::make()
                     ->title('Error al conectar con el servicio')
@@ -173,11 +187,28 @@ trait HasRegistraduriaPolling
             return;
         }
 
+        $voter = ($this instanceof EditRecord) ? $this->record : null;
+
         try {
-            $sessionId = app(PollingPlaceResolver::class)->startLiveLookup($cedula);
+            $sessionId = app(PollingPlaceResolver::class)->startLiveLookup(
+                $cedula,
+                voterId: $voter?->id,
+                campaignId: CampaignContext::currentCampaignId(),
+                resolvedVia: 'interactive',
+            );
             $this->registraduriaSessionId = $sessionId;
             $this->registraduriaOpen = true;
             $this->registraduriaForceOverride = true;
+        } catch (RegistraduriaLookupInProgressException $e) {
+            // Also the cooldown for repeated "Actualizar datos" clicks (D-13): while a
+            // claim is live for this cédula, another force-refresh click is turned away
+            // here instead of paying for a second concurrent live lookup. See
+            // .planning/debug/resolved/2captcha-duplicate-spend.md.
+            Notification::make()
+                ->title('Consulta en curso')
+                ->body($e->getMessage())
+                ->warning()
+                ->send();
         } catch (\Exception $e) {
             Notification::make()
                 ->title('Error al conectar con el servicio')
@@ -200,6 +231,16 @@ trait HasRegistraduriaPolling
         $this->registraduriaSessionId = '';
         $isExplicitOverride = $this->registraduriaForceOverride;
         $this->registraduriaForceOverride = false;
+
+        // The browser's own Alpine.js polling loop only ever dispatches this event on a
+        // definitive `status: done` — release the claim immediately rather than waiting
+        // on CollectRegistraduriaLookupResult's next check, so a legitimate follow-up
+        // lookup for the same cédula (e.g. after a "not found") isn't blocked for up to
+        // LIVE_SESSION_WINDOW_MINUTES. See .planning/debug/resolved/2captcha-duplicate-spend.md.
+        $lookupCedula = $this->data['document_number'] ?? null;
+        if ($lookupCedula) {
+            app(PollingPlaceResolver::class)->releaseLiveSession($lookupCedula);
+        }
 
         // Normalise: accept either the raw data array or the full {status,data} wrapper
         if (isset($data['data']) && is_array($data['data'])) {

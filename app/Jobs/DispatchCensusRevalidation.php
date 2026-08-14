@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Enums\VoterStatus;
+use App\Models\RegistraduriaLiveSession;
 use App\Models\RevalidationRun;
 use App\Models\Voter;
 use App\Services\VoterValidationService;
@@ -101,6 +102,13 @@ class DispatchCensusRevalidation implements ShouldQueue
      * Reset the shared attempts/exhaustion counter on a found resolution, or increment it (and
      * mark the voter exhausted after MAX_ATTEMPTS_BEFORE_EXHAUSTION consecutive failures) on a
      * not-found resolution. Mirrors ReconcileFallbackPollingPlaces's identical pattern.
+     *
+     * Skips the bump entirely when a RegistraduriaLiveSession claim still exists for this
+     * voter's document_number — a real (already-paid-for) live attempt is still being
+     * collected in the background (this run's own synchronous timeout, the sibling
+     * census:reconcile-live cron, or an interactive lookup), so this run's not-found
+     * result was never a genuine failure. See
+     * .planning/debug/resolved/2captcha-duplicate-spend.md.
      */
     private function updateReconciliationTracking(Voter $voter, bool $found): void
     {
@@ -109,6 +117,12 @@ class DispatchCensusRevalidation implements ShouldQueue
                 'reconciliation_attempts' => 0,
                 'reconciliation_exhausted_at' => null,
             ]);
+
+            return;
+        }
+
+        if (RegistraduriaLiveSession::where('document_number', $voter->document_number)->exists()) {
+            Log::info('census.revalidation.voter_pending_collection', ['voter_id' => $voter->id]);
 
             return;
         }

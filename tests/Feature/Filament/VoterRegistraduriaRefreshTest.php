@@ -8,6 +8,7 @@ use App\Models\Municipality;
 use App\Models\NationalCensusRecord;
 use App\Models\PollingPlace;
 use App\Models\PollingPlaceResolution;
+use App\Models\RegistraduriaLiveSession;
 use App\Models\RegistraduriaLookup;
 use App\Models\User;
 use App\Models\Voter;
@@ -417,6 +418,76 @@ it('never mislabels a DB-reconstruction result as LIVE on a later lookup via a s
         ->assertNotified('Puesto de votación (desde base de datos)');
 
     expect($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::DB_RECONSTRUCTION);
+});
+
+// ============ 2captcha-duplicate-spend: interactive concurrency guard/cooldown
+// (.planning/debug/resolved/2captcha-duplicate-spend.md) ============
+
+it('shows a "consulta en curso" warning and never calls any adapter when a claim already exists for the cédula (refresh/reopen-modal protection)', function () {
+    $cedula = '1102816200';
+    $voter = createEditableVoter(['document_number' => $cedula]);
+
+    RegistraduriaLiveSession::factory()->create([
+        'document_number' => $cedula,
+        'expires_at' => now()->addMinutes(5),
+    ]);
+
+    $this->mock(InfovotantesService::class, function ($mock) {
+        $mock->shouldReceive('isReachable')->andReturn(true);
+        $mock->shouldNotReceive('startLookup');
+    });
+
+    Livewire::test(EditVoter::class, ['record' => $voter->id])
+        ->call('openRegistraduriaBrowser', $cedula)
+        ->assertSet('registraduriaOpen', false)
+        ->assertNotified('Consulta en curso');
+});
+
+it('releases the claim once the interactive modal reports a definitive result, so a later lookup for the same cédula is not blocked', function () {
+    $cedula = '1102816202';
+    $voter = createEditableVoter(['document_number' => $cedula]);
+
+    RegistraduriaLiveSession::factory()->create([
+        'document_number' => $cedula,
+        'expires_at' => now()->addMinutes(5),
+    ]);
+
+    $data = [
+        'puesto_nombre' => 'IE LA CAMPIÑA',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'mesa_numero' => '05',
+        'departamento' => 'SUCRE',
+        'municipio' => $voter->municipality->name,
+        'direccion' => 'CL 22 No. 10A-380',
+    ];
+
+    Livewire::test(EditVoter::class, ['record' => $voter->id])
+        ->dispatch('registraduria-result', data: $data)
+        ->assertNotified('Puesto de votación encontrado');
+
+    expect(RegistraduriaLiveSession::where('document_number', $cedula)->exists())->toBeFalse();
+});
+
+it('forceRefreshFromRegistraduria shows a "consulta en curso" warning and never calls any adapter when a claim already exists (repeated-click cooldown)', function () {
+    $cedula = '1102816201';
+    $voter = createEditableVoter(['document_number' => $cedula]);
+
+    RegistraduriaLiveSession::factory()->create([
+        'document_number' => $cedula,
+        'expires_at' => now()->addMinutes(5),
+    ]);
+
+    config(['services.registraduria.live_enabled' => true]);
+
+    $this->mock(InfovotantesService::class, function ($mock) {
+        $mock->shouldNotReceive('startLookup');
+    });
+
+    Livewire::test(EditVoter::class, ['record' => $voter->id])
+        ->call('forceRefreshFromRegistraduria', $cedula)
+        ->assertSet('registraduriaOpen', false)
+        ->assertNotified('Consulta en curso');
 });
 
 // ============ Regression: real live Registraduría results never carry puesto_codigo/

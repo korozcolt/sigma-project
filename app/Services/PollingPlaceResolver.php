@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\PollingPlaceSource;
+use App\Exceptions\RegistraduriaLookupInProgressException;
+use App\Jobs\CollectRegistraduriaLookupResult;
 use App\Models\CensusRecord;
 use App\Models\Municipality;
 use App\Models\NationalCensusRecord;
 use App\Models\PollingPlace;
 use App\Models\PollingPlaceResolution;
+use App\Models\RegistraduriaLiveSession;
 use App\Models\RegistraduriaLookup;
 use App\Models\Voter;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Sleep;
 
 class PollingPlaceResolver
@@ -19,6 +23,18 @@ class PollingPlaceResolver
     private const LIVE_POLL_ATTEMPTS = 9;
 
     private const LIVE_POLL_INTERVAL_MS = 5000;
+
+    /**
+     * How long a RegistraduriaLiveSession claim survives before it's considered
+     * abandoned and a fresh attempt is allowed again — bounds the concurrency
+     * guard/cooldown even if nothing ever explicitly releases the row (crash,
+     * abandoned browser tab). Comfortably past the microservice's own ~150s
+     * hard 2captcha-solving bound, and matches CollectRegistraduriaLookupResult's
+     * own collection window. See .planning/debug/resolved/2captcha-duplicate-spend.md.
+     */
+    private const LIVE_SESSION_WINDOW_MINUTES = 10;
+
+    private const COLLECTOR_INITIAL_DELAY_SECONDS = 90;
 
     public function __construct(
         /** @var iterable<LiveSourceAdapter> */
@@ -41,14 +57,43 @@ class PollingPlaceResolver
      * Starts a lookup on the first reachable adapter, in priority order (LIVE-01).
      * Skips unreachable adapters rather than blindly using the first one, so priority
      * order only applies among adapters that are actually up.
+     *
+     * Claims a RegistraduriaLiveSession for $cedula BEFORE ever calling a real
+     * adapter's startLookup() (the actual 2captcha-spending call) — the interactive
+     * modal's "consultar"/"actualizar datos" buttons are the other real-money entry
+     * point besides the automated cascade (attemptLiveAutomated()), and without this
+     * guard a page refresh, a modal close/reopen, or a repeated force-refresh click
+     * during a slow captcha solve would each start ANOTHER paid live lookup for the
+     * same cédula while the first one might still be genuinely resolving. Throws
+     * RegistraduriaLookupInProgressException (never calls any adapter) when a claim
+     * already exists — every existing generic `catch (\Exception $e)` call site
+     * keeps working unchanged. See .planning/debug/resolved/2captcha-duplicate-spend.md.
      */
-    public function startLiveLookup(string $cedula): string
+    public function startLiveLookup(string $cedula, ?int $voterId = null, ?int $campaignId = null, string $resolvedVia = 'interactive'): string
     {
+        if (! $this->claimLiveSession($cedula, $voterId, $campaignId, $resolvedVia)) {
+            throw new RegistraduriaLookupInProgressException(
+                'Ya hay una consulta en curso para esta cédula. Espera unos segundos e intenta de nuevo.'
+            );
+        }
+
         foreach ($this->liveAdapters as $adapter) {
             if ($adapter->isReachable()) {
-                return $adapter->startLookup($cedula);
+                try {
+                    $sessionId = $adapter->startLookup($cedula);
+                } catch (\Exception $e) {
+                    $this->releaseLiveSession($cedula);
+
+                    throw $e;
+                }
+
+                $this->attachAdapterToSession($cedula, $sessionId, $adapter);
+
+                return $sessionId;
             }
         }
+
+        $this->releaseLiveSession($cedula);
 
         throw new \RuntimeException('No live source adapters configured.');
     }
@@ -312,15 +357,38 @@ class PollingPlaceResolver
      * job — which can process up to 50 voters times up to 3 cascading adapters — from
      * running for hours.
      *
+     * Claims a RegistraduriaLiveSession for $cedula before ever calling
+     * $adapter->startLookup() (the concurrency guard — see startLiveLookup()'s
+     * docblock; the two hourly cron jobs sharing this cascade are the other race
+     * this closes). On the terminal outcomes reachable within this method's own
+     * synchronous poll window (success, done-but-blank, waiting_captcha, error), the
+     * claim is released immediately since a definitive answer is already in hand.
+     *
+     * On the ONE remaining exit — every poll returned 'pending' and all
+     * LIVE_POLL_ATTEMPTS are exhausted — the claim is deliberately kept and handed
+     * off to CollectRegistraduriaLookupResult (real queue, never dispatchSync) so an
+     * already-paid-for solve that's still genuinely in progress is never silently
+     * discarded/re-paid-for. Skipped for non-instantiable adapters (anonymous test
+     * doubles — see isDispatchableAdapter()), which just release immediately instead.
+     * See .planning/debug/resolved/2captcha-duplicate-spend.md.
+     *
      * @return array<string,string>|null Raw fields on success, null on any give-up.
      */
-    private function attemptLiveAutomated(LiveSourceAdapter $adapter, string $cedula): ?array
+    private function attemptLiveAutomated(LiveSourceAdapter $adapter, string $cedula, Voter $voter, string $resolvedVia): ?array
     {
+        if (! $this->claimLiveSession($cedula, $voter->id, $voter->campaign_id, $resolvedVia)) {
+            return null;
+        }
+
         try {
             $sessionId = $adapter->startLookup($cedula);
         } catch (\Exception) {
+            $this->releaseLiveSession($cedula);
+
             return null;
         }
+
+        $this->attachAdapterToSession($cedula, $sessionId, $adapter);
 
         $backoffMs = array_fill(0, self::LIVE_POLL_ATTEMPTS, self::LIVE_POLL_INTERVAL_MS);
 
@@ -333,13 +401,19 @@ class PollingPlaceResolver
                 // against ANY adapter/microservice returning "done" without a distinct
                 // not_found outcome (the infovotantes Python flow did exactly this).
                 if (blank($result['data']['puesto_nombre'] ?? null)) {
+                    $this->releaseLiveSession($cedula);
+
                     return null;
                 }
+
+                $this->releaseLiveSession($cedula);
 
                 return $result['data'];
             }
 
             if ($result['status'] === 'waiting_captcha' || $result['status'] === 'error') {
+                $this->releaseLiveSession($cedula);
+
                 return null;
             }
 
@@ -347,6 +421,14 @@ class PollingPlaceResolver
                 Sleep::for($delayMs)->milliseconds();
             }
         }
+
+        if (! $this->isDispatchableAdapter($adapter)) {
+            $this->releaseLiveSession($cedula);
+
+            return null;
+        }
+
+        CollectRegistraduriaLookupResult::dispatch($cedula)->delay(now()->addSeconds(self::COLLECTOR_INITIAL_DELAY_SECONDS));
 
         return null;
     }
@@ -378,7 +460,7 @@ class PollingPlaceResolver
             // error, waiting_captcha, not_found) stops the live cascade HERE — it falls
             // through to the free national snapshot tier below, never to another
             // live/2captcha adapter. Only genuine unreachability (above) advances the loop.
-            if ($fields = $this->attemptLiveAutomated($adapter, $cedula)) {
+            if ($fields = $this->attemptLiveAutomated($adapter, $cedula, $voter, $resolvedVia)) {
                 $this->persistPermanentLookup($cedula, $fields, $voter->campaign_id);
 
                 $result = new PollingPlaceResolutionResult(
@@ -484,5 +566,67 @@ class PollingPlaceResolver
             'department_id' => $municipality->department_id,
             'max_tables' => $maxTablesFromMesa ?? 0,
         ]);
+    }
+
+    /**
+     * Atomically claim the single RegistraduriaLiveSession slot for $cedula. Relies on
+     * the table's unique index on document_number as the actual concurrency guard
+     * (robust across processes/hosts sharing the same MySQL instance, unlike an
+     * in-memory or cache-driver-dependent lock) rather than a check-then-insert
+     * pattern, which would have a race window between the SELECT and the INSERT.
+     * Returns false — without throwing — when a claim already exists.
+     */
+    private function claimLiveSession(string $cedula, ?int $voterId, ?int $campaignId, string $resolvedVia): bool
+    {
+        try {
+            RegistraduriaLiveSession::create([
+                'document_number' => $cedula,
+                'voter_id' => $voterId,
+                'campaign_id' => $campaignId,
+                'resolved_via' => $resolvedVia,
+                'expires_at' => now()->addMinutes(self::LIVE_SESSION_WINDOW_MINUTES),
+            ]);
+
+            return true;
+        } catch (QueryException) {
+            return false;
+        }
+    }
+
+    private function attachAdapterToSession(string $cedula, string $sessionId, LiveSourceAdapter $adapter): void
+    {
+        RegistraduriaLiveSession::where('document_number', $cedula)->update([
+            'session_id' => $sessionId,
+            'adapter_class' => get_class($adapter),
+        ]);
+    }
+
+    /**
+     * Release the claim for $cedula, if any. Public so callers outside this class that
+     * observe a definitive interactive result in real time (HasRegistraduriaPolling's
+     * fast-path handler for the browser's own Alpine.js polling loop) can release
+     * immediately instead of waiting for CollectRegistraduriaLookupResult's next check.
+     */
+    public function releaseLiveSession(string $cedula): void
+    {
+        RegistraduriaLiveSession::where('document_number', $cedula)->delete();
+    }
+
+    /**
+     * CollectRegistraduriaLookupResult resolves the stored adapter_class back into an
+     * instance via the container (`app($class)`) once the synchronous cascade window
+     * gives up. An anonymous class (every LiveSourceAdapter test double throughout the
+     * test suite) either can't be resolved this way at all, or — worse — under the
+     * `sync` queue driver used in testing (phpunit.xml), the job would run INLINE
+     * within the very test that triggered it, resolving a brand-new instance separate
+     * from the test's own reference-capturing anonymous class and potentially
+     * recursing (self-redispatch also runs inline under `sync`). Real production
+     * adapters (RegistraduriaService, InfovotantesService, ConsultaCensoService) are
+     * always real, named, container-resolvable classes, so this check only ever skips
+     * dispatch for test doubles. See .planning/debug/resolved/2captcha-duplicate-spend.md.
+     */
+    private function isDispatchableAdapter(LiveSourceAdapter $adapter): bool
+    {
+        return ! str_contains(get_class($adapter), '@anonymous');
     }
 }
