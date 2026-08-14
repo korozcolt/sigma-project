@@ -9,6 +9,8 @@ use App\Filament\Widgets\DuplicatesReportTable;
 use App\Filament\Widgets\FallbackSourceOverview;
 use App\Filament\Widgets\FollowUpBacklogOverview;
 use App\Filament\Widgets\JurisdictionReportTable;
+use App\Filament\Widgets\JurisdictionSummaryOverview;
+use App\Filament\Widgets\RejectionsCountersOverview;
 use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\SurveyStatsOverview;
 use App\Filament\Widgets\TerritorialDistributionChart;
@@ -80,8 +82,10 @@ class AdminPanelProvider extends PanelProvider
                 TopCoordinatorsTable::class,     // Ranking + cobertura coordinadores (D-05) — fila 4 completa
                 TerritorialOwnershipTable::class, // Propiedad territorial/equipos consolidada (PERM-03)
                 TopPollingPlacesTable::class,    // Ranking puestos de votación — fila 5 completa
+                RejectionsCountersOverview::class, // Contadores de rechazos/duplicados/fuera de jurisdicción
                 RejectionsReportTable::class,    // Informe de rechazos — fila 6 completa
                 DuplicatesReportTable::class,    // Informe de duplicados (D-06, cruza campañas) — fila 7 completa
+                JurisdictionSummaryOverview::class, // Resumen dentro/fuera de jurisdicción
                 JurisdictionReportTable::class,  // Informe de jurisdicción (D-04, oculto en Nacional) — fila 8 completa
                 ApoyosLideresCoordinadoresTable::class, // CSV plano combinado (D-03) — fila 9 completa
                 SurveyStatsOverview::class,      // Encuestas — fila 10 izq
