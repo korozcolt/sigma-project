@@ -49,6 +49,13 @@ test('rejections counters overview reports correct non-overlapping counts for th
 
     Voter::factory()->create([
         'campaign_id' => $campaign->id,
+        'document_number' => '5551234567',
+        'duplicate_sequence' => 0,
+    ]);
+    Voter::factory()->create([
+        'campaign_id' => $campaign->id,
+        'document_number' => '5551234567',
+        'duplicate_sequence' => 1,
         'status' => VoterStatus::DUPLICATE,
     ]);
 
@@ -100,6 +107,13 @@ test('rejections counters overview never leaks another campaign\'s voters into t
 
     Voter::factory()->create([
         'campaign_id' => $otherCampaign->id,
+        'document_number' => '5559998888',
+        'duplicate_sequence' => 0,
+    ]);
+    Voter::factory()->create([
+        'campaign_id' => $otherCampaign->id,
+        'document_number' => '5559998888',
+        'duplicate_sequence' => 1,
         'status' => VoterStatus::DUPLICATE,
     ]);
 
@@ -117,4 +131,58 @@ test('rejections counters overview never leaks another campaign\'s voters into t
     expect($stats[0]->getValue())->toBe(number_format(0))
         ->and($stats[1]->getValue())->toBe(number_format(0))
         ->and($stats[2]->getValue())->toBe(number_format(0));
+});
+
+test('rejections counters overview duplicados stat counts disputed document_number groups, not the legacy DUPLICATE status alone', function () {
+    $activeCampaign = Campaign::factory()->create(['status' => 'active']);
+    $otherCampaign = Campaign::factory()->create(['status' => 'active']);
+
+    Session::put('campaign_context.campaign_id', $activeCampaign->id);
+    Session::put('campaign_context.mode', 'single');
+
+    // Lone voter under the active campaign, manually flagged DUPLICATE (legacy status),
+    // but with a unique document_number — no sibling anywhere. Must NOT count.
+    Voter::factory()->create([
+        'campaign_id' => $activeCampaign->id,
+        'document_number' => '5551112222',
+        'status' => VoterStatus::DUPLICATE,
+    ]);
+
+    // Genuine cross-campaign duplicate group: one row in the active campaign...
+    Voter::factory()->create([
+        'campaign_id' => $activeCampaign->id,
+        'document_number' => '5553334444',
+        'duplicate_sequence' => 0,
+    ]);
+
+    // ...and one row in a different campaign, same document_number.
+    Session::put('campaign_context.campaign_id', $otherCampaign->id);
+    Session::put('campaign_context.mode', 'single');
+
+    Voter::factory()->create([
+        'campaign_id' => $otherCampaign->id,
+        'document_number' => '5553334444',
+        'duplicate_sequence' => 1,
+        'status' => VoterStatus::DUPLICATE,
+    ]);
+
+    Session::put('campaign_context.campaign_id', $activeCampaign->id);
+    Session::put('campaign_context.mode', 'single');
+
+    $instance = Livewire::test(RejectionsCountersOverview::class)->instance();
+    $stats = (new ReflectionMethod($instance, 'getStats'))->invoke($instance);
+
+    expect($stats[1]->getValue())->toBe(number_format(1));
+});
+
+test('rejections counters overview duplicados stat has no url', function () {
+    $campaign = Campaign::factory()->create(['status' => 'active']);
+
+    Session::put('campaign_context.campaign_id', $campaign->id);
+    Session::put('campaign_context.mode', 'single');
+
+    $instance = Livewire::test(RejectionsCountersOverview::class)->instance();
+    $stats = (new ReflectionMethod($instance, 'getStats'))->invoke($instance);
+
+    expect($stats[1]->getUrl())->toBeNull();
 });

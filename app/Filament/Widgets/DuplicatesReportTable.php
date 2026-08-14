@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Enums\UserRole;
 use App\Exports\DuplicatesExport;
 use App\Filament\Resources\Voters\VoterResource;
+use App\Models\Campaign;
 use App\Models\Voter;
 use App\Services\CampaignContext;
 use Filament\Actions\Action;
@@ -12,6 +13,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 /**
  * INTENTIONAL EXCEPTION TO CAMPAIGN ISOLATION (D-06).
@@ -36,19 +38,36 @@ class DuplicatesReportTable extends TableWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    /**
+     * Document numbers with more than one Voter row system-wide (withoutGlobalScopes,
+     * withTrashed) where at least one of those rows belongs to the given campaign — i.e.
+     * cédulas actively in dispute that this campaign is party to. Shared with
+     * RejectionsCountersOverview's "Duplicados" stat so both surfaces use the exact same
+     * definition of "duplicate" (see the class docblock above for the D-06 cross-campaign
+     * rationale — this method does not change that query's semantics).
+     *
+     * @return Collection<int, string>
+     */
+    public static function disputedDocumentNumbers(?Campaign $activeCampaign): Collection
+    {
+        if (! $activeCampaign) {
+            return collect();
+        }
+
+        return Voter::withoutGlobalScopes()
+            ->withTrashed()
+            ->select('document_number')
+            ->groupBy('document_number')
+            ->havingRaw('COUNT(*) > 1')
+            ->havingRaw('SUM(CASE WHEN campaign_id = ? THEN 1 ELSE 0 END) > 0', [$activeCampaign->id])
+            ->pluck('document_number');
+    }
+
     public function table(Table $table): Table
     {
         $activeCampaign = CampaignContext::currentCampaign();
 
-        $documentNumbers = $activeCampaign
-            ? Voter::withoutGlobalScopes()
-                ->withTrashed()
-                ->select('document_number')
-                ->groupBy('document_number')
-                ->havingRaw('COUNT(*) > 1')
-                ->havingRaw('SUM(CASE WHEN campaign_id = ? THEN 1 ELSE 0 END) > 0', [$activeCampaign->id])
-                ->pluck('document_number')
-            : collect();
+        $documentNumbers = self::disputedDocumentNumbers($activeCampaign);
 
         return $table
             ->query(fn (): Builder => Voter::withoutGlobalScopes()

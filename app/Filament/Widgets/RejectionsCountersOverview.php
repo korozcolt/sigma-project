@@ -49,10 +49,7 @@ class RejectionsCountersOverview extends StatsOverviewWidget
                 ->orWhereHas('verificationCalls', fn ($q2) => $q2->whereIn('call_result', $rejectionCallResults)))
             ->count();
 
-        $duplicados = Voter::query()
-            ->where('campaign_id', $activeCampaign->id)
-            ->where('status', VoterStatus::DUPLICATE->value)
-            ->count();
+        $duplicados = DuplicatesReportTable::disputedDocumentNumbers($activeCampaign)->count();
 
         $fueraJurisdiccion = Voter::query()
             ->where('campaign_id', $activeCampaign->id)
@@ -75,14 +72,15 @@ class RejectionsCountersOverview extends StatsOverviewWidget
                 ])),
 
             Stat::make('Duplicados', number_format($duplicados))
-                ->description('Cédulas duplicadas pendientes de resolución')
+                ->description('Cédulas duplicadas activas en disputa (incluye otras campañas)')
                 ->descriptionIcon('heroicon-m-document-duplicate')
-                ->color('warning')
-                ->url(VoterResource::getUrl('index', [
-                    'tableFilters' => [
-                        'status' => ['values' => [VoterStatus::DUPLICATE->value]],
-                    ],
-                ])),
+                ->color('warning'),
+            // No ->url(): "duplicados en disputa" is a cross-campaign document_number-group
+            // criterion (see DuplicatesReportTable::disputedDocumentNumbers()), not a single
+            // Voter::status value VoterResource's table filter can express. The one place that
+            // DOES render this data (DuplicatesReportTable, on /reports) requires the
+            // REPORTS_VIEWER role, which not every viewer of this widget on /admin will have —
+            // linking there could 403. Dropping the link is safer than a broken or wrong one.
 
             Stat::make('Fuera de Jurisdicción', number_format($fueraJurisdiccion))
                 ->description('Rechazados por quedar fuera del alcance territorial')
