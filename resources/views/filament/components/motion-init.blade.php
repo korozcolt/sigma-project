@@ -25,11 +25,14 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ─── 3. Stats counter animation ──────────────────────────────────────────
+    // Every Stat value on this dashboard is an integer count — never a genuine
+    // decimal — so grouping punctuation (comma or period, depending on how the
+    // backend formatted it) is stripped entirely rather than reinterpreted as a
+    // decimal separator. Treating "2,490" as "2.490" → parseFloat → 2.49 was
+    // silently truncating any stat ≥ 1,000 down to two decimal places.
     const animateCounter = (el, end, duration = 700) => {
         const start = 0;
         const startTime = performance.now();
-        const isFloat = String(end).includes('.');
-        const decimals = isFloat ? (String(end).split('.')[1] || '').length : 0;
 
         const step = (currentTime) => {
             const elapsed = currentTime - startTime;
@@ -38,9 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const eased = 1 - Math.pow(1 - progress, 2);
             const value = start + (end - start) * eased;
 
-            el.textContent = isFloat
-                ? value.toFixed(decimals)
-                : Math.round(value).toLocaleString('es-CO');
+            el.textContent = Math.round(value).toLocaleString('es-CO');
 
             if (progress < 1) {
                 requestAnimationFrame(step);
@@ -58,9 +59,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (el.dataset.animated) { return; }
             el.dataset.animated = '1';
 
-            // Parse the numeric value out of the display text
-            const raw = el.textContent.trim().replace(/[^\d.,]/g, '').replace(',', '.');
-            const end = parseFloat(raw);
+            // Parse the numeric value out of the display text: strip everything
+            // except digits (drops thousands separators, whatever character the
+            // backend used for them) and read the result as a plain integer.
+            const raw = el.textContent.trim().replace(/[^\d]/g, '');
+            const end = parseInt(raw, 10);
 
             if (!isNaN(end) && end > 0) {
                 el.textContent = '0';
