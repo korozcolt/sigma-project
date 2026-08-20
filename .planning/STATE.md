@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
-status: Defining requirements
-stopped_at: Milestone v1.3 started, requirements not yet defined
+status: Roadmap created
+stopped_at: v1.3 roadmap created (Phases 20-24), awaiting plan-phase
 last_updated: "2026-08-20T00:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,20 +19,28 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** v1.3 Visualización de Datos MonoCharts — defining requirements
+**Current focus:** v1.3 Visualización de Datos MonoCharts — Phase 20 (React Island Infrastructure)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-08-20 — Milestone v1.3 started
+Phase: 20 of 24 (React Island Infrastructure)
+Plan: TBD (not yet planned)
+Status: Ready to plan
+Last activity: 2026-08-20 — v1.3 ROADMAP.md created (Phases 20-24), REQUIREMENTS.md traceability updated, 17/17 requirements mapped
+
+Progress: [░░░░░░░░░░] 0%
 
 ## v1.3 Phase Map
 
-Not yet created — pending roadmap step (new-milestone Step 10).
+| Phase | Name | Requirements |
+|-------|------|--------------|
+| 20 | React Island Infrastructure | INFRA-01, INFRA-02, INFRA-03, INFRA-04 |
+| 21 | Migrate Existing Charts to React/Recharts | MIGR-01, MIGR-02 |
+| 22 | Table-Stakes New Visualizations | VIZ-01, VIZ-02, VIZ-03, VIZ-04, VIZ-05 |
+| 23 | Differentiator Visualizations | VIZ-06, VIZ-07, VIZ-08, VIZ-09, VIZ-10 |
+| 24 | Día D Live Voting Visualization | DAYD-05 |
 
-Full phase details, success criteria, and dependencies will live in: `.planning/ROADMAP.md`
+Full phase details, success criteria, and dependencies live in: `.planning/ROADMAP.md`
 
 ## Performance Metrics
 

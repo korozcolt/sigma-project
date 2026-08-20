@@ -67,29 +67,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | TBD | Pending |
-| INFRA-02 | TBD | Pending |
-| INFRA-03 | TBD | Pending |
-| INFRA-04 | TBD | Pending |
-| MIGR-01 | TBD | Pending |
-| MIGR-02 | TBD | Pending |
-| VIZ-01 | TBD | Pending |
-| VIZ-02 | TBD | Pending |
-| VIZ-03 | TBD | Pending |
-| VIZ-04 | TBD | Pending |
-| VIZ-05 | TBD | Pending |
-| VIZ-06 | TBD | Pending |
-| VIZ-07 | TBD | Pending |
-| VIZ-08 | TBD | Pending |
-| VIZ-09 | TBD | Pending |
-| VIZ-10 | TBD | Pending |
-| DAYD-05 | TBD | Pending |
+| INFRA-01 | Phase 20 | Pending |
+| INFRA-02 | Phase 20 | Pending |
+| INFRA-03 | Phase 20 | Pending |
+| INFRA-04 | Phase 20 | Pending |
+| MIGR-01 | Phase 21 | Pending |
+| MIGR-02 | Phase 21 | Pending |
+| VIZ-01 | Phase 22 | Pending |
+| VIZ-02 | Phase 22 | Pending |
+| VIZ-03 | Phase 22 | Pending |
+| VIZ-04 | Phase 22 | Pending |
+| VIZ-05 | Phase 22 | Pending |
+| VIZ-06 | Phase 23 | Pending |
+| VIZ-07 | Phase 23 | Pending |
+| VIZ-08 | Phase 23 | Pending |
+| VIZ-09 | Phase 23 | Pending |
+| VIZ-10 | Phase 23 | Pending |
+| DAYD-05 | Phase 24 | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 17 ⚠️ (expected — roadmapper fills this in next)
+- Mapped to phases: 17/17 ✓
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-20*
-*Last updated: 2026-08-20 after initial v1.3 definition*
+*Last updated: 2026-08-20 after v1.3 roadmap creation (Phases 20-24)*
