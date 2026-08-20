@@ -87,7 +87,7 @@ Shipped summary: `.planning/MILESTONES.md`
 Plans:
 - [x] 20-01-PLAN.md — Vite/Recharts/Motion build pipeline + React<->Alpine bridge core (mount/update/unmount) + theme-flexible ChartCard component — completed 2026-08-20
 - [x] 20-02-PLAN.md — Throwaway ReactIslandPocWidget + shared react-chart.blade.php view, registered on all 5 PanelProviders, plus Pest 4 Browser test — completed 2026-08-20
-- [ ] 20-03-PLAN.md — Human browser checkpoint (D-04): poll cycle, cross-panel navigation, no leaked root
+- [x] 20-03-PLAN.md — Human browser checkpoint (D-04): poll cycle, cross-panel navigation, no leaked root — completed 2026-08-20
 **UI hint**: yes
 
 ### Phase 21: Migrate Existing Charts to React/Recharts

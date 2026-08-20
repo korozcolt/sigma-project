@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: executing
-stopped_at: Completed 20-02-PLAN.md (Phase 20, plan 2/3)
-last_updated: "2026-08-20T20:06:05Z"
-last_activity: 2026-08-20 — Phase 20 Plan 02 complete (ReactIslandPocWidget wired into all 5 panels, real Pest 4 Browser test proving poll-cycle render, Alpine-reactivity/React-root crash fixed)
+stopped_at: Completed 20-03-PLAN.md (Phase 20, plan 3/3) — phase ready for goal verification
+last_updated: "2026-08-20T21:15:00Z"
+last_activity: 2026-08-20 — Phase 20 Plan 03 complete (human browser checkpoint D-04 confirmed on all 5 panels: render, live poll update, clean console, SPA-navigation unmount with no leaked root)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 2
-  percent: 67
+  completed_plans: 3
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-20)
 ## Current Position
 
 Phase: 20 of 24 (React Island Infrastructure)
-Plan: 2 of 3 complete (20-03 next — human checkpoint)
+Plan: 3 of 3 complete — phase goal verification pending
 Status: Executing
-Last activity: 2026-08-20 — Phase 20 Plan 02 complete: ReactIslandPocWidget (ChartWidget subclass) wired into a real widget via the shared react-chart.blade.php view, registered on all 5 PanelProviders (Admin, Reports, Coordinator, AreaCoordinator, Leader) via a HEAD_END render hook, and proven end-to-end with a real Pest 4 Browser test — which caught and fixed a genuine Alpine-reactivity/React-root Proxy crash in the 20-01-built bridge.
+Last activity: 2026-08-20 — Phase 20 Plan 03 complete: human browser checkpoint (D-04) confirmed directly by the user on all 5 panels (Admin, Coordinator, AreaCoordinator, Leader, Reports) — render + live wire:poll update + clean console + SPA-navigation unmount with no leaked React root, and no disruption to pre-existing Livewire widgets. Admin was additionally verified via Chrome browser automation before handing the remaining 4 panels to the user.
 
-Progress: [███████░░░] 67%
+Progress: [██████████] 100%
 
 ## v1.3 Phase Map
 
@@ -53,6 +53,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 20 Plan 03 decisions:
+
+- [Phase 20 Plan 03]: Human checkpoint (D-04) closed with a hybrid approach — Admin panel verified directly via Chrome browser automation (render, live `1`→`21`→`28` poll-cycle update with no page reload, clean console aside from unrelated third-party extension noise), then the click-based SPA-navigation test and the remaining 4 panels handed to the user after browser-automation click actions became persistently blocked by an unrelated Chrome extension conflict (`Cannot access a chrome-extension:// URL of different extension`, traced to the "Jam" extension's `sw.js`). User explicitly confirmed all 3 checks (poll-update, clean console, navigate-away-and-back unmount) on Coordinator, AreaCoordinator, Leader, and Reports.
+- [Phase 20 Plan 03]: No `reports_viewer` user existed in the local `sigma_betha_backup`-backed DB, blocking `/reports` verification with a 403. Rather than reset a password or reassign roles on another real account, assigned `reports_viewer` to the user's own `super_admin` account (`ing.korozco@gmail.com`) — required a `php artisan permission:cache-reset` since Spatie's permission cache was stale and still 403'd immediately after the role assignment.
+- [Phase 20 Plan 03]: `node_modules`/`public/build` were stale on the main checkout (never had `npm install`/`npm run build` run against it directly — 20-01/20-02 each built their own worktree's assets, which don't propagate to the base checkout on merge). Fixed with `npm install && npm run build` directly on `main` before verification could proceed; `/admin` was throwing `Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest: resources/js/charts/main.jsx` until this was done.
+- [Phase 20 Plan 03]: INFRA-01 through INFRA-04 all marked Done — this plan is what closes out the last one (INFRA-03's "verified on all 5 panels" language), completing Phase 20's full requirement set. Phase 20 is functionally complete pending the standard `verify_phase_goal` step.
 
 Phase 20 Plan 02 decisions:
 
