@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Enums\UserRole;
 use App\Filament\Pages\DiaD;
 use App\Filament\Widgets\CampaignStatsOverview;
+use App\Filament\Widgets\ReactIslandPocWidget;
 use App\Filament\Widgets\TerritorialDistributionChart;
 use App\Filament\Widgets\TopLeadersTable;
 use Filament\Http\Middleware\Authenticate;
@@ -23,6 +24,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AreaCoordinatorPanelProvider extends PanelProvider
@@ -67,7 +69,12 @@ class AreaCoordinatorPanelProvider extends PanelProvider
                 CampaignStatsOverview::class,
                 TerritorialDistributionChart::class,
                 TopLeadersTable::class,
+                ReactIslandPocWidget::class,     // Fase 20 PoC — infra React/Recharts/Motion (temporal, ver ReactIslandPocWidget)
             ])
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn () => Vite::withEntryPoints(['resources/js/charts/main.jsx'])->toHtml(),
+            )
             ->renderHook(PanelsRenderHook::BODY_END, fn () => view('filament.components.motion-init'))
             ->middleware([
                 EncryptCookies::class,

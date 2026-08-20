@@ -13,6 +13,7 @@ use App\Filament\Widgets\FallbackSourceOverview;
 use App\Filament\Widgets\FollowUpBacklogOverview;
 use App\Filament\Widgets\JurisdictionReportTable;
 use App\Filament\Widgets\JurisdictionSummaryOverview;
+use App\Filament\Widgets\ReactIslandPocWidget;
 use App\Filament\Widgets\RejectionsCountersOverview;
 use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\SurveyStatsOverview;
@@ -37,6 +38,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class ReportsPanelProvider extends PanelProvider
@@ -91,7 +93,12 @@ class ReportsPanelProvider extends PanelProvider
                 SurveyStatsOverview::class,
                 DiaDStatsOverview::class,
                 DiaDTerritorialProgressTable::class,
+                ReactIslandPocWidget::class,     // Fase 20 PoC — infra React/Recharts/Motion (temporal, ver ReactIslandPocWidget)
             ])
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn () => Vite::withEntryPoints(['resources/js/charts/main.jsx'])->toHtml(),
+            )
             ->renderHook(PanelsRenderHook::BODY_END, fn () => view('filament.components.motion-init'))
             ->middleware([
                 EncryptCookies::class,

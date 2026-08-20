@@ -10,6 +10,7 @@ use App\Filament\Widgets\FallbackSourceOverview;
 use App\Filament\Widgets\FollowUpBacklogOverview;
 use App\Filament\Widgets\JurisdictionReportTable;
 use App\Filament\Widgets\JurisdictionSummaryOverview;
+use App\Filament\Widgets\ReactIslandPocWidget;
 use App\Filament\Widgets\RejectionsCountersOverview;
 use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\SurveyStatsOverview;
@@ -35,6 +36,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -90,9 +92,14 @@ class AdminPanelProvider extends PanelProvider
                 ApoyosLideresCoordinadoresTable::class, // CSV plano combinado (D-03) — fila 9 completa
                 SurveyStatsOverview::class,      // Encuestas — fila 10 izq
                 BirthdayWidget::class,           // Cumpleaños — fila 11 completa
+                ReactIslandPocWidget::class,     // Fase 20 PoC — infra React/Recharts/Motion (temporal, ver ReactIslandPocWidget)
             ])
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.components.campaign-context-switcher'))
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.components.saldos-badge'))
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn () => Vite::withEntryPoints(['resources/js/charts/main.jsx'])->toHtml(),
+            )
             ->renderHook(PanelsRenderHook::BODY_END, fn () => view('filament.components.motion-init'))
             ->navigationGroups([
                 NavigationGroup::make()
