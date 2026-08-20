@@ -100,7 +100,7 @@ Plans:
   3. Each migrated widget has a Pest 4 Browser test verifying real rendered chart content (per the Phase 20 convention)
 **Plans**: 7 plans
 Plans:
-- [ ] 21-01-PLAN.md — Shared React chart-kind library (adapter, palette, formatters, ChartRouter, 4 kind components)
+- [x] 21-01-PLAN.md — Shared React chart-kind library (adapter, palette, formatters, ChartRouter, 4 kind components) — completed 2026-08-20
 - [ ] 21-02-PLAN.md — ChartCard chrome refactor + react-chart.blade.php generalization
 - [ ] 21-03-PLAN.md — Migrate ValidationProgressChart + TerritorialDistributionChart + Browser tests
 - [ ] 21-04-PLAN.md — Migrate SurveyResultsWidget + wire EditSurvey footer widgets + D-04 Browser test

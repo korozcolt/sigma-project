@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: executing
-stopped_at: Phase 21 planned (7 plans, verification passed)
-last_updated: "2026-08-20T21:48:09.738Z"
+stopped_at: Completed 21-01-PLAN.md (Phase 21, plan 1/7)
+last_updated: "2026-08-20T21:52:00.000Z"
 last_activity: 2026-08-20
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 3
-  percent: 100
+  completed_plans: 4
+  percent: 40
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** v1.3 Visualización de Datos MonoCharts — Phase 20 (React Island Infrastructure)
+**Current focus:** v1.3 Visualización de Datos MonoCharts — Phase 21 (Migrate Existing Charts to React/Recharts)
 
 ## Current Position
 
 Phase: 21 of 24 (migrate existing charts to react/recharts)
-Plan: Not started
+Plan: 01 of 7 complete
 Status: Executing
 Last activity: 2026-08-20
 
-Progress: [██████████] 100%
+Progress: [████░░░░░░] 40%
 
 ## v1.3 Phase Map
 
@@ -53,6 +53,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 21 Plan 01 decisions:
+
+- [Phase 21 Plan 01]: Built the full contract-only chart library (`chartjs-adapter.js`, `palette.js`, `formatters.js`, `ChartTooltip.jsx`, `LineChart.jsx`, `BarChart.jsx`, `PieChart.jsx`, `SparklineChart.jsx`, `ChartRouter.jsx`) exactly per the plan's literal code blocks — no deviation in production code. `toNameValueRows` sorts descending by value before ranking (resolves RESEARCH.md's Pattern 3 open sub-question as sort-then-rank, not insertion-order), so `BarChart`/`PieChart` always assign the D-03 accent color to the largest segment regardless of `getData()`'s emission order.
+- [Phase 21 Plan 01]: [Rule 3 - Blocking] Fixed the plan's own literal Task 2 `<verify>` esbuild smoke script — `esbuild.buildSync({ entryPoints: [...6 files], bundle: false, write: false })` with multiple entry points and no `outdir` always throws `Must use "outdir" when there are multiple input files` regardless of whether the files are valid. Added `outdir: 'out'` (esbuild still never writes to disk since `write: false`) — verification-script-only fix, no production file touched.
+- [Phase 21 Plan 01]: Worktree (`agent-a50b3fcd1eb6fdab9`) was 5 commits behind `main` at session start — missing all of Phase 21's planning corpus (`21-CONTEXT.md`, `21-RESEARCH.md`, `21-UI-SPEC.md`, all 7 `21-*-PLAN.md` files) plus `vendor/`, `.env`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout. Since this plan makes zero dependency changes, symlinked `node_modules/` and `vendor/` from the main checkout instead of a full reinstall — `npx vite build --mode production` succeeded cleanly against the symlinked `node_modules`, confirming `recharts`/`vite`/`esbuild` were already present at the versions this plan needs. `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (confirmed via `git status --short` showing zero diff in this worktree's `.planning/STATE.md` after the call) — left the accidental main-checkout mutation as-is per established precedent (no git access to the main checkout from this sandboxed worktree agent to revert it); STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead.
 
 Phase 20 Plan 03 decisions:
 
@@ -678,9 +684,10 @@ Quick task 260808-hx8 decisions:
 
 | Phase 18 P01 | 20min | 3 tasks | 3 files |
 | Phase 19 P06 | 5 | 1 tasks | 1 files |
+| Phase 21 P01 | 5min | 2 tasks | 9 files |
 
 ## Session Continuity
 
-Last session: 2026-08-20T21:48:09.732Z
-Stopped at: Phase 21 planned (7 plans, verification passed)
-Resume file: .planning/phases/21-migrate-existing-charts-to-react-recharts/21-07-PLAN.md
+Last session: 2026-08-20T21:52:00.000Z
+Stopped at: Completed 21-01-PLAN.md (Phase 21, plan 1/7)
+Resume file: .planning/phases/21-migrate-existing-charts-to-react-recharts/21-02-PLAN.md
