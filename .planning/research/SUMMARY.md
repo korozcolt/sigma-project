@@ -1,162 +1,163 @@
 # Project Research Summary
 
-**Project:** SIGMA v1.2 — Articuladores + Metadata de Usuario
-**Domain:** Hierarchical field-operations platform extension (new org tier above `coordinador`) + superadmin-managed JSON metadata catalog with Filament v4 filter/sort (MySQL)
-**Researched:** 2026-08-10
+**Project:** SIGMA v1.3 — MonoCharts-style visualizations (React island on Recharts + Motion)
+**Domain:** React micro-frontend "island" embedded inside a Laravel 12 / Livewire 3 / Filament 4 / Vite 7 admin app
+**Researched:** 2026-08-20
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This milestone adds two related but separable capabilities to SIGMA's existing Laravel/Filament/Spatie hierarchy: a new `articulador` role that sits one level above `coordinador` (mirroring the existing `coordinador -> lider` self-referencing FK pattern, flat and non-nesting), and a superadmin-managed, typed metadata-key catalog (`biaticos`, `almuerzo`, `incentivo`, `asignacion`, etc.) whose values are assigned per-subordinate and must be filterable/sortable in Filament tables. Both features have direct, well-established precedent already in the codebase -- `coordinator_user_id` for the hierarchy shape, and `Gremio`/`Subcategoria` for the "superadmin-managed catalog + Filament CRUD resource" shape -- so no new core technology, package, or architectural pattern is required. Everything needed (MySQL 8.0.45 JSON columns, Laravel 12 JSON where/order clauses, Filament v4 `sortable(query:)`/custom filter closures) already exists in the current stack and is already used elsewhere in this codebase for structurally identical problems.
+This milestone adds a scoped React island — Recharts for chart primitives, Motion for transitions — inside SIGMA's existing Filament/Livewire dashboards, to replace Chart.js and expose several data views (validation-history transitions, message-delivery funnel, territorial hierarchy, caller effectiveness, Día D live voting) that are currently invisible or under-visualized. Experts building this kind of thing keep the framework boundary narrow and one-directional: a single, code-split Vite entry (`resources/js/charts/main.tsx`) mounts independent React roots into `wire:ignore`-protected DOM nodes, and Filament's own already-proven `ChartWidget` polling/checksum/`dispatch()` plumbing — not a new API endpoint, not DOM-attribute polling — is the correct (and only reliable) channel for pushing fresh data into React across `wire:poll` ticks. This mechanism is not a hypothesis; it was reverse-engineered directly from Filament's own vendored `chart.js`/`chart-widget.blade.php`, so the riskiest architectural question (how does React get live data without being remounted or orphaned) is already answered with HIGH confidence.
 
-The recommended approach is: (1) a dedicated new `articulador_user_id` self-referencing FK on `users` -- never reuse or generalize `coordinator_user_id`, which is a narrowly-typed, heavily-consumed column referenced directly in ~6+ files and ~20 tests; (2) a new `metadata_keys` reference table (not a PHP enum, not config) with a `type` column (`numeric`/`string`) from day one, plus a `metadata` JSON column on `users` cast as `array`; (3) an `ArticuladorResource` that is a file-for-file mirror of `CoordinatorResource`; and (4) metadata filter/sort built via generated/indexed MySQL columns per catalog key rather than raw `JSON_EXTRACT`, to avoid full table scans on `users` -- the single most globally-queried table in the app.
+The recommended approach: extend `ChartWidget` per chart (repoint `$view` to one shared `react-chart.blade.php`), keep `wire:poll` on an outer wrapper and `wire:ignore` on the inner React mount only, and call `root.render()` again on the same root on every poll instead of remounting. Recharts v3 covers most of the target chart types natively (`Funnel`, `Sankey`, `Treemap`, `PieChart`/donut, stacked `BarChart`/`AreaChart`) except heatmap and gauge, which require hand-rolled composites — both already have a reusable pattern in the MonoCharts reference repo. Critically, MonoCharts' own funnel/sankey/treemap components are NOT built on Recharts' real primitives (they're hardcoded demo markup), so they are stylistic references only, not implementation shortcuts — the real Sankey/Treemap/Funnel components must be built from scratch against actual SIGMA data (`ValidationHistory` transitions, territorial hierarchy, `VoterStatus`).
 
-The key risk is not technical novelty but **silent breakage of existing hierarchy-assumption code and silent data-integrity loss on money-like fields**. At least six existing surfaces (`TopLeadersTable`, `TopLeadersExport`, `LeadersExportController`, and others) hardcode "coordinator's own id = the scoping filter," and none of them know how to resolve an articulador's transitive team -- the failure mode is an empty dashboard with no error, not an exception. Separately, `AuditObserver` already auto-fires on `User` changes but only captures whole-column JSON diffs with actor-context campaign resolution, which is insufficient for "who set biaticos to X for whom, on which campaign" -- a real compliance gap for money-like data. Both risk classes are cheap to prevent in the schema/hierarchy phase and expensive (or impossible) to fully recover from after the fact, so the roadmap should treat "hierarchy call-site inventory" and "metadata audit/typing design" as blocking, early-phase work, not polish.
+The dominant risk category is not "can Recharts render this" but "does the Livewire↔React bridge stay correctly wired across polling, navigation, and 5 panels of shared widget reuse." Pitfalls research identifies orphaned/stale React roots on poll (if `wire:ignore` boundaries or data channels are built wrong), leaked roots on SPA navigation, event-delegation conflicts with Livewire/Alpine click handlers, and — given this project's own documented history (Phase 18/19) of shared-widget-not-registered-on-every-panel bugs — the very real risk of the new Vite entry or Filament asset registration being missing on 1-2 of the 5 panels. All of these are addressed by building one shared mount/unmount helper and one shared Blade view in a dedicated infrastructure phase before any real chart is built, and by treating "verify on all 5 panels" as an explicit phase success criterion rather than an assumption.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new core technologies, packages, or dev tools are needed. The milestone is fully served by the existing stack: MySQL 8.0.45 native JSON column + JSON path querying, Laravel 12's `->`/`whereJsonContains`/`orderByRaw` JSON support, and Filament v4's `SelectFilter`/`Filter` custom `query()` closures and `TextColumn::sortable(query: Closure)` -- the exact same extension point already used in `CoordinatorsTable` for the `leaders_count` sort. A hand-built `metadata_keys` table (4-5 columns) replaces any need for a schemaless-attributes package; `spatie/laravel-schemaless-attributes` and `ptplugins/filament-auto-filters` were both evaluated and explicitly rejected as disproportionate for this milestone's scope (a handful of flat catalog keys).
+React 19 + Recharts 3.10 + Motion (the current name for what was "Framer Motion") is the correct, verified-compatible stack for this milestone, added as a net-new, purely additive second Vite entry — no upgrade to Vite, `laravel-vite-plugin`, or any existing build tooling is required or should be attempted (the latest majors of both force a Vite 8 bump that is explicitly out of scope). `@vitejs/plugin-react@^5.2.0` (Babel-based, not SWC) is the correct dev dependency for JSX/Fast Refresh, matching the project's existing "no extra native binaries beyond what's already needed for macOS/Linux parity" posture. No TypeScript — the codebase has none today, and introducing it for a single scoped island isn't worth the parallel build-config surface.
 
 **Core technologies:**
-- MySQL 8.0.45 (confirmed via `SELECT VERSION()`) -- native `json` column + `JSON_EXTRACT`/path querying, comfortably above Laravel's MySQL 8.0+ minimum for JSON where/order clauses
-- Laravel 12 query builder / Eloquent -- `->` JSON path operator, `whereJsonContains`, `orderByRaw`/`orderBy` for JSON paths -- no package required
-- Filament v4 Tables -- `SelectFilter`/`Filter` with custom `query()`, `TextColumn::sortable(query: ...)` -- same mechanism already used for `leaders_count` in `CoordinatorsTable`
+- `react` / `react-dom` `^19.2.8` — chart island runtime, net-new dependency, no framework migration
+- `recharts` `^3.10.1` — declarative chart primitives (funnel, sankey, treemap, stacked-bar/area, donut) covering nearly the entire MonoCharts feature list without hand-rolled D3; pulls in Redux Toolkit/Immer/D3 internally, which is exactly why it must be code-split away from `app.js`
+- `motion` `^13.1.1` (import as `motion/react`) — animation/transition layer; use `motion`, not the legacy `framer-motion` package name
+- `@vitejs/plugin-react` `^5.2.0` (dev) — JSX/Fast Refresh compiler compatible with the pinned `vite@^7.0.4`
+- `react-is` `^19.2.8` — required explicit peer for Recharts 3.x
 
 ### Expected Features
 
-**Must have (table stakes, P1 -- matches PROJECT.md's stated v1.2 scope):**
-- `articulador` Spatie role + dedicated Filament resource mirroring `Coordinators`/`Leaders`
-- `articulador_user_id` self-referencing FK on coordinador users -- no coordinador-to-coordinador nesting, no hard cap on coordinadores per articulador
-- Superadmin CRUD for the metadata-key catalog, with a `data_type` field (numeric/text) shipped from day one even if only two types are used initially
-- Per-subordinate metadata value assignment UI, scoped to the assigner's direct subordinates only (lider/coordinador/articulador)
-- Filter and sort by metadata key/value in the relevant Filament listing tables (Users, Coordinators, Leaders, new Articuladores)
-- Metadata value changes visible in the existing `AuditLogs` Filament resource -- but verify granularity (see Critical Pitfalls below)
+Of the ~13 chart widgets in scope (3 migrations + ~10 new), Recharts has a native, data-driven primitive for most; heatmap and gauge require hand-rolled composites (both have a working reference in MonoCharts). The single most important finding: MonoCharts' own funnel/sankey/treemap source is **styling reference only** — none of the three use Recharts' real components, so they must be built fresh against real SIGMA data shapes.
 
-**Should have (P2, natural fast-follow):**
-- Bulk metadata assignment across multiple subordinates at once
-- Additional catalog data types (date, select-with-options) beyond numeric/text
-- CSV export of metadata alongside existing user/coordinator/leader exports
+**Must have (table stakes / P1 — good Phase 1/2 material):**
+- React island infra (Vite entry + `wire:ignore` bridge) — blocks every other chart, must ship first
+- Migrate the 3 existing `ChartWidget`s + 3 sparklines to Recharts — proves the full pipeline with zero new data-shape risk
+- Donut of 12 `VoterStatus` states, stacked-bar coordinator comparison, gauge + histogram for SCALE survey — direct Recharts primitives, low complexity
+- Funnel of call contactability by attempt, funnel of message delivery (sent→delivered→read→clicked) — naturally monotonic data, real `Funnel` component fits, and this data is currently 100% invisible — high value, low complexity
 
-**Defer (v2+/P3):**
-- Effective-dated/historical metadata values (point-in-time "what was this value on date X")
-- Metadata rollup/aggregation dashboards (e.g., total biaticos per articulador's team)
-- Deeper hierarchy nesting (articulador-of-articuladores) -- explicitly out of scope
+**Should have (differentiators / P2 — needs data-modeling + product decisions before implementation):**
+- Sankey of `ValidationHistory` state transitions — requires an aggregation + cycle/low-volume-edge curation strategy (product decision, not just engineering)
+- Treemap of Departamento→Municipio→Barrio — requires nest-mode drill-down (a flat render will produce unreadable slivers at real campaign scale)
+- Heatmap of caller × hour effectiveness — core CSS-grid technique is reusable from MonoCharts, but needs a real positioned tooltip and a many-callers-rows strategy
+- Stacked-area (scoped down from "streamgraph") of rejection reasons over time
+- Live-polling line chart for Día D voting — chart itself is easy; the real work is the polling-endpoint/caching architecture under election-day load
 
-**Explicit anti-features:** freeform/ad-hoc metadata keys, unlimited hierarchy depth, cross-campaign catalog/hierarchy sharing, hard-deleting metadata keys (soft-deactivate instead), and silent cascade of a coordinador's team when the coordinador is reassigned to a different articulador.
+**Defer / re-scope before building (P3):**
+- A literal trapezoid funnel of the full 12-state voter lifecycle — `VoterStatus` is not a linear pipeline (has terminal side-branches like `REJECTED_CENSUS`, `DUPLICATE`); forcing it into a funnel shape would misrepresent data, which conflicts with this project's "inaccurate operational numbers are unacceptable" constraint. Needs an explicit "happy path" subset defined first, or use MonoCharts' honest bar-ranked-list alternative.
+- True symmetric ThemeRiver streamgraph — Recharts has no native silhouette/wiggle baseline; not worth the custom `d3-shape` work for a purely aesthetic gain over stacked-area.
 
 ### Architecture Approach
 
-Extend the existing single-table `User` model with two additive, independent pieces: a new self-referencing `articulador_user_id` FK (mirroring `coordinator_user_id`'s exact migration/relation shape) and a new `metadata` JSON column backed by a `metadata_keys` reference table (mirroring the `Gremio`/`Subcategoria` superadmin-catalog precedent). Neither touches `CampaignMembershipScope`, which is confirmed to be orthogonal to hierarchy -- campaign isolation is driven entirely by the `campaign_user` pivot, not by FK relationships. The build order matters: schema (3 additive migrations) -> role/model layer -> metadata catalog UI -> hierarchy UI (`ArticuladorResource` + `CoordinatorForm` addition) -> metadata assignment UI -> filter/sort surfaces, with an explicit decision checkpoint before further work on whether articulador needs a full self-service panel (mirroring `CoordinatorPanelProvider`) or just an admin-panel resource -- this is flagged as a materially larger, undecided scope item.
+Each chart widget is a `ChartWidget` subclass with a repointed `$view` pointing at one shared `react-chart.blade.php`, keeping `wire:poll` on the outer wrapper and `wire:ignore` scoped tightly to the inner React mount `<div>` only (never the whole widget card). Fresh data reaches React exclusively via Filament's existing `dispatch('updateChartData', data: ...)` browser-event channel (checksum-gated), heard by an Alpine bridge component (`reactChartBridge`) living *inside* the ignored subtree — Alpine reactivity survives `wire:ignore` even though DOM diffing doesn't — which calls `root.render()` again on the same, never-recreated React root. This is reconciliation, not remount, so Recharts/Motion animation state survives every poll tick exactly like Chart.js's `chart.update()` does today.
 
 **Major components:**
-1. `articulador_user_id` self-FK + `User::articulador()`/`coordinators()` relations -- new, additive, does not touch `coordinator_user_id`
-2. `metadata_keys` table + `MetadataKey` model + Filament CRUD resource (copies `GremioResource` shape) -- superadmin-only catalog management
-3. `ArticuladorResource` (mirrors `CoordinatorResource` file-for-file) + `CoordinatorForm` addition for the new `articulador_user_id` select
-4. Metadata filter/sort layer built dynamically from active catalog rows into `TextColumn`/`Filter` closures across `UsersTable`, `CoordinatorsTable`, `LeadersTable`, `ArticuladoresTable`
-5. **Open decision:** whether articulador gets a dedicated self-service Filament panel (like `coordinator`/`leader` today) or admin-panel-only access -- this determines whether a new `ArticuladorPanelProvider` + Livewire self-service views are in scope
+1. **PHP `ChartWidget` subclass** (`app/Filament/Widgets/*`) — owns campaign/role-scoped data query via `getData()`, unchanged from existing widgets; only `$view` and the type/kind discriminator change
+2. **Shared Blade view + Alpine bridge** (`react-chart.blade.php`, `reactChartBridge` Alpine component) — the one load-bearing integration boundary; mounts once, listens for the dispatched event, never remounts
+3. **Vite entry / React tree** (`resources/js/charts/main.tsx`, `ChartRouter.tsx`, per-chart-kind components) — code-split chunk registered via `Vite::withEntryPoints()` in each `*PanelProvider` that ships chart widgets (Admin, Reports today), never in the shared app layout
 
 ### Critical Pitfalls
 
-1. **~6 existing surfaces hardcode "coordinator's own id = team scope"** (`TopLeadersTable`, `TopLeadersExport`, `LeadersExportController`, and others) and will silently return empty results for articuladores instead of erroring. Centralize a "resolve my managed coordinador/leader ids" helper before touching any of these, and inventory every call site with `grep -rn "coordinator_user_id.*Auth::\|hasRole(UserRole::COORDINATOR"`.
-2. **Never reuse/overload `coordinator_user_id` for the articulador link.** It already has role-dependent meaning (NULL for plain coordinators, self-referencing for `also_leader` coordinators, "my coordinator" for leaders); collapsing articulador onto it would make one column mean three different things and poison every existing `leaders()`/`coordinator()` relation call. Use a dedicated `articulador_user_id` FK.
-3. **No `UserPolicy`/`CoordinatorPolicy` exists today** -- authorization is implicit in `getEloquentQuery()` scoping only. A naive articulador-facing coordinador resource that copies `CoordinatorResource::getEloquentQuery()` verbatim (no owner filter) would let every articulador see/edit every coordinador in the campaign. Add an explicit ownership scope + a real policy layer, and re-verify scoping independently on every hand-rolled `Select`/relation-manager, not just the top-level resource query.
-4. **Unindexed `JSON_EXTRACT` filter/sort will full-table-scan `users`** -- the most globally-queried table in the app (every panel, every widget touches it via `CampaignMembershipScope`). Use MySQL generated/indexed columns per filterable catalog key, verified with `EXPLAIN`, not raw JSON path queries in `orderByRaw`/`whereRaw`.
-5. **The existing `AuditObserver` is insufficient for money-like metadata provenance.** It captures whole-column JSON diffs (not per-key) and resolves `campaign_id` from the *actor's* active campaign context, not the *subordinate's* campaign -- wrong for cross-context edits by a super_admin. Design a dedicated per-key audit path (mirroring `campaign_user.assigned_at`/`assigned_by`) in the same phase as the metadata schema; retrofitting per-key attribution after whole-column diffs are already in production is the single most expensive recovery in this research (data cannot be reconstructed after the fact).
-
-Two more pitfalls worth flagging for planning even though not in the "top 5": (a) whole-column read-modify-write on the `metadata` JSON blob creates a lost-update race when two different superiors edit the same subordinate concurrently (prefer `JSON_SET()`-based atomic per-key updates); (b) untyped JSON values for money-like keys (`biaticos`) sort lexicographically, not numerically, unless the catalog enforces a declared type and the generated column casts accordingly -- a `type` column on `metadata_keys` from day one prevents this cheaply.
+1. **Stale/orphaned React root on `wire:poll`** — if data is read off re-rendered DOM attributes instead of pushed via Filament's dispatch channel, or if the `wire:ignore` wrapper itself gets replaced, the chart silently stops updating after the first poll with no error. Avoid by using the dispatch→`root.render()` bridge exclusively and keeping the ignored wrapper's attributes fully stable.
+2. **Leaked React roots on SPA navigation (`wire:navigate`)** — React has no automatic hook into Livewire/Alpine teardown; must wire an explicit Alpine `destroy()` (and a belt-and-suspenders `livewire:navigate` listener) to call `root.unmount()`. Build this once in the shared mount helper — retrofitting after 10+ widgets exist is expensive.
+3. **Event-delegation conflicts between React and Livewire/Alpine** — `wire:click`/`x-on` handlers living inside the React-owned subtree can be silently shadowed. Keep the `wire:ignore` boundary as high as practical (whole widget card, not just the inner chart div) and route any chart-triggered action back to Livewire via an explicit bridge call, never native DOM bubbling.
+4. **Vite/Filament asset registration missing on some of the 5 panels** — this project has a documented history (Phase 18/19) of exactly this class of gap for shared widgets. Register the chart entry per-`PanelProvider` (not the global layout) and treat "verify on all 5 panels" as an explicit phase success criterion.
+5. **Coverage-theater tests** — Livewire/Pest Feature tests can only verify the data contract handed to React, never the actual rendered chart; a Pest Browser (Playwright) test is required per widget to verify real rendered content, per this project's existing "Day D flows require test protection" bar.
 
 ## Implications for Roadmap
 
-Based on combined research, suggested phase structure:
+Based on research, suggested phase structure:
 
-### Phase 1: Hierarchy & Metadata Schema Foundation
-**Rationale:** Both new features start with additive, non-destructive migrations and model/relation layer work. This must land before any Filament UI can scope a `Select` against the `articulador` role or read/write `metadata`. Pitfalls 1, 2, 6, 7, 8, and 9 are all schema/data-model decisions that are cheap to get right now and expensive (or impossible) to fully recover from later -- this phase is where those calls get made, not deferred.
-**Delivers:** `articulador_user_id` FK + relations, `metadata_keys` table (with `type` column) + `metadata` JSON column on `users`, `UserRole::ARTICULADOR` enum case, `canAccessPanel()` decision wired, dual role-storage sync (Spatie + `campaign_user.role_id`) tested.
-**Addresses:** Table-stakes hierarchy tier + typed catalog foundation from FEATURES.md.
-**Avoids:** Pitfalls 2 (overloaded FK), 4 (dual role storage drift), 5 (role with no panel access), 9 (untyped money fields).
+### Phase 1: React island infrastructure
+**Rationale:** Every chart in this milestone is blocked on the Vite entry + `wire:ignore`/dispatch bridge existing and being proven correct; this is also where nearly every critical pitfall (stale roots, leaked roots, false-hydration confusion, test-layer convention) must be prevented once, centrally, rather than retrofitted across 10+ widgets later.
+**Delivers:** `vite.config.js` + `package.json` changes (react, react-dom, recharts, motion, react-is, `@vitejs/plugin-react`), a throwaway "Hello from React" widget proving the full poll→dispatch→`root.render()` cycle in a real browser, shared mount/unmount helper with teardown wired to Alpine `destroy()`/`livewire:navigate`, per-panel `Vite::withEntryPoints()` registration verified across all 5 `PanelProvider`s, and the Pest Feature-vs-Browser test-layer convention documented.
+**Addresses:** React island infra (FEATURES.md must-have #1)
+**Avoids:** Pitfalls 1, 2, 4, 5, 6 (stale roots, leaked roots, missing per-panel registration, false-hydration debugging, coverage-theater tests)
 
-### Phase 2: Hierarchy Call-Site Audit & Authorization Layer
-**Rationale:** Before any new UI is built, the existing coordinator-scoped call sites (dashboards, exports, widgets) must be inventoried and centralized, and an explicit policy layer must exist for articulador-to-coordinador ownership -- otherwise the first UI phase will ship on top of silently-broken or silently-overscoped foundations. Architecture research explicitly separates "authorization/policy phase" from "UI phase" as a hard requirement, not a nice-to-have.
-**Delivers:** Centralized "resolve my managed coordinador/leader ids" helper, updated `TopLeadersTable`/`TopLeadersExport`/`LeadersExportController` (and equivalents), a `UserPolicy` (or scoped policy) enforcing hierarchy ownership independent of any single resource's query.
-**Addresses:** Ownership-scoped CRUD (table stakes) from FEATURES.md.
-**Avoids:** Pitfalls 1 (silent empty-dashboard breakage) and 3 (missing policy layer / cross-tenant leak).
+### Phase 2: Shared chart-widget contract + migrate existing charts
+**Rationale:** Establishes the one-view-many-widgets pattern (`react-chart.blade.php` + `ChartRouter.tsx`) before any new chart-specific work, and validates it against the 3 existing `ChartWidget`s whose underlying queries are already proven correct — lowest-risk real-data validation of the new pipeline.
+**Delivers:** `react-chart.blade.php` shared view, `ChartRouter.tsx` skeleton, `ValidationProgressChart`/`TerritorialDistributionChart`/`SurveyResultsWidget` migrated to Recharts with `getData()` untouched, sparkline migration-strategy decision made (embedded `Stat::chart()` vs. dedicated small `ChartWidget`s).
+**Uses:** `recharts` `LineChart`/`BarChart`/`PieChart` (STACK.md)
+**Implements:** `ChartWidget` subclass + repointed `$view` pattern (ARCHITECTURE.md Pattern 2)
 
-### Phase 3: Articulador Resource & Metadata Catalog UI
-**Rationale:** With schema, roles, and authorization settled, the Filament-facing CRUD work is now low-risk mirroring of established patterns (`CoordinatorResource` -> `ArticuladorResource`, `GremioResource` -> `MetadataKeyResource`). This phase resolves the open architecture question (self-service articulador panel vs. admin-only resource) as a deliberate decision before building it.
-**Delivers:** `ArticuladorResource` (full CRUD, campaign-scoped), `MetadataKeyResource` (superadmin-only catalog CRUD), `CoordinatorForm` addition for `articulador_user_id` select, decision on self-service panel scope.
-**Uses:** MySQL JSON column + `array` cast, Filament v4 resource/form/table conventions from STACK.md and ARCHITECTURE.md.
+### Phase 3: Table-stakes new charts (donut, stacked-bar, funnels, gauge/histogram)
+**Rationale:** These are direct Recharts primitives with high MonoCharts source reusability and no data-modeling ambiguity — good candidates to ship as a batch once infra is proven, independent of each other.
+**Delivers:** Donut of 12 `VoterStatus` states, stacked-bar coordinator comparison, funnel of call contactability by attempt, funnel of message delivery (sent→delivered→read→clicked — currently 0% visible), gauge + histogram for SCALE survey.
+**Addresses:** FEATURES.md P1 list (table stakes)
+**Avoids:** Pitfall 3 (event-delegation conflicts) — must be explicitly designed/reviewed here since it affects every widget with adjacent header actions
 
-### Phase 4: Metadata Assignment & Provenance
-**Rationale:** Assignment UI depends on the catalog existing (Phase 1/3) and the ownership-scoping pattern (Phase 2). This is where the audit/concurrency pitfalls (7, 8) must be closed -- building assignment before provenance design is the exact trap PITFALLS.md flags as unrecoverable.
-**Delivers:** Per-subordinate metadata assignment UI (dynamic per-key inputs, scoped to the assigner's direct subordinates), atomic per-key writes (avoiding whole-column read-modify-write races), a dedicated audit trail with correct campaign attribution (subordinate's campaign, not actor's).
-**Implements:** Data-access-layer decisions from ARCHITECTURE.md Q2/Q4 and PITFALLS.md 7/8.
+### Phase 4: Differentiator charts requiring data-modeling/product decisions
+**Rationale:** Sankey and Treemap both need their aggregation/curation query built and validated (in isolation, e.g. via `tinker`) before the chart-side risk can even be evaluated — these are not component swaps. The literal 12-state funnel needs an explicit product decision (happy-path subset) before it can be correctly scoped at all.
+**Delivers:** Sankey of `ValidationHistory` transitions (curated, not raw-dump), Treemap of territorial hierarchy with nest-mode drill-down, Heatmap of caller × hour (with real positioned tooltip + many-callers strategy), stacked-area of rejection reasons over time.
+**Addresses:** FEATURES.md P2 list (differentiators, currently-invisible data)
+**Avoids:** The Sankey/Treemap "just a component swap" trap and the literal-streamgraph/literal-12-state-funnel anti-features flagged in FEATURES.md
 
-### Phase 5: Filter/Sort Surfaces & Performance Verification
-**Rationale:** Filtering/sorting is explicitly the highest-complexity table-stakes requirement and depends on real assignable data existing first (no point filtering an always-empty column). Generated/indexed columns must be verified with `EXPLAIN` before shipping, per pitfall research -- this is the last phase precisely because retrofitting indexed columns after the filter UI ships means re-touching every filter definition a second time.
-**Delivers:** Indexed generated columns per filterable catalog key, `SelectFilter`/`TextColumn::sortable(query:)` wiring across `UsersTable`, `CoordinatorsTable`, `LeadersTable`, `ArticuladoresTable`, `EXPLAIN`-verified query plans.
-**Addresses:** "Filter and sort by metadata key/value" -- the explicit, non-negotiable requirement from PROJECT.md.
-**Avoids:** Pitfall 6 (unindexed JSON full-table scan on `users`).
+### Phase 5: Día D live-polling line chart
+**Rationale:** The only widget with a materially different polling cadence/live-data-freshness requirement (election-day, not steady-state dashboard); should build on a fully proven bridge rather than being part of proving it, and its query-cost-under-load risk is best isolated last.
+**Delivers:** Live voting line chart (`VoteRecord.voted_at`) with its own polling loop and a cached/pre-aggregated campaign-scoped endpoint to avoid expensive per-tick queries during Día D peak load.
+**Addresses:** FEATURES.md "live-polling line chart" (P2, election-day critical)
+**Avoids:** Pitfall on performance traps — repeated expensive live `COUNT` queries under Día D concurrent load (PITFALLS.md Performance Traps)
 
 ### Phase Ordering Rationale
 
-- Schema-first ordering is dictated by dependency chains discovered in ARCHITECTURE.md's "Recommended Build Order" -- role/relation layer must exist before any Filament form can reference it, and the catalog must be populated before assignment UI has anything to render.
-- Separating "hierarchy call-site audit + authorization" into its own phase (before new UI) directly reflects PITFALLS.md's explicit instruction: "Authorization/policy phase, explicitly separated from the UI phase."
-- Metadata provenance/typing is placed before assignment UI ships (not after) because PITFALLS.md identifies whole-column-diff-only audit history as the single highest-cost-to-recover-from mistake in this research -- per-key attribution cannot be reconstructed retroactively once mixed writes have occurred.
-- Filter/sort performance work is deliberately last because it depends on real data (Phase 4) and because retrofitting indexed generated columns after a filter UI ships doubles the work.
+- Infra must come first because literally every chart is architecturally blocked on it (FEATURES.md dependency graph is explicit and unanimous on this point).
+- Migrating existing charts before building new ones isolates "does the bridge work" from "is the new data query correct" — two independent risk classes that should not be debugged simultaneously.
+- Table-stakes charts are grouped ahead of differentiators because they have no open data-modeling questions; differentiators are deliberately grouped together because they share the same category of pre-work (aggregation query + curation strategy) that should be resourced/reviewed together, likely with a research-phase step.
+- Día D is last because it is the one place where the milestone's own architecture research explicitly recommends building on a "fully proven" bridge rather than helping to prove it, given its unique real-time/high-stakes profile.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 3 (Articulador Resource):** the "self-service panel vs. admin-only resource" decision is explicitly flagged as unresolved in ARCHITECTURE.md -- this is a product/scope decision, not a technical unknown, but its answer materially changes the phase's size and should be confirmed with the requester before planning locks it in.
-- **Phase 5 (Filter/Sort):** generated-column-per-key approach needs to be validated with `EXPLAIN` against realistic data volumes for this specific project's scale before committing to the exact indexing strategy -- flagged as MEDIUM-HIGH confidence in STACK.md pending real-data verification via `tinker`/`database-query`.
+Needs research during phase planning:
+- **Sankey/Treemap phase (Phase 4):** genuine data-modeling and curation-strategy decisions (cycle handling, drill-down UX) that are product decisions, not pure engineering — flag for a discuss-phase or `/gsd:research-phase` before implementation.
+- **Día D live-polling phase (Phase 5):** polling-endpoint/caching architecture under concurrent election-day load has real risk not yet fully resolved in this research round.
+- **Event-delegation/DOM-boundary design (touches Phase 3 onward):** PITFALLS.md flags this as needing explicit design review before the first widget migration, not an ad hoc per-widget decision.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Schema):** direct mirror of existing, already-shipped migrations (`add_coordinator_to_users_table`, `Gremio`/`Subcategoria` catalog pattern) -- HIGH confidence, no new research needed.
-- **Phase 2 (Authorization):** pattern is well-understood (Filament `getEloquentQuery()` scoping + policy), the gap is applying it consistently, not discovering how -- LOW research need.
-- **Phase 4 (Metadata Assignment):** `JSON_SET()` atomic updates and Filament form dehydration patterns are standard, documented Laravel/Filament mechanics.
+Phases with standard, well-documented patterns (skip deep research):
+- **Phase 1 (infra):** mechanism verified directly against this project's own vendored Filament source — HIGH confidence, no further research needed, just careful implementation and testing.
+- **Phase 2 (migrate existing) and Phase 3 (table-stakes new charts):** direct Recharts primitives with working MonoCharts reference implementations for data shape and styling.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All findings verified against official Laravel 12.x docs, confirmed project MySQL version via direct `SELECT VERSION()`, and cross-checked against existing codebase patterns (`CoordinatorsTable` sortable query). No new dependencies needed. |
-| Features | MEDIUM-HIGH | Org-hierarchy and EAV/metadata patterns are well-documented industry practice; SIGMA-specific integration points verified directly against the codebase (HIGH). External sources are mostly vendor/community content (MEDIUM) rather than primary standards. |
-| Architecture | HIGH | Every recommendation is sourced directly from reading the actual SIGMA codebase (`User.php`, `CampaignMembershipScope`, `CoordinatorResource`, `Gremio`, panel providers) rather than generic assumptions; the one genuinely open question (self-service panel scope) is explicitly flagged as a decision, not a gap. |
-| Pitfalls | HIGH | Every pitfall cites the exact existing file(s)/line(s) where the risk pattern already lives in this codebase, not generic Laravel/Filament advice. Cross-checked against official MySQL docs for the JSON-indexing claims. |
+| Stack | HIGH | All versions/peer-deps verified live against the npm registry and installed `laravel-vite-plugin` source, not training data |
+| Features | HIGH | Recharts + MonoCharts source read directly via GitHub API/raw source; SIGMA's own `VoterStatus`/`ValidationHistory` schema read directly to ground complexity assessments |
+| Architecture | HIGH | Core bridge mechanism reverse-engineered from this project's own vendored Filament `ChartWidget`/`chart.js` source, not inferred; one MEDIUM sub-point (`Vite::withEntryPoints()` auto Fast-Refresh preamble) needs a local smoke test to confirm |
+| Pitfalls | MEDIUM | Livewire/Alpine `wire:ignore` semantics and Vite multi-entry behavior are HIGH (official docs + GitHub issues); the React-in-Livewire-specific integration pitfalls are reasoned from React's documented lifecycle API plus general cross-framework-island precedent (React-in-Turbo/Hotwire), since no first-party Livewire+React guidance exists — flagged as the weakest-sourced research area, recommend a small spike to validate before committing to the full migration plan |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Self-service articulador panel scope is unresolved.** PROJECT.md's stated goal ("articuladores organize a set of coordinadores") could mean admin-resource-only or a full self-service panel mirroring `CoordinatorPanelProvider`. This must be resolved explicitly during roadmap/requirements definition, not assumed -- it's the single biggest scope swing in the whole milestone.
-- **No existing regression test asserts "coordinador A cannot see coordinador B's leaders across different articuladores"** -- the equivalent test doesn't exist today for the coordinator-to-leader boundary either. This should be added as new baseline coverage as part of this milestone, not treated as pre-existing safety net.
-- **JSON `orderBy` support is MEDIUM-HIGH (not HIGH) confidence specifically for the `orderBy` (not `where`) case** -- Laravel's docs don't separately demonstrate JSON-path `orderBy`, though it shares grammar infrastructure with `where`. Verify directly via `tinker`/`database-query` against real project data before relying on it in Phase 5.
-- **Real campaign-scale data volumes for `users`** were not directly measured in this research (referenced only by analogy to `Voter`/`Apoyo` table scale). Confirm actual row counts before finalizing whether generated/indexed columns are strictly necessary at current scale or can be sequenced slightly later.
+- **`Vite::withEntryPoints()` auto Fast-Refresh preamble behavior** — architecture research flags this as MEDIUM confidence; verify with one `npm run dev` smoke test in Phase 1 before relying on it, fall back to explicit `@viteReactRefresh` + `@vite()` if it doesn't hold.
+- **`vite build` atomicity across multi-entry failures** — unverified whether a syntax error in the new chart entry blocks deploys of the unrelated Livewire-only app bundle; test deliberately in Phase 1 (PITFALLS.md "Looks Done But Isn't" checklist item).
+- **Tailwind v4 content-scanning coverage of new `.jsx`/`.tsx` files** — verify the React source directory is actually included in Tailwind's scan glob before shipping any chart with Tailwind-styled wrapper markup; silent failure mode (works in dev, unstyled in prod).
+- **React+Livewire+Alpine event-delegation conflicts** — this whole pitfall category (PITFALLS.md Pitfall 3) is reasoned from general cross-framework precedent, not a SIGMA-specific or Livewire+React-specific source; validate with a real click-through test in Phase 1/3 against widgets that have adjacent Filament header actions/dropdowns.
+- **Sankey cycle/low-volume-edge curation strategy and Treemap drill-down UX** — both are explicitly flagged in FEATURES.md as product decisions, not engineering tasks; must be resolved (likely via discuss-phase) before Phase 4 can be scoped precisely.
+- **12-state voter-lifecycle funnel scope** — needs an explicit "happy path" subset defined by product/stakeholders before any implementation attempt; do not build a literal trapezoid funnel of all 12 states.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Laravel 12.x Query Builder docs -- JSON Where Clauses, Updating JSON Columns, Ordering](https://laravel.com/docs/12.x/queries)
-- Direct project verification: `SELECT VERSION()` against connected MySQL DB -> `8.0.45`
-- Direct SIGMA codebase inspection: `app/Models/User.php`, `app/Models/CampaignUser.php`, `app/Models/Scopes/CampaignMembershipScope.php`, `app/Models/Concerns/HasCampaignMembershipScope.php`, `app/Filament/Resources/Coordinators/*`, `app/Filament/Resources/Leaders/*`, `app/Filament/Resources/Gremios/*`, `app/Filament/Widgets/TopLeadersTable.php`, `app/Filament/Widgets/TopCoordinatorsTable.php`, `app/Exports/TopLeadersExport.php`, `app/Http/Controllers/Coordinator/LeadersExportController.php`, `app/Observers/AuditObserver.php`, `app/Providers/Filament/AdminPanelProvider.php`, `app/Providers/Filament/CoordinatorPanelProvider.php`, `database/migrations/2026_01_21_000002_add_coordinator_to_users_table.php`, `.planning/PROJECT.md`
-- [MySQL 8.4 Reference Manual: Secondary Indexes and Generated Columns](https://dev.mysql.com/doc/refman/8.4/en/create-table-secondary-indexes.html)
-- [MySQL: Indexing JSON documents via Virtual Columns (official blog)](https://dev.mysql.com/blog-archive/indexing-json-documents-via-virtual-columns/)
-- [Service Territory Fields for Field Service - Salesforce Help](https://help.salesforce.com/s/articleView?id=service.fs_territory_fields.htm&language=en_US&type=5)
+- npm registry `dist-tags`/manifest JSON for `react`, `react-dom`, `react-is`, `recharts`, `motion`, `framer-motion`, `laravel-vite-plugin`, `vite`, `@vitejs/plugin-react` — fetched live 2026-08-20
+- `unpkg.com/laravel-vite-plugin@2.1.0` and `@3.2.0` source — read directly for multi-entry support and Vite-8 peer bump
+- `github.com/Subhan-code/Monocharts` — `src/components/mono-charts/` (29 files listed, 11 read in full via raw source) and `package.json`
+- Recharts official docs (`recharts.github.io`) — `FunnelChart` API
+- This repository's vendored Filament source — `vendor/filament/widgets/src/ChartWidget.php`, `chart-widget.blade.php`, `chart.js`, `Stat.php`; this repo's own `app/Filament/Widgets/*`, `*PanelProvider.php`, `vite.config.js`, `package.json`, `app/Enums/VoterStatus.php`, `app/Models/ValidationHistory.php`
+- Laravel 12.x official docs — Vite/`@vite()`/React setup (`laravel.com/docs/12.x/vite`)
+- Livewire 3.x official docs — `wire:poll`, `wire:ignore`
+- Pest Browser Testing official docs (`pestphp.com/docs/browser-testing`)
+- `.planning/PROJECT.md` — Phase 18/19 cross-panel scoping-gap precedent
 
 ### Secondary (MEDIUM confidence)
-- [Kirschbaum -- Optimizing, sorting, and filtering JSON Columns in Laravel with Indexed Virtual Columns](https://kirschbaumdevelopment.com/insights/optimizing-json-columns-in-laravel)
-- [Laravel Custom Fields: JSON, EAV Model, or Same Table - Laravel Daily](https://laraveldaily.com/post/laravel-custom-fields-json-eav-model-same-table)
-- [Political Campaign Organizational Structure Guide - Aristotle](https://www.aristotle.com/campaign-guide/2023/08/political-campaign-organizational-structure-guide/)
-- [Sponsor Change In MLM - HybridMLM](https://www.hybridmlm.io/blogs/sponsor-change-in-mlm-what-it-means-and-why-the-right-software-matters/)
-- [7 Salesforce Territory Management Best Practices - TractionComplete](https://tractioncomplete.com/articles/salesforce-territory-management-best-practices/)
-- [A Practical Guide to Indexing JSON in MySQL -- Pipedrive Engineering](https://medium.com/pipedrive-engineering/a-practical-guide-to-indexing-json-in-mysql-dccf10586204)
-- [How to index JSON columns using MySQL -- Vlad Mihalcea](https://vladmihalcea.com/index-json-columns-mysql/)
+- DeepWiki Recharts "Specialized Charts" page — Treemap/Sankey layout-algorithm description, corroborated against known Recharts component shapes
+- WebSearch — `motion` vs `framer-motion` package-naming consensus, cross-verified against npm manifest evidence
+- GitHub Discussions/Issues on `wire:ignore` semantics (#5813, #1878, #7788, #2046) and `laravel/vite-plugin` manifest generation (#212)
+- Recent blog posts on Pest 4 Browser testing practical patterns (Shocm's Blog, RichDynamix)
 
 ### Tertiary (LOW confidence)
-- General knowledge of MySQL `JSON_SET()` atomic partial updates and Laravel optimistic-locking patterns -- training-data-based, not independently re-verified against a specific MySQL version doc page in this session; validate directly before relying on it in Phase 4.
+- General cross-framework "island" integration precedent (React-in-Turbo/Hotwire, React-in-Vue) — used to reason through React/Livewire/Alpine event-delegation and root-lifecycle pitfalls where no first-party Livewire+React guidance exists; recommend a validation spike before committing to the full migration plan
 
 ---
-*Research completed: 2026-08-10*
+*Research completed: 2026-08-20*
 *Ready for roadmap: yes*

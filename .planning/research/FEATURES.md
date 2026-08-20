@@ -1,161 +1,166 @@
 # Feature Research
 
-**Domain:** Hierarchical field-operations / campaign-organizing platforms (canvassing tools, political campaign management, MLM/multi-level org structures, franchise & territory management software), applied to SIGMA's v1.2 milestone (new `articulador` tier + superadmin-catalog metadata key/value assignments)
-**Researched:** 2026-08-10
-**Confidence:** MEDIUM-HIGH (org-hierarchy patterns are well-documented across real campaign structures and CRM/field-service tooling; metadata/EAV typing and audit patterns are well-established engineering practice; SIGMA-specific integration points are HIGH confidence, verified directly against the current codebase)
+**Domain:** MonoCharts-style rich visualizations (funnel, sankey, treemap, heatmap, donut, stacked-bar, stream, gauge, live line) for SIGMA's Filament admin panel, built on Recharts as a React island over Livewire
+**Researched:** 2026-08-20
+**Confidence:** HIGH (Recharts + MonoCharts source directly verified via GitHub API/raw source; a couple of layout-algorithm details sourced from a secondary community wiki, called out below)
+
+## How This Research Was Done
+
+- Fetched `package.json` from `github.com/Subhan-code/Monocharts` (main branch, commit as of 2026-08-20) — confirms the repo runs **React 19 + Recharts ^3.10.1**, no D3/visx/nivo dependency.
+- Listed and read the actual source of all 29 files in `src/components/mono-charts/`, downloading and reading in full: `MonoRoundedFunnelChart.tsx`, `MonoRoundedSankeyChart.tsx`, `MonoRoundedTreemapChart.tsx`, `MonoRoundedHeatmapChart.tsx`, `MonoRoundedGaugeArc.tsx`, `MonoRoundedDonutChart.tsx`, `MonoRoundedStackedBarChart.tsx`, `MonoRoundedStreamChart.tsx`, `MonoRoundedLineChart.tsx`, `MonoActivityHeatmap.tsx`, `MonoRoundedPyramidChart.tsx`, plus the shared tooltip primitive `dither-charts/lib/recharts-tooltip.tsx`.
+- Cross-checked official Recharts docs (`recharts.github.io/en-US/api/FunnelChart/`) and a secondary technical reference (DeepWiki's Recharts specialized-charts page) for the native `Funnel`/`Treemap`/`Sankey` component data shapes, since MonoCharts itself does **not** use those native components for its own funnel/sankey/treemap (see finding below — this is the single most important discovery of this research).
+- Read SIGMA's actual `VoterStatus` enum (12 cases) and `ValidationHistory` model (`previous_status` → `new_status` transition log) to ground the Sankey/funnel complexity assessment in real schema, not assumption.
+
+## Critical Finding: MonoCharts' own funnel/sankey/treemap are NOT built on Recharts' native Funnel/Sankey/Treemap components
+
+This changes the "reuse vs. build" calculus for 3 of the 11 target charts. Despite the milestone brief listing `MonoRoundedFunnelChart`, `MonoRoundedSankeyChart`, `MonoRoundedTreemapChart` as "already built," reading their actual source shows:
+
+| Component | What it actually renders | Recharts primitive used |
+|---|---|---|
+| `MonoRoundedFunnelChart` | A horizontal `<BarChart layout="vertical">` with rounded bar caps — **not** Recharts' `Funnel`/`FunnelChart` (trapezoid) component at all | `BarChart`/`Bar` (standard) |
+| `MonoRoundedSankeyChart` | Two hardcoded `<div>` "nodes" + one hand-drawn `<svg><path>` bezier curve with fixed coordinates for exactly 2 sources → 1 sink — **zero** Recharts import, no layout algorithm, static demo shape only | None — pure hand-coded SVG, not data-driven |
+| `MonoRoundedTreemapChart` | A CSS Grid (`grid-cols-3 grid-rows-3`) with 4 hardcoded `col-span`/`row-span` Tailwind classes mapped 1:1 to 4 fixed demo values — **not** Recharts' `Treemap` (squarified algorithm) component | None — pure hand-coded CSS grid, not data-driven |
+
+Recharts itself **does** ship real `Funnel`/`FunnelChart`, `Sankey`, and `Treemap` components with genuine data-driven layout algorithms (squarify for Treemap, depth-assignment + collision-resolution for Sankey, stacked-trapezoid for Funnel) — MonoCharts' authors evidently chose not to use them, likely because the native components don't produce the monochrome "rounded pill" aesthetic without heavy custom shape overrides, and a hardcoded demo is enough for a landing-page showcase.
+
+**Implication for SIGMA:** for these 3 charts, MonoCharts' source is reusable **only as a visual/styling reference** (colors, radii, header/footer chrome, dark/light theming pattern), not as a data-shape or component-usage reference. The actual implementation must go around MonoCharts and use Recharts' real `Funnel`, `Sankey`, and `Treemap` components (or, for funnel specifically, MonoCharts' own bar-chart trick is a legitimate and *simpler* alternative — see below).
 
 ## Feature Landscape
 
-### Table Stakes (Users Expect These)
+### Table Stakes (Direct Recharts Primitives — Low/Medium Complexity)
 
-Features users assume exist once you introduce an additional organizational tier and a per-person attribute system. Missing these makes the feature feel unfinished or unsafe (unsafe matters more here, since values represent real money).
+Charts where Recharts has a native, data-driven component (or a trivial variant of one already proven in SIGMA's Chart.js widgets), and MonoCharts' source is directly reusable for both data shape and styling.
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Additional hierarchy tier that mirrors the existing self-referencing pattern (`articulador` → `coordinador`, one level up from today's `coordinador` → `líder`) | Real-world campaign orgs already have this exact tier ("articulador político" managing several coordinators); campaign field-org software universally supports Field Director → Regional/Area Coordinator → Field Organizer → Canvasser chains, i.e. 3+ tiers is the norm, not the exception | LOW-MEDIUM | SIGMA already has the `coordinator_user_id` self-FK + `coordinator()`/`leaders()` Eloquent relations on `User` (`app/Models/User.php`). Adding `articulador_user_id` (or reusing a generalized `superior_user_id` naming) on `coordinador` rows is a direct, low-risk extension of an existing pattern — not a new architectural concept. |
-| New Spatie role (`articulador`) with its own Filament panel/resource scoping, same as `coordinator`/`leader` today | Every role in SIGMA today (`super_admin`, `admin_campaign`, `coordinator`, `leader`, `reviewer`, `reports_viewer`) gets a dedicated Filament resource + campaign-scoped table; users will expect articuladores to behave consistently with that convention | LOW-MEDIUM | Mirror `app/Filament/Resources/Coordinators/*` structure for `Articuladores`. Must integrate with `HasCampaignMembershipScope` trait and the existing campaign-isolation enforcement (`campaign_user` pivot with `role_id`). |
-| Articulador can create/manage a bounded set of coordinadores (CRUD scoped to "my coordinadores") | This is literally the requested feature and matches how every reviewed hierarchical field-org tool scopes "manage the tier directly below me, not further down" | MEDIUM | No hard cap requested for v1.2 ("no hard limit enforced" per PROJECT.md), but the UI/query layer must filter coordinadores to `WHERE articulador_user_id = auth()->id()` the same way leader-scoping works today for coordinators. |
-| No coordinador→coordinador nesting, no articulador→articulador nesting (flat one-level-per-tier, same as today's coordinator→leader) | Explicitly decided in PROJECT.md; every MLM/franchise system that supports arbitrary-depth nesting pays a permanent complexity tax (recursive queries, unbounded reporting rollups) that campaign field-ops tools deliberately avoid by capping depth | LOW | Enforce at the form/validation layer (a coordinador cannot be assigned as another coordinador's superior) — cheap guardrail, do not skip it. |
-| Superadmin-only CRUD for the metadata key catalog (create/rename/deactivate keys like `biaticos`, `almuerzo`, `incentivo`, `asignacion`) | "Predefined, not freeform" is explicit in PROJECT.md; every EAV/custom-field system reviewed (Laravel schemaless-attributes, EAV packages, Salesforce custom fields) separates "who defines the schema" from "who assigns values," and definer is always a higher-trust role than assigner | LOW | New small reference table (e.g. `user_metadata_keys`: `key`, `label`, `data_type`, `is_active`) — this is the "predefined catalog" piece and should NOT be a freeform strings-only JSON schema-less blob at the definition layer, even though the *values* land in JSON. |
-| Superior assigns key→value pairs to a direct subordinate only (líder/coordinador/articulador scoped to who they actually manage) | Matches existing campaign-isolation and ownership-boundary conventions (coordinators/leaders already can't touch users outside their scope) | MEDIUM | Reuses existing ownership-check patterns already hardened in v1.0/v1.1 (the PERM-02 gap closure taught SIGMA to name *why* an authorization failure happened — apply the same discipline here: "you can only assign metadata to your own subordinates"). |
-| Filterable/sortable metadata columns in Filament user/coordinator/leader/articulador listing tables | Explicitly required in PROJECT.md ("Filter and sort by metadata key/value in the Filament tables") | MEDIUM-HIGH | This is the trickiest "table stakes" item technically. Filament's native `TextColumn`/`SelectFilter` sort/filter machinery works against real columns or simple relationships, not arbitrary JSON keys out of the box. Needs either (a) a virtual per-key column built with `Str::json_extract` compatible SQL for MySQL (`JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.biaticos'))`), or (b) materializing values into a normalized `user_metadata_values` table (`user_id`, `key_id`, `value`) which is trivially filterable/sortable/joinable and is what most production EAV-over-Filament implementations converge on once "filter and sort" is a hard requirement, not "display only." |
-| Audit trail on metadata value changes (who set/changed/removed a `biaticos` value and when) | These key/values represent real compensation paid to real people (per-diem, lunch, incentive pay) — every payroll-adjacent system in the reviewed literature (MLM commission tooling, Salesforce field history) treats this as non-negotiable, not a nice-to-have | LOW (if reusing existing infra) | **SIGMA already has this.** `App\Observers\AuditObserver` is registered on the `User` model (`app/Providers/AppServiceProvider.php:68`) and generically diffs `old_values`/`new_values` into `AuditLog` (morphable, campaign-scoped) on every `updated()` event. If metadata lands as a JSON column directly on `users`, changes are audited automatically — but only as a whole-column diff (old full JSON blob vs new full JSON blob), not a per-key structured entry. If metadata instead lives in a normalized `user_metadata_values` table, that table needs its own `AuditLog::observe()` registration to get equivalent coverage — don't assume it's free in that design. |
+| Feature | Recharts primitive | MonoCharts source reusability | Complexity | Notes |
+|---|---|---|---|---|
+| Migrate 3 existing `ChartWidget`s (line, bar, bar/pie) + 3 sparklines | `LineChart`, `BarChart`, `PieChart` | Directly reusable (`MonoRoundedLineChart`, `MonoRoundedStackedBarChart`/plain bar variant, `MonoRoundedDonutChart`, `MonoRoundedSparklineChart`) | LOW | Pure re-skin — existing PHP queries/data already work with Chart.js today, only the rendering layer changes. Zero new data-shape work. |
+| Donut — Voter state distribution (12 `VoterStatus` states) | `PieChart` + `Pie` (`innerRadius`/`outerRadius`, `paddingAngle`, `cornerRadius`) | Directly reusable, `MonoRoundedDonutChart.tsx` is a complete working example incl. hover state + center callout | LOW | Data shape: `[{name, value}]` — one `GROUP BY status` query. 12 segments is more than the 4-segment demo; needs a palette strategy (12 monochrome shades or grouping small segments into "Otros"). |
+| Stacked-bar — team comparison by coordinator | `BarChart` + multiple `Bar` with shared `stackId` | Directly reusable, `MonoRoundedStackedBarChart.tsx` is a complete working example | LOW–MEDIUM | Data shape: one row per coordinator, one numeric key per status/category being stacked. Real complexity is data-side (pivoting per-coordinator counts into wide rows), not chart-side. |
+| Gauge — SCALE survey average / target | `PieChart` + `Pie` with `startAngle=210`/`endAngle=-30` (semi-circle trick) | Directly reusable, `MonoRoundedGaugeArc.tsx` is a complete working example | LOW | Not a "real" gauge primitive — it's a 2-segment Pie (`value`, `100-value`) drawn as an arc. Works fine for a single scalar (avg SCALE score / target). |
+| Histogram — SCALE survey response distribution | `BarChart` + `Bar` (categorical x-axis = bucket) | No MonoCharts histogram file exists by that name, but it's structurally identical to `MonoRoundedStackedBarChart`/plain bar variant | LOW–MEDIUM | Data shape is standard bar-chart shape once responses are bucketed server-side (PHP does the binning; Recharts just renders bars). |
+| Funnel — Voter lifecycle (12 states), call contactability by attempt, message delivery (sent→delivered→read→clicked) | Either (a) Recharts native `Funnel`/`FunnelChart` (`data=[{name, value}]`, trapezoid rendering), or (b) MonoCharts' own horizontal-`BarChart` trick | (b) directly reusable as-is; (a) needs to be built fresh against Recharts docs (MonoCharts doesn't demo it) | LOW (option b) / MEDIUM (option a) | **Not all 3 of these are the same shape.** Contactability-by-attempt and message-delivery are naturally monotonically decreasing (classic funnel semantics: attempt 1 ≥ attempt 2 ≥ attempt 3; sent ≥ delivered ≥ read ≥ clicked) — a real trapezoid `Funnel` looks correct and is worth the extra effort. The 12-state voter-lifecycle "funnel" is **not** naturally monotonic (branches like `REJECTED_CENSUS`, `DUPLICATE` are terminal side-branches, not a strict narrowing pipeline) — forcing it into a real Funnel shape will misrepresent the data; MonoCharts' bar-chart-as-funnel approach (a horizontal ranked bar list) is actually the *more honest* representation for this one case, or the 12 states should be reduced to a defined "happy path" subset before charting. |
 
-### Differentiators (Competitive Advantage)
+### Differentiators (Genuinely New Insight — Medium/High Complexity)
 
-Not required for launch, but align with SIGMA's stated core value ("trustworthy, campaign-safe data and clear operational traceability").
+Charts flagged in the milestone brief as exposing "today 100% invisible" data. These are where MonoCharts' source is least directly reusable (styling only, not data-shape/algorithm) and where Recharts either has no native primitive or the primitive needs real data-modeling work to feed correctly.
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Typed metadata values (numeric for `biaticos`/`almuerzo`/`incentivo`, text for `asignacion`) with type enforced at the catalog-definition level, not just at input time | Generic EAV/JSON-blob systems that store everything as strings create silent data-quality debt (a `biaticos` value of `"50000 aprox"` breaks every future SUM/report). Typed catalog entries let Filament render the right input (number vs select vs text) and let reporting trust the values | MEDIUM | Add `data_type` enum (`numeric`, `text`, `date`, `select`) to the metadata-key catalog table now, even if v1.2 only ships `numeric` + `text`, so a later "sum all biáticos paid this month" report doesn't require a schema migration. This is the single highest-leverage differentiator relative to effort — costs almost nothing extra at catalog-definition time and prevents having to retrofit typing after real money data exists in a stringly-typed JSON blob. |
-| Historical/point-in-time metadata (know what a leader's `biaticos` value *was* on a given date, not just what it is now) | Compensation values change over time (a per-diem rate that changes month to month); "current value only" JSON columns silently lose this the moment a superior updates a value, and the generic `AuditLog` diff only helps if someone thinks to go read it — it's not queryable as "give me all biaticos values as of March" | MEDIUM-HIGH | Defer unless the client explicitly asks for time-series reporting on stipends. The audit-log fallback (already free via `AuditObserver`) is "good enough" forensic coverage for v1.2; a first-class effective-dated metadata-values table is a real differentiator but is scope the milestone didn't ask for. Flag as a strong Phase 2 candidate if reporting on paid amounts ever becomes a requirement. |
-| Bulk metadata assignment (superior applies the same value to all/many subordinates at once — e.g., "set `almuerzo = 15000` for every leader under me") | Coordinators/articuladores managing dozens of subordinates will find one-at-a-time assignment tedious very quickly, and SIGMA already has bulk patterns (admin-only CSV bulk import for Apoyos) | MEDIUM | Natural fast-follow, not MVP — the milestone's stated target features describe per-subordinate assignment via UI, not bulk. Note the dependency: bulk operations need the same ownership-scoping guard as single assignment (can't bulk-assign outside your own subordinate set). |
-| Metadata rollups/aggregation surfaced on existing dashboards or reports (e.g., total `biaticos` committed per articulador's coordinador team) | This is where the "operational command center" value proposition from PROJECT.md would actually pay off — turning stipend assignments into a real budget-visibility tool, similar to how MLM commission dashboards roll payout data up the sponsor tree | MEDIUM-HIGH | Depends on typed values (numeric keys must be summable) and on the hierarchy being queryable (articulador → coordinador → líder chain). Don't build until typed metadata + hierarchy both ship — this is explicitly a v2+ item relative to the stated v1.2 scope. |
+| Feature | Recharts support | MonoCharts source reusability | Complexity | Notes |
+|---|---|---|---|---|
+| Sankey — `ValidationHistory` state transitions (`previous_status` → `new_status`) | **Native**: `Sankey` component, data shape `{ nodes: [{name}], links: [{source, target, value}] }` (source/target are node indices) — genuinely maps 1:1 onto SIGMA's schema | Styling only — `MonoRoundedSankeyChart.tsx` is a static 2-node hardcoded demo, not data-driven at all; must be rebuilt from scratch against Recharts' real `Sankey` | HIGH | Real complexity is on both sides: (1) data — aggregate `ValidationHistory` by `GROUP BY previous_status, new_status` into node/link counts, decide how to handle `previous_status = null` (initial creation) as a synthetic "Nuevo" source node; (2) rendering — Recharts' Sankey layout assumes a roughly acyclic, connected flow; SIGMA's real transition graph has back-edges (e.g. `CORRECTION_REQUIRED` → `PENDING_REVIEW` → `CORRECTION_REQUIRED` again) and low-volume edges that will clutter a 12-node diagram. Needs an explicit strategy: either dedupe/collapse cyclical edges, cap to top-N transitions, or accept a layout that shows repeated node appearances is not directly supported — plan for a filtered/curated edge set, not a raw dump of every `(previous_status, new_status)` pair ever recorded. |
+| Treemap — territorial hierarchy Departamento → Municipio → Barrio | **Native**: `Treemap` component, data shape is a nested tree (`{name, children: [...]}` with `value` on leaves), squarified layout algorithm | Styling only — `MonoRoundedTreemapChart.tsx` is a hardcoded 4-tile CSS grid, not an algorithmic treemap; must be rebuilt from scratch against Recharts' real `Treemap` | MEDIUM–HIGH | Data-side: a real 3-level `GROUP BY department, municipality, neighborhood` aggregation, shaped into nested JSON — moderate but mechanical work. Rendering-side risk: a real campaign can have dozens of municipios and hundreds of barrios; a flat squarified treemap with that many leaves produces unreadably thin slivers. Recharts' `Treemap` supports a `nest`-type drill-down mode (one level at a time with breadcrumb navigation) specifically for this — strongly recommended over trying to render all 3 levels flat at once. |
+| Heatmap — `VerificationCall` caller × hour effectiveness | **No native Recharts heatmap component.** Must be hand-rolled (which is exactly what MonoCharts itself does) | Directly reusable pattern — `MonoRoundedHeatmapChart.tsx`'s CSS-grid-with-opacity approach is a legitimate, production-viable technique for small fixed-dimension 2D categorical data (its own demo is a 7×5 grid) | MEDIUM | This is the one "hard" chart where MonoCharts' actual implementation *is* the right approach (not a Recharts gap to work around, just a genuine gap in Recharts itself — confirmed no `Heatmap` export exists). Two real gaps versus the demo: (1) MonoCharts' tooltip is the native browser `title` attribute, not an interactive React tooltip — needs upgrading to a positioned custom tooltip component (reuse the existing `DitherChartTooltipContent` pattern, adapted for a synthetic `payload`) for a product-grade feel; (2) "caller" is an unbounded dimension (could be dozens of call-center agents) unlike the demo's fixed 5 days — needs a strategy for many rows (scroll container, pagination, or cap to top-N callers by volume). |
+| Stream / stacked-area — rejection reasons over time | **Partially native.** Recharts `AreaChart` + `Area` with shared `stackId` natively supports true **stacked area** (zero baseline, cumulative). It does **not** natively support a symmetric **ThemeRiver-style streamgraph** (wiggle/silhouette baseline) | Misleading — `MonoRoundedStreamChart.tsx` is labeled "Stream" but its two `<Area>` elements have **no `stackId`** set at all; it just overlays two independent gradient-filled areas. It is not a real stream/stacked-area implementation despite the name. | LOW (stacked-area) / HIGH (true streamgraph) | Recommend treating this as a standard **stacked area chart** (`stackId` set, like `MonoRoundedStackedBarChart`'s pattern but with `Area` instead of `Bar`) rather than chasing a true symmetric streamgraph — the latter requires a custom `d3-shape` `stackOffsetSilhouette`-style baseline transform that Recharts does not expose as a prop, adding real complexity for a purely aesthetic (not clarity) gain. A standard stacked area of rejection-reason counts over time communicates the trend just as well for an ops dashboard. |
+| Live-polling line chart — Día D voting (`VoteRecord.voted_at`) | **Native for the chart itself** (`LineChart`/`Line`, identical shape to the existing `ValidationProgressChart`). **Zero support for polling** — Recharts has no data-fetching/polling concept at all | Chart rendering is directly reusable (`MonoRoundedLineChart.tsx`); the "live" part has no MonoCharts precedent to reuse (the repo is a static demo site, nothing in it polls a backend) | MEDIUM | This is a two-part feature the milestone brief bundles together: (1) the chart itself is table-stakes-easy (same `LineChart` as the already-migrated `ValidationProgressChart`); (2) "live" is a pure application-architecture problem — the React island needs its own polling loop (interval-based `fetch` against a Laravel endpoint, decoupled from Livewire's `wire:poll` since this lives outside the Livewire component tree) hitting a campaign-scoped, ideally cached/pre-aggregated endpoint so repeated polling during Día D peak load doesn't run an expensive live `COUNT` query every N seconds. This complexity lives in STACK/ARCHITECTURE research, not in Recharts itself — flagging here because it's the one chart where "Recharts support" and "feature complexity" diverge sharply: the chart is easy, the live-data plumbing and campaign-safe query cost under load is the real work. |
 
-### Anti-Features (Commonly Requested, Often Problematic)
+### Anti-Features (Would Look Good, Not Worth Building As Literally Described)
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|------------------|-------------|
-| Freeform/ad-hoc metadata keys (letting a coordinador or líder invent their own key on the fly, e.g. "type any label you want") | Feels more flexible, avoids asking superadmin to pre-create every key | Directly contradicts the explicit PROJECT.md decision ("Superadmin-managed predefined catalog... not freeform"). Also the exact failure mode every EAV-pattern writeup warns about: uncontrolled key sprawl (`biatico`, `Biaticos`, `biaticos `, `viaticos`) makes filtering/sorting/reporting worthless within weeks | Superadmin-curated catalog only; if a subordinate needs a new attribute type, that's a request to superadmin to add a catalog entry — same trust model as everything else in SIGMA (roles, territorial structures) being centrally administered |
-| Unlimited hierarchy depth (letting articuladores manage other articuladores, or coordinadores manage coordinadores) | "More flexible org modeling," mirrors real MLM/franchise depth | Every unbounded-depth system in the reviewed literature (MLM genealogy software) pays for it with recursive-query complexity, cascade-reassignment ambiguity, and reporting rollups that must handle arbitrary depth instead of a known 3-tier shape. SIGMA's entire existing hierarchy is deliberately flat (coordinator→leader, no coordinator nesting) and PROJECT.md explicitly rules this out for v1.2 ("one extra hierarchy level, no further nesting") | Keep the fixed 3-tier shape: articulador → coordinador → líder → apoyo. If a genuine need for deeper nesting emerges later, that's a distinct future milestone, not a v1.2 scope-creep item |
-| Cross-campaign metadata catalog sharing or cross-campaign hierarchy (an articulador managing coordinadores across two campaigns) | Feels efficient for admins who run multiple campaigns | Directly violates SIGMA's hardened campaign-isolation default (strict by default per PROJECT.md, the one deliberate exception being the duplicates report). Reusing this pattern here would reopen the exact class of trust-breaking bug the platform spent phases 1-5 + 05.1 closing | The metadata-key catalog can be superadmin-defined once (global reference data, like `polling_places`), but *assignments* (key→value on a specific user) and the hierarchy relation must stay campaign-scoped exactly like `coordinator_user_id` does today |
-| Deleting a metadata key from the catalog once it has been used (hard delete) | Seems like normal "remove what you don't need" catalog hygiene | Money/compensation semantics: a hard-deleted key silently erases historical context for what a `biaticos` value on some user's record even meant, and breaks any past `AuditLog` entries that referenced it by name only (or worse, orphans metadata values still stored against a JSON key that no longer resolves to a label) | Soft-deactivate keys (`is_active = false`) instead of hard delete; deactivated keys stop appearing for new assignment but remain resolvable for historical display/audit/reporting |
-| Silent cascade of a coordinador's leaders/apoyos when the coordinador is reassigned to a different articulador | Feels like the "obvious" default behavior — reassign the coordinador, everything under them just follows | Territorial/CRM reassignment literature (Salesforce territory management) is consistent: reassigning an owner higher up the chain is a deliberate, visible action with review/notification, not a silent side effect, because the people affected (and their compensation/attribution history) need traceability. For SIGMA specifically, a coordinador's leaders and their apoyos are NOT touched by an articulador reassignment (líderes stay attached to their coordinador via `coordinator_user_id`, unaffected) — but the articulador-level rollup (which articulador "owns" that coordinador's team for reporting purposes) changes, and that transition itself should be an explicit, audited action, not incidental | Reassigning a coordinador's `articulador_user_id` is itself a first-class, audited action (already covered for free by `AuditObserver` on `User` since it's a column change) — no automatic downstream cascade to leaders/apoyos is needed because they don't have an `articulador_user_id` FK at all in the described data model; the hierarchy is queried by walking `coordinador → articulador`, not denormalized onto every leader/apoyo row |
+| Feature | Why it seems appealing | Why it's problematic | Alternative |
+|---|---|---|---|
+| True symmetric ThemeRiver streamgraph for rejection reasons | Matches the MonoCharts "Stream" naming and looks visually distinctive | Recharts has no built-in silhouette/wiggle baseline; achieving it needs a custom `d3-shape` offset computation layered on top of `AreaChart`, adding real engineering effort for a chart type whose main advantage over stacked-area is aesthetic smoothness, not clarity — actively harder to read absolute values from than a standard stacked area | Standard stacked `AreaChart` with `stackId` (same primitive already used for stacked-bar) |
+| Forcing all 12 `VoterStatus` states into a single strict trapezoid `Funnel` | The milestone brief pairs "funnel + donut of the 12 states" as one idea, and a real `Funnel` component exists in Recharts | `VoterStatus` is not a linear pipeline — `REJECTED_CENSUS`, `REJECTED_OUT_OF_SCOPE`, `DUPLICATE` are terminal side-branches, not narrowing stages; a trapezoid funnel visually implies monotonic narrowing that doesn't exist in the data, which is actively misleading for an ops tool where "inaccurate operational numbers are unacceptable" is a stated project constraint | Either (a) MonoCharts' own horizontal-bar-ranked-list trick (honest ranking, no false monotonic implication), or (b) define an explicit "happy path" subset of states (e.g. `PENDING_REVIEW → VERIFIED_CENSUS → CONFIRMED → VOTED`) that genuinely is a funnel, and show the branch states (rejected/duplicate) separately |
+| Rendering the full raw `ValidationHistory` transition graph (every `(previous_status, new_status)` pair ever recorded, unfiltered) as Sankey | "Most complete" data view, zero curation needed | With 12 states and real-world back-edges/cycles, an unfiltered Sankey becomes a dense, crossing-heavy diagram that is harder to read than the table it replaces — defeats the purpose of "expose invisible insight" | Curate to the top-N transitions by volume (or a fixed, product-defined set of "meaningful" transitions), collapsing rare noise edges into an "Otros" bucket |
+| Flat (non-drill-down) treemap of all barrios simultaneously | Shows "everything at once," matches literal Departamento→Municipio→Barrio hierarchy request | Recharts' squarified algorithm degrades badly with dozens–hundreds of same-level leaves (unreadable slivers); this is a known general treemap limitation, not a SIGMA-specific one | Use Recharts Treemap's `nest`-mode drill-down (Departamento → click → Municipios → click → Barrios) instead of one flat render |
 
 ## Feature Dependencies
 
 ```
-[Articulador Spatie role + Filament panel/resource]
-    └──requires──> [Existing coordinator/leader Filament resource pattern as template]
-    └──requires──> [Existing campaign-isolation scoping (HasCampaignMembershipScope, campaign_user pivot)]
+React island infra (Vite entry + wire:ignore bridge)
+    └──requires (blocks all charts below)──> every chart in this document
 
-[articulador_user_id FK on coordinador users]
-    └──requires──> [Existing coordinator_user_id self-referencing FK pattern on User model]
-    └──enables──> [Articulador-scoped "my coordinadores" CRUD]
-    └──enables──> [Reassignment-as-audited-action anti-cascade design]
+[Donut / Stacked-bar / Gauge / Histogram / Migrated-3-existing]  (table stakes)
+    └──independent of each other, can ship in any order once island infra exists
 
-[Superadmin metadata-key catalog (typed)]
-    └──requires──> [New reference table: key, label, data_type, is_active]
-    └──enables──> [Per-subordinate metadata assignment UI]
-    └──enables──> [Typed input rendering in Filament forms]
+[Funnel: contactability-by-attempt, message-delivery]
+    └──naturally monotonic data──> real trapezoid Funnel component is a good fit
 
-[Per-subordinate metadata assignment]
-    └──requires──> [Superadmin metadata-key catalog]
-    └──requires──> [Existing ownership-scoping pattern (superior can only touch own direct subordinates)]
-    └──enables──> [Filterable/sortable metadata columns in listings]
+[Funnel: 12-state voter lifecycle]
+    └──requires a product decision on "happy path" subset OR bar-ranked-list fallback
+           (cannot be built correctly as a literal 1:1 port of the other two funnels)
 
-[Filterable/sortable metadata columns]
-    └──requires──> [Per-subordinate metadata assignment]
-    └──requires──(if JSON-on-users chosen)──> [DB-level JSON path querying, MySQL JSON_EXTRACT]
-    └──requires──(if normalized table chosen)──> [user_metadata_values table with FK to catalog + user]
+[Sankey: ValidationHistory transitions]
+    └──requires an aggregation query (GROUP BY previous_status, new_status)
+    └──requires a curation strategy for cycles/low-volume edges
+           (blocks a "just render everything" implementation)
 
-[Audit trail on metadata changes]
-    └──enhances──> [Per-subordinate metadata assignment]
-    └──already-satisfied-by──> [Existing AuditObserver registered on User model] (IF metadata stored as JSON column directly on users)
-    └──requires-new-registration──> [AuditObserver on user_metadata_values table] (IF normalized-table design chosen instead)
+[Treemap: Departamento→Municipio→Barrio]
+    └──requires a 3-level nested aggregation query
+    └──enhanced by──> nest-mode drill-down (avoids flat-render sliver problem)
 
-[Bulk metadata assignment] ──enhances──> [Per-subordinate metadata assignment]
-[Metadata rollups/reporting] ──requires──> [Typed metadata values] AND ──requires──> [Articulador hierarchy queryable]
+[Heatmap: caller×hour]
+    └──requires a positioned custom tooltip component (native `title` attr insufficient)
+    └──requires a strategy for many-caller rows (unbounded dimension vs. demo's fixed 5)
 
-[Freeform metadata keys] ──conflicts──> [Superadmin-predefined catalog] (explicitly ruled out)
-[Unlimited hierarchy depth] ──conflicts──> [Flat one-extra-tier design] (explicitly ruled out)
+[Stream/stacked-area: rejection reasons over time]
+    └──scope down to standard stacked AreaChart (conflicts with literal "streamgraph" reading)
+
+[Live-polling line: Día D voting]
+    └──requires a polling loop in the React island (independent of Livewire wire:poll)
+    └──requires a cached/pre-aggregated campaign-scoped endpoint (avoid expensive query per poll tick)
 ```
 
 ### Dependency Notes
 
-- **Filterable/sortable columns require a storage-design decision made early:** the milestone's stated target ("JSON metadata column on `users`") satisfies simple *display* and even basic filtering via JSON path predicates in MySQL, but *sorting* by an arbitrary JSON key across a paginated Filament table is materially harder to get right (and to keep performant) than sorting a real column. This is the one place where the stated target architecture and the "filter and sort" requirement are in mild tension — worth a deliberate call (accept JSON-path query complexity vs. add a thin normalized values table) before phase planning locks it in.
-- **Audit coverage differs by storage design:** JSON-on-`users` gets audit trail "for free" via the already-registered `AuditObserver`, but only as an opaque whole-blob diff. A normalized `user_metadata_values` table gives per-key audit granularity but requires deliberately wiring up its own observer — don't assume parity without checking.
-- **Reassignment does not cascade** to leaders/apoyos because they don't hold an `articulador_user_id` — the hierarchy is walked (coordinador → articulador), not denormalized. This keeps the reassignment operation cheap and matches the flat, no-nesting design decision already locked into PROJECT.md.
-- **Campaign isolation applies to the assignment/hierarchy relation, not necessarily the catalog definition.** The catalog (`biaticos`, `almuerzo`, etc.) can reasonably be global reference data (superadmin-defined once, like `polling_places`), but every actual key→value assignment on a user and every `articulador_user_id` relation must stay strictly campaign-scoped — this is a place a future implementer could accidentally leak scope by treating "the catalog is global" as "assignments are global too."
+- **Everything requires the React island infra first** — none of these 11 charts (or the 3 migrations) can start before the Vite-entry/`wire:ignore` bridge exists; this is the correct Phase 1 of the roadmap regardless of chart ordering.
+- **The three "funnel" instances are not interchangeable** — two are naturally monotonic (good `Funnel` fit) and one is not (needs a scoped-down definition or a different chart shape entirely). Treating "funnel" as one uniform feature in planning would hide this.
+- **Sankey and Treemap both need their data-aggregation query built before the chart can be attempted** — the chart-side risk (cycles, sliver leaves) can't even be evaluated until real aggregated shapes exist, so these should not be estimated as "just a component swap."
+- **Heatmap's real gap is tooltip + row-count handling, not the grid rendering itself** — the core CSS-grid technique from MonoCharts is already correct and reusable.
+- **Stream/stacked-area and Live-polling line both have a "the obvious literal reading is the wrong scope" issue** — worth flagging explicitly to whoever writes the phase requirements so "stream" and "live" aren't taken at face value against Recharts' actual capabilities.
 
 ## MVP Definition
 
-### Launch With (v1.2, per PROJECT.md's stated target features)
+### Launch With (v1.3 core — table stakes)
 
-- [ ] `articulador` Spatie role + dedicated Filament resource (mirrors Coordinators/Leaders resource structure) — the milestone's headline feature
-- [ ] `articulador_user_id` self-referencing FK relation on coordinador users (mirrors `coordinator_user_id`) — no coordinador→coordinador nesting, no hard limit on coordinadores per articulador
-- [ ] Superadmin CRUD for the metadata-key catalog, with `data_type` field even if only `numeric`/`text` ship first — cheap now, expensive to retrofit later
-- [ ] Per-subordinate metadata value assignment UI (líder/coordinador/articulador as the assignable target, scoped to the assigner's direct subordinates only) — enforced with the same ownership-boundary discipline already hardened elsewhere in SIGMA (PERM-02 pattern: explain *why* denied)
-- [ ] Filter and sort by metadata key/value in the relevant Filament user-listing tables — explicitly required; requires the storage-design decision above to be made deliberately, not defaulted
-- [ ] Metadata value changes visible in the existing `AuditLogs` Filament resource (verify JSON-column diffs render usefully there, or confirm normalized-table observer wiring if that design is chosen)
+- [ ] React island infra (Vite entry + `wire:ignore` bridge) — nothing else is possible without it
+- [ ] Migrate the 3 existing `ChartWidget`s + 3 sparklines to Recharts — proves the pipeline end-to-end with zero new data-shape risk
+- [ ] Donut of 12 voter states — trivial once infra exists, immediate visual payoff
+- [ ] Stacked-bar team comparison by coordinator — direct MonoCharts reuse
+- [ ] Funnel of call contactability by attempt — naturally monotonic, real `Funnel` component fits cleanly
+- [ ] Funnel of message delivery (sent→delivered→read→clicked) — same as above, and this data is currently "100% invisible" per the brief, high value for low complexity
+- [ ] Gauge + histogram for SCALE survey responses — both are direct Recharts primitives
 
-### Add After Validation (v1.x)
+### Add After Validation (v1.3 differentiators)
 
-- [ ] Bulk metadata assignment across multiple subordinates at once — add once single-assignment UX is proven and superiors start asking for it
-- [ ] Additional catalog `data_type`s (date, select-with-options) beyond numeric/text — add when a real key needs it, not speculatively
-- [ ] CSV export of metadata alongside existing user/coordinator/leader exports — add if reporting/finance teams need it offline (mirrors the existing admin-only CSV bulk-import pattern for Apoyos)
+- [ ] Sankey of `ValidationHistory` transitions — once the aggregation/curation strategy for cycles is decided (this is a product decision, not just an engineering task — flag for discuss-phase)
+- [ ] Treemap of territorial hierarchy — once nest-mode drill-down vs. flat-render is decided
+- [ ] Heatmap of caller × hour — once the many-callers-rows strategy and real tooltip are built
+- [ ] Stacked-area (scoped-down "stream") of rejection reasons over time
+- [ ] Live-polling line chart for Día D voting — depends on the polling-endpoint architecture decision (separate from chart rendering itself)
 
 ### Future Consideration (v2+)
 
-- [ ] Effective-dated / historical metadata values (point-in-time "what was this value on date X") beyond what the generic audit log provides — defer until compensation reporting over time is an explicit requirement
-- [ ] Metadata-based rollups/aggregation on dashboards (e.g., total biáticos committed per articulador's team) — defer until typed values + hierarchy are both stable in production
-- [ ] Deeper hierarchy nesting (articulador-of-articuladores) — explicitly out of scope per PROJECT.md; would require a different data model (adjacency list or path-based) than the flat FK approach that fits v1.2
+- [ ] True symmetric streamgraph (if stacked-area is judged insufficient after real usage) — defer until stacked-area is proven inadequate, since it requires custom `d3-shape` work Recharts doesn't provide out of the box
+- [ ] Funnel treatment of the full 12-state voter lifecycle as a literal trapezoid — defer until a "happy path" subset is explicitly product-defined; don't force it prematurely
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
-|---------|------------|----------------------|----------|
-| Articulador role + resource + hierarchy FK | HIGH | MEDIUM | P1 |
-| Superadmin typed metadata-key catalog | HIGH | LOW | P1 |
-| Per-subordinate metadata assignment (scoped) | HIGH | MEDIUM | P1 |
-| Filter/sort by metadata in listings | HIGH | MEDIUM-HIGH | P1 |
-| Audit visibility for metadata changes | MEDIUM-HIGH | LOW (if JSON-on-users) / MEDIUM (if normalized) | P1 |
-| Bulk metadata assignment | MEDIUM | MEDIUM | P2 |
-| Extra data types (date/select) | LOW-MEDIUM | LOW | P2 |
-| Metadata CSV export | MEDIUM | LOW-MEDIUM | P2 |
-| Historical/effective-dated metadata | MEDIUM | HIGH | P3 |
-| Metadata rollup dashboards | MEDIUM | MEDIUM-HIGH | P3 |
-| Articulador-of-articuladores nesting | LOW (out of scope) | HIGH | Not planned |
+|---|---|---|---|
+| Migrate 3 existing charts + sparklines | HIGH (proves pipeline) | LOW | P1 |
+| Donut of voter states | MEDIUM | LOW | P1 |
+| Stacked-bar coordinator comparison | HIGH | LOW–MEDIUM | P1 |
+| Funnel — call contactability by attempt | HIGH | LOW | P1 |
+| Funnel — message delivery | HIGH (currently invisible data) | LOW | P1 |
+| Gauge + histogram — SCALE survey | MEDIUM | LOW–MEDIUM | P1 |
+| Sankey — ValidationHistory transitions | HIGH (currently invisible data) | HIGH | P2 |
+| Treemap — territorial hierarchy | MEDIUM–HIGH | MEDIUM–HIGH | P2 |
+| Heatmap — caller × hour | MEDIUM–HIGH | MEDIUM | P2 |
+| Stacked-area — rejection reasons over time | MEDIUM | LOW–MEDIUM | P2 |
+| Live-polling line — Día D voting | HIGH (election-day critical) | MEDIUM (chart) / real risk in polling architecture | P2 |
+| Funnel — 12-state voter lifecycle (literal) | LOW as literally scoped (misleading) | — | P3 / needs re-scoping first |
 
 **Priority key:**
-- P1: Must have for v1.2 launch (matches PROJECT.md's stated target features)
-- P2: Should have, natural fast-follow once P1 is proven in production
-- P3: Nice to have, defer until a concrete trigger (reporting need, compensation-over-time requirement)
-
-## Competitor / Analog Feature Analysis
-
-| Feature | Political campaign field-org software (Field Director → Regional/Area Coordinator → Field Organizer → Canvasser) | MLM/multi-level org platforms | Salesforce territory/field-service management | Our approach (SIGMA v1.2) |
-|---------|---------------------------------------------------------------------------------------------------------------|-------------------------------|-------------------------------------------------|----------------------------|
-| Extra tier above existing "manager of workers" role | Standard: regional tier supervises multiple local field organizers | Standard: sponsor tree, typically capped/structured levels ("unilevel" plans) | Standard: territory hierarchies, some territories purely for grouping | Add `articulador` above `coordinador`, single extra flat tier, no further nesting — matches the "capped depth" pattern both campaign orgs and disciplined MLM/territory tools converge on |
-| Per-person operational/compensation attributes | Ad hoc (spreadsheets, HR systems outside the canvassing tool itself) — rarely a first-class feature in canvassing software | Core feature: commission/bonus structures, often with audit and payout-cycle protections against retroactive changes | Custom fields with field-history tracking available as an add-on, not default | Superadmin-typed catalog + per-subordinate JSON/normalized values + reuse of SIGMA's existing generic `AuditLog` — closer to the MLM commission-tooling rigor (typed, audited) than the "ad hoc spreadsheet" norm in campaign tools specifically |
-| Reassignment of a mid-tier manager to a different superior | Explicit, reviewed action (regional director change is an HR/ops event, not silent) | Explicit sponsor-change workflow with approval gates, notifications, and safeguards against abuse/gaming | Explicit reassignment via bulk-update tooling, cascades intentionally to owned records | Reassigning `articulador_user_id` on a coordinador is a first-class audited action (free via existing `AuditObserver`); no silent cascade to leaders/apoyos since they don't hold that FK |
-| Predefined vs. freeform custom attributes | N/A (rarely modeled) | Mixed — commission *types* are usually predefined by the compensation plan, not freeform per-distributor | Freeform for admins (any user can create custom fields) unless locked down by profile | Predefined only, superadmin-owned catalog — deliberately stricter than default Salesforce behavior, matching SIGMA's existing "centrally administered reference data" convention (roles, territorial structures, polling places) |
+- P1: Table stakes, native Recharts primitives, direct MonoCharts source reuse, low risk — good Phase 1/2 roadmap material
+- P2: Differentiators, genuinely new insight, real data-modeling or architecture work beyond a component swap — good candidates for dedicated research/discuss-phase before implementation phases
+- P3: Needs a product/requirements decision before it can be correctly scoped at all
 
 ## Sources
 
-- [Regional Organizer - Idealist](https://www.idealist.org/en/nonprofit-job/f1f1602f5b034ab0b920a954dacc9141-regional-organizer-virginians-for-reproductive-freedom-richmond) — MEDIUM confidence, job posting describing real campaign org structure
-- [Field Organizer role breakdown - CallHub](https://callhub.io/blog/campaign-organizing/field-organizer-job-responsibilities/) — MEDIUM confidence, canvassing-software vendor content
-- [Regional Organizing Director - NC House Dems](https://nchousedems.com/regional-organizing-director/) — MEDIUM confidence, real campaign hierarchy description
-- [Political Campaign Organizational Structure Guide - Aristotle](https://www.aristotle.com/campaign-guide/2023/08/political-campaign-organizational-structure-guide/) — MEDIUM confidence, campaign-management vendor content describing Field Director → Regional → Field Organizer → Canvasser chain
-- [Political Campaign Staff - Numero](https://www.numero.ai/blog/campaign-staff/) — MEDIUM confidence
-- [Laravel Custom Fields: JSON, EAV Model, or Same Table - Laravel Daily](https://laraveldaily.com/post/laravel-custom-fields-json-eav-model-same-table) — MEDIUM-HIGH confidence, widely cited Laravel-ecosystem reference on this exact tradeoff
-- [Spatie Laravel-schemaless-attributes](https://github.com/spatie/Laravel-schemaless-attributes) — HIGH confidence, official package docs, JSON-column approach precedent
-- [Sponsor Change In MLM - HybridMLM](https://www.hybridmlm.io/blogs/sponsor-change-in-mlm-what-it-means-and-why-the-right-software-matters/) — MEDIUM confidence, MLM-software vendor content on reassignment/cascade safeguards
-- [MLM Commission Management Guide - GlobalMLMSolution](https://www.globalmlmsolution.com/blog/a-guide-to-mlm-commission-management) — MEDIUM confidence
-- [7 Salesforce Territory Management Best Practices - TractionComplete](https://tractioncomplete.com/articles/salesforce-territory-management-best-practices/) — MEDIUM confidence, vendor content on reassignment/cascade behavior
-- [Service Territory Fields for Field Service - Salesforce Help](https://help.salesforce.com/s/articleView?id=service.fs_territory_fields.htm&language=en_US&type=5) — HIGH confidence, official Salesforce documentation
-- SIGMA codebase (direct inspection, HIGH confidence): `app/Models/User.php` (`coordinator_user_id` self-FK, `coordinator()`/`leaders()` relations, existing `witness_payment_amount` decimal field as precedent for a per-person compensation-like attribute), `app/Models/AuditLog.php` + `app/Observers/AuditObserver.php` + `app/Providers/AppServiceProvider.php` (generic morphable audit trail already registered on `User`), `app/Filament/Resources/Coordinators/*` and `Leaders/*` (resource/table/form structure to mirror for `Articuladores`), `.planning/PROJECT.md` (v1.2 milestone scope and explicit decisions)
+- [`github.com/Subhan-code/Monocharts`](https://github.com/Subhan-code/Monocharts) — `src/components/mono-charts/` (29 files listed via GitHub API; 11 read in full via raw.githubusercontent.com, including all funnel/sankey/treemap/heatmap/gauge/donut/stacked-bar/stream/line files named in the research question) and `src/components/dither-charts/lib/recharts-tooltip.tsx` (shared tooltip primitive). HIGH confidence — primary source, read directly.
+- `package.json` from the same repo — confirms `recharts: ^3.10.1`, `react: ^19.0.1`, no D3/visx/nivo dependency. HIGH confidence.
+- [Recharts official docs — FunnelChart API](https://recharts.github.io/en-US/api/FunnelChart/) — confirms native `data={[{name, value}]}` shape and `Tooltip`/`Label` support. HIGH confidence (official docs).
+- DeepWiki Recharts "Specialized Charts" page (`deepwiki.com/recharts/recharts/3.3-specialized-charts`) — used for Treemap squarify-algorithm and Sankey node/link/depth-assignment layout description. MEDIUM confidence (third-party AI-generated reference, not official Recharts docs) — corroborated against training-data knowledge of Recharts' long-standing `Treemap`/`Sankey` component shapes, no contradictions found.
+- SIGMA codebase: `app/Enums/VoterStatus.php` (12-case enum), `app/Models/ValidationHistory.php` (`previous_status`/`new_status` transition schema) — read directly to ground the Sankey/funnel complexity assessment in real project data, not assumption. HIGH confidence (primary source, this repo).
 
 ---
-*Feature research for: SIGMA v1.2 — articulador hierarchy tier + superadmin metadata-key catalog*
-*Researched: 2026-08-10*
+*Feature research for: MonoCharts-style chart types on Recharts, for SIGMA v1.3*
+*Researched: 2026-08-20*

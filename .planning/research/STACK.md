@@ -1,166 +1,174 @@
 # Stack Research
 
-**Domain:** JSON metadata column with a controlled key catalog + Filament v4 filter/sort by JSON key (MySQL)
-**Researched:** 2026-08-10
-**Confidence:** HIGH
+**Domain:** React micro-frontend "island" (charts/data-viz) embedded inside a Laravel 12 / Livewire 3 / Filament 4 / Vite 7 app
+**Researched:** 2026-08-20
+**Confidence:** HIGH (all versions verified directly against the npm registry and the installed `laravel-vite-plugin` v2.1.0 source; Laravel Vite docs fetched live)
 
 ## Recommended Stack
 
 ### Core Technologies
 
-No new core technologies needed. Everything required already exists in the current stack:
-
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| MySQL | 8.0.45 (confirmed via `SELECT VERSION()` against the project DB) | Native JSON column type + JSON path querying | Laravel's JSON where/order clauses require MariaDB 10.3+, MySQL 8.0+, PostgreSQL 12+, or SQLite 3.39+. Project is on MySQL 8.0.45 — comfortably above the minimum. No document DB or extension needed. |
-| Laravel 12 query builder / Eloquent | 12.x (existing) | `->` JSON path operator, `whereJsonContains`, `orderByRaw` | Native, first-class JSON support ships in the framework already in use. No package required for basic key/value filter or sort. |
-| Filament v4 Tables | 4.x (existing) | `SelectFilter`/`Filter` with custom `query()`, `TextColumn::sortable(query: ...)` | Both filter and sort already support fully custom `Builder` closures — the exact extension point needed to reach into a JSON column. This is the same mechanism the codebase already uses for relationship-based sorts (e.g. `leaders_count` in `CoordinatorsTable`). |
+| `react` | `^19.2.8` | React runtime for the chart island | Current npm `latest`. Required peer for Recharts 3.x and Motion. No other React exists in the codebase today, so this is a net-new, additive dependency — not a framework migration. |
+| `react-dom` | `^19.2.8` | DOM renderer, mounts the island into a `wire:ignore` container | Must match `react` major exactly (19.x); verified as npm `latest`. |
+| `recharts` | `^3.10.1` | Declarative chart primitives (funnel, sankey, treemap, stacked-bar, area, histogram/bar) on top of D3 | Current npm `latest` (v3 line, stable — not the `3.0.0-alpha`/`beta` tags). v3's `peerDependencies` explicitly allow `react ^19.0.0` / `react-dom ^19.0.0` / `react-is ^19.0.0` — verified directly from the published package manifest. Best fit for the MonoCharts feature list (funnel, donut, sankey, treemap, stacked-bar, heatmap-via-bar, stream/stacked-area, histogram, gauge-via-radial) without hand-rolling D3. |
+| `motion` | `^13.1.1` | Animation layer for chart transitions/enter-exit (the "Motion" in "React + Recharts + Motion") | This is the **current** package name — Framer Motion was renamed "Motion" and the actively developed package on npm is `motion` (import path `motion/react`), not `framer-motion`. Verified via npm dist-tags and corroborated by web search: `framer-motion` still publishes but is now a thin compatibility package (its own `dependencies` field points back to `motion-dom`/`motion-utils`, the same internals `motion` uses). Peer deps (`react ^18‖19`, `react-dom ^18‖19`) are marked **optional**, confirming Motion also works headless/vanilla-JS if ever needed outside React. |
+| `@vitejs/plugin-react` | `^5.2.0` | Enables JSX/Fast Refresh compilation for the new Vite entry | **Do not use 6.x** — `@vitejs/plugin-react@6.1.0`'s `peerDependencies` require `vite ^8.0.0`, which is incompatible with this project's pinned `vite ^7.0.4`. Verified `5.2.0`'s peer range is `^4.2.0 ‖ ^5.0.0 ‖ ^6.0.0 ‖ ^7.0.0 ‖ ^8.0.0` — the last version in the 5.x line and the correct match for Vite 7. |
 
 ### Supporting Libraries
 
-None required. No new Composer package is warranted for this milestone's scope (single flat JSON key/value map + a validated catalog table).
-
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| *(none)* | — | — | — |
+| `react-is` | `^19.2.8` | Recharts peer dependency (internal type-checking of React elements) | Add explicitly alongside `react`/`react-dom` — Recharts 3.x lists it as a required peer, not a transitive dependency, so npm/pnpm will warn (or fail under strict peer resolution) without it. |
+
+**Recharts 3.x pulls in its own runtime dependencies you do not need to install yourself** but should be aware of for bundle-size budgeting: `@reduxjs/toolkit`, `react-redux`, `immer`, `reselect`, `es-toolkit`, `victory-vendor` (D3 sub-modules), `decimal.js-light`, `eventemitter3`. These are real `dependencies` of `recharts@3.10.1` (verified from the published manifest), not peers — Recharts v3 rewrote its internal state management on Redux Toolkit. This is the single biggest reason the chart entry point must be code-split away from `app.js`: pulling Redux/Immer/D3 into every page load would be wasteful for an app where most pages have no charts at all.
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| `php artisan tinker` / `database-query` (Boost) | Verify JSON query syntax against real data before wiring into Filament | Use to sanity-check `->where('metadata->biaticos', ...)` and `orderByRaw(...)` against the actual `users` table before adding to `UsersTable`/`CoordinatorsTable`/`LeadersTable`. |
+| `@vitejs/plugin-react` (Babel-based, not `-swc`) | JSX transform + Fast Refresh in dev | Deliberately choosing the Babel variant over `@vitejs/plugin-react-swc`: pure JS, no platform-specific native binary. This project's `package.json` already carries `optionalDependencies` for Linux-specific native binaries (`@rollup/rollup-linux-x64-gnu`, `@tailwindcss/oxide-linux-x64-gnu`, `lightningcss-linux-x64-gnu`) to bridge macOS dev / Linux (Dokploy) prod — adding another native-binary dependency (swc) for a small, single-purpose island is unnecessary risk/complexity for no measurable benefit at this scale. |
+| No TypeScript | — | The codebase has no `tsconfig.json` and no TS anywhere today (Laravel/Filament/Livewire/Volt stack). Use plain `.jsx` files for the island to avoid introducing a second type system and build-config surface for a single, scoped feature. `@types/react`/`@types/react-dom` (`^19.2.18`/`^19.2.4` if ever needed) are not required for this milestone. |
 
-## Native Pattern (recommended approach)
+## Installation
 
-### 1. Schema: JSON column on `users`
+```bash
+# Core island runtime
+npm install react@^19.2.8 react-dom@^19.2.8 react-is@^19.2.8 recharts@^3.10.1 motion@^13.1.1
 
-```php
-// migration
-Schema::table('users', function (Blueprint $table) {
-    $table->json('metadata')->nullable()->after('coordinator_user_id');
-});
+# Dev dependency: JSX/Fast Refresh compiler for Vite (must be 5.x, not 6.x — see rationale above)
+npm install -D @vitejs/plugin-react@^5.2.0
 ```
 
-Cast on the model:
+No changes to `laravel-vite-plugin` (`^2.0`, currently `2.1.0`) or `vite` (`^7.0.4`) are required — both already satisfy the new plugin's peer requirements (verified below).
 
-```php
-// app/Models/User.php
-protected function casts(): array
-{
-    return [
-        // ...existing casts
-        'metadata' => 'array',
-    ];
+## Second Vite Entry Point — Confirmed Supported by `laravel-vite-plugin@^2.0`
+
+**Yes.** The currently-installed `laravel-vite-plugin` version (`^2.0`, resolves to `2.1.0`) supports multiple entry points natively, and this is the mechanism for code-splitting the React runtime away from the default page load. Verified by reading the published `2.1.0` source directly (not training data):
+
+```js
+// resolvePluginConfig() in laravel-vite-plugin@2.1.0
+if (typeof config === "string" || Array.isArray(config)) {
+    config = { input: config, ssr: config };
 }
 ```
 
-`array` cast (not a custom `AsArrayObject`/`AsCollection` cast) is sufficient — the metadata is a flat `key => value` map, not nested structured data, and Laravel round-trips a plain array cast to/from a MySQL `json` column with no extra ceremony.
+and
 
-### 2. Controlled key catalog (separate table, not an enum)
-
-A superadmin-managed catalog belongs in its own table (e.g. `metadata_keys`: `id`, `key` (unique, slug-like), `label`, `type` — text/number/select, `options` (nullable JSON for select-type values), `is_active`) rather than a PHP enum, because:
-- The catalog must be editable at runtime by a superadmin (per the milestone's own requirement), so it cannot be a compiled/deployed artifact like an enum.
-- Filament gives you a CRUD resource "for free" against a real table (superadmin manages keys the same way every other reference-data table in this app is managed — mirrors `Gremios`/`Subcategorias` which already follow this exact pattern in the codebase).
-- Assignment UI (on User forms) can populate its `Select`/repeatable options by querying `MetadataKey::where('is_active', true)->pluck(...)`, giving validation against the catalog "for free" instead of hand-rolling a validation rule against a hardcoded list.
-
-This is a hand-built table, not a package — Laravel doesn't need a dedicated catalog package for what is a 4-5 column reference table.
-
-### 3. Writing values
-
-```php
-$user->metadata = array_merge($user->metadata ?? [], ['biaticos' => '50000']);
-$user->save();
-
-// or targeted partial update without loading the whole array (MySQL 5.7+/MariaDB 10.3+):
-User::where('id', $id)->update(['metadata->biaticos' => '50000']);
+```js
+function resolveInput(config, ssr) {
+    return ssr ? config.ssr : config.input;
+}
+// ...later, feeds directly into: build.rollupOptions.input
 ```
 
-Only ever write keys that exist in `metadata_keys` (validate in the Form Request / Livewire form against the catalog) — the JSON column itself has no schema enforcement, so the catalog is the only thing keeping it "controlled."
+This means `laravel([...])` accepts an array today exactly as documented for all versions of the plugin, e.g.:
 
-### 4. Filtering by JSON key/value in Filament v4
+```js
+// vite.config.js
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
-```php
-use Filament\Tables\Filters\SelectFilter;
-
-SelectFilter::make('metadata_biaticos')
-    ->label('Biáticos')
-    ->options(fn () => /* distinct or catalog-defined options for this key */)
-    ->query(function (Builder $query, array $data) {
-        if (blank($data['value'] ?? null)) {
-            return $query;
-        }
-
-        return $query->where('metadata->biaticos', $data['value']);
-    });
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.js',      // existing, empty today — untouched
+                'resources/js/charts.jsx',  // NEW second entry — the React island
+            ],
+            refresh: true,
+        }),
+        tailwindcss(),
+        react(),
+    ],
+});
 ```
 
-For a fully dynamic filter (any catalog key, not one filter per key), build filters at runtime from `MetadataKey::active()->get()` inside `->filters()` (a `map()` over the catalog producing one `SelectFilter`/`Filter` per key), using `->where("metadata->{$key}", $value)` per filter — the `->` operator is safe here only because `$key` comes from the trusted catalog table, never raw user input (PDO cannot bind column/path names, so this must be validated against the catalog before interpolation, per Laravel's own query builder docs warning).
+Because `charts.jsx` and `app.js` share no imports, Rollup emits them as **separate output chunks** with independent `manifest.json` entries. The React/Recharts/Motion bundle (plus Recharts' Redux/Immer/D3 payload) is only fetched by the browser on pages that actually include:
 
-### 5. Sorting by JSON key/value in Filament v4
-
-```php
-use Illuminate\Database\Eloquent\Builder;
-
-TextColumn::make('metadata_biaticos')
-    ->label('Biáticos')
-    ->state(fn ($record) => $record->metadata['biaticos'] ?? null)
-    ->sortable(query: function (Builder $query, string $direction): Builder {
-        return $query->orderByRaw(
-            'CAST(JSON_UNQUOTE(JSON_EXTRACT(metadata, "$.biaticos")) AS CHAR) ' . $direction
-        );
-    });
+```blade
+@viteReactRefresh
+@vite('resources/js/charts.jsx')
 ```
 
-Notes:
-- `TextColumn::sortable(query: Closure)` is the exact same extension point already used elsewhere in this codebase for computed/relationship columns — this is a drop-in continuation of an existing pattern, not a new one.
-- Use `JSON_EXTRACT` + `JSON_UNQUOTE` (or the `->>` shorthand, MySQL 5.7.13+) rather than the plain `->` accessor inside `orderByRaw`, since `orderByRaw` is a raw SQL string, not query-builder JSON path syntax — the `->`/`->>` sugar Laravel exposes on `where()`/`orderBy()` (`$query->orderBy('metadata->biaticos', $direction)`) also works directly and is simpler; prefer it unless a numeric cast is needed for correct numeric sort order (JSON values are stored as strings without a cast, so `CAST(... AS UNSIGNED)` /`AS DECIMAL` is needed if a key's `type` in the catalog is numeric).
-- If a metadata key's catalog `type` is numeric, cast accordingly (`AS UNSIGNED` or `AS DECIMAL(10,2)`) so `50000` doesn't sort before `9000` as a string.
+Every other Blade layout / Livewire / Filament view that only loads `resources/js/app.js` (or nothing extra) never downloads the React runtime at all — this is the code-splitting guarantee, confirmed structurally (via the plugin's own `rollupOptions.input` array → per-entry chunking, which is standard Rollup/Vite behavior, not something the Laravel plugin needs to special-case).
+
+**Peer-dependency compatibility check (why no `laravel-vite-plugin` or `vite` upgrade is needed):**
+
+| Package | Installed | Peer requirement | Compatible? |
+|---------|-----------|-------------------|--------------|
+| `laravel-vite-plugin@2.1.0` | `^2.0` (current) | `vite: ^7.0.0` | Yes — project pins `vite@^7.0.4` |
+| `@vitejs/plugin-react@5.2.0` | new | `vite: ^4.2.0 ‖ ^5.0.0 ‖ ^6.0.0 ‖ ^7.0.0 ‖ ^8.0.0` | Yes — `^7.0.4` satisfies |
+| `laravel-vite-plugin@3.2.0` (latest) | not needed | `vite: ^8.0.0` | **No** — would force a Vite 8 major upgrade project-wide; explicitly avoided this milestone |
+| `@vitejs/plugin-react@6.1.0` (latest) | not needed | `vite: ^8.0.0` | **No** — same reason, avoided |
+
+Staying on `laravel-vite-plugin ^2.0` + `vite ^7.0.4` and picking `@vitejs/plugin-react@5.2.0` keeps this milestone strictly additive with zero forced upgrades to the existing build pipeline (Tailwind v4 plugin, existing Vite config, Playwright, etc. all remain untouched).
+
+## `wire:ignore` Bridge Pattern (mounting point)
+
+Not a new library — this is a Livewire-native mechanism, already implicitly decided in the milestone scope ("Vite entry separado + puente `wire:ignore`"). Practical shape for this project:
+
+```blade
+{{-- inside a Filament ChartWidget view or Volt component --}}
+<div wire:ignore>
+    <div id="chart-root-{{ $this->getId() }}" data-chart="funnel" data-payload="{{ json_encode($chartData) }}"></div>
+</div>
+```
+
+`wire:ignore` tells Livewire to never touch that DOM subtree on re-render, so React fully owns it. The `charts.jsx` entry mounts one or more `createRoot()` instances by querying `[data-chart]` elements on `DOMContentLoaded`, reading `data-payload` (or receiving data via a small `window.dispatchEvent`/Livewire event bridge for live-updating widgets like the Día D voting line chart's polling). This pattern requires no additional package — plain `react-dom/client`.
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|--------------------------|
-| Native `->` operator / `whereJsonContains` / `orderByRaw` + `JSON_EXTRACT` | `spatie/laravel-schemaless-attributes` | If the metadata grew into deeply nested, typed, multi-column schemaless data with its own query DSL needs. Actively maintained (Packagist last update 2026-04-21), MySQL 5.7+ compatible, and would fit the existing Spatie-heavy stack (already using `spatie/laravel-permission`). Not warranted here: this milestone's metadata is a single flat key/value map validated against one catalog table — the package's main value (a fluent object + multiple schemaless columns per model) isn't needed, and it doesn't solve the catalog-validation or Filament filter/sort requirements either, so it would be an extra dependency with no reduction in hand-written code. |
-| MySQL native `json` column, queried directly | MySQL **generated/virtual columns** (`$table->string(...)->virtualAs('metadata->>"$.biaticos"')->index()`) per catalog key | Only worth it once the `users` table is large enough (tens of thousands+ rows) that `JSON_EXTRACT`-based filtering/sorting shows measurable latency, AND the catalog is stable enough to justify a migration per key. Since the catalog is explicitly runtime-editable by a superadmin (not deploy-time), a virtual column per key would require a migration on every catalog change — defeats the "predefined but manageable" design goal. Revisit only if a specific key becomes a genuine hot path (e.g. used in every dashboard widget) and campaign user counts grow well past current scale. |
-| Hand-built `metadata_keys` catalog table + Filament resource | `ptplugins/filament-auto-filters` (auto-generates filters from column definitions, supports Filament 3/4/5, handles JSON columns) | If the number of filterable metadata keys grows large enough that hand-writing one `SelectFilter`/`sortable` pair per key (or per catalog row via a `map()`) becomes real maintenance burden. Not needed for this milestone's scope (a handful of catalog keys like `biaticos`, `almuerzo`, `incentivo`); adding a third-party table/filter-generation package for a few keys is disproportionate, and CLAUDE.md project conventions call for approval before dependency changes. |
+| `recharts` v3 | `visx` (Airbnb, low-level D3+React primitives) | If MonoCharts' visual spec demands pixel-level custom chart geometry (e.g., a bespoke Sankey layout) that Recharts' declarative API can't express — visx trades convenience for full D3 control. Not recommended as the default here since Recharts v3 already ships Funnel, Sankey, Treemap, and ComposedChart (stacked-bar/area) components covering essentially the whole MonoCharts feature list out of the box. |
+| `recharts` v3 | `nivo` | Nivo has strong out-of-the-box theming and a built-in Heatmap component (useful for the caller×hora heatmap), but pulls in its own larger dependency tree per chart family (separate `@nivo/*` packages) and has a less consistent v3-era React 19 compatibility story than Recharts at time of research. Recharts' `ComposedChart`/custom `Cell` coloring can approximate a heatmap via a colored grid of `Bar`/`Scatter` cells, avoiding a second charting library. |
+| `motion` (`motion/react`) | `framer-motion` (legacy name) | Only if pinned by an existing dependency that still imports `framer-motion` directly — otherwise always prefer `motion`, since `framer-motion@13.1.1`'s own `dependencies` now point back into `motion-dom`/`motion-utils`, confirming it is the compatibility shim, not the actively developed package. |
+| `@vitejs/plugin-react` (Babel) | `@vitejs/plugin-react-swc` | If dev-server cold-start/HMR latency on the chart island becomes a measurable pain point later (SWC is faster to transform than Babel). Not worth the added native-binary surface for a single, scoped island at this milestone's size. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|--------------|
-| A document database (MongoDB, etc.) or a separate EAV (entity-attribute-value) table just to store metadata key/values | MySQL 8.0.45 (already in use) has full native JSON column + JSON path query/sort support — adding another datastore or a normalized EAV schema is unjustified complexity for a flat key/value map on one model | MySQL `json` column on `users` + native `->`/`whereJsonContains`/`JSON_EXTRACT` queries |
-| Freeform metadata keys with no server-side validation against a catalog | The milestone explicitly requires a *predefined, superadmin-managed* catalog, not freeform — validating only in the UI (e.g. a Livewire `Select` populated once) without a hard server-side check against `metadata_keys` allows any actor with direct model/API access to write unvalidated keys | Validate every write (Form Request / Livewire form `rules()`) against `MetadataKey::where('is_active', true)->pluck('key')` before merging into the `metadata` array |
-| Plain `orderBy('metadata->biaticos', $direction)` when the catalog key's type is numeric | JSON scalar values are stored/compared as strings by default; without a numeric cast, `"9000"` sorts after `"50000"` lexicographically (wrong for currency/quantity values like biaticos) | `orderByRaw('CAST(JSON_UNQUOTE(JSON_EXTRACT(metadata, "$.key")) AS UNSIGNED) ' . $direction)` for numeric-typed catalog keys |
-| Interpolating a raw user-supplied string directly into a JSON path inside `orderByRaw`/`whereRaw` | Laravel's query builder explicitly warns that PDO cannot bind column/path names — user input must never dictate order-by/JSON-path column references, or it opens a SQL injection surface | Only interpolate `$key` after validating it exists in the `metadata_keys` catalog table (trusted source, not raw request input) |
-| MySQL generated/virtual columns per catalog key at this milestone's scale | Requires a schema migration every time a superadmin adds/removes a catalog key, which conflicts with the catalog being a runtime-managed feature, and the perf gain isn't needed yet at current campaign user-table sizes | Direct `JSON_EXTRACT`/`->` queries now; revisit virtual+indexed columns only if a specific key becomes a proven hot path at much larger scale |
+| `laravel-vite-plugin@^3.x` / `@vitejs/plugin-react@^6.x` | Both require `vite ^8.0.0`; upgrading Vite is an unrelated, unscoped major-version change that would touch the Tailwind v4 Vite plugin and every existing build config for zero benefit to this milestone's goal | `laravel-vite-plugin@^2.0` (already installed) + `@vitejs/plugin-react@^5.2.0` |
+| Making `resources/js/app.js` import React/Recharts/Motion directly (single shared entry) | Defeats the entire "island" premise — every page (including pages with zero charts) would download React + Recharts' Redux/Immer/D3 payload on every load | A dedicated second Vite entry (`resources/js/charts.jsx`) included only via `@vite(...)` on chart-bearing views |
+| `chart.js` / `react-chartjs-2` | Chart.js currently only exists as a transitive dependency pulled in by Filament itself (not a direct npm dependency) and does not natively support Sankey/Treemap without extra plugins; the milestone explicitly targets React/Recharts to get MonoCharts' actual visual composition, not just its color palette | `recharts` as scoped above |
+| `framer-motion` (as a fresh install) | Legacy package name; new installs should target the actively-developed `motion` package directly to avoid an unnecessary indirection layer | `motion`, imported as `motion/react` |
+| Introducing TypeScript for just this island | No TS anywhere else in the codebase; adds a parallel type-checking/build surface for a single, scoped feature with no other stated need | Plain `.jsx` |
+| Inertia.js or any full-page React routing | Explicitly out of scope — this milestone keeps Livewire/Filament as the primary frontend and React strictly as an embedded, `wire:ignore`-bridged island, not a competing routing/page-ownership layer | Keep React mount points scoped to individual widget/component DOM subtrees only |
 
 ## Stack Patterns by Variant
 
-**If the metadata catalog stays small (a handful of keys, as currently scoped — `biaticos`, `almuerzo`, `incentivo`):**
-- Build filters/sort per-key (either hand-written or generated via a `map()` over active catalog rows inside `->filters()`/`->columns()`)
-- Because the closures needed are simple and the existing codebase already has this exact `sortable(query: ...)` / custom-`query()` filter pattern established (e.g. `leaders_count` sort in `CoordinatorsTable`), consistent with project conventions
+**If a chart widget needs live/polling data (e.g., the Día D live voting line chart):**
+- Keep Livewire's `wire:poll` (or existing polling mechanism) driving the *data fetch* on the PHP/Blade side, and re-render only the `data-payload` attribute or dispatch a custom DOM/`window` event that the mounted React component listens for.
+- Do **not** give React its own independent polling/fetch loop against Laravel endpoints — that would create two competing sources of truth (Livewire's existing polling infra vs. a new React-side fetch layer) for the same data.
 
-**If the catalog later grows large (dozens+ keys, or per-campaign custom keys):**
-- Reassess: at that point a dynamic filter-generation approach (still native, built as a small in-house helper that maps `MetadataKey` rows to `SelectFilter`/`sortable` definitions) is more scalable than one hardcoded filter per key
-- Consider virtual/indexed generated columns for the specific keys proven to be filtered/sorted most often, once `users` row counts justify it
+**If a chart is a static/one-time render (most of the 12 MonoCharts chart types listed in the milestone, e.g., Sankey of `ValidationHistory` transitions, Treemap of territory):**
+- Server-render the payload into the `data-payload` JSON attribute at Blade/Livewire render time; React mounts once and never needs to talk back to Livewire.
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
-|-----------|-----------------|-------|
-| MySQL 8.0.45 | Laravel 12.x JSON where/order clauses | Laravel's JSON where-clause docs require MySQL 8.0+ specifically (MariaDB 10.3+ is a separate compatibility line) — confirmed the project's actual DB version via `SELECT VERSION()`, well above the minimum |
-| Filament v4.x `TextColumn::sortable(query: Closure)` | Laravel 12.x `Illuminate\Database\Eloquent\Builder` | Same closure signature (`Builder $query, string $direction`) already used elsewhere in this codebase's Filament resources — no version friction |
-| `array` Eloquent cast on a `json` column | MySQL `json` column type | Standard, no additional package; avoid `AsArrayObject`/`AsCollection` unless dot-notation mutation ergonomics are specifically needed — not required for this flat key/value use case |
+|-----------|------------------|-------|
+| `laravel-vite-plugin@2.1.0` (installed range `^2.0`) | `vite@^7.0.4` (installed) | Verified via published `peerDependencies`; no upgrade needed |
+| `@vitejs/plugin-react@5.2.0` | `vite@^7.0.4` (installed) | Verified via published `peerDependencies` (`^4.2.0 ‖ ^5.0.0 ‖ ^6.0.0 ‖ ^7.0.0 ‖ ^8.0.0`) |
+| `recharts@3.10.1` | `react@19.2.8` / `react-dom@19.2.8` / `react-is@19.2.8` | Verified via published `peerDependencies` (`^16.8.0 ‖ ^17.0.0 ‖ ^18.0.0 ‖ ^19.0.0` for all three) |
+| `motion@13.1.1` | `react@19.2.8` / `react-dom@19.2.8` | Verified via published `peerDependencies` (`^18.0.0 ‖ ^19.0.0`, both marked optional so Motion also works without React) |
+| `@vitejs/plugin-react@6.1.0` (latest, **not** recommended) | `vite@^8.0.0` only | Would force an unrelated Vite major upgrade — avoided |
+| `laravel-vite-plugin@3.2.0` (latest, **not** recommended) | `vite@^8.0.0` only | Same reason — avoided |
 
 ## Sources
 
-- [Laravel 12.x Query Builder docs — JSON Where Clauses, Updating JSON Columns, Ordering](https://laravel.com/docs/12.x/queries) — HIGH confidence, official docs, verified `->` operator syntax, `whereJsonContains`/`whereJsonDoesntContain`, MySQL 8.0+ minimum version requirement, and the PDO column-binding warning for raw order-by input
-- Direct project verification: `SELECT VERSION()` against the connected MySQL DB returned `8.0.45` — HIGH confidence, confirms the project's actual DB meets Laravel's JSON-query minimum version
-- Direct project inspection: `app/Filament/Resources/Coordinators/Tables/CoordinatorsTable.php`, `app/Filament/Resources/Messages/Tables/MessagesTable.php` — HIGH confidence, confirms existing `sortable(query: ...)` and `SelectFilter` conventions already in use in this codebase, which the JSON metadata filter/sort should follow
-- [Kirschbaum — Optimizing, sorting, and filtering JSON Columns in Laravel with Indexed Virtual Columns](https://kirschbaumdevelopment.com/insights/optimizing-json-columns-in-laravel) — MEDIUM confidence (community source, cross-checked against Laravel migration `virtualAs()`/`storedAs()` API which is documented framework behavior), used to evaluate and explicitly defer the generated-column optimization
-- [Packagist — spatie/laravel-schemaless-attributes](https://packagist.org/packages/spatie/laravel-schemaless-attributes) — MEDIUM confidence (package registry, confirms active maintenance as of 2026-04-21 and MySQL 5.7+ requirement), used to evaluate and explicitly reject as unnecessary for this milestone's scope
-- [Filament — Advanced/Filters "Add custom query to a filter" community thread](https://www.answeroverflow.com/m/1143034555700359178) — MEDIUM confidence (community-verified pattern, consistent with official Filament filter `query()` closure API), used to confirm `SelectFilter`/`Filter` custom `query()` closures are the correct extension point
+- npm registry (`registry.npmjs.org`) `dist-tags` and per-version manifest JSON for `react`, `react-dom`, `react-is`, `recharts`, `motion`, `framer-motion`, `laravel-vite-plugin`, `vite`, `@vitejs/plugin-react`, `@types/react`, `@types/react-dom` — fetched live 2026-08-20, HIGH confidence (primary source of truth for versions/peer deps)
+- `unpkg.com/laravel-vite-plugin@2.1.0/dist/index.js` and `laravel-vite-plugin@3.2.0` manifest — read directly to confirm array-based entry-point support (`resolvePluginConfig`/`resolveInput`) and the v3 peer bump to Vite 8 — HIGH confidence
+- Laravel 12.x official docs, `laravel.com/docs/12.x/vite` — fetched live for `@vite()` multi-entry Blade directive, React/`@vitejs/plugin-react`/`@viteReactRefresh` setup instructions — HIGH confidence
+- WebSearch: "motion vs framer-motion npm package 2026 recommended import react" — corroborated by the npm manifest evidence that `framer-motion`'s own dependencies now point to `motion-dom`/`motion-utils` — MEDIUM→HIGH confidence (cross-verified against primary npm data, not relied on alone)
+- Local inspection: current `package.json` at repo root (installed `vite@^7.0.4`, `laravel-vite-plugin@^2.0`, no existing React/chart libs, `resources/js/app.js` empty, Linux-native `optionalDependencies` pattern) — HIGH confidence (ground truth)
 
 ---
-*Stack research for: JSON metadata column + controlled key catalog + Filament v4 filter/sort (MySQL)*
-*Researched: 2026-08-10*
+*Stack research for: React island (Recharts + Motion) inside Laravel 12 / Livewire 3 / Filament 4 / Vite 7 — v1.3 MonoCharts milestone*
+*Researched: 2026-08-20*

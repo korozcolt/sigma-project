@@ -1,253 +1,419 @@
-# Architecture Research: Articuladores + User Metadata (v1.2)
+# Architecture Research
 
-**Domain:** Integration architecture — extending an existing Laravel 12 / Filament 4 / Spatie-Permission hierarchy and admin-panel resource pattern
-**Researched:** 2026-08-10
-**Confidence:** HIGH (all findings sourced directly from the current codebase, not training-data assumptions)
+**Domain:** React+Recharts+Motion micro-frontend island inside a Livewire 3 / Filament 4 widget system
+**Researched:** 2026-08-20
+**Confidence:** HIGH — the core bridge mechanism is not a hypothesis, it is reverse-engineered from Filament's own vendored `ChartWidget` implementation already running in this codebase (`vendor/filament/widgets/resources/js/components/chart.js` and `vendor/filament/widgets/resources/views/chart-widget.blade.php`), cross-checked against official Livewire and Laravel Vite docs.
 
-## Current Architecture (as-is)
+## Standard Architecture
+
+### System Overview
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│ Filament Panels (app/Providers/Filament/*PanelProvider.php)         │
-│                                                                       │
-│  admin/  ──────── discoverResources(app/Filament/Resources) ─────►  │
-│    canAccessPanel: super_admin, admin_campaign, reviewer            │
-│    CoordinatorResource, LeaderResource, UserResource, GremioResource│
-│                                                                       │
-│  coordinator/  ── path 'coordinator', custom pages, NOT Filament   │
-│    canAccessPanel: coordinator, admin_campaign, super_admin         │
-│    authMiddleware: EnsureUserHasRole:coordinator                    │
-│    Livewire/Volt self-service: resources/views/livewire/coordinator/│
-│      dashboard, leaders, create-leader, edit-leader, ...            │
-│                                                                       │
-│  leader/   ── similar self-service shape, role: leader              │
-│  reports/  ── canAccessPanel: reports_viewer, ->resources([...])   │
-└────────────────────────────────────────────────────────────────────┘
-                              │
-┌────────────────────────────▼────────────────────────────────────────┐
-│ App\Models\User (single table, role via Spatie HasRoles, no teams)  │
-│                                                                       │
-│  users.coordinator_user_id  (self-FK, nullOnDelete)                 │
-│    User::coordinator(): BelongsTo(User, 'coordinator_user_id')      │
-│    User::leaders(): HasMany(User, 'coordinator_user_id')            │
-│    Semantic meaning is fixed: "this leader's coordinator"           │
-│                                                                       │
-│  campaign_user (pivot): user_id, campaign_id, role_id, assigned_*   │
-│    → drives HasCampaignMembershipScope / CampaignMembershipScope    │
-│      global scope (whereHas('campaigns', campaign_id = current))    │
-│    → INDEPENDENT of coordinator_user_id — campaign isolation does   │
-│      not care about hierarchy, only campaign_user membership        │
-└────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│  Filament Widget (PHP) — App\Filament\Widgets\*                    │
+│  extends ChartWidget (reuse polling/checksum plumbing)             │
+│  or plain Widget+CanPoll (RevalidationProgressWidget precedent)    │
+├───────────────────────────────────────────────────────────────────┤
+│  Custom Blade view — resources/views/filament/widgets/*.blade.php  │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ <div wire:poll.{interval}="updateChartData">  (LIVE, morphed)│  │
+│  │   <div wire:ignore                                          │  │
+│  │        x-data="reactChartBridge({ initialData, chartKind })">│  │
+│  │     <div data-react-root></div>   ← Livewire NEVER touches   │  │
+│  │   </div>                                                     │  │
+│  │ </div>                                                        │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+├───────────────────────────────────────────────────────────────────┤
+│  Vite chunk: resources/js/charts/main.tsx (separate entry)         │
+│  - registers Alpine.data('reactChartBridge', ...)                  │
+│  - on init(): ReactDOM.createRoot(el).render(<ChartRouter .../>)   │
+│  - this.$wire.$on('updateChartData', ({data}) => setState(data))   │
+│    → React re-renders via STATE UPDATE, not remount                │
+├───────────────────────────────────────────────────────────────────┤
+│  React tree (Recharts for charts, Motion for transitions)          │
+│  ChartRouter picks component by `chartKind` prop (sankey, treemap, │
+│  funnel, heatmap, stacked-area, gauge, ...) — one bundle, N charts  │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
-`coordinator_user_id` is **not** a generic "reports-to" pointer — it is a specific, narrowly-typed, heavily-consumed field meaning "the coordinator this leader belongs to." It is directly referenced (not just via the `coordinator()`/`leaders()` relations) in:
+### Component Responsibilities
 
-- `app/Filament/Resources/Leaders/Schemas/LeaderForm.php` — the coordinator `Select` is scoped `->role(UserRole::COORDINATOR->value)`
-- `app/Filament/Resources/Leaders/Pages/CreateLeader.php`, `EditLeader.php` — municipality sync and campaign-inheritance logic keyed on `coordinator_user_id`
-- `app/Filament/Resources/Coordinators/Tables/CoordinatorsTable.php` — `leaders_count` via `counts('leaders')`
-- `app/Filament/Resources/Invitations/Schemas/InvitationForm.php`, `app/Models/Invitation.php`, `app/Services/InvitationService.php` — leader self-registration invitation links carry a `coordinator_user_id`
-- `app/Filament/Resources/Users/Schemas/UserForm.php`, `app/Filament/Resources/Voters/Schemas/VoterForm.php` — generic forms reference it for context
-- `app/Exports/TopLeadersExport.php`, `app/Filament/Widgets/TopLeadersTable.php`, `app/Http/Controllers/Coordinator/LeadersExportController.php` — reports/exports filter `where('coordinator_user_id', Auth::id())` for the logged-in coordinator's own team
-- `resources/views/livewire/coordinator/*.blade.php` — the entire self-service coordinator panel (dashboard, leaders list, create/edit leader) is built around "my leaders = `leaders()` where `coordinator_user_id = me`"
-- ~20 Pest test files assert this exact semantics (`CoordinatorLeaderRelationshipTest`, `DashboardLeadersScopeTest`, `TopLeadersExportTest`, `OwnershipScopedWidgetsTest`, `WidgetDrillThroughTest`, etc.)
+| Component | Responsibility | Typical Implementation |
+|-----------|----------------|-------------------------|
+| Filament Widget class (PHP) | Owns data query/scoping (campaign isolation, role scoping — same rules as every existing widget), serializes to a JSON-safe shape, drives the poll cycle | `extends ChartWidget` (inherits `getData()`/`updateChartData()`/checksum/dispatch) or `extends Widget` + `CanPoll` (RevalidationProgressWidget pattern) with a hand-rolled `dispatch()` call |
+| Custom Blade view | Declares the `wire:poll` boundary *outside* the ignored subtree, and the `wire:ignore` boundary around the React mount point; passes initial payload as `@js(...)` | One file per widget under `resources/views/filament/widgets/`, following `revalidation-progress-widget.blade.php`'s existing custom-view pattern |
+| Alpine bridge (`reactChartBridge`) | Sole channel between Livewire and React: mounts the React root once, listens for the Livewire-dispatched event, converts it into a React state update | New JS module, structurally a clone of vendored `chart.js`'s `chart()` Alpine component |
+| React root (per widget instance) | Owns Recharts render + Motion transitions; re-renders on prop/state change only, never remounted by Livewire | `ReactDOM.createRoot()` called exactly once per DOM node, in `init()` |
+| Vite entry (`resources/js/charts/main.tsx`) | Separate build chunk, code-split from `resources/js/app.js`, loaded only where charts are needed | Registered as an additional `input` in `laravel-vite-plugin`'s config, referenced via its own `@vite([...])` call |
 
-This is the single most important fact for the roadmap: **`coordinator_user_id` is a load-bearing, well-tested, narrowly-scoped column.** Repurposing it (renaming, or making it polymorphic to mean "any superior") would touch ~25 files and every test above, for a column whose current name and FK target (`coordinator` role) is asserted directly in multiple places.
+## Answering the Four Specific Questions
 
-## Q1 — Articulador→Coordinador Link: New Column, Not a Reuse of `coordinator_user_id`
+### Q1 — Is `wire:ignore` the correct mechanism?
 
-**Recommendation: add a new dedicated `articulador_user_id` self-referencing FK on `users`, mirroring the exact migration pattern used for `coordinator_user_id`. Do not rename, generalize, or repurpose `coordinator_user_id`.**
+**Yes — confirmed, this is exactly how Filament's own `ChartWidget` protects its Chart.js canvas today.** The vendored view (`vendor/filament/widgets/resources/views/chart-widget.blade.php`) wraps the Alpine-driven chart container in `wire:ignore`:
 
-### Tradeoffs
+```blade
+<div @if ($pollingInterval) wire:poll.{{ $pollingInterval }}="updateChartData" @endif>
+    <div
+        x-load
+        x-load-src="{{ FilamentAsset::getAlpineComponentSrc('chart', 'filament/widgets') }}"
+        wire:ignore
+        x-data="chart({ cachedData: @js($this->getCachedData()), options: @js($this->getOptions()), type: @js($type) })"
+    >
+        <canvas x-ref="canvas"></canvas>
+        ...
+    </div>
+</div>
+```
 
-| Option | Pros | Cons | Verdict |
-|---|---|---|---|
-| New `articulador_user_id` column (mirror pattern) | Zero risk to existing `coordinator_user_id` consumers/tests; migration is a copy-paste of `2026_01_21_000002_add_coordinator_to_users_table.php`; `User::articulador()`/`User::coordinators()` relations are additive; existing `LeaderForm`, exports, dashboards, invitations untouched | One more FK column on `users`; two parallel self-FK columns to reason about | **Recommended** |
-| Rename/generalize `coordinator_user_id` → e.g. `parent_user_id` with a `parent_role` discriminator | "Cleaner" schema in the abstract | Breaks every literal `coordinator_user_id` reference above; requires touching Leader/Coordinator resource forms, exports, coordinator self-service panel, invitations, and ~20 tests; also semantically wrong — the milestone explicitly says "coordinadores keep working exactly as today, no coordinador→coordinador nesting," i.e. the *shape* of the hierarchy is not symmetric (articulador→coordinador is a different, additive level, not a recursive "parent" concept) | Rejected — violates the "harden in place, no rewrites" project constraint and the milestone's own "keep working exactly as today" requirement |
-| Single polymorphic `superior_id` + `superior_type`/level enum | Extensible to arbitrary depth | Massive overkill: the milestone explicitly caps this at one new flat level (articulador→coordinador, no further nesting) and the project constraint says avoid large schema expansion for a hardening milestone | Rejected — YAGNI, and campaign isolation (`CampaignMembershipScope`) is already independent of hierarchy depth, so there's no scaling need it solves today |
+Note the `wire:poll` is on the **outer** div, and `wire:ignore` on the **inner** div. This is the pattern to replicate: `wire:ignore` on the React mount root only, one level below the polling trigger, not on the whole widget. `wire:ignore.self` is not needed here (no Livewire-bound attributes on the mount div itself that need to keep updating; the whole subtree is React-owned).
 
-### Concrete migration shape (mirrors `2026_01_21_000002_add_coordinator_to_users_table.php`)
+**Confidence: HIGH** (verified in this project's own vendor code, not training data).
 
-```php
-Schema::table('users', function (Blueprint $table) {
-    $table->foreignId('articulador_user_id')
-        ->nullable()
-        ->after('coordinator_user_id')
-        ->constrained('users')
-        ->nullOnDelete();
+### Q2 — How does the container re-receive fresh data on each poll tick?
 
-    $table->index('articulador_user_id');
+**Not `Livewire.hook('morph.updated')` and not `livewire:navigated`.** Both were offered as hypotheses in the question; neither is what Filament itself uses, and both have real drawbacks confirmed in the Livewire GitHub discussions surveyed: `morph.updated` fires globally (once per *any* Livewire morph on the page, not scoped to this widget) and fires multiple times per update cycle, forcing you to debounce/dedupe and to re-derive "did *my* widget's data actually change" from scratch.
+
+**The mechanism Filament actually uses — and the one to copy — is a Livewire-dispatched browser event, heard via Alpine's `$wire` magic from *inside* the `wire:ignore`d node:**
+
+1. `wire:poll.{interval}="updateChartData"` on the wrapper (outside `wire:ignore`) calls a **Livewire component method** each tick — this is a normal AJAX round-trip, unrelated to DOM morphing.
+2. That PHP method (`ChartWidget::updateChartData()`) computes a checksum of the fresh data and only dispatches if it changed:
+   ```php
+   public function updateChartData(): void
+   {
+       $newDataChecksum = $this->generateDataChecksum();
+       if ($newDataChecksum !== $this->dataChecksum) {
+           $this->dataChecksum = $newDataChecksum;
+           $this->dispatch('updateChartData', data: $this->getCachedData());
+       }
+   }
+   ```
+3. `$this->dispatch(...)` fires a **browser CustomEvent** that is delivered regardless of `wire:ignore` — dispatch is independent of DOM morphing, it just rides along on the same AJAX response.
+4. The Alpine component living *inside* the ignored node — `wire:ignore` only stops Livewire from **touching the DOM**, it does not disable Alpine reactivity or the `$wire` magic property — listens and updates in place:
+   ```js
+   this.$wire.$on('updateChartData', ({ data }) => {
+       const chart = this.getChart()
+       chart.data = data
+       chart.update('resize')   // in-place update, NOT a remount
+   })
+   ```
+
+**For the React island, replicate this 1:1**, substituting a React state update for `chart.update()`:
+```js
+// resources/js/charts/main.tsx
+Alpine.data('reactChartBridge', ({ initialData, chartKind }) => ({
+    root: null,
+    init() {
+        this.root = ReactDOM.createRoot(this.$el);
+        this.render(initialData);
+        this.$wire.$on('updateChartData', ({ data }) => this.render(data));
+    },
+    render(data) {
+        this.root.render(<ChartRouter kind={chartKind} data={data} />);
+    },
+}));
+```
+Calling `root.render()` again on the **same** root is not a remount — React reconciles against the existing tree, so component state, Recharts internal animation state, and any in-flight Motion transitions are preserved across polls exactly like Chart.js's `chart.update()` preserves the canvas. Full teardown/recreate (`root.unmount()` + new `createRoot()`) would defeat the purpose of an island and should be avoided on every poll tick — only do that on `livewire:navigated` (SPA-style full page swap) to avoid leaking roots across page loads. This is the one edge case where a `livewire:navigated` listener genuinely is needed — for cleanup, not for data refresh.
+
+**Confidence: HIGH** — mechanism is directly read from this project's vendored Filament source, not inferred.
+
+### Q3 — Minimal Vite multi-entry setup for `laravel-vite-plugin` ^2.0
+
+Current `vite.config.js` (single `input` array, three shared entries):
+```js
+laravel({
+    input: ['resources/css/app.css', 'resources/css/filament/theme.css', 'resources/js/app.js'],
+    refresh: true,
+}),
+```
+`laravel-vite-plugin`'s `input` accepts an array of independent entry points that each get their own output chunk — you do **not** need a second Vite config file (that's only required for a fully separate build directory/manifest, which is unnecessary here). Add the React plugin and a fourth entry:
+
+```js
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: [
+                'resources/css/app.css',
+                'resources/css/filament/theme.css',
+                'resources/js/app.js',
+                'resources/js/charts/main.tsx',   // NEW — isolated React chunk
+            ],
+            refresh: true,
+        }),
+        tailwindcss(),
+        react(),
+    ],
+    server: { cors: true },
 });
 ```
+New dependencies to add (dev): `@vitejs/plugin-react`. Runtime deps: `react`, `react-dom`, `recharts`, `motion` (the current npm package name for the animation library formerly "Framer Motion" — confirm this is what "Motion" in the milestone brief refers to, not the existing hand-rolled `motion-init.blade.php` vanilla-JS UX script already in this codebase, which is unrelated and should not be conflated or renamed during this work).
 
-### Model additions (`app/Models/User.php`)
+**Blade reference — do NOT add this to the shared root layout** (`resources/views/components/layouts/app.blade.php`, used by Volt/leader-facing pages) since charts are Filament-panel-only. Instead register it panel-wide via the same `PanelsRenderHook::BODY_END`/`HEAD_END` mechanism already used for `motion-init.blade.php`, scoped only to the panels that ship chart widgets (Admin, Reports today; extend to Coordinator/AreaCoordinator/Leader panels only if/when charts are added there):
 
 ```php
-public function articulador(): BelongsTo
-{
-    return $this->belongsTo(User::class, 'articulador_user_id');
-}
+// AdminPanelProvider.php / ReportsPanelProvider.php
+use Illuminate\Support\Facades\Vite;
 
-public function coordinators(): HasMany
-{
-    return $this->hasMany(User::class, 'articulador_user_id');
-}
+->renderHook(
+    PanelsRenderHook::HEAD_END,
+    fn () => Vite::withEntryPoints(['resources/js/charts/main.tsx'])->toHtml(),
+)
 ```
+This mirrors the existing `->viteTheme('resources/css/filament/theme.css')` and `->renderHook(..., fn () => view('filament.components.motion-init'))` calls already present in every `*PanelProvider.php`. `Vite::withEntryPoints()` is the programmatic equivalent of the `@vite([...])` Blade directive and is safe to call once per panel (browsers dedupe identical `<script type="module" src>` tags across a single page load, so even if a dashboard shows 5 chart widgets, the chunk loads once). Do **not** duplicate `@vite(['resources/js/charts/main.tsx'])` inside every individual widget Blade view — that risks duplicate root registration attempts if a widget partial is ever re-rendered as a fragment.
 
-Do **not** add `articulador_user_id` to `CoordinatorMembershipScope`/`CampaignMembershipScope` — that scope is driven entirely by `campaign_user`, and hierarchy has never been part of campaign isolation. Confirmed by reading `app/Models/Scopes/CampaignMembershipScope.php`: it only does `whereHas('campaigns', ...)`, nothing FK/hierarchy related.
-
-## Q2 — Metadata-Key Catalog: New Table (not enum, not config)
-
-**Recommendation: a new `metadata_keys` table, managed via a Filament resource (super_admin only), following the exact `Gremio`/`GremioResource` precedent already in the codebase — plus a `metadata` JSON column on `users`.**
-
-### Why a table (not `UserRole`-style PHP enum, not `config/*.php`)
-
-The milestone explicitly says: *"Superadmin-managed predefined catalog of metadata keys ... not freeform."* That requirement — a catalog **manageable through a UI at runtime by a super_admin, without a deploy** — rules out both alternatives:
-
-- **PHP enum** (`app/Enums/UserRole.php` pattern): enum cases are compile-time; adding/renaming a metadata key would require a code change + deploy, which directly contradicts "superadmin-managed."
-- **`config/*.php` array**: same problem — config changes require deploy/cache-clear, and there's no existing pattern in this codebase for admin-editable config (settings that are user-editable at runtime, e.g. `campaigns.settings`, live in DB columns, not config files).
-- **New DB table**: this is the codebase's existing precedent for exactly this shape of requirement. `Gremio` (`database/migrations/2026_07_22_000001_create_gremios_table.php`, `app/Models/Gremio.php`, `app/Filament/Resources/Gremios/*`) is a superadmin-managed, name-only lookup catalog with a full Filament CRUD resource under the `Configuración` navigation group. `metadata_keys` should copy this shape exactly, extended with a `type` column for typed filtering/sorting.
-
-### Schema
-
+Add `@viteReactRefresh` immediately before that entry point's tag **only if** JSX/TSX Fast Refresh in local dev is wanted; it compiles to nothing in production builds (confirmed: the directive injects the React Refresh preamble only when Vite is running its dev server via the hot file — `vite build` output omits it entirely), so it's safe to always include with no production cost:
 ```php
-Schema::create('metadata_keys', function (Blueprint $table) {
-    $table->id();
-    $table->string('key')->unique();       // e.g. "biaticos", "almuerzo", "asignacion"
-    $table->string('label');                // display label, e.g. "Biáticos"
-    $table->enum('type', ['numeric', 'string']); // drives cast + filter widget
-    $table->boolean('is_active')->default(true);
-    $table->timestamps();
-});
-
-Schema::table('users', function (Blueprint $table) {
-    $table->json('metadata')->nullable()->after('is_special_coordinator');
-});
+->renderHook(
+    PanelsRenderHook::HEAD_END,
+    fn () => Vite::withEntryPoints(['resources/js/charts/main.tsx'])->toHtml(),
+)
 ```
+(no separate `@viteReactRefresh` call needed via the `Vite::` facade path — `withEntryPoints()->toHtml()` already emits the correct dev-mode preamble automatically when the Vite dev server is running, matching what `@vite()` does under the hood.)
 
-Why `type` as a simple `numeric|string` enum column rather than trying to encode arbitrary JSON-schema typing: the milestone's own examples (`biaticos`, `almuerzo` = numeric; `asignacion` = string) are the full requirement surface — don't over-engineer a generic type system for two type buckets. This mirrors the project's existing preference for narrow, purpose-built enums (`UserRole`, `VoterStatus`) over generic frameworks.
+**Confidence: HIGH** for the multi-entry `input` array and official React plugin wiring (Laravel official docs, verified 2026-08-20). **MEDIUM** for the exact `Vite::withEntryPoints()` auto-preamble claim — verify by running `npm run dev` once and confirming Fast Refresh works before relying on it; if not, fall back to the documented `@viteReactRefresh` + `@vite()` Blade-directive pair placed once in a shared widget-wrapping Blade partial.
 
-### Model
+### Q4 — Custom `Widget` subclass per chart vs. overriding `ChartWidget`'s view
 
+**Recommendation: extend `ChartWidget` and override its `protected string $view` property**, rather than starting fresh from plain `Widget` for every chart type. Both are legitimate patterns already proven in this codebase, but they solve different problems:
+
+- `RevalidationProgressWidget` (plain `Widget` + `CanPoll`) is right when there is **no reusable data-refresh contract** to inherit — it just re-renders its whole Blade fragment on each poll via normal Livewire morphing, because none of its content is a foreign-JS-owned subtree.
+- `ChartWidget` already solves exactly the problem this milestone has — "get fresh JSON into a `wire:ignore`d foreign-rendered subtree without full remount" — via its `getData()` → `getCachedData()` → checksum → `dispatch('updateChartData', ...)` pipeline. Reimplementing that by hand in N new plain-`Widget` classes would duplicate proven plumbing (`CanPoll`, `dataChecksum` with `#[Locked]`, filter-schema support, the `rendering()` lifecycle hook) for no benefit.
+
+Because `protected string $view` is `protected` (not `final`/private) on `ChartWidget`, a subclass can freely repoint it:
 ```php
-// app/Models/MetadataKey.php
-class MetadataKey extends Model
+class SankeyTransitionsChart extends ChartWidget
 {
-    protected $fillable = ['key', 'label', 'type', 'is_active'];
-    protected function casts(): array
+    protected string $view = 'filament.widgets.react-chart'; // overrides filament-widgets::chart-widget
+    protected ?string $pollingInterval = '120s';
+
+    protected function getType(): string { return 'sankey'; } // repurposed as a "chartKind" discriminator, not a literal Chart.js type
+
+    protected function getData(): array
     {
-        return ['is_active' => 'boolean'];
+        // Any JSON-serializable shape is fine — getData()'s contract is
+        // `array<string, mixed>`, NOT the Chart.js {labels, datasets} shape.
+        // Filament only enforces that shape inside its own default view,
+        // which this widget no longer uses.
+        return ['nodes' => [...], 'links' => [...]];
     }
 }
 ```
+One shared Blade view (`resources/views/filament/widgets/react-chart.blade.php`) can serve every chart-kind widget — it just needs `getType()`'s return value (or a dedicated `getChartKind()` method, clearer naming since `getType()` no longer means "Chart.js type") to route to the right React component client-side, plus `$this->getCachedData()` for the initial payload and the same `wire:poll="updateChartData"` / `wire:ignore` skeleton described in Q1/Q2. This gives one PHP base pattern and one Blade view for all 10+ new chart widgets in this milestone, with only `getData()`/`getType()` differing per subclass — same shape as how `ValidationProgressChart` and `TerritorialDistributionChart` already differ from each other today.
 
-```php
-// app/Models/User.php additions
-protected function casts(): array
-{
-    return [
-        // ...existing...
-        'metadata' => 'array',   // same pattern as SurveyMetrics/MessageBatch/Message::metadata
-    ];
-}
+**Exception — the 3 embedded `Stat::make()->chart([...])` sparklines** (in `CallCenterStatsWidget`, `CampaignStatsOverview`, `SurveyStatsOverview`) are a **structurally different** Filament primitive (`Filament\Widgets\StatsOverviewWidget\Stat`, its own `protected string $view = 'filament-widgets::stats-overview-widget.stat'`), not a `ChartWidget`. `Stat` has no `dispatch()`/checksum plumbing of its own — it's a single small SVG line rendered per-Stat inside a `StatsOverviewWidget`'s grid. Migrating these to React sparklines means either (a) leaving the parent `StatsOverviewWidget` alone and swapping only the tiny inline SVG the `Stat` component renders for a mounted mini Recharts `<Sparkline>` (requires a custom `Stat`-shaped Blade partial, harder to isolate since `Stat` doesn't currently support `wire:poll` per-item), or (b) converting the specific Stat(s) that need real sparklines into small dedicated `ChartWidget`-based widgets placed next to the `StatsOverviewWidget` in the panel's `->widgets([...])` array instead of embedded inside it. **(b) is simpler and lower-risk** given the proven pattern above — flag this as a design decision for the roadmap rather than assuming embedded-sparkline parity is required.
+
+**Confidence: HIGH** — `$view` overridability and `Stat`'s separate view property both verified directly in `vendor/filament/widgets/src/*.php`.
+
+## Recommended Project Structure
+
+```
+resources/
+├── js/
+│   ├── app.js                        # unchanged, still empty/shared entry
+│   └── charts/
+│       ├── main.tsx                  # NEW — Vite entry, registers Alpine.data('reactChartBridge', ...)
+│       ├── ChartRouter.tsx           # NEW — picks Recharts component by `kind` prop
+│       ├── components/
+│       │   ├── FunnelChart.tsx       # NEW
+│       │   ├── SankeyChart.tsx       # NEW
+│       │   ├── TreemapChart.tsx      # NEW
+│       │   ├── HeatmapChart.tsx      # NEW (Recharts has no native heatmap — custom composed chart)
+│       │   ├── StackedAreaChart.tsx  # NEW
+│       │   ├── GaugeChart.tsx        # NEW (Recharts has no native gauge — RadialBarChart-based)
+│       │   └── DonutChart.tsx        # NEW
+│       └── lib/
+│           └── formatters.ts         # NEW — shared es-CO number/date formatting (mirrors motion-init.blade.php's toLocaleString('es-CO') convention)
+├── views/
+│   └── filament/
+│       └── widgets/
+│           ├── revalidation-progress-widget.blade.php   # unchanged, precedent only
+│           └── react-chart.blade.php                    # NEW — one shared view for all React-backed ChartWidget subclasses
+app/
+└── Filament/
+    └── Widgets/
+        ├── ValidationProgressChart.php        # MODIFIED — repoint $view, keep getData()/campaign scoping
+        ├── TerritorialDistributionChart.php    # MODIFIED — same
+        ├── SurveyResultsWidget.php             # MODIFIED — same
+        ├── VoterStatusFunnelChart.php           # NEW
+        ├── VoterStatusDonutChart.php             # NEW
+        ├── ValidationHistorySankeyChart.php     # NEW — first surface for previously-invisible ValidationHistory data
+        ├── TerritorialTreemapChart.php          # NEW
+        ├── CoordinatorTeamStackedBarChart.php   # NEW
+        ├── CallerHeatmapChart.php               # NEW
+        ├── CallAttemptFunnelChart.php           # NEW
+        ├── RejectionReasonsStreamChart.php      # NEW
+        ├── SurveyScaleHistogramGaugeChart.php   # NEW
+        ├── DiaDLiveLineChart.php                # NEW — Día D live voting line (VoteRecord.voted_at)
+        └── MessageDeliveryFunnelChart.php       # NEW — first surface for previously-invisible MessageBatch/Message data
+vite.config.js                                    # MODIFIED — add react() plugin + 4th input entry
+package.json                                      # MODIFIED — add react, react-dom, recharts, motion, @vitejs/plugin-react
+app/Providers/Filament/AdminPanelProvider.php     # MODIFIED — add Vite::withEntryPoints() render hook
+app/Providers/Filament/ReportsPanelProvider.php   # MODIFIED — same
 ```
 
-`'metadata' => 'array'` is the exact existing cast pattern already used in `app/Models/SurveyMetrics.php`, `app/Models/MessageBatch.php`, and `app/Models/Message.php` — no new cast infrastructure needed. Values should be stored consistently as JSON scalars keyed by the catalog's `key` string, e.g. `{"biaticos": 50000, "asignacion": "zona-norte"}`; the numeric/string distinction is enforced at the **form layer** (Filament `TextInput::numeric()` vs plain `TextInput`, chosen dynamically per `MetadataKey::type`), not by a custom Eloquent cast, since a single JSON column necessarily mixes types across keys.
+### Structure Rationale
 
-### Assignment UI
+- **`resources/js/charts/` as its own subtree, not mixed into `resources/js/app.js`:** keeps the React chunk fully independent/code-split, matching the milestone's "additive over Livewire, isolated" constraint, and matches the existing precedent of `resources/css/filament/theme.css` being a dedicated entry separate from `resources/css/app.css`.
+- **One shared `react-chart.blade.php` view, not one Blade view per widget:** the `wire:poll`/`wire:ignore` skeleton and the JSON-passing contract are identical for every chart kind — only `getData()`'s shape and the `kind` discriminator change. This mirrors Filament's own single `chart-widget.blade.php` serving every `getType()` value (line/bar/pie/doughnut/...).
+- **PHP widget classes stay in `app/Filament/Widgets/`, unchanged location:** no new base folder needed, consistent with the "no new base folders without approval" constraint and with how the 2 existing `ChartWidget` subclasses are already organized.
 
-A "Metadata" `Repeater` or a dynamically-built `Section` in the Coordinator/Leader/Articulador Filament forms, keyed off `MetadataKey::where('is_active', true)->get()`, is the natural fit — each active catalog key renders one input (numeric or text, per its `type`), read/written against `users.metadata->{key}`. This is additive to `CoordinatorForm`/`LeaderForm`/new `ArticuladorForm`; it does not require a separate table for values (`user_metadata` values-table) since the milestone frames this as a single JSON column, and Filament forms can dehydrate/populate JSON sub-paths directly via `dehydrateStateUsing`/`formatStateUsing` per field, or via `KeyValue`-style dynamic component generation.
+## Architectural Patterns
 
-## Q3 — New `ArticuladorResource`: Exact Mirror of `CoordinatorResource`/`LeaderResource`
+### Pattern 1: Livewire→React data bridge via dispatched event, not remount
 
-**Recommendation: new resource directory `app/Filament/Resources/Articuladores/` with the identical five-file shape as `Coordinators/`/`Leaders/`, auto-discovered by the `admin` panel's `discoverResources()` call — no manual panel registration needed.**
+**What:** A single `ReactDOM.createRoot()` per widget instance, kept alive across polls; Livewire pushes fresh JSON via `$this->dispatch()`, Alpine's `$wire.$on()` (available inside `wire:ignore` because Alpine is untouched by morphing) receives it and calls `root.render()` again with new props.
+**When to use:** Every chart widget in this milestone — this is the load-bearing pattern for the whole feature.
+**Trade-offs:** Requires a small Alpine shim per mount (not pure React) — acceptable since Alpine is already a first-class citizen of every Livewire/Filament page and this project already has an Alpine-JS UX layer (`motion-init.blade.php`) coexisting with it.
 
-Confirmed from `app/Providers/Filament/AdminPanelProvider.php`: `->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')` — any resource class under `app/Filament/Resources/**` is auto-registered for the `admin` panel. `CoordinatorResource`, `LeaderResource`, and `GremioResource` all rely on this; none are manually listed. So `ArticuladorResource` needs zero panel-provider changes.
+**Example:**
+```js
+// resources/js/charts/main.tsx
+import { createRoot, Root } from 'react-dom/client';
+import ChartRouter from './ChartRouter';
 
-### File-by-file mirror
-
-| New file | Mirrors | Key difference |
-|---|---|---|
-| `app/Filament/Resources/Articuladores/ArticuladorResource.php` | `CoordinatorResource.php` | `getEloquentQuery()` → `parent::getEloquentQuery()->role('articulador')`; new `$navigationSort` (suggest `1`, above Coordinadores at `2`, so hierarchy reads top-down in the nav) |
-| `app/Filament/Resources/Articuladores/Schemas/ArticuladorForm.php` | `CoordinatorForm.php` | Same personal-info/contact/location/access sections; no `also_leader`-style toggle needed unless product wants "también coordinador" parity (not requested) |
-| `app/Filament/Resources/Articuladores/Tables/ArticuladoresTable.php` | `CoordinatorsTable.php` | Replace `leaders_count` (`counts('leaders')`) with `coordinators_count` (`counts('coordinators')`, the new relation from Q1) |
-| `app/Filament/Resources/Articuladores/Pages/{Create,Edit,List}Articulador.php` | `Coordinators/Pages/*` | `CreateArticulador::afterCreate()` → `$this->record->assignRole(UserRole::ARTICULADOR->value)` + `attachActiveCampaign()` using `Role::findByName(UserRole::ARTICULADOR->value)` |
-
-### `CoordinatorForm`/`CoordinatorResource` also need one addition
-
-Once `articulador_user_id` exists, `CoordinatorForm` should gain an `articulador_user_id` `Select` scoped `->role(UserRole::ARTICULADOR->value)`, directly mirroring how `LeaderForm` scopes its `coordinator_user_id` select to `->role(UserRole::COORDINATOR->value)` (`app/Filament/Resources/Leaders/Schemas/LeaderForm.php:29-44`). This is a **modification** to an existing file, not new — flag it explicitly in planning since it's easy to miss (the milestone says "coordinadores keep working exactly as today" for the leader-facing side, but the coordinator *record itself* needs a new optional field to be assignable to an articulador).
-
-### Role/enum/seeder changes (all additive)
-
-- `app/Enums/UserRole.php`: add `case ARTICULADOR = 'articulador';` with label/color/icon/description — `RoleSeeder` picks it up automatically (`foreach (UserRole::cases())`), no seeder change needed.
-- `app/Models/User.php::canAccessPanel()`: decide whether `articulador` gets `admin` panel access (to use `ArticuladorResource`/`CoordinatorResource` directly) and/or a **new self-service `articulador` panel** — see the open question below.
-
-### Open architecture question the roadmap must resolve explicitly
-
-The existing `coordinator` role has **two separate surfaces**: (a) `CoordinatorResource` in the `admin` panel, for admins/reviewers to manage coordinator records, and (b) a wholly separate self-service `coordinator` Filament panel (`app/Providers/Filament/CoordinatorPanelProvider.php`, gated by `EnsureUserHasRole:coordinator`, built on custom Livewire/Volt pages under `resources/views/livewire/coordinator/*` — dashboard, leaders list, create/edit leader) where a logged-in coordinator manages *their own* leaders.
-
-The milestone's stated goal — *"Articuladores organize a set of coordinadores (creating and managing them)"* — reads like the same shape as the coordinator's self-service capability, not just an admin-panel CRUD resource. If so, this milestone implies a **third new component**: an `ArticuladorPanelProvider` + `resources/views/livewire/articulador/*` self-service views, mirroring the coordinator panel exactly (dashboard, coordinadores list, create/edit coordinador — each create/edit setting `articulador_user_id = Auth::id()` the same way `create-leader.blade.php` implicitly sets `coordinator_user_id = Auth::id()`). This is a bigger scope item than "just a Filament resource" and should be an explicit roadmap decision/phase, not an assumption — flag it for the roadmap author rather than silently building only the admin-panel resource.
-
-## Q4 — Filter/Sort by JSON Key: No Interaction With Campaign Isolation; Targeted Impact on Reporting Surfaces
-
-### Campaign-isolation scope: unaffected
-
-`CampaignMembershipScope` (`app/Models/Scopes/CampaignMembershipScope.php`) applies unconditionally to every `User::query()` via the `HasCampaignMembershipScope` trait's global scope, constraining to `whereHas('campaigns', campaign_id = current)`. It has no knowledge of, and no interaction with, `metadata`/JSON columns, `coordinator_user_id`, or the new `articulador_user_id`. Any Filament `SelectFilter`/custom filter/`orderBy` added against `users.metadata->{key}` composes on top of this scope exactly like every existing filter in `UsersTable`/`CoordinatorsTable`/`LeadersTable` does — because Filament resource tables always operate on `Resource::getEloquentQuery()`, which already includes the global scope. **No change to the scope itself is needed or should be made.**
-
-### Filament implementation for filter/sort by JSON key
-
-Laravel's query builder supports JSON path filtering via arrow syntax (`where('metadata->biaticos', ...)`, `whereJsonContains`) across MySQL 8.0+, confirmed current in the Laravel 12.x docs ("JSON Where Clauses" — MariaDB 10.3+, MySQL 8.0+, PostgreSQL 12.0+, SQL Server 2017+, SQLite 3.39.0+ all supported via the `->` operator). `orderBy('metadata->biaticos')` uses the same column-wrapping mechanism as `where()` in Laravel's grammar layer and is a well-established pattern (MEDIUM-HIGH confidence — not explicitly demoed in the docs' Ordering section, but the JSON arrow-path wrapping is shared infrastructure between `where`/`orderBy`/`groupBy` in Laravel's query grammars). Given the project's confirmed `DB_CONNECTION=mysql`, this is directly usable.
-
-Practical Filament pattern, since the catalog is dynamic (keys aren't known at compile time):
-
-```php
-// In ArticuladoresTable / CoordinatorsTable / LeadersTable / UsersTable
-...MetadataKey::where('is_active', true)->get()->map(fn (MetadataKey $key) =>
-    TextColumn::make("metadata_{$key->key}")
-        ->label($key->label)
-        ->state(fn (User $record) => data_get($record->metadata, $key->key))
-        ->sortable(query: fn (Builder $query, string $direction) =>
-            $query->orderBy("metadata->{$key->key}", $direction))
-)
+document.addEventListener('alpine:init', () => {
+    window.Alpine.data('reactChartBridge', ({ initialData, chartKind }: { initialData: unknown; chartKind: string }) => ({
+        _root: null as Root | null,
+        init() {
+            this._root = createRoot(this.$el as HTMLElement);
+            this._render(initialData);
+            (this as any).$wire.$on('updateChartData', ({ data }: { data: unknown }) => this._render(data));
+        },
+        _render(data: unknown) {
+            this._root!.render(<ChartRouter kind={chartKind} data={data} />);
+        },
+        destroy() {
+            this._root?.unmount();
+        },
+    }));
+});
 ```
 
-and for filters, a per-key `Filter::make()` with a custom form input (numeric range for `type=numeric`, text/select for `type=string`) applying `->where("metadata->{$key->key}", ...)`.
+### Pattern 2: `ChartWidget` subclass with repointed `$view`, shared JSON contract
 
-**Performance note (flag for a later phase, not this one's blocker):** MySQL cannot index a raw JSON path directly; if a metadata key like `biaticos` becomes a common sort/filter target at scale, the standard mitigation is a MySQL **generated/virtual column** (`ALTER TABLE users ADD biaticos_numeric DECIMAL(10,2) GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.biaticos'))) VIRTUAL, ADD INDEX (biaticos_numeric)`) — but the current campaign-scale data volumes in this project (hundreds to low-thousands of users per campaign, per the existing `Voter`/`Apoyo` scale) don't warrant this up front. Treat as a documented future optimization, not a v1.2 requirement.
+**What:** Reuse `ChartWidget`'s polling/checksum/dispatch machinery; only override `$view` and repurpose `getType()`/`getData()`.
+**When to use:** Every one of the ~13 chart widgets in the migration/build list.
+**Trade-offs:** `getType()`'s name becomes slightly misleading (no longer a literal Chart.js type string) — worth a PHPDoc note on each subclass, or rename via a dedicated `getChartKind(): string` method that `getType()` simply proxies to, for clarity.
 
-### Reporting/export surfaces that touch `users` and need explicit review (not necessarily code changes, but scope decisions)
+**Example:** see Q4 above (`SankeyTransitionsChart`).
 
-These are the concrete surfaces the milestone's "filterable and sortable in Filament listings" claim could reasonably extend to, or that assume a 2-level (coordinator→leader) hierarchy and may need articulador-awareness:
+### Pattern 3: Widget-instance-scoped mount, never a page-global React app
 
-| File | Current assumption | Impact of this milestone |
-|---|---|---|
-| `app/Filament/Resources/Users/Tables/UsersTable.php` | Generic, all roles, no hierarchy awareness | Explicitly named in the milestone ("users/coordinators/leaders/articuladores") — add metadata filter/sort columns here |
-| `app/Filament/Resources/Coordinators/Tables/CoordinatorsTable.php` | 1-level (`leaders_count`) | Add metadata columns; optionally add an `articulador.name` column now that coordinators can belong to one |
-| `app/Filament/Resources/Leaders/Tables/LeadersTable.php` | 1-level (`coordinator.name`) | Add metadata columns; no hierarchy change needed (leaders still only know their coordinator) |
-| `app/Exports/TopLeadersExport.php`, `app/Filament/Widgets/TopLeadersTable.php`, `app/Http/Controllers/Coordinator/LeadersExportController.php` | Coordinator-scoped via literal `coordinator_user_id = Auth::id()` | **Not in the milestone's explicit scope** (filter/sort is scoped to "Filament tables for users/coordinators/leaders/articuladores," not exports) — leave untouched; only revisit if the roadmap decides articuladores need an equivalent "my coordinadores' rollup" export, which would be new code analogous to `TopLeadersExport`, not a modification of it |
-| `app/Filament/Widgets/TopCoordinatorsTable.php`, dashboard widgets (`TerritorialOwnershipTable`, `ApoyosLideresCoordinadoresTable`) | Coordinator/leader rollups, campaign-scoped | Out of explicit scope for v1.2; flag as a likely v1.3 ask if articuladores need dashboard visibility into "their" coordinadores' teams |
+**What:** Each Filament widget mounts its own independent `ReactDOM.createRoot()`; there is no single global React app shell spanning the dashboard.
+**When to use:** Always, for this milestone — Filament dashboards are composed of independently polling widgets (each with its own `wire:poll` interval — `120s` for most charts per existing convention, tighter for the Día D live line), so a single shared React root would need its own cross-widget state management for no benefit and would fight Livewire's per-widget component boundaries.
+**Trade-offs:** N separate small JS bundles worth of React runtime overhead is avoided (still one shared Vite chunk/one React runtime instance — just N mount points), but shared state/interaction *between* two charts (e.g. cross-filtering) is not free and would need an explicit event-bus if ever wanted later — out of scope for this milestone.
 
-None of these require changes to `CampaignMembershipScope` itself. The isolation model and the new hierarchy/metadata features are orthogonal by design (confirmed by reading the scope's actual implementation), which is exactly why this feature set is safe to add without touching the campaign-safety guarantees the v1.0/v1.1 milestones spent most of their effort hardening.
+## Data Flow
 
-## Recommended Build Order (dependency-driven)
+### Request Flow (steady-state polling)
 
-1. **Schema first** — three additive migrations, no destructive changes to existing tables:
-   a. `add_articulador_to_users_table` (mirrors `2026_01_21_000002_add_coordinator_to_users_table.php`)
-   b. `create_metadata_keys_table`
-   c. `add_metadata_to_users_table` (JSON column)
-2. **Role + model layer** — `UserRole::ARTICULADOR` enum case (seeder picks it up automatically); `User::articulador()`/`coordinators()` relations; `MetadataKey` model + `'metadata' => 'array'` cast on `User`. This must land before any Filament form can scope a `Select` against the `articulador` role or read/write `metadata`.
-3. **Metadata catalog UI** — `MetadataKeyResource` (copy `GremioResource` shape exactly) so a super_admin can create/edit keys before any assignment UI needs them populated.
-4. **Hierarchy UI** — `ArticuladorResource` (copy `CoordinatorResource` shape) + the `articulador_user_id` `Select` addition to `CoordinatorForm`. This depends on step 2's role/relation existing.
-5. **Metadata assignment UI** — dynamic per-key inputs added to `ArticuladorForm`/`CoordinatorForm`/`LeaderForm`/`UserForm`, depends on step 3's catalog existing (forms iterate `MetadataKey::active()`).
-6. **Filter/sort surfaces** — add metadata-driven `TextColumn`s + `Filter`s to `UsersTable`, `CoordinatorsTable`, `LeadersTable`, and the new `ArticuladoresTable`; depends on step 5's data actually being assignable (no point filtering an always-empty column).
-7. **Decision checkpoint before further work**: resolve the open Q3 question (self-service `articulador` panel vs. admin-only resource) — this determines whether steps beyond 6 include a new `ArticuladorPanelProvider` + Livewire views, which is a materially larger scope item than the rest of this list combined.
+```
+[wire:poll timer fires, e.g. every 120s]
+    ↓
+[Livewire AJAX request] → [ChartWidget::updateChartData()] → [getData() re-queries Eloquent, same campaign/role scoping as every other widget]
+    ↓                                                                ↓
+[checksum unchanged? → no dispatch, nothing happens]      [checksum changed → $this->dispatch('updateChartData', data: [...])]
+                                                                       ↓
+                                                    [browser CustomEvent delivered on AJAX response,
+                                                     independent of DOM morph/wire:ignore]
+                                                                       ↓
+                                            [Alpine `$wire.$on()` inside the wire:ignore'd node fires]
+                                                                       ↓
+                                            [React: root.render(<ChartRouter data={newData} />) — reconciled, not remounted]
+```
 
-Each step is independently testable (Pest, mirroring the existing `CoordinatorLeaderRelationshipTest`/`DashboardLeadersScopeTest` shape for the new `articulador`/`coordinators()` relation, and a new `MetadataKey`/`users.metadata` filter/sort test), consistent with the project's "every change must have a test" rule.
+### Initial Mount Flow
+
+```
+[Filament page render] → [Blade view: getCachedData() serialized via @js()] → [wire:ignore div with x-data="reactChartBridge({ initialData, chartKind })"]
+    ↓
+[Alpine init() → createRoot(el) → first root.render()]
+    ↓
+[Recharts + Motion render from server-supplied initial payload — no flash of empty chart, no second network round-trip needed for first paint]
+```
+
+### Key Data Flows
+
+1. **Steady-state refresh:** described above — the *only* way fresh data reaches the island, since `wire:ignore` makes morphing a dead end for this purpose.
+2. **Initial paint:** server-rendered JSON embedded directly in the Blade view via `@js($this->getCachedData())`, avoiding a client-side fetch-on-mount round trip.
+3. **Campaign/role scoping:** unchanged — happens entirely in PHP's `getData()`, identical to every existing widget's `CampaignContext::currentCampaign()` + role-branch pattern (e.g. `ValidationProgressChart::scopedVoterQuery()`). React never sees raw Eloquent data or campaign IDs it could leak across a boundary — it only receives the already-scoped, already-serialized payload.
+
+## Scaling Considerations
+
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| Current dashboards (10-20 widgets/page, single campaign context) | Pattern as described is sufficient — one Vite chunk, N independent mounts, each polling on its existing interval |
+| Many simultaneous polling widgets on one dashboard | Not a React-side concern — it's the same concern every existing `wire:poll` widget already has (network request volume); no new pattern needed, follow existing polling-interval conventions (120s standard, tighter only for Día D live line per its own already-approved use case) |
+| Very large chart payloads (e.g. full-campaign Sankey with many nodes) | Keep aggregation in PHP (`getData()`), never ship raw per-record data to the client — same discipline already applied to every existing report/export in this codebase |
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Remounting the React root on every poll tick
+
+**What people do:** Listen for `Livewire.hook('morph.updated')` or `livewire:navigated` and call `root.unmount()` + `createRoot()` again to "refresh" the chart.
+**Why it's wrong:** Destroys Recharts' internal animation/transition state and any live Motion transitions on every single poll (every 120s), causing visible flicker; also `morph.updated` is a page-global hook firing for *any* Livewire update anywhere on the page, not scoped to this widget, so it would over-fire and require manual widget-id filtering that Filament's own `dispatch()`-based approach avoids entirely.
+**Instead:** Keep the root alive for the widget's lifetime; call `root.render()` again with new props (Pattern 1 above).
+
+### Anti-Pattern 2: Putting `wire:ignore` on the whole widget's outer element
+
+**What people do:** Wrap the entire `<x-filament-widgets::widget>` root (heading, description, filters, everything) in `wire:ignore` "to be safe."
+**Why it's wrong:** Breaks Filament's own chrome — the section heading/description/collapsible toggle/filter dropdown are meant to keep morphing normally (e.g. if `getHeading()` changes based on `$this->questionId` like `SurveyResultsWidget` already does); over-scoping `wire:ignore` also silently breaks `wire:poll` itself if it ends up nested inside the ignored subtree.
+**Instead:** Scope `wire:ignore` to only the innermost mount `<div>`, exactly as Filament's own `chart-widget.blade.php` does — `wire:poll` stays on an ancestor outside the ignored boundary.
+
+### Anti-Pattern 3: Fetching data client-side instead of using the existing dispatch channel
+
+**What people do:** Add a `fetch('/api/chart-data/...')` call inside the React component's own polling `useEffect`, bypassing Livewire entirely.
+**Why it's wrong:** Duplicates campaign/role scoping logic outside the Eloquent layer (a fresh API endpoint would need its own auth/campaign-context resolution, re-implementing what `CampaignContext` + Filament's panel auth already do for free inside a Livewire component), doubles the network chatter (Livewire's own poll request *and* a separate API poll), and breaks the "additive, doesn't touch Eloquent/business logic" constraint from the milestone brief.
+**Instead:** Reuse the existing Livewire component method + dispatch channel (Pattern 1) — zero new HTTP endpoints, zero new auth surface.
+
+## Integration Points
+
+### External Services
+
+None — this is a purely client-side rendering change. No new API/backend service is introduced; Recharts and Motion run entirely in-browser against data already computed by existing Eloquent queries.
+
+### Internal Boundaries
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| PHP `ChartWidget` subclass ↔ Blade view | `getCachedData()` / `getType()` / `getPollingInterval()` — unchanged Filament contract | No new contract needed; only `$view` is repointed |
+| Blade view ↔ Alpine bridge | `@js(...)`-serialized initial payload as `x-data` params | Standard Alpine/Livewire idiom, same as vendored `chart.js` |
+| Alpine bridge ↔ React root | `this.$wire.$on('updateChartData', cb)` → `root.render()` | The one load-bearing bridge — see Q2 |
+| React tree internals | Props only (`data`, `kind`) — no external state library needed for this milestone's scope | Each widget instance is fully self-contained; no cross-widget store required |
+| Vite build ↔ Filament panels | `Vite::withEntryPoints(['resources/js/charts/main.tsx'])->toHtml()` via `PanelsRenderHook::HEAD_END`, registered per-`*PanelProvider.php` that ships chart widgets | Mirrors the existing `->viteTheme()` / `motion-init` render-hook precedent already in every panel provider |
+
+## Suggested Build Order
+
+1. **Infra first, provably working, before any real chart migrates:** `vite.config.js` + `package.json` changes, a trivial `resources/js/charts/main.tsx` that mounts a "Hello from React" `<div>` via the bridge pattern into one throwaway/test widget, `Vite::withEntryPoints()` render hook wired into `AdminPanelProvider`. Prove the wire:ignore + dispatch + `root.render()` refresh cycle works end-to-end with real `wire:poll` ticks in a real browser before writing a single Recharts component — this is the highest-risk, most novel part of the whole milestone and isolates that risk from all chart-specific work.
+2. **`react-chart.blade.php` shared view + `ChartRouter.tsx` skeleton** (empty/placeholder chart components per kind) — establishes the one-view-many-widgets contract before content.
+3. **Migrate the 3 existing `ChartWidget`s** (`ValidationProgressChart`, `TerritorialDistributionChart`, `SurveyResultsWidget`) to the new view/bridge, keeping their existing `getData()` untouched — lowest-risk real-data validation of the new pipeline, since correctness of the underlying query is already proven.
+4. **Decide and implement the sparkline path** (embedded `Stat::chart()` migration strategy — Q4's exception) before building new standalone widgets, since it may inform whether a shared "small chart" React component is needed alongside the "big chart" ones.
+5. **Net-new, currently-invisible-data widgets**, roughly in the milestone's own listed order (Sankey of `ValidationHistory` and funnel of `MessageBatch`/`Message` are explicitly flagged as "0% visible today" — validate the underlying aggregation queries in isolation, e.g. via `tinker`, before wiring them to a widget, since these have no existing widget to copy query logic from).
+6. **Día D live line chart last** — it is the only widget with a materially different polling cadence/live-data freshness requirement (election-day, not steady-state dashboard use), so it should build on a fully proven bridge rather than being part of proving it.
 
 ## Sources
 
-- Direct codebase reads (HIGH confidence, current as of 2026-08-10): `app/Models/User.php`, `app/Enums/UserRole.php`, `app/Models/Scopes/CampaignMembershipScope.php`, `app/Models/Concerns/HasCampaignMembershipScope.php`, `database/seeders/RoleSeeder.php`, `database/migrations/2026_01_21_000002_add_coordinator_to_users_table.php`, `app/Filament/Resources/Coordinators/*`, `app/Filament/Resources/Leaders/*`, `app/Filament/Resources/Users/Tables/UsersTable.php`, `app/Filament/Resources/Gremios/*`, `app/Models/Gremio.php`, `database/migrations/2026_07_22_000001_create_gremios_table.php`, `app/Models/SurveyMetrics.php`/`MessageBatch.php`/`Message.php` (existing `'metadata' => 'array'` cast precedent), `app/Providers/Filament/AdminPanelProvider.php`, `app/Providers/Filament/CoordinatorPanelProvider.php`, `resources/views/livewire/coordinator/*`, `app/Exports/TopLeadersExport.php`, `config/permission.php` (`'teams' => false`), `.env` (`DB_CONNECTION=mysql`)
-- [Database: Query Builder | Laravel 12.x](https://laravel.com/docs/12.x/queries) — JSON Where Clauses section (arrow-syntax JSON querying, MySQL 8.0+ support) — MEDIUM-HIGH confidence for `orderBy` JSON-path support specifically (shared grammar mechanism with `where`, not separately demoed in this doc version)
+- Vendored source in this repository — HIGH confidence, direct evidence, not training data:
+  - `vendor/filament/widgets/src/ChartWidget.php`
+  - `vendor/filament/widgets/resources/views/chart-widget.blade.php`
+  - `vendor/filament/widgets/resources/js/components/chart.js`
+  - `vendor/filament/widgets/src/StatsOverviewWidget/Stat.php`
+  - `app/Filament/Widgets/RevalidationProgressWidget.php` + `resources/views/filament/widgets/revalidation-progress-widget.blade.php`
+  - `app/Filament/Widgets/ValidationProgressChart.php`, `TerritorialDistributionChart.php`, `SurveyResultsWidget.php`
+  - `app/Providers/Filament/AdminPanelProvider.php` (existing render-hook/`viteTheme` precedent)
+  - `resources/views/filament/components/motion-init.blade.php` (existing `Livewire.hook('morph.updated', ...)` precedent in this codebase — used here as a **counter-example** to distinguish from the recommended dispatch-based pattern)
+  - `vite.config.js`, `package.json`
+- [Livewire 3.x — wire:ignore](https://livewire.laravel.com/docs/3.x/wire-ignore) — MEDIUM confidence (official docs, but doesn't cover React-specific bridging, only the general third-party-JS caveat)
+- [Laravel 12.x — Asset Bundling (Vite)](https://laravel.com/docs/12.x/vite), React section — HIGH confidence, official docs, verified 2026-08-20
+- WebSearch, verified against official docs where noted — MEDIUM confidence:
+  - `@viteReactRefresh` production no-op behavior (community consensus, not an explicit Laravel-docs statement — recommend a quick local `npm run dev` smoke test before relying on it)
+  - Filament chart.js `$wire.$on('updateChartData', ...)` pattern (cross-checked directly against this repo's own vendored file, so elevated to HIGH)
 
 ---
-*Architecture research for: SIGMA v1.2 (Articuladores + Metadata de Usuario)*
-*Researched: 2026-08-10*
+*Architecture research for: React+Recharts+Motion island integrated into Filament/Livewire widgets (SIGMA v1.3 milestone)*
+*Researched: 2026-08-20*
