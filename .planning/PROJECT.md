@@ -10,6 +10,24 @@ As of v1.0 (shipped 2026-07-24), the platform's core electoral workflows across 
 
 Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
 
+## Current Milestone: v1.3 Visualización de Datos MonoCharts
+
+**Goal:** Dotar al panel Filament de gráficas ricas con la composición visual real de MonoCharts (no solo paleta), portando componentes React/Recharts como isla aislada sobre Livewire, para exponer insights operativos hoy invisibles.
+
+**Target features:**
+- Infraestructura de isla React (Vite entry separado + puente `wire:ignore`) aditiva sobre Livewire, sin tocar Eloquent/lógica de negocio
+- Migrar los 3 `ChartWidget` existentes (ValidationProgressChart, TerritorialDistributionChart, SurveyResultsWidget) + 3 sparklines embebidos al nuevo sistema visual
+- Funnel + donut de los 12 estados del Voter (`VoterStatus`)
+- Sankey de transiciones de `ValidationHistory` (dato hoy 100% invisible)
+- Treemap territorial Departamento→Municipio→Barrio
+- Stacked-bar comparativa de equipos por coordinador
+- Heatmap caller×hora de `VerificationCall`
+- Funnel de contactabilidad por intento de llamada
+- Stream/stacked-area de motivos de rechazo en el tiempo
+- Histograma + gauge de respuestas de encuesta tipo SCALE
+- Línea en vivo de votación Día D (`VoteRecord.voted_at`, con polling)
+- Funnel de entrega de `MessageBatch`/`Message` (dato hoy 100% invisible)
+
 ## Requirements
 
 ### Validated
@@ -48,7 +66,7 @@ Campaign teams can run critical voter and field operations from one place with t
 
 ### Active
 
-None — v1.2 shipped 2026-08-12. No milestone currently in progress; run `/gsd:new-milestone` to scope the next one.
+Requirements for v1.3 are being defined — see `.planning/REQUIREMENTS.md` once drafted (new-milestone Step 9).
 
 ### Out of Scope
 
@@ -134,7 +152,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ## Next Milestone Goals
 
-Not yet defined. Run `/gsd:new-milestone` to scope the next milestone (questioning → research → requirements → roadmap).
+In progress — see `## Current Milestone: v1.3 Visualización de Datos MonoCharts` above.
 
 ---
-*Last updated: 2026-08-12 — v1.2 shipped (8/8 phases complete, milestone audit passed, archived to `.planning/milestones/`).*
+*Last updated: 2026-08-20 — v1.3 milestone started (Visualización de Datos MonoCharts).*
