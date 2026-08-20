@@ -4,6 +4,7 @@
 
 @source '../../../app/Filament/**';
 @source '../../../resources/views/filament/**';
+@source '../../../resources/js/charts/**/*.jsx';
 
 /* ============================================================
    SIGMA  –  Premium Motion Design System
