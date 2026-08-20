@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: executing
-stopped_at: Completed 20-01-PLAN.md (Phase 20, plan 1/3)
-last_updated: "2026-08-20T19:54:58Z"
-last_activity: 2026-08-20 — Phase 20 Plan 01 complete (Vite/React/Recharts/Motion pipeline + Alpine bridge + ChartCard component)
+stopped_at: Completed 20-02-PLAN.md (Phase 20, plan 2/3)
+last_updated: "2026-08-20T20:06:05Z"
+last_activity: 2026-08-20 — Phase 20 Plan 02 complete (ReactIslandPocWidget wired into all 5 panels, real Pest 4 Browser test proving poll-cycle render, Alpine-reactivity/React-root crash fixed)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-20)
 ## Current Position
 
 Phase: 20 of 24 (React Island Infrastructure)
-Plan: 1 of 3 complete (20-02 next)
+Plan: 2 of 3 complete (20-03 next — human checkpoint)
 Status: Executing
-Last activity: 2026-08-20 — Phase 20 Plan 01 complete: Vite build pipeline extended with React 19/Recharts 3/Motion, reactChartBridge Alpine mount/update/unmount bridge, theme-flexible ChartCard component. No PHP/Blade wiring yet (20-02).
+Last activity: 2026-08-20 — Phase 20 Plan 02 complete: ReactIslandPocWidget (ChartWidget subclass) wired into a real widget via the shared react-chart.blade.php view, registered on all 5 PanelProviders (Admin, Reports, Coordinator, AreaCoordinator, Leader) via a HEAD_END render hook, and proven end-to-end with a real Pest 4 Browser test — which caught and fixed a genuine Alpine-reactivity/React-root Proxy crash in the 20-01-built bridge.
 
-Progress: [███░░░░░░░] 33%
+Progress: [███████░░░] 67%
 
 ## v1.3 Phase Map
 
@@ -53,6 +53,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 20 Plan 02 decisions:
+
+- [Phase 20 Plan 02]: [Rule 1 - Bug] Found and fixed a real crash in the 20-01-built Alpine/React bridge (`resources/js/charts/main.jsx`) while writing this plan's own Browser test — the first real end-to-end exercise of the bridge in a browser. `reactChartBridge`'s Alpine.data() factory stored the React root instance as `this._root` on the object returned to Alpine; Alpine's reactivity system deep-proxies every property of that object, and React's internal root instance carries non-configurable properties, so Alpine's Proxy `get` trap violated JS Proxy invariants and threw `TypeError: 'get' on proxy: property '0' is a read-only and non-configurable data property...` on the very first render — the widget rendered a permanently blank box (confirmed via a Browser test screenshot before the fix). Fixed by moving the root reference to a plain closure variable outside the object Alpine wraps in reactivity. Without this fix, the entire React island infrastructure this milestone depends on would have silently rendered blank in production.
+- [Phase 20 Plan 02]: INFRA-02, INFRA-03, INFRA-04 marked Done — this plan is the one that makes them all observable: a real ChartWidget uses the bridge (INFRA-02), all 5 PanelProviders register the Vite entry (INFRA-03), and a real Browser test proves the poll-cycle render (INFRA-04). INFRA-01 (from 20-01) remains deferred to phase completion per the established split-requirement precedent, since 20-03 (human checkpoint) is still outstanding for this phase.
+- [Phase 20 Plan 02]: [Rule 3 - Blocking] Fixed a pre-existing `binary_operator_spaces` style issue (double-space alignment on the primary color array's `50` key) in `CoordinatorPanelProvider.php`/`LeaderPanelProvider.php`, unrelated to this plan's own edits, via `vendor/bin/pint --dirty` — it was blocking this task's own `vendor/bin/pint --test app/Providers/Filament/` acceptance criterion.
+- [Phase 20 Plan 02]: Worktree (`agent-a91418ffa150ef781`) was stale at session start — missing Phase 20 entirely (including 20-01's completed work and this plan's own PLAN.md), plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install` (regenerated a spurious `package-lock.json` `name` field change reverted via `git checkout -- package-lock.json`), `npx playwright install chromium` (freshly-installed Playwright npm package didn't match the cached Chromium binary, same pitfall documented in Phase 19), `npm run build`. `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (wrote to the main checkout's `.planning/STATE.md`, not this worktree's, confirmed via `git status --short` showing no diff in this worktree after the call) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's copies directly.
 
 Phase 20 Plan 01 decisions:
 

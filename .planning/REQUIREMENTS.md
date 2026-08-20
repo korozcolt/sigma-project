@@ -10,9 +10,9 @@ Requirements for milestone v1.3. Each maps to roadmap phases.
 ### Infraestructura de isla React (INFRA)
 
 - [ ] **INFRA-01**: A developer can build React+Recharts+Motion components that mount into Filament widgets as an isolated island (dedicated Vite entry, `wire:ignore` boundary) without affecting Livewire's existing DOM diffing/polling behavior on any other widget
-- [ ] **INFRA-02**: A mounted chart receives fresh data on every `wire:poll` tick via Filament's existing `dispatch()`/checksum channel (never remounted, never read off stale re-rendered DOM), verified across at least one full poll cycle in a real browser
-- [ ] **INFRA-03**: A mounted React chart's root is cleanly unmounted (no leaked root) when the user navigates away from the panel via Livewire's SPA navigation, verified on all 5 panels that register chart widgets (Admin, Coordinator, AreaCoordinator, Leader, Reports)
-- [ ] **INFRA-04**: A Pest 4 Browser (Playwright) test exists per shipped chart widget verifying real rendered chart content, distinct from and in addition to any Livewire Feature test that only verifies the PHP-side data contract
+- [x] **INFRA-02**: A mounted chart receives fresh data on every `wire:poll` tick via Filament's existing `dispatch()`/checksum channel (never remounted, never read off stale re-rendered DOM), verified across at least one full poll cycle in a real browser
+- [x] **INFRA-03**: A mounted React chart's root is cleanly unmounted (no leaked root) when the user navigates away from the panel via Livewire's SPA navigation, verified on all 5 panels that register chart widgets (Admin, Coordinator, AreaCoordinator, Leader, Reports)
+- [x] **INFRA-04**: A Pest 4 Browser (Playwright) test exists per shipped chart widget verifying real rendered chart content, distinct from and in addition to any Livewire Feature test that only verifies the PHP-side data contract
 
 ### Migración de charts existentes (MIGR)
 
@@ -68,9 +68,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | INFRA-01 | Phase 20 | Pending |
-| INFRA-02 | Phase 20 | Pending |
-| INFRA-03 | Phase 20 | Pending |
-| INFRA-04 | Phase 20 | Pending |
+| INFRA-02 | Phase 20 | Done |
+| INFRA-03 | Phase 20 | Done |
+| INFRA-04 | Phase 20 | Done |
 | MIGR-01 | Phase 21 | Pending |
 | MIGR-02 | Phase 21 | Pending |
 | VIZ-01 | Phase 22 | Pending |

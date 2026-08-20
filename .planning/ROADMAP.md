@@ -86,7 +86,7 @@ Shipped summary: `.planning/MILESTONES.md`
 **Plans**: 3 plans
 Plans:
 - [x] 20-01-PLAN.md — Vite/Recharts/Motion build pipeline + React<->Alpine bridge core (mount/update/unmount) + theme-flexible ChartCard component — completed 2026-08-20
-- [ ] 20-02-PLAN.md — Throwaway ReactIslandPocWidget + shared react-chart.blade.php view, registered on all 5 PanelProviders, plus Pest 4 Browser test
+- [x] 20-02-PLAN.md — Throwaway ReactIslandPocWidget + shared react-chart.blade.php view, registered on all 5 PanelProviders, plus Pest 4 Browser test — completed 2026-08-20
 - [ ] 20-03-PLAN.md — Human browser checkpoint (D-04): poll cycle, cross-panel navigation, no leaked root
 **UI hint**: yes
 
@@ -145,7 +145,7 @@ Plans:
 | 1-5.1. v1.0 MVP Hardening | 25/25 | Complete | 2026-07-24 |
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
 | 12-19. v1.2 Articuladores + Metadata de Usuario | 29/29 | Complete | 2026-08-12 |
-| 20. React Island Infrastructure | 0/3 | Not started | - |
+| 20. React Island Infrastructure | 2/3 | In progress | - |
 | 21. Migrate Existing Charts to React/Recharts | 0/TBD | Not started | - |
 | 22. Table-Stakes New Visualizations | 0/TBD | Not started | - |
 | 23. Differentiator Visualizations | 0/TBD | Not started | - |
