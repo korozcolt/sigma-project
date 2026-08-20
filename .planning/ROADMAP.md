@@ -85,7 +85,7 @@ Shipped summary: `.planning/MILESTONES.md`
   4. A Pest 4 Browser test exists verifying the throwaway widget's real rendered chart content, establishing the per-shipped-widget browser-test convention every later phase follows
 **Plans**: 3 plans
 Plans:
-- [ ] 20-01-PLAN.md — Vite/Recharts/Motion build pipeline + React<->Alpine bridge core (mount/update/unmount) + theme-flexible ChartCard component
+- [x] 20-01-PLAN.md — Vite/Recharts/Motion build pipeline + React<->Alpine bridge core (mount/update/unmount) + theme-flexible ChartCard component — completed 2026-08-20
 - [ ] 20-02-PLAN.md — Throwaway ReactIslandPocWidget + shared react-chart.blade.php view, registered on all 5 PanelProviders, plus Pest 4 Browser test
 - [ ] 20-03-PLAN.md — Human browser checkpoint (D-04): poll cycle, cross-panel navigation, no leaked root
 **UI hint**: yes

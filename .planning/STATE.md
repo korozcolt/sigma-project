@@ -2,14 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
-status: Ready to execute
-stopped_at: Phase 20 context gathered
-last_updated: "2026-08-20T19:55:56.785Z"
+status: executing
+stopped_at: Completed 20-01-PLAN.md (Phase 20, plan 1/3)
+last_updated: "2026-08-20T19:54:58Z"
+last_activity: 2026-08-20 — Phase 20 Plan 01 complete (Vite/React/Recharts/Motion pipeline + Alpine bridge + ChartCard component)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
@@ -19,12 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 20 — react-island-infrastructure
+**Current focus:** v1.3 Visualización de Datos MonoCharts — Phase 20 (React Island Infrastructure)
 
 ## Current Position
 
-Phase: 20 (react-island-infrastructure) — EXECUTING
-Plan: 2 of 3
+Phase: 20 of 24 (React Island Infrastructure)
+Plan: 1 of 3 complete (20-02 next)
+Status: Executing
+Last activity: 2026-08-20 — Phase 20 Plan 01 complete: Vite build pipeline extended with React 19/Recharts 3/Motion, reactChartBridge Alpine mount/update/unmount bridge, theme-flexible ChartCard component. No PHP/Blade wiring yet (20-02).
+
+Progress: [███░░░░░░░] 33%
 
 ## v1.3 Phase Map
 
@@ -47,6 +53,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 20 Plan 01 decisions:
+
+- [Phase 20 Plan 01]: INFRA-01 left `Pending` in `REQUIREMENTS.md` — this plan only builds the client-side Vite/Alpine-bridge/ChartCard foundation with zero PHP/Blade/PanelProvider changes (by design, per the plan's own success criteria); the requirement's full text (an isolated island via a `wire:ignore` boundary inside an actual Filament widget) only becomes observable once 20-02 wires `main.jsx` into a real widget across all 5 panels. Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent.
+- [Phase 20 Plan 01]: [Rule 3 - Blocking] This worktree had no `vendor/` directory at all — `@tailwindcss/vite`'s build step failed resolving `../../vendor/livewire/flux/dist/flux.css` (referenced from the pre-existing `resources/css/app.css`, unrelated to this plan's own files) until `composer install --no-interaction` was run. `vendor/` is gitignored, no repo state affected.
+- [Phase 20 Plan 01]: Worktree (`agent-afc4379b8e344fccd`) was 5 commits behind `main` at session start — missing the entire Phase 20 planning corpus (`20-CONTEXT.md`, `20-DISCUSSION-LOG.md`, all three `20-*-PLAN.md` files), plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry (`git merge-base --is-ancestor HEAD main`), `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install`. `npm install` again regenerated the spurious `package-lock.json` `"name"` field (rewritten to the worktree directory's basename instead of `"sigma-project"`) — corrected via a targeted string replace before committing, same recurring precedent documented across many prior plans. `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (it reported success but wrote to the main checkout's `.planning/STATE.md`, not this worktree's, confirmed via `git status --short` showing zero diff in this worktree after the call) — STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead.
 
 Phase 19 Plan 04 decisions:
 
