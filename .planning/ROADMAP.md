@@ -83,7 +83,11 @@ Shipped summary: `.planning/MILESTONES.md`
   2. The mounted chart's content updates automatically on `wire:poll` ticks (verified across a full poll cycle in a real browser) without ever being remounted or reading stale re-rendered DOM
   3. Navigating away from a panel via Livewire's SPA navigation cleanly unmounts the React root with no leaked root, verified on all 5 panels that register chart widgets (Admin, Coordinator, AreaCoordinator, Leader, Reports)
   4. A Pest 4 Browser test exists verifying the throwaway widget's real rendered chart content, establishing the per-shipped-widget browser-test convention every later phase follows
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 20-01-PLAN.md — Vite/Recharts/Motion build pipeline + React<->Alpine bridge core (mount/update/unmount) + theme-flexible ChartCard component
+- [ ] 20-02-PLAN.md — Throwaway ReactIslandPocWidget + shared react-chart.blade.php view, registered on all 5 PanelProviders, plus Pest 4 Browser test
+- [ ] 20-03-PLAN.md — Human browser checkpoint (D-04): poll cycle, cross-panel navigation, no leaked root
 **UI hint**: yes
 
 ### Phase 21: Migrate Existing Charts to React/Recharts
@@ -141,7 +145,7 @@ Shipped summary: `.planning/MILESTONES.md`
 | 1-5.1. v1.0 MVP Hardening | 25/25 | Complete | 2026-07-24 |
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
 | 12-19. v1.2 Articuladores + Metadata de Usuario | 29/29 | Complete | 2026-08-12 |
-| 20. React Island Infrastructure | 0/TBD | Not started | - |
+| 20. React Island Infrastructure | 0/3 | Not started | - |
 | 21. Migrate Existing Charts to React/Recharts | 0/TBD | Not started | - |
 | 22. Table-Stakes New Visualizations | 0/TBD | Not started | - |
 | 23. Differentiator Visualizations | 0/TBD | Not started | - |
