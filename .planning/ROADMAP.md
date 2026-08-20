@@ -98,7 +98,15 @@ Plans:
   1. `ValidationProgressChart`, `TerritorialDistributionChart`, and `SurveyResultsWidget` render via Recharts and show the same data as before, with `getData()` queries unchanged
   2. The 3 embedded sparklines (`CampaignStatsOverview`, `CallCenterStatsWidget`, `SurveyStatsOverview`) render through the new pipeline
   3. Each migrated widget has a Pest 4 Browser test verifying real rendered chart content (per the Phase 20 convention)
-**Plans**: TBD
+**Plans**: 7 plans
+Plans:
+- [ ] 21-01-PLAN.md — Shared React chart-kind library (adapter, palette, formatters, ChartRouter, 4 kind components)
+- [ ] 21-02-PLAN.md — ChartCard chrome refactor + react-chart.blade.php generalization
+- [ ] 21-03-PLAN.md — Migrate ValidationProgressChart + TerritorialDistributionChart + Browser tests
+- [ ] 21-04-PLAN.md — Migrate SurveyResultsWidget + wire EditSurvey footer widgets + D-04 Browser test
+- [ ] 21-05-PLAN.md — CampaignVotersSparklineWidget + SurveyResponsesSparklineWidget + registration + Browser tests
+- [ ] 21-06-PLAN.md — CallCenterCallsSparklineWidget + CallCenterStatsWidget wiring + Browser test
+- [ ] 21-07-PLAN.md — Decommission ReactIslandPocWidget + full regression + human browser checkpoint
 **UI hint**: yes
 
 ### Phase 22: Table-Stakes New Visualizations
@@ -146,7 +154,7 @@ Plans:
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
 | 12-19. v1.2 Articuladores + Metadata de Usuario | 29/29 | Complete | 2026-08-12 |
 | 20. React Island Infrastructure | 2/3 | Complete    | 2026-08-20 |
-| 21. Migrate Existing Charts to React/Recharts | 0/TBD | Not started | - |
+| 21. Migrate Existing Charts to React/Recharts | 0/7 | Not started | - |
 | 22. Table-Stakes New Visualizations | 0/TBD | Not started | - |
 | 23. Differentiator Visualizations | 0/TBD | Not started | - |
 | 24. Día D Live Voting Visualization | 0/TBD | Not started | - |
