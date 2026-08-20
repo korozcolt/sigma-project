@@ -66,7 +66,7 @@ Shipped summary: `.planning/MILESTONES.md`
 
 **Milestone Goal:** Dotar al panel Filament de gráficas ricas con la composición visual real de MonoCharts (no solo paleta), portando componentes React/Recharts como isla aislada sobre Livewire, para exponer insights operativos hoy invisibles.
 
-- [ ] **Phase 20: React Island Infrastructure** - Chart components mount as an isolated, poll-safe, navigation-safe React island inside Filament
+- [x] **Phase 20: React Island Infrastructure** - Chart components mount as an isolated, poll-safe, navigation-safe React island inside Filament (completed 2026-08-20)
 - [ ] **Phase 21: Migrate Existing Charts to React/Recharts** - The 3 existing ChartWidgets + 3 sparklines move to the new pipeline with zero data-query changes
 - [ ] **Phase 22: Table-Stakes New Visualizations** - Admin gains 5 new direct-primitive charts (donut, stacked-bar, 2 funnels, gauge+histogram)
 - [ ] **Phase 23: Differentiator Visualizations** - Admin gains 5 curated/modeled charts (happy-path funnel, Sankey, drill-down treemap, heatmap, stacked-area)
@@ -145,7 +145,7 @@ Plans:
 | 1-5.1. v1.0 MVP Hardening | 25/25 | Complete | 2026-07-24 |
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
 | 12-19. v1.2 Articuladores + Metadata de Usuario | 29/29 | Complete | 2026-08-12 |
-| 20. React Island Infrastructure | 2/3 | In progress | - |
+| 20. React Island Infrastructure | 2/3 | Complete    | 2026-08-20 |
 | 21. Migrate Existing Charts to React/Recharts | 0/TBD | Not started | - |
 | 22. Table-Stakes New Visualizations | 0/TBD | Not started | - |
 | 23. Differentiator Visualizations | 0/TBD | Not started | - |
