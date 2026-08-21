@@ -19,7 +19,6 @@
                 x-data="reactChartBridge({
                     initialData: @js($this->getCachedData()),
                     chartKind: @js($chartKind),
-                    theme: @js('light'),
                 })"
                 class="relative min-h-[8rem]"
             >

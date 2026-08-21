@@ -15,8 +15,19 @@ window.addEventListener('livewire:navigate', () => {
     liveRoots.clear();
 });
 
+// Filament's own dark-mode.js (vendor/filament/filament/resources/js/dark-mode.js)
+// is the single source of truth for color scheme: it toggles the `dark` class
+// on <html> synchronously (via an Alpine store + effect) whenever the user's
+// preference changes, with no page reload. Reading that class directly here
+// — rather than trusting a value computed once server-side in Blade — is what
+// lets every chart match the panel's actual current theme instead of always
+// rendering as if light mode were active.
+function isDarkMode() {
+    return document.documentElement.classList.contains('dark');
+}
+
 document.addEventListener('alpine:init', () => {
-    window.Alpine.data('reactChartBridge', ({ initialData, chartKind, theme }) => {
+    window.Alpine.data('reactChartBridge', ({ initialData, chartKind }) => {
         // `root` is deliberately a plain closure variable, NOT a property on the
         // object returned below (e.g. `this._root`). Alpine wraps every returned
         // data-object property in its own reactivity Proxy, recursively — and
@@ -27,14 +38,19 @@ document.addEventListener('alpine:init', () => {
         // before any content ever renders. Keeping the root out of Alpine's
         // reactive object entirely avoids this class of bug.
         let root = null;
+        let lastData = initialData;
+        let themeObserver = null;
 
         function render(data) {
             if (!root) {
                 return;
             }
 
+            lastData = data;
+            const theme = isDarkMode() ? 'dark' : 'light';
+
             try {
-                root.render(<ChartCard kind={chartKind} data={data} theme={theme ?? 'light'} hasError={false} />);
+                root.render(<ChartCard kind={chartKind} data={data} theme={theme} hasError={false} />);
             } catch (error) {
                 console.error('[reactChartBridge] render failed', error);
                 renderError();
@@ -46,7 +62,8 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            root.render(<ChartCard kind={chartKind} data={null} theme={theme ?? 'light'} hasError={true} />);
+            const theme = isDarkMode() ? 'dark' : 'light';
+            root.render(<ChartCard kind={chartKind} data={null} theme={theme} hasError={true} />);
         }
 
         return {
@@ -68,9 +85,22 @@ document.addEventListener('alpine:init', () => {
                 }
 
                 this.$wire.$on('updateChartData', ({ data }) => render(data));
+
+                // Re-render (same data, new theme) whenever the user toggles
+                // dark mode live via Filament's theme switcher — no page reload.
+                themeObserver = new MutationObserver(() => render(lastData));
+                themeObserver.observe(document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['class'],
+                });
             },
 
             destroy() {
+                if (themeObserver) {
+                    themeObserver.disconnect();
+                    themeObserver = null;
+                }
+
                 if (root) {
                     root.unmount();
                     liveRoots.delete(this.$el);
