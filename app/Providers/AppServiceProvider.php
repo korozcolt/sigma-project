@@ -13,6 +13,8 @@ use App\Filament\Widgets\DiaDTerritorialProgressTable;
 use App\Filament\Widgets\MessageDeliveryFunnelChart;
 use App\Filament\Widgets\RevalidationProgressWidget;
 use App\Filament\Widgets\SurveyResultsWidget;
+use App\Filament\Widgets\SurveyScaleGaugeChart;
+use App\Filament\Widgets\SurveyScaleHistogramChart;
 use App\Listeners\AuditAuthActivitySubscriber;
 use App\Models\Campaign;
 use App\Models\User;
@@ -53,6 +55,8 @@ class AppServiceProvider extends ServiceProvider
         CallCenterCallsSparklineWidget::class,
         CallContactabilityFunnelChart::class,
         MessageDeliveryFunnelChart::class,
+        SurveyScaleGaugeChart::class,
+        SurveyScaleHistogramChart::class,
     ];
 
     /**

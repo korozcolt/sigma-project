@@ -13,6 +13,8 @@ use App\Filament\Widgets\DiaDTerritorialProgressTable;
 use App\Filament\Widgets\MessageDeliveryFunnelChart;
 use App\Filament\Widgets\RevalidationProgressWidget;
 use App\Filament\Widgets\SurveyResultsWidget;
+use App\Filament\Widgets\SurveyScaleGaugeChart;
+use App\Filament\Widgets\SurveyScaleHistogramChart;
 use Livewire\Exceptions\ComponentNotFoundException;
 use Livewire\Mechanisms\ComponentRegistry;
 
@@ -35,4 +37,6 @@ test('page-scoped widget resolves via its registered ComponentRegistry alias wit
     CallCenterCallsSparklineWidget::class,
     CallContactabilityFunnelChart::class,
     MessageDeliveryFunnelChart::class,
+    SurveyScaleGaugeChart::class,
+    SurveyScaleHistogramChart::class,
 ]);
