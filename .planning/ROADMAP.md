@@ -104,7 +104,7 @@ Plans:
 - [x] 21-02-PLAN.md — ChartCard chrome refactor + react-chart.blade.php generalization
 - [x] 21-03-PLAN.md — Migrate ValidationProgressChart + TerritorialDistributionChart + Browser tests — completed 2026-08-20
 - [x] 21-04-PLAN.md — Migrate SurveyResultsWidget + wire EditSurvey footer widgets + D-04 Browser test — completed 2026-08-20
-- [ ] 21-05-PLAN.md — CampaignVotersSparklineWidget + SurveyResponsesSparklineWidget + registration + Browser tests
+- [x] 21-05-PLAN.md — CampaignVotersSparklineWidget + SurveyResponsesSparklineWidget + registration + Browser tests — completed 2026-08-20
 - [ ] 21-06-PLAN.md — CallCenterCallsSparklineWidget + CallCenterStatsWidget wiring + Browser test
 - [ ] 21-07-PLAN.md — Decommission ReactIslandPocWidget + full regression + human browser checkpoint
 **UI hint**: yes

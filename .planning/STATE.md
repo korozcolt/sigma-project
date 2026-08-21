@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Ready to execute
-stopped_at: Completed 21-04-PLAN.md
+stopped_at: Completed 21-05-PLAN.md
 last_updated: "2026-08-21T02:56:00.000Z"
 progress:
   total_phases: 5
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-20)
 ## Current Position
 
 Phase: 21 (migrate-existing-charts-to-react-recharts) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 
 ## v1.3 Phase Map
 
@@ -62,6 +62,12 @@ Phase 21 Plan 04 decisions:
 - [Phase 21 Plan 04]: [Rule 1 - Bug] The new Browser test's `Survey::factory()->create()` needed an explicit `campaign_id` — `Survey` uses `HasCampaignContext`, and `SurveyFactory`'s default `campaign_id` relationship spins up its own unrelated `Campaign::factory()`, which the model's global scope then hides from the logged-in admin's actual active campaign, producing a `ModelNotFoundException` on page visit. Fixed by passing `['campaign_id' => $campaign->id]` explicitly, matching the admin's attached campaign.
 - [Phase 21 Plan 04]: Local MySQL (`sigma_betha_backup`) was not running/reachable in this worktree session (`php artisan migrate:status` → `Connection refused`) — not a blocker, since `phpunit.xml` overrides `DB_CONNECTION`/`DB_DATABASE` to `sqlite`/`:memory:` for all Feature/Unit/Browser test runs, and this plan's entire scope is test-covered with zero need for `artisan migrate` or the real backing DB.
 - [Phase 21 Plan 04]: Worktree (`agent-ade60f158db9f4fd2`) was 35 commits behind `main` at session start — missing all of Phase 21's planning docs (including this plan's own `21-04-PLAN.md`) and Plans 21-01/21-02's completed work, plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install`, `npm run build` (reverted a spurious `package-lock.json` `name`-field diff from `npm install` via `git checkout -- package-lock.json` before committing, per established precedent). `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`git status --short .planning/STATE.md` showed zero diff in this worktree after the call) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's own copies directly instead.
+Phase 21 Plan 05 decisions:
+
+- [Phase 21 Plan 05]: Built `CampaignVotersSparklineWidget` and `SurveyResponsesSparklineWidget` exactly per the plan's literal code — both wrap their parents' now-public `getVotersGrowthChart()`/`getResponsesChart()` arrays (bodies unchanged) into the sparkline `{points: [...]}` shape with oldest-first label ordering preserved. `SurveyResponsesSparklineWidget` resolves its `Survey` exclusively via `CampaignContext::currentCampaign()` + `Survey::forCampaign()`, making the previously dead-code `getResponsesChart()` sparkline live for the first time without ever crossing campaign boundaries.
+- [Phase 21 Plan 05]: MIGR-02 is NOT marked complete in REQUIREMENTS.md by this plan alone — MIGR-02 requires all 3 embedded sparklines (`CampaignStatsOverview`, `CallCenterStatsWidget`, `SurveyStatsOverview`) to render through the new pipeline; this plan closes 2 of 3 (`CampaignStatsOverview`, `SurveyStatsOverview`), Plan 21-06 (`CallCenterStatsWidget`'s sparkline, a genuinely disjoint file set) still owes the third. Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent.
+- [Phase 21 Plan 05]: [Rule 1 - Bug] Fixed a Playwright strict-mode selector collision in the plan's own literal Task 3 test code — the bare `[data-chart-kind="sparkline"]` selector resolves to 2 elements once both new widgets share the same Admin dashboard (a direct consequence of this plan bundling two sparkline widgets together). Scoped each test's `assertVisible()` call to its own widget's `<section class="fi-section">` via `:has-text(heading)`, matching the project's established Playwright strict-mode scoping precedent (Phase 19 Plan 05).
+- [Phase 21 Plan 05]: Worktree (`agent-aa6340f402eaa4b4c`) was stale at session start — on a commit predating Phase 21 entirely (missing all of Phase 21's planning corpus and code), plus `vendor/`, `.env`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install` (reverted a spurious `package-lock.json` `name` field change via `git checkout -- package-lock.json`), `npm run build`. `gsd-tools init execute-phase 21` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead, per the established workaround.
 
 Phase 21 Plan 01 decisions:
 
@@ -696,9 +702,10 @@ Quick task 260808-hx8 decisions:
 | Phase 19 P06 | 5 | 1 tasks | 1 files |
 | Phase 21 P01 | 5min | 2 tasks | 9 files |
 | Phase 21 P02 | 15min | 2 tasks | 2 files |
+| Phase 21 P05 | 35min | 3 tasks | 11 files |
 
 ## Session Continuity
 
-Last session: 2026-08-21T02:44:48.529Z
-Stopped at: Completed 21-02-PLAN.md
+Last session: 2026-08-20T21:50:00.000Z
+Stopped at: Completed 21-05-PLAN.md
 Resume file: None

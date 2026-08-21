@@ -202,7 +202,7 @@ class CampaignStatsOverview extends StatsOverviewWidget
             ->chart($this->getValidationProgressChart($activeCampaign->id));
     }
 
-    protected function getVotersGrowthChart(int $campaignId): array
+    public function getVotersGrowthChart(int $campaignId): array
     {
         $campaign = Campaign::find($campaignId);
 

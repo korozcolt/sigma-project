@@ -126,7 +126,7 @@ class SurveyStatsOverview extends StatsOverviewWidget
         return ($completedCount / $votersWithResponses->count()) * 100;
     }
 
-    protected function getResponsesChart(Survey $survey): array
+    public function getResponsesChart(Survey $survey): array
     {
         // Get last 7 days of responses
         $data = [];

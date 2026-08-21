@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Filament\Resources\Voters\VoterResource;
 use App\Filament\Widgets\ApoyosLideresCoordinadoresTable;
 use App\Filament\Widgets\CampaignStatsOverview;
+use App\Filament\Widgets\CampaignVotersSparklineWidget;
 use App\Filament\Widgets\DiaDStatsOverview;
 use App\Filament\Widgets\DiaDTerritorialProgressTable;
 use App\Filament\Widgets\DuplicatesReportTable;
@@ -16,6 +17,7 @@ use App\Filament\Widgets\JurisdictionSummaryOverview;
 use App\Filament\Widgets\ReactIslandPocWidget;
 use App\Filament\Widgets\RejectionsCountersOverview;
 use App\Filament\Widgets\RejectionsReportTable;
+use App\Filament\Widgets\SurveyResponsesSparklineWidget;
 use App\Filament\Widgets\SurveyStatsOverview;
 use App\Filament\Widgets\TerritorialDistributionChart;
 use App\Filament\Widgets\TerritorialOwnershipTable;
@@ -76,6 +78,7 @@ class ReportsPanelProvider extends PanelProvider
             ])
             ->widgets([
                 CampaignStatsOverview::class,
+                CampaignVotersSparklineWidget::class,
                 FollowUpBacklogOverview::class,
                 FallbackSourceOverview::class,
                 ValidationProgressChart::class,
@@ -91,6 +94,7 @@ class ReportsPanelProvider extends PanelProvider
                 JurisdictionReportTable::class,
                 ApoyosLideresCoordinadoresTable::class,
                 SurveyStatsOverview::class,
+                SurveyResponsesSparklineWidget::class,
                 DiaDStatsOverview::class,
                 DiaDTerritorialProgressTable::class,
                 ReactIslandPocWidget::class,     // Fase 20 PoC — infra React/Recharts/Motion (temporal, ver ReactIslandPocWidget)

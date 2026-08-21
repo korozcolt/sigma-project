@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Widgets\ApoyosLideresCoordinadoresTable;
 use App\Filament\Widgets\BirthdayWidget;
 use App\Filament\Widgets\CampaignStatsOverview;
+use App\Filament\Widgets\CampaignVotersSparklineWidget;
 use App\Filament\Widgets\DuplicatesReportTable;
 use App\Filament\Widgets\FallbackSourceOverview;
 use App\Filament\Widgets\FollowUpBacklogOverview;
@@ -13,6 +14,7 @@ use App\Filament\Widgets\JurisdictionSummaryOverview;
 use App\Filament\Widgets\ReactIslandPocWidget;
 use App\Filament\Widgets\RejectionsCountersOverview;
 use App\Filament\Widgets\RejectionsReportTable;
+use App\Filament\Widgets\SurveyResponsesSparklineWidget;
 use App\Filament\Widgets\SurveyStatsOverview;
 use App\Filament\Widgets\TerritorialDistributionChart;
 use App\Filament\Widgets\TerritorialOwnershipTable;
@@ -76,6 +78,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 CampaignStatsOverview::class,    // KPIs principales — fila 1
+                CampaignVotersSparklineWidget::class, // Sparkline React/Recharts — crecimiento de apoyos 7d (MIGR-02)
                 FollowUpBacklogOverview::class,  // Rezago de seguimiento/validación (REPT-02)
                 FallbackSourceOverview::class,   // Conteo de apoyos en fuente de respaldo/fallback (SRC-05)
                 ValidationProgressChart::class,  // Tendencia 30d — fila 2 izq
@@ -91,6 +94,7 @@ class AdminPanelProvider extends PanelProvider
                 JurisdictionReportTable::class,  // Informe de jurisdicción (D-04, oculto en Nacional) — fila 8 completa
                 ApoyosLideresCoordinadoresTable::class, // CSV plano combinado (D-03) — fila 9 completa
                 SurveyStatsOverview::class,      // Encuestas — fila 10 izq
+                SurveyResponsesSparklineWidget::class, // Sparkline React/Recharts — respuestas de encuestas 7d (MIGR-02)
                 BirthdayWidget::class,           // Cumpleaños — fila 11 completa
                 ReactIslandPocWidget::class,     // Fase 20 PoC — infra React/Recharts/Motion (temporal, ver ReactIslandPocWidget)
             ])
