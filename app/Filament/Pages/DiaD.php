@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use App\Enums\VoterStatus;
+use App\Filament\Widgets\DiaDLiveVotingChart;
 use App\Filament\Widgets\DiaDStatsOverview;
 use App\Filament\Widgets\DiaDTerritorialProgressTable;
 use App\Models\ElectionEvent;
@@ -339,6 +340,7 @@ class DiaD extends Page
         return [
             DiaDStatsOverview::class,
             DiaDTerritorialProgressTable::class,
+            DiaDLiveVotingChart::class,
         ];
     }
 

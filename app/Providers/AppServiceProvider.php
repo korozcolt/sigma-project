@@ -8,6 +8,7 @@ use App\Filament\Widgets\CallCenterStatsWidget;
 use App\Filament\Widgets\CallContactabilityFunnelChart;
 use App\Filament\Widgets\CallHistoryTable;
 use App\Filament\Widgets\CallQueueTable;
+use App\Filament\Widgets\DiaDLiveVotingChart;
 use App\Filament\Widgets\DiaDStatsOverview;
 use App\Filament\Widgets\DiaDTerritorialProgressTable;
 use App\Filament\Widgets\MessageDeliveryFunnelChart;
@@ -50,6 +51,7 @@ class AppServiceProvider extends ServiceProvider
         CallHistoryTable::class,
         DiaDStatsOverview::class,
         DiaDTerritorialProgressTable::class,
+        DiaDLiveVotingChart::class,
         SurveyResultsWidget::class,
         CallCenterStatsWidget::class,
         CallCenterCallsSparklineWidget::class,
