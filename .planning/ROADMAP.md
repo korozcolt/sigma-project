@@ -119,7 +119,12 @@ Plans:
   3. Admin sees a funnel of call contactability by attempt number (intento 1 → 2 → 3+ → contactado)
   4. Admin sees a funnel of message delivery (enviado → entregado → leído → clic) for `MessageBatch`/`Message`, previously invisible despite being already computed on the model
   5. Admin sees a gauge of the average SCALE-type survey response score alongside a histogram of the full response distribution
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 22-01-PLAN.md — Shared chart-kind library: stacked-bar/funnel/gauge/histogram Recharts components + ChartRouter registration + order-preserving adapter + empty-state copy
+- [ ] 22-02-PLAN.md — VoterStatusDonutChart (VIZ-01) + CoordinatorTeamStackedBarChart (VIZ-02) on the Admin dashboard + Browser tests
+- [ ] 22-04-PLAN.md — CallContactabilityFunnelChart (VIZ-03) + MessageDeliveryFunnelChart (VIZ-04) on Call Center/Messages pages + Browser tests
+- [ ] 22-05-PLAN.md — SurveyScaleGaugeChart + SurveyScaleHistogramChart (VIZ-05) on the survey edit page + Browser test
 **UI hint**: yes
 
 ### Phase 23: Differentiator Visualizations
@@ -155,7 +160,7 @@ Plans:
 | 12-19. v1.2 Articuladores + Metadata de Usuario | 29/29 | Complete | 2026-08-12 |
 | 20. React Island Infrastructure | 2/3 | Complete    | 2026-08-20 |
 | 21. Migrate Existing Charts to React/Recharts | 7/7 | Complete   | 2026-08-21 |
-| 22. Table-Stakes New Visualizations | 0/TBD | Not started | - |
+| 22. Table-Stakes New Visualizations | 0/4 | Not started | - |
 | 23. Differentiator Visualizations | 0/TBD | Not started | - |
 | 24. Día D Live Voting Visualization | 0/TBD | Not started | - |
 
