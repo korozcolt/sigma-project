@@ -14,7 +14,6 @@ use App\Filament\Widgets\FallbackSourceOverview;
 use App\Filament\Widgets\FollowUpBacklogOverview;
 use App\Filament\Widgets\JurisdictionReportTable;
 use App\Filament\Widgets\JurisdictionSummaryOverview;
-use App\Filament\Widgets\ReactIslandPocWidget;
 use App\Filament\Widgets\RejectionsCountersOverview;
 use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\SurveyResponsesSparklineWidget;
@@ -97,7 +96,6 @@ class ReportsPanelProvider extends PanelProvider
                 SurveyResponsesSparklineWidget::class,
                 DiaDStatsOverview::class,
                 DiaDTerritorialProgressTable::class,
-                ReactIslandPocWidget::class,     // Fase 20 PoC — infra React/Recharts/Motion (temporal, ver ReactIslandPocWidget)
             ])
             ->renderHook(
                 PanelsRenderHook::HEAD_END,

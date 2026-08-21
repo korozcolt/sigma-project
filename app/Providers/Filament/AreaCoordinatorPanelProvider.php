@@ -6,7 +6,6 @@ use App\Enums\UserRole;
 use App\Filament\Pages\DiaD;
 use App\Filament\Widgets\CampaignStatsOverview;
 use App\Filament\Widgets\CampaignVotersSparklineWidget;
-use App\Filament\Widgets\ReactIslandPocWidget;
 use App\Filament\Widgets\TerritorialDistributionChart;
 use App\Filament\Widgets\TopLeadersTable;
 use Filament\Http\Middleware\Authenticate;
@@ -71,7 +70,6 @@ class AreaCoordinatorPanelProvider extends PanelProvider
                 CampaignVotersSparklineWidget::class,
                 TerritorialDistributionChart::class,
                 TopLeadersTable::class,
-                ReactIslandPocWidget::class,     // Fase 20 PoC — infra React/Recharts/Motion (temporal, ver ReactIslandPocWidget)
             ])
             ->renderHook(
                 PanelsRenderHook::HEAD_END,

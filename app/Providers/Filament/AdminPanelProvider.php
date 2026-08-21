@@ -11,7 +11,6 @@ use App\Filament\Widgets\FallbackSourceOverview;
 use App\Filament\Widgets\FollowUpBacklogOverview;
 use App\Filament\Widgets\JurisdictionReportTable;
 use App\Filament\Widgets\JurisdictionSummaryOverview;
-use App\Filament\Widgets\ReactIslandPocWidget;
 use App\Filament\Widgets\RejectionsCountersOverview;
 use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\SurveyResponsesSparklineWidget;
@@ -96,7 +95,6 @@ class AdminPanelProvider extends PanelProvider
                 SurveyStatsOverview::class,      // Encuestas — fila 10 izq
                 SurveyResponsesSparklineWidget::class, // Sparkline React/Recharts — respuestas de encuestas 7d (MIGR-02)
                 BirthdayWidget::class,           // Cumpleaños — fila 11 completa
-                ReactIslandPocWidget::class,     // Fase 20 PoC — infra React/Recharts/Motion (temporal, ver ReactIslandPocWidget)
             ])
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.components.campaign-context-switcher'))
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.components.saldos-badge'))
