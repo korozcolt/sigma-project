@@ -16,8 +16,8 @@ Requirements for milestone v1.3. Each maps to roadmap phases.
 
 ### Migración de charts existentes (MIGR)
 
-- [ ] **MIGR-01**: `ValidationProgressChart`, `TerritorialDistributionChart`, and `SurveyResultsWidget` render through the new React/Recharts pipeline instead of Chart.js, with their existing campaign/role-scoped `getData()` queries unchanged
-- [ ] **MIGR-02**: The 3 embedded sparklines (`CampaignStatsOverview`, `CallCenterStatsWidget`, `SurveyStatsOverview`) render through the new pipeline
+- [x] **MIGR-01**: `ValidationProgressChart`, `TerritorialDistributionChart`, and `SurveyResultsWidget` render through the new React/Recharts pipeline instead of Chart.js, with their existing campaign/role-scoped `getData()` queries unchanged
+- [x] **MIGR-02**: The 3 embedded sparklines (`CampaignStatsOverview`, `CallCenterStatsWidget`, `SurveyStatsOverview`) render through the new pipeline
 
 ### Visualizaciones nuevas — table stakes (VIZ)
 
@@ -71,8 +71,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-02 | Phase 20 | Done |
 | INFRA-03 | Phase 20 | Done |
 | INFRA-04 | Phase 20 | Done |
-| MIGR-01 | Phase 21 | Pending |
-| MIGR-02 | Phase 21 | Pending |
+| MIGR-01 | Phase 21 | Complete |
+| MIGR-02 | Phase 21 | Complete |
 | VIZ-01 | Phase 22 | Pending |
 | VIZ-02 | Phase 22 | Pending |
 | VIZ-03 | Phase 22 | Pending |

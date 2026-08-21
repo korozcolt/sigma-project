@@ -67,7 +67,7 @@ Shipped summary: `.planning/MILESTONES.md`
 **Milestone Goal:** Dotar al panel Filament de gráficas ricas con la composición visual real de MonoCharts (no solo paleta), portando componentes React/Recharts como isla aislada sobre Livewire, para exponer insights operativos hoy invisibles.
 
 - [x] **Phase 20: React Island Infrastructure** - Chart components mount as an isolated, poll-safe, navigation-safe React island inside Filament (completed 2026-08-20)
-- [ ] **Phase 21: Migrate Existing Charts to React/Recharts** - The 3 existing ChartWidgets + 3 sparklines move to the new pipeline with zero data-query changes
+- [x] **Phase 21: Migrate Existing Charts to React/Recharts** - The 3 existing ChartWidgets + 3 sparklines move to the new pipeline with zero data-query changes (completed 2026-08-21)
 - [ ] **Phase 22: Table-Stakes New Visualizations** - Admin gains 5 new direct-primitive charts (donut, stacked-bar, 2 funnels, gauge+histogram)
 - [ ] **Phase 23: Differentiator Visualizations** - Admin gains 5 curated/modeled charts (happy-path funnel, Sankey, drill-down treemap, heatmap, stacked-area)
 - [ ] **Phase 24: Día D Live Voting Visualization** - Admin/operator sees a cached, live-updating Día D voting line chart
@@ -106,7 +106,7 @@ Plans:
 - [x] 21-04-PLAN.md — Migrate SurveyResultsWidget + wire EditSurvey footer widgets + D-04 Browser test — completed 2026-08-20
 - [x] 21-05-PLAN.md — CampaignVotersSparklineWidget + SurveyResponsesSparklineWidget + registration + Browser tests — completed 2026-08-20
 - [x] 21-06-PLAN.md — CallCenterCallsSparklineWidget + CallCenterStatsWidget wiring + Browser test — completed 2026-08-21
-- [ ] 21-07-PLAN.md — Decommission ReactIslandPocWidget + full regression + human browser checkpoint
+- [x] 21-07-PLAN.md — Decommission ReactIslandPocWidget + full regression + human browser checkpoint
 **UI hint**: yes
 
 ### Phase 22: Table-Stakes New Visualizations
@@ -154,7 +154,7 @@ Plans:
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
 | 12-19. v1.2 Articuladores + Metadata de Usuario | 29/29 | Complete | 2026-08-12 |
 | 20. React Island Infrastructure | 2/3 | Complete    | 2026-08-20 |
-| 21. Migrate Existing Charts to React/Recharts | 3/7 | In Progress|  |
+| 21. Migrate Existing Charts to React/Recharts | 7/7 | Complete   | 2026-08-21 |
 | 22. Table-Stakes New Visualizations | 0/TBD | Not started | - |
 | 23. Differentiator Visualizations | 0/TBD | Not started | - |
 | 24. Día D Live Voting Visualization | 0/TBD | Not started | - |
