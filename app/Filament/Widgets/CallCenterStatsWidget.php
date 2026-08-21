@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\DB;
 
 class CallCenterStatsWidget extends StatsOverviewWidget
 {
-
-
     protected static ?int $sort = 1;
 
     protected ?string $pollingInterval = '30s';
@@ -101,7 +99,7 @@ class CallCenterStatsWidget extends StatsOverviewWidget
             ->chart($this->getWeekConfirmationsChart());
     }
 
-    protected function getLastWeekCallsChart(): array
+    public function getLastWeekCallsChart(): array
     {
         return VerificationCall::query()
             ->select(DB::raw('DATE(call_date) as date'), DB::raw('COUNT(*) as count'))
