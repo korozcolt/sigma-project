@@ -12,6 +12,11 @@ export function toNameValueRows({ labels = [], datasets = [] }) {
         .sort((a, b) => b.value - a.value);
 }
 
+export function toOrderedRows({ labels = [], datasets = [] }) {
+    const data = datasets[0]?.data ?? [];
+    return labels.map((name, i) => ({ name, value: data[i] ?? 0 }));
+}
+
 export function isChartDataEmpty(kind, data) {
     if (kind === 'sparkline' || kind === 'poc') {
         return !Array.isArray(data?.points) || data.points.length === 0;

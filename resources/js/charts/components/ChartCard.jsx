@@ -16,6 +16,11 @@ const THEME_STYLES = {
 const EMPTY_STATE_COPY = {
     no_campaign: 'No hay campaña seleccionada',
     default: 'No hay datos para el período seleccionado.',
+    no_voters: 'No hay apoyos registrados en esta campaña.',
+    no_coordinators: 'No hay coordinadores con apoyos registrados.',
+    no_calls: 'No hay llamadas registradas para esta campaña.',
+    no_messages: 'No hay mensajes enviados para esta campaña.',
+    no_survey_responses: 'Esta pregunta aún no tiene respuestas.',
 };
 
 export default function ChartCard({ kind, data, theme = 'light', hasError = false }) {
