@@ -5,6 +5,7 @@ namespace App\Filament\Resources\VerificationCalls\Pages;
 use App\Filament\Resources\VerificationCalls\VerificationCallResource;
 use App\Filament\Widgets\CallCenterCallsSparklineWidget;
 use App\Filament\Widgets\CallCenterStatsWidget;
+use App\Filament\Widgets\CallContactabilityFunnelChart;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
@@ -17,6 +18,7 @@ class ListVerificationCalls extends ListRecords
         return [
             CallCenterStatsWidget::class,
             CallCenterCallsSparklineWidget::class,
+            CallContactabilityFunnelChart::class,
         ];
     }
 
