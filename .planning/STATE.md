@@ -2,16 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
-status: executing
-stopped_at: Completed 21-01-PLAN.md (Phase 21, plan 1/7)
-last_updated: "2026-08-20T21:52:00.000Z"
-last_activity: 2026-08-20
+status: Ready to execute
+stopped_at: Completed 21-02-PLAN.md
+last_updated: "2026-08-21T02:44:48.534Z"
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 4
-  percent: 40
+  completed_plans: 5
 ---
 
 # Project State
@@ -21,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** v1.3 Visualización de Datos MonoCharts — Phase 21 (Migrate Existing Charts to React/Recharts)
+**Current focus:** Phase 21 — migrate-existing-charts-to-react-recharts
 
 ## Current Position
 
-Phase: 21 of 24 (migrate existing charts to react/recharts)
-Plan: 01 of 7 complete
-Status: Executing
-Last activity: 2026-08-20
-
-Progress: [████░░░░░░] 40%
+Phase: 21 (migrate-existing-charts-to-react-recharts) — EXECUTING
+Plan: 2 of 7
 
 ## v1.3 Phase Map
 
@@ -371,6 +365,7 @@ Quick task 260808-jsz decisions:
 
 - [Phase 18]: [Phase 18 Plan 01]: leaders/export split out of the shared coordinator role group into its own Route::middleware() block (role:coordinator,area_coordinator,admin_campaign,super_admin) instead of broadening the shared group, to avoid opening the rest of the coordinador panel to articuladores.
 - [Phase 19]: [Phase 19 Plan 06]: Closed 15-HUMAN-UAT.md (status: partial -> resolved, all 3 items result: passed, Summary passed:3/pending:0) citing the exact proving tests/Browser/*.php file for each item — the phase's literal final deliverable. No code changes; confirmed all 3 proving test files present on a clean, up-to-date main before editing.
+- [Phase 21]: [Phase 21 Plan 02]: Deferred marking MIGR-01/MIGR-02 complete in REQUIREMENTS.md — this plan only builds the shared ChartCard.jsx/react-chart.blade.php infra; the requirements' literal wording (specific widgets rendering through the new pipeline) only becomes true once Plans 21-03 through 21-06 migrate those widgets. Matches the project's established split-requirement precedent.
 
 ### Blockers/Concerns
 
@@ -685,9 +680,10 @@ Quick task 260808-hx8 decisions:
 | Phase 18 P01 | 20min | 3 tasks | 3 files |
 | Phase 19 P06 | 5 | 1 tasks | 1 files |
 | Phase 21 P01 | 5min | 2 tasks | 9 files |
+| Phase 21 P02 | 15min | 2 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-08-20T21:52:00.000Z
-Stopped at: Completed 21-01-PLAN.md (Phase 21, plan 1/7)
-Resume file: .planning/phases/21-migrate-existing-charts-to-react-recharts/21-02-PLAN.md
+Last session: 2026-08-21T02:44:48.529Z
+Stopped at: Completed 21-02-PLAN.md
+Resume file: None

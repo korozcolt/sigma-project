@@ -101,7 +101,7 @@ Plans:
 **Plans**: 7 plans
 Plans:
 - [x] 21-01-PLAN.md — Shared React chart-kind library (adapter, palette, formatters, ChartRouter, 4 kind components) — completed 2026-08-20
-- [ ] 21-02-PLAN.md — ChartCard chrome refactor + react-chart.blade.php generalization
+- [x] 21-02-PLAN.md — ChartCard chrome refactor + react-chart.blade.php generalization
 - [ ] 21-03-PLAN.md — Migrate ValidationProgressChart + TerritorialDistributionChart + Browser tests
 - [ ] 21-04-PLAN.md — Migrate SurveyResultsWidget + wire EditSurvey footer widgets + D-04 Browser test
 - [ ] 21-05-PLAN.md — CampaignVotersSparklineWidget + SurveyResponsesSparklineWidget + registration + Browser tests
@@ -154,7 +154,7 @@ Plans:
 | 6-11. v1.1 Consulta de Puesto de Votación Resiliente | 15/15 | Complete | 2026-08-10 |
 | 12-19. v1.2 Articuladores + Metadata de Usuario | 29/29 | Complete | 2026-08-12 |
 | 20. React Island Infrastructure | 2/3 | Complete    | 2026-08-20 |
-| 21. Migrate Existing Charts to React/Recharts | 0/7 | Not started | - |
+| 21. Migrate Existing Charts to React/Recharts | 2/7 | In Progress|  |
 | 22. Table-Stakes New Visualizations | 0/TBD | Not started | - |
 | 23. Differentiator Visualizations | 0/TBD | Not started | - |
 | 24. Día D Live Voting Visualization | 0/TBD | Not started | - |
