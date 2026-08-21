@@ -80,6 +80,47 @@
 
 ---
 
+## Milestone: v1.3 — Visualización de Datos MonoCharts
+
+**Shipped:** 2026-08-21
+**Phases:** 5 (Phases 20-24) | **Plans:** 21 | **Timeline:** 2026-08-20 → 2026-08-21 (~2 days)
+
+### What Was Built
+- A React+Recharts+Motion island mechanism mounted via a dedicated Vite entry and an Alpine `wire:ignore` bridge (mount-once/update-via-`root.render()`/unmount-on-destroy-or-navigate), proven safe against `wire:poll` ticks and Livewire SPA navigation on all 5 panels (Phase 20).
+- All 3 pre-existing Chart.js `ChartWidget`s and all 3 embedded sparklines migrated onto the new pipeline with zero `getData()` query changes, confirmed byte-identical via `git diff` (Phase 21).
+- 5 new table-stakes visualizations previously entirely missing: a 12-state VoterStatus donut, a coordinator-team stacked-bar, call-contactability and message-delivery funnels, and a SCALE-survey gauge+histogram (Phase 22).
+- 4 curated visualizations requiring real modeling decisions rather than component swaps: a happy-path Voter lifecycle funnel, a top-8+"Otros" ValidationHistory Sankey, a Departamento→Municipio→Barrio drill-down treemap, and a caller×hour contact-rate heatmap, plus a rejection-reasons stacked-area (Phase 23).
+- A cached, 30s-polling, campaign+event-scoped live Día D voting line chart that never re-runs its aggregation query on every tick (Phase 24).
+- By milestone end: 12 chart kinds live behind a single `ChartRouter.jsx` dispatch contract, Chart.js fully retired from the codebase.
+
+### What Worked
+- **Building the shared JS chart-kind library as its own plan before any PHP widget plan, repeated in every phase (20-01, 21-01, 22-01, 23-01).** Every later PHP-only widget plan in that phase then needed zero further JS changes — the kind-registration work was front-loaded and paid for itself across 2-5 downstream plans each time.
+- **Migrating pre-existing charts with a hard "zero `getData()` changes" constraint (Phase 21).** Kept the rendering-layer swap cleanly separable from any data-shaping risk, and made the migration's correctness independently verifiable via a straight `git diff` on the query methods.
+- **Retroactive verification instead of re-execution when a gap is a missing artifact, not missing work.** The milestone audit found Phase 21 had shipped correctly (integration-checker confirmed the code) but never produced a `VERIFICATION.md`. Closing it meant spawning `gsd-verifier` retroactively against the already-shipped code — not re-running any of the 7 plans.
+- **A live browser checkpoint catching a real bug the plan's automated tests couldn't have caught (Phase 21-07).** A hardcoded-light-theme bug only surfaced because a human looked at the app in dark mode; closed before the milestone's audit could have found it as a shipped defect.
+
+### What Was Inefficient
+- **Worktree staleness recurred on nearly every plan across Phases 20-21** — sessions started 5+ commits behind `main`, missing the phase's own planning corpus, `.env`, `vendor/`, `node_modules/`, and `public/build/`. This is the same class of recurring tooling issue flagged as unfixed in both the v1.0 and v1.1 retrospectives — now observed in a third consecutive milestone without a source fix.
+- **A plan's first-proposed fix for the Phase 23 funnel label-overflow bug (a `margin.right` adjustment) did not actually work** and required a second, more invasive fix (a custom unclamped `LabelList` renderer) discovered only by checking in a real browser — the initial fix was accepted on code-review plausibility rather than visually confirmed before being marked done.
+- **`21-01-SUMMARY.md`'s frontmatter claims requirements-completed that weren't actually closed until a later plan** — a documentation-only inconsistency, but one that directly caused the milestone audit's first pass to need a second, retroactive-verification round to resolve.
+
+### Patterns Established
+- Shared-library-first sequencing within a visualization phase: one plan builds every new chart-kind component + router registration + empty-state copy the phase needs, before any PHP widget plan consumes it.
+- "Zero query changes" as an explicit, checkable constraint when migrating a rendering layer — makes the migration's blast radius independently verifiable, not just asserted.
+- Retroactive `gsd-verifier` runs to close a missing-artifact gap without re-executing already-shipped, already-integration-checked work.
+
+### Key Lessons
+1. The recurring worktree-staleness/tooling-root-resolution issue has now cost time across three consecutive milestones (v1.0, v1.1, v1.3) via the same hand-workaround every time — this has crossed from "log it" to "fix it at the source" territory per v1.1's own Key Lesson #2, which was itself not acted on.
+2. A visually-oriented bug fix (label overflow, theme color, layout clipping) should not be marked done on code-review plausibility alone — verify it rendered correctly in a real browser before closing the plan, not just before closing the phase.
+3. A phase's SUMMARY.md frontmatter (`requirements-completed`) must reflect the plan's actual completion state, not an intended end-state — a wrong frontmatter claim on one early plan (21-01) propagated into a milestone-audit false negative two phases and one full milestone-close cycle later.
+
+### Cost Observations
+- Model mix and per-session cost were not tracked for this milestone (same gap as v1.0/v1.1).
+- 120 commits, 141 files changed, +16,260/-184 lines across the 2-day roadmap execution window.
+- Full v1.3 test suite: 6 dedicated Browser tests for the migrated widgets, plus per-phase Feature/Unit/Browser coverage for every new chart widget — all green at milestone audit time (17/17 requirements satisfied, 0 broken E2E flows).
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -88,6 +129,7 @@
 |-----------|-------------|--------|------------|
 | v1.0 | 9 | 8 (5 core + 3 inserted) | Introduced decimal phase insertion + audit-then-close pattern for stale roadmap reconciliation |
 | v1.1 | ~2 (roadmap execution) | 6 | Pluggable live-adapter interface + quarantined non-blocking feasibility spike pattern |
+| v1.3 | ~2 (roadmap execution) | 5 | Shared-library-first sequencing per visualization phase + retroactive `gsd-verifier` to close missing-artifact (not missing-work) audit gaps |
 
 ### Cumulative Quality
 
@@ -95,10 +137,13 @@
 |-----------|-------|----------|---------------------|
 | v1.0 | 892 | Not separately tracked | 0 (no new dependencies added) |
 | v1.1 | 78+ (targeted, final touched files) | Not separately tracked | 0 (no new Composer dependencies added) |
+| v1.3 | 17/17 requirements satisfied, 0 broken E2E flows (milestone audit) | Every new/migrated chart widget has a dedicated Pest 4 Browser test | New npm deps: React 19, Recharts 3, Motion (no new Composer dependencies) |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Audit-then-close beats blind re-execution when roadmap status is stale — verified once in v1.0 (Phase 05.1), watch for repeat need in future milestones.
-2. Live human-verify checkpoints on lockout/irreversible-risk features catch real bugs — verified once in v1.0 (kill switch checkpoint).
+2. Live human-verify checkpoints on lockout/irreversible-risk features catch real bugs — verified once in v1.0 (kill switch checkpoint); v1.3 reinforced this for visual/theme bugs specifically (Phase 21-07's dark-mode fix).
 3. Roadmap/milestone bookkeeping drifts from reality when incidental/urgent work lands outside the plan and isn't reconciled promptly — now verified **twice** (v1.0's multi-month drift, v1.1's ~2-week post-ship quick-task backlog). Close milestones and reconcile status as work lands, not in a single large catch-up pass.
 4. Pluggable-adapter design for external/third-party integrations pays for itself quickly once a second implementation is needed — verified once in v1.1 (`LiveSourceAdapter`, two more adapters added within days).
+5. The `gsd-tools` worktree/root-resolution and worktree-staleness issue has now recurred across **three** consecutive milestones (v1.0, v1.1, v1.3) as a hand-workaround, never root-caused despite being flagged as fixable after the v1.1 milestone — the strongest candidate for a source-level fix before the next milestone starts.
+6. Visually-oriented bug fixes need a real-browser check before being marked done, not just a code-review-plausible patch — verified once in v1.3 (Phase 23's funnel label-overflow fix needed a second, more invasive attempt after the first "looked right" in code).
