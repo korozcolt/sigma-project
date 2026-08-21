@@ -145,7 +145,7 @@ test('territorial distribution chart shows data for municipalities', function ()
 
     Livewire::test(TerritorialDistributionChart::class)
         ->assertOk()
-        ->assertSee('Top 10 Municipios con más Apoyos');
+        ->assertSee('Distribución Territorial');
 });
 
 test('territorial distribution chart handles no active campaign', function () {
