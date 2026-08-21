@@ -142,7 +142,7 @@ Plans:
 - [x] 23-01-PLAN.md — Shared chart-kind library: SankeyChart/TreemapChart/HeatmapChart/StackedAreaChart.jsx + ChartRouter registration + empty-state copy — completed 2026-08-21
 - [x] 23-02-PLAN.md — VoterHappyPathFunnelChart + VoterLifecycleBranchCountersOverview on the Admin dashboard + Browser test (VIZ-06) — completed 2026-08-21
 - [ ] 23-03-PLAN.md — ValidationHistorySankeyChart + RejectionReasonsStackedAreaChart on the Admin dashboard + Browser tests (VIZ-07, VIZ-10)
-- [ ] 23-04-PLAN.md — TerritorialDistributionChart replaced in place with a drill-down treemap + Browser test (VIZ-08)
+- [x] 23-04-PLAN.md — TerritorialDistributionChart replaced in place with a drill-down treemap + Browser test (VIZ-08) — completed 2026-08-21
 - [ ] 23-05-PLAN.md — CallerHourHeatmapChart on the Admin dashboard + Browser test (VIZ-09)
 **UI hint**: yes
 

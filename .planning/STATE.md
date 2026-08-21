@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Executing
-stopped_at: Wave 1 complete (23-01, 23-02)
-last_updated: "2026-08-21T15:53:02.844Z"
+stopped_at: Completed 23-04-PLAN.md (Wave 2, VIZ-08)
+last_updated: "2026-08-21T21:07:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 19
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 23 — differentiator-visualizations — Wave 1 complete (2/5 plans)
+**Current focus:** Phase 23 — differentiator-visualizations — Wave 2 in progress (3/5 plans complete)
 
 ## Current Position
 
 Phase: 23 (differentiator-visualizations) — EXECUTING
-Plan: 01, 02 complete (Wave 1) — 03, 04, 05 pending (Waves 2-3)
+Plan: 01, 02, 04 complete — 03, 05 pending (Wave 2 in progress/Wave 3)
 
 ## v1.3 Phase Map
 
@@ -47,6 +47,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 23 Plan 04 decisions:
+
+- [Phase 23 Plan 04]: Shipped VIZ-08 — `TerritorialDistributionChart::getData()` rewritten from a flat top-10-municipios `{labels, datasets}` bar query to a 3-level `LEFT JOIN` aggregation (`departments` → `municipalities` → `LEFT JOIN neighborhoods`) reshaped into a nested `{tree: [...]}` Departamento→Municipio→Barrio structure consumed by `TreemapChart.jsx` (built in 23-01). `getChartKind()` now returns `'treemap'`; same widget class, `$sort = 2`, and `AdminPanelProvider.php` registration — no slot change, per D-10. Role-scoping (`LEADER`/`COORDINATOR`/`AREA_COORDINATOR`/admin) carried over unchanged from the prior implementation, per D-09. Voters with `neighborhood_id = null` bucket into an explicit `"Sin barrio"` leaf via the `LEFT JOIN` + `?? 'Sin barrio'` fallback rather than being silently dropped, per Pitfall 3/D-12's full-fidelity goal.
+- [Phase 23 Plan 04]: [Rule 1 - Bug] The plan's own literal Task 2 Browser test code used a `.recharts-treemap-depth-2 rect` selector for the second drill-down click, which never matches — read `node_modules/recharts/es6/chart/Treemap.js`'s `handleClick()` directly and confirmed nest-mode Treemap resets `depth: 0` for the new `currentRoot` on every click, so every drilled-into level's children render under `.recharts-treemap-depth-1`, never a cumulative `-depth-2`. Fixed the test's second selector to `.recharts-treemap-depth-1 rect`.
+- [Phase 23 Plan 04]: [Rule 1 - Bug] This task's own heading/data-shape change directly broke 3 pre-existing tests outside the plan's `files_modified` scope: `tests/Feature/DashboardWidgetsTest.php` and `tests/Browser/ArticuladorDashboardWidgetScopingTest.php` both asserted the retired heading `"Top 10 Municipios con más Apoyos"` (updated to `"Distribución Territorial"`); `tests/Feature/OwnershipScopedWidgetsTest.php` read the retired `$data['datasets'][0]['data']` flat shape via reflection on `getData()` (rewritten to recursively sum every leaf `value` across the new nested `{tree}` shape, preserving the same team-scoped total assertion). All 3 fixes verified green; treated as in-scope Rule 1 fixes (directly caused by this task's own change), not deferred.
+- [Phase 23 Plan 04]: Worktree (`agent-a7ced4d188e33723c`) was 1 merge-commit behind `main` at session start — missing Phase 23's entire planning corpus (including this plan's own `23-04-PLAN.md`) plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented extensively throughout this milestone. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install` (reverted a spurious `package-lock.json` `name` field change afterward). The `public/build/` copy from the main checkout was itself stale relative to committed source (grep for `Treemap`/`Sankey` in the copied bundle returned 0 matches despite a fresh file timestamp) — ran `npm run build` in this worktree instead, which correctly produced a bundle containing `Treemap`. `gsd-tools init execute-phase 23` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's own copies directly instead, per the established workaround.
 
 Phase 23 Plan 02 decisions:
 
