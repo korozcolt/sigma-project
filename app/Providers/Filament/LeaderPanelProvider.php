@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Enums\UserRole;
 use App\Filament\Pages\DiaD;
 use App\Filament\Widgets\CampaignStatsOverview;
+use App\Filament\Widgets\CampaignVotersSparklineWidget;
 use App\Filament\Widgets\ReactIslandPocWidget;
 use App\Filament\Widgets\TerritorialDistributionChart;
 use App\Filament\Widgets\ValidationProgressChart;
@@ -60,6 +61,7 @@ class LeaderPanelProvider extends PanelProvider
             // Widgets principales para líderes
             ->widgets([
                 CampaignStatsOverview::class,
+                CampaignVotersSparklineWidget::class,
                 ValidationProgressChart::class,
                 TerritorialDistributionChart::class,
                 ReactIslandPocWidget::class,     // Fase 20 PoC — infra React/Recharts/Motion (temporal, ver ReactIslandPocWidget)
