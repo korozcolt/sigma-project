@@ -20,6 +20,8 @@ class TerritorialDistributionChart extends ChartWidget
 
     protected ?string $pollingInterval = '120s';
 
+    protected string $view = 'filament.widgets.react-chart';
+
     protected function getData(): array
     {
         $activeCampaign = CampaignContext::currentCampaign();
@@ -82,25 +84,11 @@ class TerritorialDistributionChart extends ChartWidget
 
     protected function getType(): string
     {
-        return 'bar';
+        return $this->getChartKind();
     }
 
-    protected function getOptions(): array
+    protected function getChartKind(): string
     {
-        return [
-            'plugins' => [
-                'legend' => [
-                    'display' => false,
-                ],
-            ],
-            'scales' => [
-                'y' => [
-                    'beginAtZero' => true,
-                    'ticks' => [
-                        'precision' => 0,
-                    ],
-                ],
-            ],
-        ];
+        return 'bar';
     }
 }

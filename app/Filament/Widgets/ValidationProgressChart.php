@@ -20,6 +20,8 @@ class ValidationProgressChart extends ChartWidget
 
     protected ?string $pollingInterval = '120s';
 
+    protected string $view = 'filament.widgets.react-chart';
+
     protected function getData(): array
     {
         $activeCampaign = CampaignContext::currentCampaign();
@@ -99,29 +101,11 @@ class ValidationProgressChart extends ChartWidget
 
     protected function getType(): string
     {
-        return 'line';
+        return $this->getChartKind();
     }
 
-    protected function getOptions(): array
+    protected function getChartKind(): string
     {
-        return [
-            'plugins' => [
-                'legend' => [
-                    'display' => true,
-                ],
-            ],
-            'scales' => [
-                'y' => [
-                    'beginAtZero' => true,
-                    'ticks' => [
-                        'precision' => 0,
-                    ],
-                ],
-            ],
-            'interaction' => [
-                'intersect' => false,
-                'mode' => 'index',
-            ],
-        ];
+        return 'line';
     }
 }
