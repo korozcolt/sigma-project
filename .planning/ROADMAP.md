@@ -160,7 +160,7 @@ Plans:
 | 12-19. v1.2 Articuladores + Metadata de Usuario | 29/29 | Complete | 2026-08-12 |
 | 20. React Island Infrastructure | 2/3 | Complete    | 2026-08-20 |
 | 21. Migrate Existing Charts to React/Recharts | 7/7 | Complete   | 2026-08-21 |
-| 22. Table-Stakes New Visualizations | 2/4 | In progress | - |
+| 22. Table-Stakes New Visualizations | 2/4 | Complete    | 2026-08-21 |
 | 23. Differentiator Visualizations | 0/TBD | Not started | - |
 | 24. Día D Live Voting Visualization | 0/TBD | Not started | - |
 
