@@ -69,7 +69,7 @@ Shipped summary: `.planning/MILESTONES.md`
 - [x] **Phase 20: React Island Infrastructure** - Chart components mount as an isolated, poll-safe, navigation-safe React island inside Filament (completed 2026-08-20)
 - [x] **Phase 21: Migrate Existing Charts to React/Recharts** - The 3 existing ChartWidgets + 3 sparklines move to the new pipeline with zero data-query changes (completed 2026-08-21)
 - [x] **Phase 22: Table-Stakes New Visualizations** - Admin gains 5 new direct-primitive charts (donut, stacked-bar, 2 funnels, gauge+histogram) (completed 2026-08-21)
-- [x] **Phase 23: Differentiator Visualizations** - Admin gains 5 curated/modeled charts (happy-path funnel, Sankey, drill-down treemap, heatmap, stacked-area) (completed 2026-08-21)
+- [ ] **Phase 23: Differentiator Visualizations** - Admin gains 5 curated/modeled charts (happy-path funnel, Sankey, drill-down treemap, heatmap, stacked-area) (5/5 built; 1 gap-closure plan 23-06 pending for VIZ-06 label-overflow fix)
 - [ ] **Phase 24: Día D Live Voting Visualization** - Admin/operator sees a cached, live-updating Día D voting line chart
 
 ## Phase Details
@@ -137,13 +137,14 @@ Plans:
   3. Admin sees a drill-down treemap of territorial distribution (Departamento → Municipio → Barrio, one level at a time) instead of the current flat top-10 bar list
   4. Admin sees a heatmap of call-center caller × hour effectiveness, with a real positioned tooltip (not the browser's native `title` attribute) and a defined strategy for handling more callers than fit on screen
   5. Admin sees a stacked-area chart of rejection reasons over time, broken down by rejection status rather than a single aggregate counter
-**Plans**: 5 plans
+**Plans**: 6 plans
 Plans:
 - [x] 23-01-PLAN.md — Shared chart-kind library: SankeyChart/TreemapChart/HeatmapChart/StackedAreaChart.jsx + ChartRouter registration + empty-state copy — completed 2026-08-21
 - [x] 23-02-PLAN.md — VoterHappyPathFunnelChart + VoterLifecycleBranchCountersOverview on the Admin dashboard + Browser test (VIZ-06) — completed 2026-08-21
 - [x] 23-03-PLAN.md — ValidationHistorySankeyChart + RejectionReasonsStackedAreaChart on the Admin dashboard + Browser tests (VIZ-07, VIZ-10) — completed 2026-08-21
 - [x] 23-04-PLAN.md — TerritorialDistributionChart replaced in place with a drill-down treemap + Browser test (VIZ-08) — completed 2026-08-21
 - [x] 23-05-PLAN.md — CallerHourHeatmapChart on the Admin dashboard + Browser test (VIZ-09) — completed 2026-08-21
+- [ ] 23-06-PLAN.md — (GAP CLOSURE) Fix FunnelChart.jsx label overflow/clip on VoterHappyPathFunnelChart (VIZ-06)
 **UI hint**: yes
 
 ### Phase 24: Día D Live Voting Visualization
@@ -167,7 +168,7 @@ Plans:
 | 20. React Island Infrastructure | 2/3 | Complete    | 2026-08-20 |
 | 21. Migrate Existing Charts to React/Recharts | 7/7 | Complete   | 2026-08-21 |
 | 22. Table-Stakes New Visualizations | 2/4 | Complete    | 2026-08-21 |
-| 23. Differentiator Visualizations | 5/5 | Complete    | 2026-08-21 |
+| 23. Differentiator Visualizations | 5/6 | Executing   | - |
 | 24. Día D Live Voting Visualization | 0/TBD | Not started | - |
 
 ---
