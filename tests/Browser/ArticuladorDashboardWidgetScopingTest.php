@@ -75,7 +75,7 @@ it('shows an articulador only their own team\'s data on the /articulador dashboa
     // (per-articulador correctness for this widget's aggregate query is asserted at
     // the Livewire level in 19-01's OwnershipScopedWidgetsTest.php via ->getData(),
     // since chart.js canvas output isn't reliably plain-text-assertable in a real browser)
-    $page->assertSee('Top 10 Municipios con más Apoyos');
+    $page->assertSee('Distribución Territorial');
 });
 
 it('shows a second articulador only their own team\'s data, proving cross-articulador isolation', function () {

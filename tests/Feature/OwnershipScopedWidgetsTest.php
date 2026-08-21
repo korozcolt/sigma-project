@@ -179,5 +179,15 @@ test('articulador sees only their team\'s municipalities in TerritorialDistribut
     $method->setAccessible(true);
     $data = $method->invoke($instance);
 
-    expect(array_sum($data['datasets'][0]['data']))->toBe(8);
+    // Post-VIZ-08 shape: getData() returns a 3-level nested {tree: [...]} (Departamento ->
+    // Municipio -> Barrio) instead of a flat {datasets, labels} bar shape - sum every leaf's
+    // "value" across the whole tree to recover the same team-scoped voter total.
+    $sumTree = function (array $nodes) use (&$sumTree): int {
+        return array_sum(array_map(
+            fn (array $node) => isset($node['children']) ? $sumTree($node['children']) : ($node['value'] ?? 0),
+            $nodes
+        ));
+    };
+
+    expect($sumTree($data['tree']))->toBe(8);
 });
