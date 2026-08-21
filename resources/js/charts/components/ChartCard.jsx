@@ -33,31 +33,6 @@ export default function ChartCard({ kind, data, theme = 'light', hasError = fals
         );
     }
 
-    // Transitional: ReactIslandPocWidget (Phase 20) is deleted alongside this shim
-    // in Phase 21's final cleanup plan (21-07) — until then its existing Browser
-    // test asserts these exact PoC-specific testids/copy, unchanged from Phase 20.
-    if (kind === 'poc') {
-        const points = Array.isArray(data?.points) ? data.points : [];
-        const latestValue = points.length > 0 ? points[points.length - 1].value : 0;
-        return (
-            <motion.div
-                className="rounded-lg border border-gray-200 bg-white p-4 text-gray-900"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.2 }}
-                data-testid="react-chart-poc"
-            >
-                <p className="text-xs font-medium uppercase tracking-wide opacity-70">React Island PoC</p>
-                <p className="mt-1 text-2xl font-semibold" data-testid="react-chart-poc-value">
-                    {latestValue}
-                </p>
-                <div className="rounded-[14px] p-4" style={{ height: 96 }}>
-                    <ChartRouter kind="sparkline" data={data} theme={theme} />
-                </div>
-            </motion.div>
-        );
-    }
-
     const empty = isChartDataEmpty(kind, data);
     const emptyBody = EMPTY_STATE_COPY[data?.emptyReason] ?? EMPTY_STATE_COPY.default;
 

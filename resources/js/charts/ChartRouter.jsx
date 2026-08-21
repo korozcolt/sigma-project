@@ -8,7 +8,6 @@ const KIND_COMPONENTS = {
     bar: BarChartKind,
     pie: PieChartKind,
     sparkline: SparklineChartKind,
-    poc: SparklineChartKind, // transitional alias — removed in Phase 21's final cleanup plan alongside ReactIslandPocWidget
 };
 
 export default function ChartRouter({ kind, data, theme = 'light' }) {
