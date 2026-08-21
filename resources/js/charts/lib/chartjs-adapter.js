@@ -21,6 +21,15 @@ export function isChartDataEmpty(kind, data) {
     if (kind === 'sparkline' || kind === 'poc') {
         return !Array.isArray(data?.points) || data.points.length === 0;
     }
+    if (kind === 'sankey') {
+        return !Array.isArray(data?.nodes) || data.nodes.length === 0 || !Array.isArray(data?.links) || data.links.length === 0;
+    }
+    if (kind === 'treemap') {
+        return !Array.isArray(data?.tree) || data.tree.length === 0;
+    }
+    if (kind === 'heatmap') {
+        return !Array.isArray(data?.cells) || data.cells.length === 0;
+    }
     const labels = data?.labels ?? [];
     const datasets = data?.datasets ?? [];
     if (labels.length === 0 || datasets.length === 0) {
