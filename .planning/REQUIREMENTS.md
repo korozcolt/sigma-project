@@ -30,10 +30,10 @@ Requirements for milestone v1.3. Each maps to roadmap phases.
 ### Visualizaciones nuevas — diferenciadores (VIZ)
 
 - [x] **VIZ-06**: An admin sees a funnel of a defined "happy path" subset of the Voter lifecycle (a genuinely linear sequence of `VoterStatus` states, e.g. PENDING_REVIEW→VERIFIED_CENSUS→CONFIRMED→VOTED), with rejected/duplicate terminal states shown separately rather than forced into the funnel shape
-- [ ] **VIZ-07**: An admin sees a Sankey diagram of `ValidationHistory` state transitions, curated to a defined meaningful/top-N transition set rather than an unfiltered dump of every recorded transition pair
+- [x] **VIZ-07**: An admin sees a Sankey diagram of `ValidationHistory` state transitions, curated to a defined meaningful/top-N transition set rather than an unfiltered dump of every recorded transition pair
 - [ ] **VIZ-08**: An admin sees a drill-down treemap of territorial distribution (Departamento → Municipio → Barrio, one level at a time) instead of the current flat top-10 bar list
 - [ ] **VIZ-09**: An admin sees a heatmap of call-center caller × hour effectiveness, with a real positioned tooltip (not the browser's native `title` attribute) and a defined strategy for handling more callers than fit on screen
-- [ ] **VIZ-10**: An admin sees a stacked-area chart of rejection reasons over time (broken down by rejection status, not a single aggregate counter)
+- [x] **VIZ-10**: An admin sees a stacked-area chart of rejection reasons over time (broken down by rejection status, not a single aggregate counter)
 
 ### Día D en vivo (DAYD)
 
@@ -79,10 +79,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VIZ-04 | Phase 22 | Done |
 | VIZ-05 | Phase 22 | Done |
 | VIZ-06 | Phase 23 | Done |
-| VIZ-07 | Phase 23 | Pending |
+| VIZ-07 | Phase 23 | Done |
 | VIZ-08 | Phase 23 | Pending |
 | VIZ-09 | Phase 23 | Pending |
-| VIZ-10 | Phase 23 | Pending |
+| VIZ-10 | Phase 23 | Done |
 | DAYD-05 | Phase 24 | Pending |
 
 **Coverage:**

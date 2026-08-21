@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Executing
-stopped_at: Wave 1 complete (23-01, 23-02)
-last_updated: "2026-08-21T15:53:02.844Z"
+stopped_at: Completed 23-03-PLAN.md (Wave 2, 3/5 plans in Phase 23)
+last_updated: "2026-08-21T16:16:45Z"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 19
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 23 — differentiator-visualizations — Wave 1 complete (2/5 plans)
+**Current focus:** Phase 23 — differentiator-visualizations — Wave 2 in progress (3/5 plans)
 
 ## Current Position
 
 Phase: 23 (differentiator-visualizations) — EXECUTING
-Plan: 01, 02 complete (Wave 1) — 03, 04, 05 pending (Waves 2-3)
+Plan: 01, 02, 03 complete — 04, 05 pending (Waves 2-3)
 
 ## v1.3 Phase Map
 
@@ -47,6 +47,17 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 23 Plan 03 decisions:
+
+- [Phase 23 Plan 03]: Shipped `ValidationHistorySankeyChart` (VIZ-07, top-N-by-volume + per-source-node "Otros" collapse, synthetic "Nuevo" node for null `previous_status`) and `RejectionReasonsStackedAreaChart` (VIZ-10, 4 fixed-order `VoterStatus` rejection series bucketed by week in PHP/Carbon), both registered on the Admin dashboard after 23-02's entries.
+- [Phase 23 Plan 03]: [Rule 1 - Bug] Both widgets' literal plan code qualified `ValidationHistory` join/select/groupBy/whereIn columns as `'validation_history.*'` (singular) — but the model has no `$table` override, so its real table is `validation_histories` (plural). Fixed both widget files to use the correct plural qualifier.
+- [Phase 23 Plan 03]: [Rule 1/3 - Blocking schema gap] `validation_histories.previous_status` was `NOT NULL`, blocking 23-CONTEXT.md's D-06 ("null `previous_status` renders as a synthetic Nuevo node") from ever being persistable — no prior code path in the codebase had ever needed a null `previous_status`. Added a migration making it nullable, mirroring this same table's existing `validated_by`-nullable migration.
+- [Phase 23 Plan 03]: [Rule 1 - Bug] `SankeyChart.jsx` (built in 23-01, outside this plan's own `files_modified`) passed a custom `<Rectangle>` element as Recharts' `node` prop, which bypasses Recharts' automatic `recharts-sankey-node` className (`node_modules/recharts/lib/chart/Sankey.js`'s `renderNodeItem()` only applies it on its own un-customized default renderer) — confirmed via a live page's dumped `outerHTML` showing correct embedded data but a bare `class="recharts-rectangle"` with no `recharts-sankey-node`. Fixed by adding an explicit `className="recharts-sankey-node"` to the custom `Rectangle` element (merges via `clsx()` with the component's own default class).
+- [Phase 23 Plan 03]: [Rule 1 - Bug] `RejectionReasonsStackedAreaChartTest`'s own literal fixture created only 1 `ValidationHistory` row (1 week bucket); Recharts' `Area` only renders its `<path>` when a series has more than 1 data point (`node_modules/recharts/lib/cartesian/Area.js`: `points?.length > 1`), so the plan's own test could never pass regardless of correct widget data. Fixed by seeding a second rejection row 2 weeks apart.
+- [Phase 23 Plan 03]: [Rule 3 - Blocking, environment] This worktree's `public/build` (copied from the main checkout per the established stale-worktree workaround) predated Phase 23's chart-kind additions — the built JS bundle contained zero occurrences of `sankey`/`stacked-area`, so both widgets always rendered the generic "Sin datos" empty state regardless of real server data. Fixed with `npm run build`. Confirmed via a controlled isolation test: stashing all of this plan's uncommitted work and rebuilding at that exact prior commit state reproduced the identical stale-bundle symptom, proving it predated (not was caused by) this plan's changes.
+- [Phase 23 Plan 03]: A full `tests/Browser/` regression sweep surfaced `VoterHappyPathFunnelChartTest.php` (owned by plan 23-02) failing deterministically on `assertSee('Pendiente de Revisión')` — confirmed pre-existing and unrelated to this plan (reproduced identically at the pre-23-03 commit state via the same stash-and-rebuild isolation test above). Left unfixed per scope-boundary rules and logged to `.planning/phases/23-differentiator-visualizations/deferred-items.md`.
+- [Phase 23 Plan 03]: Worktree (`worktree-agent-a7deb454e4e104c81`) was 100 commits behind `main` at session start — missing Phases 20-23 entirely (including this plan's own PLAN.md) plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented extensively throughout this milestone. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install` (reverted a spurious `package-lock.json` `name` field change afterward), initial `public/build/` copy from the main checkout (later found stale and rebuilt fresh — see deviation above). `gsd-tools state advance-plan` failed outright with a parse error against this worktree's current `STATE.md` format (`Cannot parse Current Plan or Total Plans in Phase from STATE.md` — this milestone's STATE.md uses a prose `Plan: 01, 02 complete...` line, not the numeric format the CLI expects), confirmed via `git status --short .planning/` showing zero diff after the call — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's own copies directly instead, per the established workaround.
 
 Phase 23 Plan 02 decisions:
 
