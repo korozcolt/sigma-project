@@ -37,7 +37,7 @@ Requirements for milestone v1.3. Each maps to roadmap phases.
 
 ### Día D en vivo (DAYD)
 
-- [ ] **DAYD-05**: An admin/operator sees a live-updating line chart of Día D voting progress (`VoteRecord.voted_at` accumulated hourly), backed by a cached/pre-aggregated campaign-scoped endpoint that avoids expensive per-tick `COUNT` queries under concurrent election-day load
+- [x] **DAYD-05**: An admin/operator sees a live-updating line chart of Día D voting progress (`VoteRecord.voted_at` accumulated hourly), backed by a cached/pre-aggregated campaign-scoped endpoint that avoids expensive per-tick `COUNT` queries under concurrent election-day load
 
 ## v2 Requirements
 
@@ -83,7 +83,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VIZ-08 | Phase 23 | Done |
 | VIZ-09 | Phase 23 | Done |
 | VIZ-10 | Phase 23 | Done |
-| DAYD-05 | Phase 24 | Pending |
+| DAYD-05 | Phase 24 | Complete |
 
 **Coverage:**
 - v1 requirements: 17 total

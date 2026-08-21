@@ -70,7 +70,7 @@ Shipped summary: `.planning/MILESTONES.md`
 - [x] **Phase 21: Migrate Existing Charts to React/Recharts** - The 3 existing ChartWidgets + 3 sparklines move to the new pipeline with zero data-query changes (completed 2026-08-21)
 - [x] **Phase 22: Table-Stakes New Visualizations** - Admin gains 5 new direct-primitive charts (donut, stacked-bar, 2 funnels, gauge+histogram) (completed 2026-08-21)
 - [x] **Phase 23: Differentiator Visualizations** - Admin gains 5 curated/modeled charts (happy-path funnel, Sankey, drill-down treemap, heatmap, stacked-area) (5/5 built; gap-closure plan 23-06 fixed VIZ-06's label-overflow bug) (completed 2026-08-21)
-- [ ] **Phase 24: Día D Live Voting Visualization** - Admin/operator sees a cached, live-updating Día D voting line chart
+- [x] **Phase 24: Día D Live Voting Visualization** - Admin/operator sees a cached, live-updating Día D voting line chart (completed 2026-08-21)
 
 ## Phase Details
 
@@ -157,7 +157,7 @@ Plans:
   3. The chart continues updating correctly under concurrent polling load without visible performance degradation
 **Plans**: 1 plan
 Plans:
-- [ ] 24-01-PLAN.md — DiaDLiveVotingChart: cached hourly-cumulative line chart on the Día D page (DAYD-05)
+- [x] 24-01-PLAN.md — DiaDLiveVotingChart: cached hourly-cumulative line chart on the Día D page (DAYD-05)
 **UI hint**: yes
 
 ## Progress
@@ -171,7 +171,7 @@ Plans:
 | 21. Migrate Existing Charts to React/Recharts | 7/7 | Complete   | 2026-08-21 |
 | 22. Table-Stakes New Visualizations | 2/4 | Complete    | 2026-08-21 |
 | 23. Differentiator Visualizations | 6/6 | Complete    | 2026-08-21 |
-| 24. Día D Live Voting Visualization | 0/1 | Not started | - |
+| 24. Día D Live Voting Visualization | 1/1 | Complete   | 2026-08-21 |
 
 ---
 
