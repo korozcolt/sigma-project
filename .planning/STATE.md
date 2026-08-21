@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
-status: Executing Phase 22
-stopped_at: Completed 22-02-PLAN.md and 22-04-PLAN.md (Wave 2)
-last_updated: "2026-08-21T14:14:00.000Z"
+status: Phase 22 Complete
+stopped_at: Completed 22-05-PLAN.md (Wave 3) — Phase 22 fully complete
+last_updated: "2026-08-21T14:29:27.000Z"
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 14
-  completed_plans: 13
+  completed_plans: 14
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 22 — table-stakes-new-visualizations
+**Current focus:** Phase 22 — table-stakes-new-visualizations — COMPLETE; Phase 23 (differentiator-visualizations) next
 
 ## Current Position
 
-Phase: 22 (table-stakes-new-visualizations) — EXECUTING
-Plan: 3 of 4 (22-01, 22-02, 22-04 complete; 22-05 pending — Wave 3)
+Phase: 22 (table-stakes-new-visualizations) — COMPLETE (all 4 plans done: 22-01, 22-02, 22-04, 22-05)
+Plan: 4 of 4 complete
 
 ## v1.3 Phase Map
 
@@ -47,6 +47,14 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 22 Plan 05 decisions (Phase 22 now fully complete — all 5 VIZ requirements done):
+
+- [Phase 22 Plan 05]: Built `SurveyScaleGaugeChart` (kind `'gauge'`) and `SurveyScaleHistogramChart` (kind `'histogram'`, deliberately not `'bar'`) per the plan's literal code, both reading `SurveyMetrics.average_value`/`.distribution` directly (`metric_type='question_average'`) with zero new aggregation (D-10). Wired into `EditSurvey::getFooterWidgets()` — one gauge + one histogram per SCALE question, alongside the existing `SurveyResultsWidget` instance (not a replacement). Both registered in `AppServiceProvider::PAGE_SCOPED_WIDGETS` and `PageScopedWidgetRegistrationTest`'s regression dataset, matching the established precedent for every new page-scoped widget this milestone.
+- [Phase 22 Plan 05]: [Rule 1 - Bug] Wrapped `SurveyScaleHistogramChart`'s `datasets[0].data` mapping in `array_values()` — found via the plan's own `tdd="true"` RED/GREEN test. `array_map()` over `SurveyMetrics.distribution` preserves the source array's non-zero-based scale-value keys (`1, 2, 3...`), so without `array_values()` the result would `json_encode()` as a JS object instead of an array and silently break `HistogramChart.jsx`'s consumer. `labels` via `array_keys()` needed no such fix (`array_keys()` always returns a fresh 0-indexed array).
+- [Phase 22 Plan 05]: [Rule 1 - Bug] Removed the plan's literal `use Illuminate\Support\Collection;` import from `EditSurvey.php` — unused (`filter()`/`flatMap()` on an already-typed Eloquent collection need no explicit import) and failed `vendor/bin/pint --test` with `no_unused_imports`, which CLAUDE.md mandates passing before finalizing changes.
+- [Phase 22 Plan 05]: [Rule 1 - Bug, test-only] The new Browser test's histogram assertion (3rd of 3 stacked lazy-loaded/`x-intersect` widgets for the single SCALE question, sitting below the fold) needed a repeated 5x1s scroll+wait loop instead of a single tick — matches the established precedent from `VoterStatusDonutChartTest`/`CoordinatorTeamStackedBarChartTest` (Phase 22 Plan 02) and `TerritorialDistributionChartTest` (Phase 21 Plan 03).
+- [Phase 22 Plan 05]: Worktree (`agent-ad53cfa92f611e7e8`) was 78 commits behind `main` at session start — checked out at pre-Phase-20 commit `9ba4267`, missing all of Phase 20/21/22's planning corpus and code, plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented extensively throughout this milestone. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`. Since `package.json`/`package-lock.json` were byte-identical to the main checkout and this plan makes zero dependency changes, symlinked `node_modules/` from the main checkout instead of a full reinstall — `npx vite build --mode production` succeeded cleanly against it. `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`git status --short .planning/STATE.md` showed zero diff in this worktree after the call) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's own copies directly instead, per the established workaround. Phase 22 is now the third phase this milestone to close out (after 20, 21) with all 4 of its plans (22-01, 22-02, 22-04, 22-05) complete and all 5 VIZ-0X requirements Done.
 
 Phase 22 Plan 04 decisions:
 

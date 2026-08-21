@@ -68,7 +68,7 @@ Shipped summary: `.planning/MILESTONES.md`
 
 - [x] **Phase 20: React Island Infrastructure** - Chart components mount as an isolated, poll-safe, navigation-safe React island inside Filament (completed 2026-08-20)
 - [x] **Phase 21: Migrate Existing Charts to React/Recharts** - The 3 existing ChartWidgets + 3 sparklines move to the new pipeline with zero data-query changes (completed 2026-08-21)
-- [ ] **Phase 22: Table-Stakes New Visualizations** - Admin gains 5 new direct-primitive charts (donut, stacked-bar, 2 funnels, gauge+histogram)
+- [x] **Phase 22: Table-Stakes New Visualizations** - Admin gains 5 new direct-primitive charts (donut, stacked-bar, 2 funnels, gauge+histogram) (completed 2026-08-21)
 - [ ] **Phase 23: Differentiator Visualizations** - Admin gains 5 curated/modeled charts (happy-path funnel, Sankey, drill-down treemap, heatmap, stacked-area)
 - [ ] **Phase 24: Día D Live Voting Visualization** - Admin/operator sees a cached, live-updating Día D voting line chart
 
@@ -124,7 +124,7 @@ Plans:
 - [x] 22-01-PLAN.md — Shared chart-kind library: stacked-bar/funnel/gauge/histogram Recharts components + ChartRouter registration + order-preserving adapter + empty-state copy — completed 2026-08-21
 - [x] 22-02-PLAN.md — VoterStatusDonutChart (VIZ-01) + CoordinatorTeamStackedBarChart (VIZ-02) on the Admin dashboard + Browser tests — completed 2026-08-21
 - [x] 22-04-PLAN.md — CallContactabilityFunnelChart (VIZ-03) + MessageDeliveryFunnelChart (VIZ-04) on Call Center/Messages pages + Browser tests — completed 2026-08-21
-- [ ] 22-05-PLAN.md — SurveyScaleGaugeChart + SurveyScaleHistogramChart (VIZ-05) on the survey edit page + Browser test
+- [x] 22-05-PLAN.md — SurveyScaleGaugeChart + SurveyScaleHistogramChart (VIZ-05) on the survey edit page + Browser test — completed 2026-08-21
 **UI hint**: yes
 
 ### Phase 23: Differentiator Visualizations

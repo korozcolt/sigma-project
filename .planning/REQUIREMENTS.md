@@ -25,7 +25,7 @@ Requirements for milestone v1.3. Each maps to roadmap phases.
 - [x] **VIZ-02**: An admin sees a stacked-bar comparison of registered/validated/rejected apoyos per coordinator/team
 - [x] **VIZ-03**: An admin sees a funnel of call contactability by attempt number (intento 1 → 2 → 3+ → contactado)
 - [x] **VIZ-04**: An admin sees a funnel of message delivery (enviado → entregado → leído → clic) for `MessageBatch`/`Message`, a metric with zero visualization today despite being already computed on the model
-- [ ] **VIZ-05**: An admin sees a gauge showing the average SCALE-type survey response score alongside a histogram of the full response distribution
+- [x] **VIZ-05**: An admin sees a gauge showing the average SCALE-type survey response score alongside a histogram of the full response distribution
 
 ### Visualizaciones nuevas — diferenciadores (VIZ)
 
@@ -77,7 +77,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VIZ-02 | Phase 22 | Done |
 | VIZ-03 | Phase 22 | Done |
 | VIZ-04 | Phase 22 | Done |
-| VIZ-05 | Phase 22 | Pending |
+| VIZ-05 | Phase 22 | Done |
 | VIZ-06 | Phase 23 | Pending |
 | VIZ-07 | Phase 23 | Pending |
 | VIZ-08 | Phase 23 | Pending |
