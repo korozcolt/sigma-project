@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Executing
-stopped_at: Wave 2 complete (23-03, 23-04)
-last_updated: "2026-08-21T21:07:00.000Z"
+stopped_at: Wave 3 complete (23-05) — Phase 23 fully complete
+last_updated: "2026-08-21T16:24:12.000Z"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 19
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 23 — differentiator-visualizations — Wave 2 complete (4/5 plans)
+**Current focus:** Phase 23 — differentiator-visualizations — complete (5/5 plans), ready for phase-completion verification and transition to Phase 24
 
 ## Current Position
 
-Phase: 23 (differentiator-visualizations) — EXECUTING
-Plan: 01, 02, 03, 04 complete — 05 pending (Wave 3)
+Phase: 23 (differentiator-visualizations) — COMPLETE (all 5 plans done)
+Plan: 01, 02, 03, 04, 05 complete
 
 ## v1.3 Phase Map
 
@@ -47,6 +47,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 23 Plan 05 decisions (Phase 23 now fully complete — all 5 VIZ requirements done):
+
+- [Phase 23 Plan 05]: Shipped `CallerHourHeatmapChart` (VIZ-09) — a caller x business-hour (7am-9pm, D-15) contact-rate % heatmap, joined through `voter_id` (VerificationCall has no direct `campaign_id`, same pattern as `CallContactabilityFunnelChart`), numerator hardcoded to the same 3 `CallResult` values as `CallResult::isSuccessfulContact()` (D-13, since raw SQL cannot call an enum method), null rate for zero-attempt cells distinct from a real 0% cell (D-16), every caller rendered as its own row with zero top-N truncation (D-14). Registered on the Admin dashboard's `->widgets([...])` array after 23-03's `RejectionReasonsStackedAreaChart` and before `BirthdayWidget`, preserving every prior Phase 23 widget entry. Plan executed exactly as written, zero deviations — both tasks' literal code passed verification (php -l, Pint, tinker-verified SQL binding order, real Browser test) on the first attempt.
+- [Phase 23 Plan 05]: Confirmed `tests/Browser/VoterHappyPathFunnelChartTest.php` (owned by plan 23-02, pre-existing failure first documented in 23-03) still fails deterministically on `assertSee('Pendiente de Revisión')` during this plan's required 5-file cross-test-pollution regression sweep — confirmed unrelated to this plan's own `CallerHourHeatmapChart` addition (the other 4 files, including this plan's own new test, all pass cleanly together with zero pollution). Left unfixed per scope-boundary rules; logged an additional confirmation entry to `.planning/phases/23-differentiator-visualizations/deferred-items.md`.
+- [Phase 23 Plan 05]: Worktree (`agent-a3d9a945e89533f81`) was 109 commits behind `main` at session start — missing all of Phase 23's planning corpus and completed plans (23-01 through 23-04), plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented extensively throughout this milestone. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction` (real install, not symlinked, per the Phase 22 Plan 02 precedent that a symlinked `vendor/` breaks Pest's directory-scoped test binding), `node_modules/` symlinked from the main checkout (both `composer.lock` and `package-lock.json` confirmed byte-identical via `diff` first), `public/build/` initially copied from the main checkout then found stale (zero `heatmap` occurrences in the bundled JS) and rebuilt fresh via `npm run build` — same stale-bundle pattern documented in 23-03's decisions. `php artisan migrate:status` showed zero pending migrations. `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()`-adjacent parse bug (`Cannot parse Current Plan or Total Plans in Phase from STATE.md` — this milestone's STATE.md uses a prose `Plan: 01, 02, 03, 04 complete...` line, not the numeric format the CLI expects, confirmed via `git status --short .planning/STATE.md` showing zero diff after the call) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's own copies directly instead, per the established workaround. Phase 23 (Differentiator Visualizations) is now fully complete — all 5 plans (23-01 through 23-05) done, all 5 VIZ-0X requirements (VIZ-06 through VIZ-10) Done.
 
 Phase 23 Plan 03 decisions:
 
