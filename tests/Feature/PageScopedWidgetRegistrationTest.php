@@ -8,6 +8,7 @@ use App\Filament\Widgets\CallQueueTable;
 use App\Filament\Widgets\DiaDStatsOverview;
 use App\Filament\Widgets\DiaDTerritorialProgressTable;
 use App\Filament\Widgets\RevalidationProgressWidget;
+use App\Filament\Widgets\SurveyResultsWidget;
 use Livewire\Exceptions\ComponentNotFoundException;
 use Livewire\Mechanisms\ComponentRegistry;
 
@@ -25,4 +26,5 @@ test('page-scoped widget resolves via its registered ComponentRegistry alias wit
     CallHistoryTable::class,
     DiaDStatsOverview::class,
     DiaDTerritorialProgressTable::class,
+    SurveyResultsWidget::class,
 ]);

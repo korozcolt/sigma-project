@@ -36,7 +36,7 @@ class EditSurvey extends EditRecord
             ->all();
     }
 
-    protected function getFooterWidgetsColumns(): int|array
+    public function getFooterWidgetsColumns(): int|array
     {
         return 1;
     }
