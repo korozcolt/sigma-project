@@ -1,10 +1,11 @@
 ---
 phase: 22
 slug: table-stakes-new-visualizations
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-21
+reviewed_at: 2026-08-21
 ---
 
 # Phase 22 — UI Design Contract
@@ -114,11 +115,11 @@ Accent reserved for: the single largest/first-ranked segment or stage per chart 
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: FLAG (non-blocking — shared error copy has no explicit solution path, but is reused verbatim from the already-shipped Phase 20/21 copy for cross-widget consistency)
+- [x] Dimension 2 Visuals: FLAG (non-blocking — no dedicated "focal point" statement per widget kind; hierarchy is inferable from the Color section's accent rule)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: FLAG (non-blocking — inherited 6px `ChartTooltip.jsx` micro-spacing predates this phase and is explicitly disclosed as legacy, not a new sub-4px value introduced here)
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved (2026-08-21) — all FLAGs are non-blocking recommendations, no BLOCKED issues found
