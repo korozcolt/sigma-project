@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
-status: Ready to execute
-stopped_at: Completed 23-01-PLAN.md
+status: Executing
+stopped_at: Wave 1 complete (23-01, 23-02)
 last_updated: "2026-08-21T15:53:02.844Z"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 19
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 23 — differentiator-visualizations — plan 01 complete (1/5 plans)
+**Current focus:** Phase 23 — differentiator-visualizations — Wave 1 complete (2/5 plans)
 
 ## Current Position
 
 Phase: 23 (differentiator-visualizations) — EXECUTING
-Plan: 01 complete, 02-05 pending
+Plan: 01, 02 complete (Wave 1) — 03, 04, 05 pending (Waves 2-3)
 
 ## v1.3 Phase Map
 
@@ -47,6 +47,11 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 23 Plan 02 decisions:
+
+- [Phase 23 Plan 02]: Shipped `VoterHappyPathFunnelChart` (kind `'funnel'`, reused verbatim from Phase 22 — zero new frontend code) and `VoterLifecycleBranchCountersOverview` (plain `StatsOverviewWidget`, not a chart) on the Admin dashboard, closing VIZ-06. The funnel computes each of its 4 stages as a cumulative-subset count (voters whose current status is stage N or any later happy-path stage), deliberately excluding `VERIFIED_REGISTRADURIA`/`VERIFIED_CALL` per D-01 — a voter reaching `CONFIRMED` via those paths still counts at each subset stage without ever having the literal `VERIFIED_CENSUS` status. The 6 branch/terminal states (`REJECTED_CENSUS`, `REJECTED_OUT_OF_SCOPE`, `CENSUS_NOT_FOUND`, `DUPLICATE`, `CORRECTION_REQUIRED`, `DID_NOT_VOTE`) render as a separate counter row per D-02/D-03, never inside the funnel shape. Plan executed exactly as written, zero deviations.
+- [Phase 23 Plan 02]: Worktree (`agent-abe62690cc6b5f47b`) was 89 commits behind `main` at session start — missing the entire Phase 23 planning corpus (including this plan's own PLAN.md) plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented extensively throughout this milestone. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only refs/heads/main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install` (reverted a spurious `package-lock.json` `name` field change afterward, matching prior-phase precedent), `public/build/` copy from the main checkout. `php artisan migrate:status` showed zero pending migrations (shared `sigma_betha_backup` DB already current). `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`git status --short .planning/STATE.md` showed zero diff in this worktree after the call — it silently bumped the main checkout's `Current Plan` from 2→3 instead) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's own copies directly instead, per the established workaround; the stray main-checkout mutation was left as-is (no git access from this sandboxed worktree agent to revert it, and prior phases' established precedent is to not attempt a cross-worktree revert).
 
 Phase 23 Plan 01 decisions:
 

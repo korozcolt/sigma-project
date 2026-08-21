@@ -22,6 +22,8 @@ use App\Filament\Widgets\TopCoordinatorsTable;
 use App\Filament\Widgets\TopLeadersTable;
 use App\Filament\Widgets\TopPollingPlacesTable;
 use App\Filament\Widgets\ValidationProgressChart;
+use App\Filament\Widgets\VoterHappyPathFunnelChart;
+use App\Filament\Widgets\VoterLifecycleBranchCountersOverview;
 use App\Filament\Widgets\VoterStatusDonutChart;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -98,6 +100,8 @@ class AdminPanelProvider extends PanelProvider
                 SurveyResponsesSparklineWidget::class, // Sparkline React/Recharts — respuestas de encuestas 7d (MIGR-02)
                 VoterStatusDonutChart::class,    // Donut de 12 estados de VoterStatus (VIZ-01)
                 CoordinatorTeamStackedBarChart::class, // Barras apiladas validado/rechazado/registrado por coordinador (VIZ-02)
+                VoterHappyPathFunnelChart::class, // Embudo de ruta feliz del ciclo de vida del apoyo (VIZ-06)
+                VoterLifecycleBranchCountersOverview::class, // Contadores de estados alternos/terminales (VIZ-06)
                 BirthdayWidget::class,           // Cumpleaños — fila 11 completa
             ])
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.components.campaign-context-switcher'))
