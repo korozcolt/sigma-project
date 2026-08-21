@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
-status: Ready to execute
-stopped_at: Phase 22 UI-SPEC approved
-last_updated: "2026-08-21T10:58:37.521Z"
+status: Executing Phase 22
+stopped_at: Completed 22-01-PLAN.md
+last_updated: "2026-08-21T13:49:38.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 14
+  completed_plans: 11
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 21 complete — ready for Phase 22 (table-stakes-new-visualizations)
+**Current focus:** Phase 22 — table-stakes-new-visualizations
 
 ## Current Position
 
-Phase: 21 (migrate-existing-charts-to-react-recharts) — COMPLETE
-Plan: 7 of 7 (all complete)
+Phase: 22 (table-stakes-new-visualizations) — EXECUTING
+Plan: 2 of 4 (22-01 complete)
 
 ## v1.3 Phase Map
 
@@ -47,6 +47,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 22 Plan 01 decisions:
+
+- [Phase 22 Plan 01]: Built the shared React/Recharts chart-kind library foundation for Phase 22 exactly per the plan's literal code — `toOrderedRows()` adapter (order-preserving sibling to `toNameValueRows()`), 4 new components (`StackedBarChart`, `FunnelChart`, `GaugeChart`, `HistogramChart`), all 4 registered in `ChartRouter.jsx`, and `ChartCard.jsx`'s `EMPTY_STATE_COPY` extended with 5 new Spanish keys. No production-code deviation. Pure JS/interface work — no PHP `ChartWidget` yet consumes these kinds; downstream plans 22-02/22-04/22-05 build those.
+- [Phase 22 Plan 01]: Built a dedicated `histogram` kind using `toOrderedRows()` instead of reusing `bar` (which sorts by value via `toNameValueRows()`) — deviates from 22-RESEARCH.md Pattern 4's literal suggestion, per the plan's own explicit critical design note, to avoid silently reordering a SCALE histogram's 1-5 buckets by frequency instead of scale order.
+- [Phase 22 Plan 01]: Worktree (`agent-a7d0f1401f0a15bf3`) was 68 commits behind `main` at session start — missing the entire Phase 22 planning corpus (this plan's own PLAN.md was present in the worktree already via a direct, uncommitted write, but the codebase itself — `vendor/`, `.env`, `node_modules/`, `public/build/`, and all Phase 20/21 source changes — was missing). Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout. Since `package.json`/`package-lock.json` were byte-identical to the main checkout and this plan makes zero dependency changes, symlinked `node_modules/` and `vendor/` from the main checkout instead of a full reinstall (Phase 21 Plan 01 precedent) — `npx vite build --mode production` succeeded cleanly against the symlinked `node_modules`. `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (confirmed via `git status --short .planning/STATE.md` showing zero diff in this worktree after the call, and the main checkout's `STATE.md` timestamp matching this session) — left the accidental main-checkout mutation as-is per established precedent (no git access to the main checkout from this sandboxed worktree agent to revert it); STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead. Note: the `git merge --ff-only main` also silently regressed this worktree's own STATE.md from an already-current "Phase 22 EXECUTING Plan 1 of 4" state (present before the merge, apparently written directly by a prior orchestrator step) back to a stale git-tracked "Phase 21 complete, ready for Phase 22" state — corrected by hand-editing Current Position/frontmatter back to the accurate post-22-01 state.
 
 Phase 21 Plan 03 decisions:
 
@@ -716,6 +722,6 @@ Quick task 260808-hx8 decisions:
 
 ## Session Continuity
 
-Last session: 2026-08-21T10:58:37.516Z
-Stopped at: Phase 22 UI-SPEC approved
-Resume file: .planning/phases/22-table-stakes-new-visualizations/22-UI-SPEC.md
+Last session: 2026-08-21T13:49:38.000Z
+Stopped at: Completed 22-01-PLAN.md
+Resume file: .planning/phases/22-table-stakes-new-visualizations/22-02-PLAN.md
