@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Executing
-stopped_at: Wave 3 complete (23-05) — Phase 23 fully complete
-last_updated: "2026-08-21T16:24:12.000Z"
+stopped_at: Phase 23 (differentiator-visualizations) fully complete — 6/6 plans, all 5 VIZ requirements Done, ready for phase-completion verification and transition to Phase 24
+last_updated: "2026-08-21T17:01:43.146Z"
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 19
-  completed_plans: 19
+  completed_phases: 4
+  total_plans: 20
+  completed_plans: 20
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 23 — differentiator-visualizations — complete (5/5 plans), ready for phase-completion verification and transition to Phase 24
+**Current focus:** Phase 23 — differentiator-visualizations — complete (6/6 plans), ready for phase-completion verification and transition to Phase 24
 
 ## Current Position
 
-Phase: 23 (differentiator-visualizations) — COMPLETE (all 5 plans done)
-Plan: 01, 02, 03, 04, 05 complete
+Phase: 23 (differentiator-visualizations) — COMPLETE (all 6 plans done)
+Plan: 01, 02, 03, 04, 05, 06 complete
 
 ## v1.3 Phase Map
 
@@ -458,6 +458,7 @@ Quick task 260808-jsz decisions:
 - [Phase 19]: [Phase 19 Plan 06]: Closed 15-HUMAN-UAT.md (status: partial -> resolved, all 3 items result: passed, Summary passed:3/pending:0) citing the exact proving tests/Browser/*.php file for each item — the phase's literal final deliverable. No code changes; confirmed all 3 proving test files present on a clean, up-to-date main before editing.
 - [Phase 21]: [Phase 21 Plan 02]: Deferred marking MIGR-01/MIGR-02 complete in REQUIREMENTS.md — this plan only builds the shared ChartCard.jsx/react-chart.blade.php infra; the requirements' literal wording (specific widgets rendering through the new pipeline) only becomes true once Plans 21-03 through 21-06 migrate those widgets. Matches the project's established split-requirement precedent.
 - [Phase 21]: [Phase 21 Plan 07]: Decommissioned Phase 20's throwaway ReactIslandPocWidget (class, Browser test, PanelProvider registrations, ChartCard/ChartRouter poc shim) now that all 6 real widgets prove the pipeline end-to-end; the human browser checkpoint surfaced and got fixed a real hardcoded-'light'-theme bug (main.jsx now reads document.documentElement's live dark-mode class + MutationObserver instead of a static Blade-computed value), user approved after the fix ('si, se ve muchisimo mejor, approved'); Phase 21 is fully complete, MIGR-01/MIGR-02 both closed.
+- [Phase 23]: [Phase 23 Plan 06]: Closed VIZ-06's last gap by root-causing why the plan's proposed margin.right fix on FunnelChart.jsx didn't work (recharts' outside-right label clamp width is a fixed proportion of realWidth, which shrinks as margin.right grows) and replacing it with an unclamped custom LabelList content renderer that bypasses word-wrap entirely; VoterHappyPathFunnelChartTest passes deterministically (2 consecutive runs) with its original unweakened assertSee assertion, and the 2 other FunnelChart.jsx consumers plus the full Browser suite (23/23) still pass. Phase 23 is now fully complete (6/6 plans, all 5 VIZ requirements Done).
 
 ### Blockers/Concerns
 
@@ -778,9 +779,10 @@ Quick task 260808-hx8 decisions:
 | Phase 22 P01 | 25min | 2 tasks | 7 files |
 | Phase 22 P02 | 30min | 2 tasks | 6 files |
 | Phase 22 P04 | 25min | 2 tasks | 8 files |
+| Phase 23 P06 | 10min | 2 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-08-21T15:22:28.239Z
-Stopped at: Phase 23 UI-SPEC approved
-Resume file: .planning/phases/23-differentiator-visualizations/23-UI-SPEC.md
+Last session: 2026-08-21T17:01:43.141Z
+Stopped at: Completed 23-06-PLAN.md — Phase 23 (differentiator-visualizations) fully complete, 6/6 plans, all 5 VIZ requirements Done
+Resume file: None
