@@ -21,8 +21,8 @@ Requirements for milestone v1.3. Each maps to roadmap phases.
 
 ### Visualizaciones nuevas — table stakes (VIZ)
 
-- [ ] **VIZ-01**: An admin sees a donut chart of the 12 `VoterStatus` state distribution for the active campaign
-- [ ] **VIZ-02**: An admin sees a stacked-bar comparison of registered/validated/rejected apoyos per coordinator/team
+- [x] **VIZ-01**: An admin sees a donut chart of the 12 `VoterStatus` state distribution for the active campaign
+- [x] **VIZ-02**: An admin sees a stacked-bar comparison of registered/validated/rejected apoyos per coordinator/team
 - [x] **VIZ-03**: An admin sees a funnel of call contactability by attempt number (intento 1 → 2 → 3+ → contactado)
 - [x] **VIZ-04**: An admin sees a funnel of message delivery (enviado → entregado → leído → clic) for `MessageBatch`/`Message`, a metric with zero visualization today despite being already computed on the model
 - [ ] **VIZ-05**: An admin sees a gauge showing the average SCALE-type survey response score alongside a histogram of the full response distribution
@@ -73,8 +73,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-04 | Phase 20 | Done |
 | MIGR-01 | Phase 21 | Complete |
 | MIGR-02 | Phase 21 | Complete |
-| VIZ-01 | Phase 22 | Pending |
-| VIZ-02 | Phase 22 | Pending |
+| VIZ-01 | Phase 22 | Done |
+| VIZ-02 | Phase 22 | Done |
 | VIZ-03 | Phase 22 | Done |
 | VIZ-04 | Phase 22 | Done |
 | VIZ-05 | Phase 22 | Pending |

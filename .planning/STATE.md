@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Executing Phase 22
-stopped_at: Completed 22-04-PLAN.md
-last_updated: "2026-08-21T13:57:03.000Z"
+stopped_at: Completed 22-02-PLAN.md and 22-04-PLAN.md (Wave 2)
+last_updated: "2026-08-21T14:14:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-20)
 ## Current Position
 
 Phase: 22 (table-stakes-new-visualizations) — EXECUTING
-Plan: 22-04 complete (22-01 and 22-04 done; 22-02/22-05 status not visible from this worktree)
+Plan: 3 of 4 (22-01, 22-02, 22-04 complete; 22-05 pending — Wave 3)
 
 ## v1.3 Phase Map
 
@@ -53,6 +53,13 @@ Phase 22 Plan 04 decisions:
 - [Phase 22 Plan 04]: Built `CallContactabilityFunnelChart` (VIZ-03) and `MessageDeliveryFunnelChart` (VIZ-04) exactly per the plan's literal code — the former counts DISTINCT voters per call-attempt stage via a fresh-`Builder`-closure pattern (joined through `voter_id` since `VerificationCall` has no direct `campaign_id`), the latter counts `Message` rows by `sent_at`/`delivered_at`/`read_at`/`clicked_at` timestamp presence (previously-invisible data — `MessageBatch` only pre-aggregates sent/delivered/failed counts). Both registered page-scoped (`ListVerificationCalls`'s 3rd header widget; `ListMessageBatches`'s first-ever `getHeaderWidgets()`) and both added to `AppServiceProvider::PAGE_SCOPED_WIDGETS`. No production-code deviation from the plan's literal code blocks.
 - [Phase 22 Plan 04]: [Rule 2 - Missing Critical] Extended `PageScopedWidgetRegistrationTest`'s dataset with both new widget classes (file not in the plan's own `files_modified` list) — matches the established Phase 21 Plan 04/06 precedent of keeping this exact `ComponentNotFoundException` regression guard current with every new page-scoped widget. 11/11 passing (9 original + 2 new).
 - [Phase 22 Plan 04]: Worktree (`agent-a60ac77987e7da33b`) was 68 commits behind `main` at session start — checked out at pre-Phase-20 commit `9ba4267`, missing all of Phase 20/21/22's planning corpus and code (including this plan's own `22-04-PLAN.md`), plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented extensively throughout this milestone. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install` (reverted the recurring spurious `package-lock.json` `name`-field regression via `git checkout -- package-lock.json`), `npm run build`. `gsd-tools state advance-plan`/`update-progress`/`record-metric`/`add-decision`/`record-session` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`git status --short .planning/STATE.md` showed zero diff in this worktree after every call) — STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead, per the established workaround. Since this worktree only sees its own completed plans (22-01, 22-04), `completed_plans` was incremented conservatively by 1 (11 -> 12) rather than assuming 22-02/22-05's parallel-worktree status.
+Phase 22 Plan 02 decisions:
+
+- [Phase 22 Plan 02]: Built `VoterStatusDonutChart` (VIZ-01, donut of all 12 `VoterStatus` states, zero-count omitted) and `CoordinatorTeamStackedBarChart` (VIZ-02, stacked-bar of Validado/Rechazado/Registrado per coordinator team, every coordinator included with no top-N truncation) per the plan's literal code, both registered panel-globally on `AdminPanelProvider`. `CoordinatorTeamStackedBarChart`'s two empty-state returns were inlined as separate literal arrays instead of the plan's shared `$emptyPayload` closure, so the plan's own `grep -c "emptyReason" == 2` acceptance criterion is satisfied (identical runtime output either way).
+- [Phase 22 Plan 02]: [Rule 3 - Blocking] Found and fixed a genuine pre-existing production bug in `BirthdayWidget` — `->orderByRaw('DAY(birth_date) ASC')` is MySQL-only and throws under sqlite. Once the two new sort=20/21 widgets and `BirthdayWidget` (sort=3) all lazy-load via `x-intersect` into the same batched Livewire multiplex request on a full dashboard scroll, `BirthdayWidget`'s crash aborted the whole batch, leaving all widgets in it (including the two this plan built) permanently blank. Fixed with a `DB::connection()->getDriverName()` switch (`DAY(birth_date)` on MySQL unchanged, `strftime('%d', ...)` on sqlite) — production behavior untouched.
+- [Phase 22 Plan 02]: Both new Browser tests needed a repeated 8×1s scroll+wait loop instead of the plan's literal single `scrollTo()+wait(2)` — with ~19 other widgets ahead of these sort=20/21 widgets, a single wait tick no longer reliably triggers the x-intersect observer for the last widgets on the Admin dashboard's current size. `VoterStatusDonutChartTest` also replaced the plan's literal always-visible `assertSee()` pie-label assertions with a hover-triggered (`dispatchEvent(new MouseEvent('mouseover', ...))`) assertion, since `PieChart.jsx` (built in 22-01, untouched here) only exposes segment names through the Recharts hover `Tooltip`, never a static legend.
+- [Phase 22 Plan 02]: Worktree (`agent-a10b21af6fe731604`) was 71 commits behind `main` at session start — missing all of Phases 20-22's planning corpus and code, plus `.env`/`vendor`/`node_modules`/`public/build`. Resolved via the established `git merge --ff-only main` + `.env` copy workaround. Initially symlinked `vendor` (matching several prior plans' precedent for byte-identical `composer.lock`), but this exposed a new, previously-undocumented failure mode: Pest's directory-scoped `pest()->extend(...)->in('Feature'|'Browser')` binding silently failed to apply through a symlinked `vendor/bin/pest`, making every test in the suite fail with `Call to undefined method ...::seed()`. Fixed by removing the `vendor` symlink and running a real `composer install --no-interaction` instead (kept `node_modules`/`public/build` symlinked without issue). `composer dump-autoload -o` was also needed once for the two new widget classes to autoload, since this worktree's `vendor/composer/autoload_classmap.php` is optimized/static. `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`git status --short .planning/STATE.md` showed zero diff in this worktree after the call) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's own copies directly instead.
+- [Orchestrator, Wave 2 merge]: 22-02 and 22-04 executed in parallel worktrees, both hand-edited STATE.md/ROADMAP.md/REQUIREMENTS.md per the `findProjectRoot()` bug workaround, and both branches' automated CLI calls also raced and wrote conflicting/stale updates directly onto the main checkout's uncommitted working tree (a new failure mode from running 2 parallel worktree agents against the same buggy CLI target). Discarded the corrupted uncommitted main-checkout changes, fast-forward merged 22-04 cleanly, then merged 22-02 with manual conflict resolution on the 3 planning docs (both plans' entries kept, no data lost).
 
 Phase 22 Plan 01 decisions:
 
@@ -725,9 +732,12 @@ Quick task 260808-hx8 decisions:
 | Phase 21 P02 | 15min | 2 tasks | 2 files |
 | Phase 21 P05 | 35min | 3 tasks | 11 files |
 | Phase 21 P07 | 40min | 3 tasks | 12 files |
+| Phase 22 P01 | 25min | 2 tasks | 7 files |
+| Phase 22 P02 | 30min | 2 tasks | 6 files |
+| Phase 22 P04 | 25min | 2 tasks | 8 files |
 
 ## Session Continuity
 
-Last session: 2026-08-21T13:49:38.000Z
-Stopped at: Completed 22-01-PLAN.md
-Resume file: .planning/phases/22-table-stakes-new-visualizations/22-02-PLAN.md
+Last session: 2026-08-21T14:14:00.000Z
+Stopped at: Completed 22-02-PLAN.md and 22-04-PLAN.md (Wave 2)
+Resume file: .planning/phases/22-table-stakes-new-visualizations/22-05-PLAN.md

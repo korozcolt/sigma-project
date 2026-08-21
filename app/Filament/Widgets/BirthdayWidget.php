@@ -9,6 +9,7 @@ use Filament\Actions\Action;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use Illuminate\Support\Facades\DB;
 
 class BirthdayWidget extends BaseWidget
 {
@@ -18,12 +19,18 @@ class BirthdayWidget extends BaseWidget
 
     public function table(Table $table): Table
     {
+        // DAY() is MySQL-only; sqlite (used in tests) needs strftime() instead —
+        // switch on the connection driver so production (MySQL) behavior is unchanged.
+        $dayExpression = DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%d', birth_date) AS INTEGER)"
+            : 'DAY(birth_date)';
+
         return $table
             ->query(
                 Voter::query()
                     ->whereMonth('birth_date', now()->month)
                     ->whereYear('birth_date', '<=', now()->year)
-                    ->orderByRaw('DAY(birth_date) ASC')
+                    ->orderByRaw("{$dayExpression} ASC")
             )
             ->heading('Cumpleaños del Mes')
             ->description('Apoyos que cumplen años en '.now()->translatedFormat('F').' — oportunidad de contacto')

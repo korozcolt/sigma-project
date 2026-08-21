@@ -6,6 +6,7 @@ use App\Filament\Widgets\ApoyosLideresCoordinadoresTable;
 use App\Filament\Widgets\BirthdayWidget;
 use App\Filament\Widgets\CampaignStatsOverview;
 use App\Filament\Widgets\CampaignVotersSparklineWidget;
+use App\Filament\Widgets\CoordinatorTeamStackedBarChart;
 use App\Filament\Widgets\DuplicatesReportTable;
 use App\Filament\Widgets\FallbackSourceOverview;
 use App\Filament\Widgets\FollowUpBacklogOverview;
@@ -21,6 +22,7 @@ use App\Filament\Widgets\TopCoordinatorsTable;
 use App\Filament\Widgets\TopLeadersTable;
 use App\Filament\Widgets\TopPollingPlacesTable;
 use App\Filament\Widgets\ValidationProgressChart;
+use App\Filament\Widgets\VoterStatusDonutChart;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -94,6 +96,8 @@ class AdminPanelProvider extends PanelProvider
                 ApoyosLideresCoordinadoresTable::class, // CSV plano combinado (D-03) — fila 9 completa
                 SurveyStatsOverview::class,      // Encuestas — fila 10 izq
                 SurveyResponsesSparklineWidget::class, // Sparkline React/Recharts — respuestas de encuestas 7d (MIGR-02)
+                VoterStatusDonutChart::class,    // Donut de 12 estados de VoterStatus (VIZ-01)
+                CoordinatorTeamStackedBarChart::class, // Barras apiladas validado/rechazado/registrado por coordinador (VIZ-02)
                 BirthdayWidget::class,           // Cumpleaños — fila 11 completa
             ])
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.components.campaign-context-switcher'))
