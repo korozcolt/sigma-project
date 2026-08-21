@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Filament\Widgets\CallCenterCallsSparklineWidget;
 use App\Filament\Widgets\CallCenterStatsOverview;
+use App\Filament\Widgets\CallCenterStatsWidget;
 use App\Filament\Widgets\CallHistoryTable;
 use App\Filament\Widgets\CallQueueTable;
 use App\Filament\Widgets\DiaDStatsOverview;
@@ -45,6 +47,8 @@ class AppServiceProvider extends ServiceProvider
         DiaDStatsOverview::class,
         DiaDTerritorialProgressTable::class,
         SurveyResultsWidget::class,
+        CallCenterStatsWidget::class,
+        CallCenterCallsSparklineWidget::class,
     ];
 
     /**
