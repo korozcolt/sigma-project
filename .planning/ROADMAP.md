@@ -137,7 +137,13 @@ Plans:
   3. Admin sees a drill-down treemap of territorial distribution (Departamento → Municipio → Barrio, one level at a time) instead of the current flat top-10 bar list
   4. Admin sees a heatmap of call-center caller × hour effectiveness, with a real positioned tooltip (not the browser's native `title` attribute) and a defined strategy for handling more callers than fit on screen
   5. Admin sees a stacked-area chart of rejection reasons over time, broken down by rejection status rather than a single aggregate counter
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 23-01-PLAN.md — Shared chart-kind library: SankeyChart/TreemapChart/HeatmapChart/StackedAreaChart.jsx + ChartRouter registration + empty-state copy
+- [ ] 23-02-PLAN.md — VoterHappyPathFunnelChart + VoterLifecycleBranchCountersOverview on the Admin dashboard + Browser test (VIZ-06)
+- [ ] 23-03-PLAN.md — ValidationHistorySankeyChart + RejectionReasonsStackedAreaChart on the Admin dashboard + Browser tests (VIZ-07, VIZ-10)
+- [ ] 23-04-PLAN.md — TerritorialDistributionChart replaced in place with a drill-down treemap + Browser test (VIZ-08)
+- [ ] 23-05-PLAN.md — CallerHourHeatmapChart on the Admin dashboard + Browser test (VIZ-09)
 **UI hint**: yes
 
 ### Phase 24: Día D Live Voting Visualization
@@ -161,7 +167,7 @@ Plans:
 | 20. React Island Infrastructure | 2/3 | Complete    | 2026-08-20 |
 | 21. Migrate Existing Charts to React/Recharts | 7/7 | Complete   | 2026-08-21 |
 | 22. Table-Stakes New Visualizations | 2/4 | Complete    | 2026-08-21 |
-| 23. Differentiator Visualizations | 0/TBD | Not started | - |
+| 23. Differentiator Visualizations | 0/5 | Planned | - |
 | 24. Día D Live Voting Visualization | 0/TBD | Not started | - |
 
 ---
