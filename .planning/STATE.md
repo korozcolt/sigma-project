@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Ready to execute
-stopped_at: Completed 21-03-PLAN.md
-last_updated: "2026-08-20T00:00:00.000Z"
+stopped_at: Completed 21-04-PLAN.md
+last_updated: "2026-08-21T02:56:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 1
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-20)
 ## Current Position
 
 Phase: 21 (migrate-existing-charts-to-react-recharts) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 
 ## v1.3 Phase Map
 
@@ -53,6 +53,15 @@ Phase 21 Plan 03 decisions:
 - [Phase 21 Plan 03]: Migrated `ValidationProgressChart`/`TerritorialDistributionChart` to the React/Recharts pipeline verbatim per the plan's interface spec ($view repoint + getType()->getChartKind() delegation + getOptions() deletion), with `getData()` bodies confirmed byte-identical via `git diff`. MIGR-01 is NOT marked complete — it covers all 3 widgets including `SurveyResultsWidget` (Plan 21-04's dynamic-kind migration), deferred to phase completion per the project's established split-requirement precedent.
 - [Phase 21 Plan 03]: [Rule 1 - Bug] The plan's own literal `TerritorialDistributionChartTest.php` code asserted visibility immediately after `visit()`, but `TerritorialDistributionChart` is a lazy-loaded Filament widget (`x-intersect`) positioned below the fold on the ~18-widget admin dashboard — its content only fetches/renders once its placeholder intersects the viewport. Fixed by adding `$page->script('window.scrollTo(0, document.body.scrollHeight)')` + `$page->wait(2)` before the assertions (test-only fix, no production code touched). `ValidationProgressChart` happened to sit within the default viewport already, so its identical lazy-load flag never surfaced the same issue.
 - [Phase 21 Plan 03]: Worktree (`agent-adf2325401a1839f3`) was stale at session start — checked out at a pre-v1.3 commit (`9ba4267`), missing all of Phase 20/21's planning corpus and completed work (including this plan's own `21-03-PLAN.md`), plus `vendor/`, `.env`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only refs/heads/main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install && npm run build` (reverted a spurious `package-lock.json` `name`-field change from `npm install` via `git checkout -- package-lock.json` before committing, per established precedent). `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (confirmed via `git status --short` showing zero diff in this worktree's `.planning/STATE.md` after the call) — left the accidental main-checkout mutation as-is per established precedent; STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead.
+
+Phase 21 Plan 04 decisions:
+
+- [Phase 21 Plan 04]: `SurveyResultsWidget` migrated to the React/Recharts pipeline (`$view` repointed, `getType()`/`getChartKind()` proxy pattern applied to its genuinely dynamic per-instance chart kind, `getOptions()` deleted) and registered for the first time on a real page — `SurveyResource`'s `EditSurvey` footer, one widget instance per survey question via `getFooterWidgets()`/`WidgetConfiguration` — closing `21-RESEARCH.md`'s Finding 2 (the widget was previously unregistered anywhere in the codebase).
+- [Phase 21 Plan 04]: [Rule 3 - Blocking] Found and fixed a genuine, previously-latent production bug while making the plan's own Browser test pass for real: page-scoped `ChartWidget`s that poll (`wire:poll`, inherited from `react-chart.blade.php`) throw `Livewire\Exceptions\ComponentNotFoundException` on their first poll tick unless explicitly registered in `AppServiceProvider::PAGE_SCOPED_WIDGETS` — Livewire's alias↔class round-trip resolution only auto-registers classes under `config('livewire.class_namespace')` (`App\Livewire`); `App\Filament\Widgets\*` classes mounted only via a page's `getHeaderWidgets()`/`getFooterWidgets()` (not a panel's global `->widgets([...])` array) resolve fine on the initial `mount()` request (called with the FQCN directly) but fail on any subsequent snapshot-driven request. This exact bug class was already found and fixed once for `RevalidationProgressWidget` (and later consolidated for Call Center/Día D widgets) — `SurveyResultsWidget` simply never polled before this migration, so it was never exposed. Added `SurveyResultsWidget::class` to the existing `PAGE_SCOPED_WIDGETS` array and to `PageScopedWidgetRegistrationTest.php`'s regression dataset (now 7/7 passing).
+- [Phase 21 Plan 04]: [Rule 1 - Bug] The plan's own `<interfaces>` documentation incorrectly specified `EditSurvey::getFooterWidgetsColumns()` as `protected` — the actual vendor parent (`Filament\Pages\Page::getFooterWidgetsColumns()`) is `public`, and PHP fatally errors on a visibility-reducing override. Fixed to `public function getFooterWidgetsColumns(): int|array`.
+- [Phase 21 Plan 04]: [Rule 1 - Bug] The new Browser test's `Survey::factory()->create()` needed an explicit `campaign_id` — `Survey` uses `HasCampaignContext`, and `SurveyFactory`'s default `campaign_id` relationship spins up its own unrelated `Campaign::factory()`, which the model's global scope then hides from the logged-in admin's actual active campaign, producing a `ModelNotFoundException` on page visit. Fixed by passing `['campaign_id' => $campaign->id]` explicitly, matching the admin's attached campaign.
+- [Phase 21 Plan 04]: Local MySQL (`sigma_betha_backup`) was not running/reachable in this worktree session (`php artisan migrate:status` → `Connection refused`) — not a blocker, since `phpunit.xml` overrides `DB_CONNECTION`/`DB_DATABASE` to `sqlite`/`:memory:` for all Feature/Unit/Browser test runs, and this plan's entire scope is test-covered with zero need for `artisan migrate` or the real backing DB.
+- [Phase 21 Plan 04]: Worktree (`agent-ade60f158db9f4fd2`) was 35 commits behind `main` at session start — missing all of Phase 21's planning docs (including this plan's own `21-04-PLAN.md`) and Plans 21-01/21-02's completed work, plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install`, `npm run build` (reverted a spurious `package-lock.json` `name`-field diff from `npm install` via `git checkout -- package-lock.json` before committing, per established precedent). `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`git status --short .planning/STATE.md` showed zero diff in this worktree after the call) — STATE.md/ROADMAP.md/REQUIREMENTS.md updated by hand-editing this worktree's own copies directly instead.
 
 Phase 21 Plan 01 decisions:
 

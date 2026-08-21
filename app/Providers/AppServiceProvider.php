@@ -8,6 +8,7 @@ use App\Filament\Widgets\CallQueueTable;
 use App\Filament\Widgets\DiaDStatsOverview;
 use App\Filament\Widgets\DiaDTerritorialProgressTable;
 use App\Filament\Widgets\RevalidationProgressWidget;
+use App\Filament\Widgets\SurveyResultsWidget;
 use App\Listeners\AuditAuthActivitySubscriber;
 use App\Models\Campaign;
 use App\Models\User;
@@ -43,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
         CallHistoryTable::class,
         DiaDStatsOverview::class,
         DiaDTerritorialProgressTable::class,
+        SurveyResultsWidget::class,
     ];
 
     /**

@@ -10,6 +10,8 @@ use Filament\Widgets\ChartWidget;
 
 class SurveyResultsWidget extends ChartWidget
 {
+    protected string $view = 'filament.widgets.react-chart';
+
     public ?int $surveyId = null;
 
     public ?int $questionId = null;
@@ -59,6 +61,11 @@ class SurveyResultsWidget extends ChartWidget
     }
 
     protected function getType(): string
+    {
+        return $this->getChartKind();
+    }
+
+    protected function getChartKind(): string
     {
         // Determine chart type based on question type
         if ($this->questionId) {
@@ -175,31 +182,6 @@ class SurveyResultsWidget extends ChartWidget
                 ],
             ],
             'labels' => $labels,
-        ];
-    }
-
-    protected function getOptions(): array
-    {
-        return [
-            'plugins' => [
-                'legend' => [
-                    'display' => true,
-                    'position' => 'bottom',
-                ],
-                'tooltip' => [
-                    'enabled' => true,
-                ],
-            ],
-            'scales' => $this->getType() !== 'pie' ? [
-                'y' => [
-                    'beginAtZero' => true,
-                    'ticks' => [
-                        'precision' => 0,
-                    ],
-                ],
-            ] : [],
-            'responsive' => true,
-            'maintainAspectRatio' => false,
         ];
     }
 
