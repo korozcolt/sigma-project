@@ -14,9 +14,9 @@ class TerritorialDistributionChart extends ChartWidget
 {
     protected static ?int $sort = 2;
 
-    protected ?string $heading = 'Top 10 Municipios con más Apoyos';
+    protected ?string $heading = 'Distribución Territorial';
 
-    protected ?string $description = 'Distribución territorial de la campaña activa';
+    protected ?string $description = 'Haz clic en un departamento o municipio para explorar el siguiente nivel.';
 
     protected ?string $pollingInterval = '120s';
 
@@ -27,24 +27,28 @@ class TerritorialDistributionChart extends ChartWidget
         $activeCampaign = CampaignContext::currentCampaign();
 
         if (! $activeCampaign) {
-            return [
-                'datasets' => [
-                    [
-                        'label' => 'Apoyos',
-                        'data' => [],
-                        'backgroundColor' => '#3b82f6',
-                    ],
-                ],
-                'labels' => [],
-            ];
+            return ['tree' => [], 'emptyReason' => 'no_campaign'];
         }
 
-        // Obtener top 10 municipios con más apoyos
+        // D-09: role-scoping carries over unchanged from this widget's prior flat-bar implementation.
         $user = Auth::user();
 
-        $data = Voter::query()
-            ->select('municipalities.name', DB::raw('COUNT(*) as total'))
+        // Pitfall 3: neighborhood_id is nullable on Voter - LEFT JOIN (never INNER JOIN) and
+        // bucket nulls into an explicit "Sin barrio" leaf below, or municipio totals would
+        // silently undercount versus the campaign's real total.
+        $rows = Voter::query()
+            ->select(
+                'departments.id as dept_id',
+                'departments.name as dept_name',
+                'municipalities.id as muni_id',
+                'municipalities.name as muni_name',
+                'neighborhoods.id as hood_id',
+                'neighborhoods.name as hood_name',
+                DB::raw('COUNT(*) as total')
+            )
             ->join('municipalities', 'voters.municipality_id', '=', 'municipalities.id')
+            ->join('departments', 'municipalities.department_id', '=', 'departments.id')
+            ->leftJoin('neighborhoods', 'voters.neighborhood_id', '=', 'neighborhoods.id')
             ->where('voters.campaign_id', $activeCampaign->id)
             ->when(
                 $user?->hasRole(UserRole::LEADER->value),
@@ -54,32 +58,26 @@ class TerritorialDistributionChart extends ChartWidget
                 $user?->hasAnyRole([UserRole::COORDINATOR->value, UserRole::AREA_COORDINATOR->value]),
                 fn ($q) => $q->whereIn('voters.registered_by', User::whereIn('coordinator_user_id', $user->teamCoordinatorUserIds())->pluck('id'))
             )
-            ->groupBy('municipalities.id', 'municipalities.name')
-            ->orderByDesc('total')
-            ->limit(10)
+            ->groupBy('departments.id', 'departments.name', 'municipalities.id', 'municipalities.name', 'neighborhoods.id', 'neighborhoods.name')
             ->get();
 
-        return [
-            'datasets' => [
-                [
-                    'label' => 'Apoyos',
-                    'data' => $data->pluck('total')->toArray(),
-                    'backgroundColor' => [
-                        '#3b82f6',
-                        '#8b5cf6',
-                        '#ec4899',
-                        '#f59e0b',
-                        '#10b981',
-                        '#06b6d4',
-                        '#6366f1',
-                        '#f43f5e',
-                        '#14b8a6',
-                        '#a855f7',
-                    ],
-                ],
-            ],
-            'labels' => $data->pluck('name')->toArray(),
-        ];
+        if ($rows->isEmpty()) {
+            return ['tree' => [], 'emptyReason' => 'no_voters'];
+        }
+
+        // D-11: nest Departamento -> Municipio -> Barrio for TreemapChart.jsx's type="nest" drill-down.
+        // D-12: no leaf-tile cap - all barrios render, Recharts' squarified layout handles sizing.
+        $tree = $rows->groupBy('dept_name')->map(function ($deptRows, $deptName) {
+            $municipios = $deptRows->groupBy('muni_name')->map(function ($muniRows, $muniName) {
+                $barrios = $muniRows->map(fn ($r) => ['name' => $r->hood_name ?? 'Sin barrio', 'value' => (int) $r->total]);
+
+                return ['name' => $muniName, 'children' => $barrios->values()->toArray()];
+            });
+
+            return ['name' => $deptName, 'children' => $municipios->values()->toArray()];
+        })->values()->toArray();
+
+        return ['tree' => $tree];
     }
 
     protected function getType(): string
@@ -89,6 +87,6 @@ class TerritorialDistributionChart extends ChartWidget
 
     protected function getChartKind(): string
     {
-        return 'bar';
+        return 'treemap';
     }
 }
