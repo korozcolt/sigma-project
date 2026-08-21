@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Executing Phase 22
-stopped_at: Completed 22-01-PLAN.md
-last_updated: "2026-08-21T13:49:38.000Z"
+stopped_at: Completed 22-04-PLAN.md
+last_updated: "2026-08-21T13:57:03.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-20)
 ## Current Position
 
 Phase: 22 (table-stakes-new-visualizations) — EXECUTING
-Plan: 2 of 4 (22-01 complete)
+Plan: 22-04 complete (22-01 and 22-04 done; 22-02/22-05 status not visible from this worktree)
 
 ## v1.3 Phase Map
 
@@ -47,6 +47,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 22 Plan 04 decisions:
+
+- [Phase 22 Plan 04]: Built `CallContactabilityFunnelChart` (VIZ-03) and `MessageDeliveryFunnelChart` (VIZ-04) exactly per the plan's literal code — the former counts DISTINCT voters per call-attempt stage via a fresh-`Builder`-closure pattern (joined through `voter_id` since `VerificationCall` has no direct `campaign_id`), the latter counts `Message` rows by `sent_at`/`delivered_at`/`read_at`/`clicked_at` timestamp presence (previously-invisible data — `MessageBatch` only pre-aggregates sent/delivered/failed counts). Both registered page-scoped (`ListVerificationCalls`'s 3rd header widget; `ListMessageBatches`'s first-ever `getHeaderWidgets()`) and both added to `AppServiceProvider::PAGE_SCOPED_WIDGETS`. No production-code deviation from the plan's literal code blocks.
+- [Phase 22 Plan 04]: [Rule 2 - Missing Critical] Extended `PageScopedWidgetRegistrationTest`'s dataset with both new widget classes (file not in the plan's own `files_modified` list) — matches the established Phase 21 Plan 04/06 precedent of keeping this exact `ComponentNotFoundException` regression guard current with every new page-scoped widget. 11/11 passing (9 original + 2 new).
+- [Phase 22 Plan 04]: Worktree (`agent-a60ac77987e7da33b`) was 68 commits behind `main` at session start — checked out at pre-Phase-20 commit `9ba4267`, missing all of Phase 20/21/22's planning corpus and code (including this plan's own `22-04-PLAN.md`), plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented extensively throughout this milestone. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install` (reverted the recurring spurious `package-lock.json` `name`-field regression via `git checkout -- package-lock.json`), `npm run build`. `gsd-tools state advance-plan`/`update-progress`/`record-metric`/`add-decision`/`record-session` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`git status --short .planning/STATE.md` showed zero diff in this worktree after every call) — STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead, per the established workaround. Since this worktree only sees its own completed plans (22-01, 22-04), `completed_plans` was incremented conservatively by 1 (11 -> 12) rather than assuming 22-02/22-05's parallel-worktree status.
 
 Phase 22 Plan 01 decisions:
 

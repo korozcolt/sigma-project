@@ -123,7 +123,7 @@ Plans:
 Plans:
 - [x] 22-01-PLAN.md — Shared chart-kind library: stacked-bar/funnel/gauge/histogram Recharts components + ChartRouter registration + order-preserving adapter + empty-state copy — completed 2026-08-21
 - [ ] 22-02-PLAN.md — VoterStatusDonutChart (VIZ-01) + CoordinatorTeamStackedBarChart (VIZ-02) on the Admin dashboard + Browser tests
-- [ ] 22-04-PLAN.md — CallContactabilityFunnelChart (VIZ-03) + MessageDeliveryFunnelChart (VIZ-04) on Call Center/Messages pages + Browser tests
+- [x] 22-04-PLAN.md — CallContactabilityFunnelChart (VIZ-03) + MessageDeliveryFunnelChart (VIZ-04) on Call Center/Messages pages + Browser tests — completed 2026-08-21
 - [ ] 22-05-PLAN.md — SurveyScaleGaugeChart + SurveyScaleHistogramChart (VIZ-05) on the survey edit page + Browser test
 **UI hint**: yes
 
@@ -160,7 +160,7 @@ Plans:
 | 12-19. v1.2 Articuladores + Metadata de Usuario | 29/29 | Complete | 2026-08-12 |
 | 20. React Island Infrastructure | 2/3 | Complete    | 2026-08-20 |
 | 21. Migrate Existing Charts to React/Recharts | 7/7 | Complete   | 2026-08-21 |
-| 22. Table-Stakes New Visualizations | 1/4 | In progress | - |
+| 22. Table-Stakes New Visualizations | 2/4 | In progress | - |
 | 23. Differentiator Visualizations | 0/TBD | Not started | - |
 | 24. Día D Live Voting Visualization | 0/TBD | Not started | - |
 
