@@ -139,7 +139,7 @@ Plans:
   5. Admin sees a stacked-area chart of rejection reasons over time, broken down by rejection status rather than a single aggregate counter
 **Plans**: 5 plans
 Plans:
-- [ ] 23-01-PLAN.md — Shared chart-kind library: SankeyChart/TreemapChart/HeatmapChart/StackedAreaChart.jsx + ChartRouter registration + empty-state copy
+- [x] 23-01-PLAN.md — Shared chart-kind library: SankeyChart/TreemapChart/HeatmapChart/StackedAreaChart.jsx + ChartRouter registration + empty-state copy — completed 2026-08-21
 - [ ] 23-02-PLAN.md — VoterHappyPathFunnelChart + VoterLifecycleBranchCountersOverview on the Admin dashboard + Browser test (VIZ-06)
 - [ ] 23-03-PLAN.md — ValidationHistorySankeyChart + RejectionReasonsStackedAreaChart on the Admin dashboard + Browser tests (VIZ-07, VIZ-10)
 - [ ] 23-04-PLAN.md — TerritorialDistributionChart replaced in place with a drill-down treemap + Browser test (VIZ-08)
@@ -167,7 +167,7 @@ Plans:
 | 20. React Island Infrastructure | 2/3 | Complete    | 2026-08-20 |
 | 21. Migrate Existing Charts to React/Recharts | 7/7 | Complete   | 2026-08-21 |
 | 22. Table-Stakes New Visualizations | 2/4 | Complete    | 2026-08-21 |
-| 23. Differentiator Visualizations | 0/5 | Planned | - |
+| 23. Differentiator Visualizations | 1/5 | In Progress | - |
 | 24. Día D Live Voting Visualization | 0/TBD | Not started | - |
 
 ---

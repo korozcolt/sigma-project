@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Ready to plan
-stopped_at: Phase 23 context gathered
-last_updated: "2026-08-21T15:06:31.556Z"
+stopped_at: Completed 23-01-PLAN.md
+last_updated: "2026-08-21T15:51:24.000Z"
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 14
-  completed_plans: 14
+  total_plans: 15
+  completed_plans: 15
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-**Current focus:** Phase 22 — table-stakes-new-visualizations — COMPLETE; Phase 23 (differentiator-visualizations) next
+**Current focus:** Phase 23 — differentiator-visualizations — plan 01 complete (1/5 plans)
 
 ## Current Position
 
 Phase: 23
-Plan: Not started
+Plan: 01 complete
 
 ## v1.3 Phase Map
 
@@ -47,6 +47,11 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 23 Plan 01 decisions:
+
+- [Phase 23 Plan 01]: Built the 4 new differentiator chart-kind components (`SankeyChart.jsx`, `TreemapChart.jsx`, `HeatmapChart.jsx`, `StackedAreaChart.jsx`) and wired them into `ChartRouter.jsx`/`chartjs-adapter.js`/`ChartCard.jsx` exactly per the plan's literal code — zero deviations. Fixed a real would-have-been bug in `isChartDataEmpty()`: without the new sankey/treemap/heatmap branches, every widget of those 3 kinds would always show "Sin datos" regardless of real data, since none of those shapes carry `labels`/`datasets`.
+- [Phase 23 Plan 01]: Worktree (`agent-a031d136861034499`) was stale at session start — missing the entire Phase 20-23 planning corpus and all Phase 20-22 implementation work (including this plan's own PLAN.md), plus `vendor/`, `node_modules/`, `.env`, `public/build/` — same recurring class documented repeatedly elsewhere in this file. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only refs/heads/main`, `.env` copy from the main checkout, and (since this worktree's sandbox does not permit `cd`-ing into the main checkout to run `composer install`/`npm install`) symlinked `node_modules/` and `vendor/` directly from the main checkout instead of a full reinstall — both are gitignored shared dependency trees with zero plan-specific changes. `npm run build` initially failed on a missing `vendor/filament/filament/resources/css/theme.css` (pre-existing, unrelated to this plan's JS-only scope) until the `vendor/` symlink was added; a second `npm run build` succeeded cleanly. `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (wrote to the main checkout's `.planning/STATE.md`, not this worktree's, confirmed via `git status --short` showing no diff in this worktree after the call) — STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead, per the established workaround. No attempt made to revert the main checkout's stray mutation (no git access from this sandboxed worktree agent to the main checkout, matching prior phases' precedent).
 
 Phase 22 Plan 05 decisions (Phase 22 now fully complete — all 5 VIZ requirements done):
 
