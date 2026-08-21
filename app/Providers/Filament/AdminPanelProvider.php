@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Widgets\ApoyosLideresCoordinadoresTable;
 use App\Filament\Widgets\BirthdayWidget;
+use App\Filament\Widgets\CallerHourHeatmapChart;
 use App\Filament\Widgets\CampaignStatsOverview;
 use App\Filament\Widgets\CampaignVotersSparklineWidget;
 use App\Filament\Widgets\CoordinatorTeamStackedBarChart;
@@ -106,6 +107,7 @@ class AdminPanelProvider extends PanelProvider
                 VoterLifecycleBranchCountersOverview::class, // Contadores de estados alternos/terminales (VIZ-06)
                 ValidationHistorySankeyChart::class, // Sankey de transiciones de estado de ValidationHistory (VIZ-07)
                 RejectionReasonsStackedAreaChart::class, // Área apilada de motivos de rechazo en el tiempo (VIZ-10)
+                CallerHourHeatmapChart::class, // Heatmap de efectividad por encuestador y hora (VIZ-09)
                 BirthdayWidget::class,           // Cumpleaños — fila 11 completa
             ])
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.components.campaign-context-switcher'))
