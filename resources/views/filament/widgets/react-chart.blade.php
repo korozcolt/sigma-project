@@ -1,17 +1,24 @@
 @php
     $chartId = 'react-chart-' . $this->getId();
     $pollingInterval = $this->getPollingInterval();
+    $chartKind = $this->getChartKind();
+    $questionId = property_exists($this, 'questionId') ? $this->questionId : null;
 @endphp
 
 <x-filament-widgets::widget>
-    <x-filament::section heading="React Island PoC">
+    <x-filament::section
+        :heading="$this->getHeading()"
+        :description="$this->getDescription()"
+    >
         <div @if ($pollingInterval) wire:poll.{{ $pollingInterval }}="updateChartData" @endif>
             <div
                 id="{{ $chartId }}"
                 wire:ignore
+                data-chart-kind="{{ $chartKind }}"
+                @if ($questionId) data-question-id="{{ $questionId }}" @endif
                 x-data="reactChartBridge({
                     initialData: @js($this->getCachedData()),
-                    chartKind: @js($this->getChartKind()),
+                    chartKind: @js($chartKind),
                     theme: @js('light'),
                 })"
                 class="relative min-h-[8rem]"
