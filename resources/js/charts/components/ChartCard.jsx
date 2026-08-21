@@ -21,6 +21,9 @@ const EMPTY_STATE_COPY = {
     no_calls: 'No hay llamadas registradas para esta campaña.',
     no_messages: 'No hay mensajes enviados para esta campaña.',
     no_survey_responses: 'Esta pregunta aún no tiene respuestas.',
+    no_happy_path_voters: 'No hay apoyos en la ruta de validación.',
+    no_transitions: 'No hay transiciones de estado registradas.',
+    no_rejections: 'No se han registrado rechazos en esta campaña.',
 };
 
 export default function ChartCard({ kind, data, theme = 'light', hasError = false }) {
