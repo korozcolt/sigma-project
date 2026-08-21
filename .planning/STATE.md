@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Ready to execute
-stopped_at: Completed 21-02-PLAN.md
-last_updated: "2026-08-21T02:44:48.534Z"
+stopped_at: Completed 21-06-PLAN.md
+last_updated: "2026-08-21T02:51:04.000Z"
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-20)
 ## Current Position
 
 Phase: 21 (migrate-existing-charts-to-react-recharts) — EXECUTING
-Plan: 2 of 7
+Plan: 6 of 7
 
 ## v1.3 Phase Map
 
@@ -47,6 +47,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 21 Plan 06 decisions:
+
+- [Phase 21 Plan 06]: Built `CallCenterCallsSparklineWidget` (the 3rd and final MIGR-02 sparkline) and, since a repo-wide grep confirmed `CallCenterStatsWidget` was registered on zero panels/resources anywhere in the codebase, registered both it and the new sparkline via `ListVerificationCalls::getHeaderWidgets()` — the same unregistered-widget gap class RESEARCH.md documents for `SurveyResultsWidget`/`SurveyStatsOverview`, but not previously surfaced by research for this specific widget.
+- [Phase 21 Plan 06]: [Rule 3 - Blocking] Both new widgets are page-scoped (attached via a Page's `getHeaderWidgets()`, not a panel's global `->widgets([...])` array), which reproduced a genuine `ComponentNotFoundException` on the `wire:poll` follow-up request — first render succeeds, poll fails. This is a pre-existing, already-documented constraint in `AppServiceProvider::PAGE_SCOPED_WIDGETS` (Livewire's alias<->class resolution only auto-registers `config('livewire.class_namespace')` classes; classes elsewhere resolve on first render but throw on the poll follow-up unless explicitly registered via `Livewire::component()`). Fixed by adding `CallCenterStatsWidget::class` and `CallCenterCallsSparklineWidget::class` to the existing array — no new mechanism invented.
+- [Phase 21 Plan 06]: MIGR-02 is NOT marked complete in REQUIREMENTS.md by this plan alone — the requirement's literal text covers all 3 embedded sparklines (`CampaignStatsOverview`, `CallCenterStatsWidget`, `SurveyStatsOverview`); this plan closes only the `CallCenterStatsWidget` sparkline. Plan 21-05 (`CampaignVotersSparklineWidget` + `SurveyResponsesSparklineWidget`, a parallel wave-3 sibling worktree) had not yet produced a SUMMARY.md when this plan executed. Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent.
+- [Phase 21 Plan 06]: Worktree (`agent-a21c58849e39680d7`) was 2 commits behind `main` at session start — missing Phase 20 entirely and Phase 21's own planning corpus/plans 21-01 through 21-07, plus `.env`, `vendor/`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install && npm run build` (spurious `package-lock.json` `name` field change reverted via `git checkout -- package-lock.json`). `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (confirmed via `git status --short` showing zero diff in this worktree's `.planning/STATE.md` after the call) — STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead.
 
 Phase 21 Plan 01 decisions:
 
