@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Filament\Widgets\CallCenterCallsSparklineWidget;
 use App\Filament\Widgets\CallCenterStatsOverview;
+use App\Filament\Widgets\CallCenterStatsWidget;
 use App\Filament\Widgets\CallHistoryTable;
 use App\Filament\Widgets\CallQueueTable;
 use App\Filament\Widgets\DiaDStatsOverview;
@@ -27,4 +29,6 @@ test('page-scoped widget resolves via its registered ComponentRegistry alias wit
     DiaDStatsOverview::class,
     DiaDTerritorialProgressTable::class,
     SurveyResultsWidget::class,
+    CallCenterStatsWidget::class,
+    CallCenterCallsSparklineWidget::class,
 ]);

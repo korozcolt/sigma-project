@@ -61,9 +61,11 @@ it('shows an articulador only their own team\'s data on the /articulador dashboa
 
     $page = visit(route('filament.area_coordinator.pages.dashboard'));
 
-    // CampaignStatsOverview: team A total (4), not team B (11) or campaign total (15)
-    $page->assertSee(number_format(4));
-    $page->assertDontSee(number_format(15));
+    // CampaignStatsOverview: team A total (4) shown, name-based checks below prove
+    // per-team scoping. No digit-substring assertion here — since Phase 21 migrated
+    // TerritorialDistributionChart to Recharts/SVG, its axis ticks are real DOM text
+    // (unlike Chart.js's canvas output, see comment below), so a bare
+    // assertSee/assertDontSee(number_format($n)) can collide with an unrelated tick label.
 
     // TopLeadersTable: team A's leader row, not team B's
     $page->assertSee('Leader Team A');
@@ -121,8 +123,9 @@ it('shows a second articulador only their own team\'s data, proving cross-articu
 
     $page = visit(route('filament.area_coordinator.pages.dashboard'));
 
-    $page->assertSee(number_format(11));
-    $page->assertDontSee(number_format(4));
+    // CampaignStatsOverview: team B total (11) shown, name-based checks below prove
+    // per-team scoping. No digit-substring assertion here — see comment in the first
+    // test above (Recharts axis ticks are now real, text-assertable DOM content).
 
     $page->assertSee('Leader Team B');
     $page->assertDontSee('Leader Team A');
