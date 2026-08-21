@@ -1,5 +1,35 @@
 # Milestones
 
+## v1.3 Visualización de Datos MonoCharts (Shipped: 2026-08-21)
+
+**Phases completed:** 5 phases, 21 plans, 50 tasks
+
+**Key accomplishments:**
+
+- Vite build pipeline extended with React 19 + Recharts 3 + Motion, plus a reusable `reactChartBridge` Alpine.data bridge (mount-once/update-via-render/unmount-on-destroy-and-navigate) and a theme-flexible `ChartCard` component — no PHP/Blade wiring yet.
+- Wired the 20-01 Alpine/React bridge into a real Filament ChartWidget, registered the Vite chart entry across all 5 panels, and proved the poll→dispatch→render cycle with a real Pest 4 Browser test — fixing a genuine Alpine-reactivity crash discovered along the way.
+- Human-verified in a real browser across all 5 panels (Admin, Coordinator, AreaCoordinator, Leader, Reports): the React island renders, updates live on wire:poll ticks, unmounts cleanly on Livewire SPA navigation with no leaked root, and does not disrupt other pre-existing Livewire widgets.
+- Chart.js-to-Recharts data adapter, D-03 monochrome palette, es-CO formatter, and 4 real Recharts kind components (line/bar/pie/sparkline) dispatched via a new `ChartRouter`, with zero PHP-side reshaping.
+- Rewrote ChartCard.jsx from a PoC-only hardcoded bar chart into the shared MonoCharts chrome shell (error/empty/entrance-animation states wrapping ChartRouter) and generalized react-chart.blade.php to read each widget's real Filament heading/description with new data-chart-kind/data-question-id test attributes.
+- Repointed the 2 simplest existing Chart.js widgets (fixed chart kind, no dynamic-type branching) onto the Phase 20/21 React island pipeline with zero changes to either widget's `getData()` body, backed by 2 new real-browser Pest tests.
+- SurveyResultsWidget migrated onto the React/Recharts pipeline and mounted for the first time (EditSurvey footer, one per question), preserving its dynamic pie-for-YES_NO/bar-for-other-types switching exactly, with a real Pest 4 Browser test proving both chart kinds render on the real survey edit page.
+- Two dedicated Recharts-backed sparkline `ChartWidget`s (`CampaignVotersSparklineWidget`, `SurveyResponsesSparklineWidget`) reuse their parents' unchanged chart-data methods and are registered across the Admin/Reports/Coordinator/AreaCoordinator/Leader panels per MIGR-02's D-01.
+- Third and final MIGR-02 sparkline (`CallCenterCallsSparklineWidget`) wired onto `ListVerificationCalls` alongside its previously-unregistered parent `CallCenterStatsWidget`, both fixed for page-scoped Livewire component resolution.
+- Removed Phase 20's throwaway ReactIslandPocWidget end-to-end, fixed a real hardcoded-light-theme bug the human checkpoint surfaced, and closed Phase 21 with the user's explicit browser sign-off on all 6 migrated/new chart widgets.
+- 4 new Recharts chart-kind components (stacked-bar, funnel, gauge, histogram) registered in ChartRouter, plus an order-preserving row adapter and 5 new Spanish empty-state copy keys — the shared JS contract every Phase 22 PHP widget plan will consume with zero further JS changes.
+- Two new Admin-dashboard ChartWidgets — a 12-state VoterStatus donut and a per-coordinator-team validado/rechazado/registrado stacked-bar — both campaign-scoped, both registered panel-globally, both covered by real Pest 4 Browser tests against a genuine Chromium session.
+- Two new Filament ChartWidgets (funnel kind) exposing call-attempt contactability and message read/click data, both previously invisible, registered page-scoped with full wire:poll safety.
+- Two new `ChartWidget`s (gauge + histogram) reading `SurveyMetricsCalculator`'s precomputed `average_value`/`distribution` columns directly, wired one-of-each per SCALE question into `EditSurvey`'s footer alongside the existing bar-chart `SurveyResultsWidget`.
+- Built 4 new React/Recharts chart-kind components (sankey, treemap, heatmap, stacked-area), wired them into ChartRouter.jsx, and fixed a real empty-state bug in isChartDataEmpty() that would have made every sankey/treemap/heatmap widget always show "Sin datos" regardless of real data.
+- Admin-only campaign-wide funnel showing cumulative-subset counts through the Voter lifecycle's happy path (PENDING_REVIEW → VERIFIED_CENSUS → CONFIRMED → VOTED), with a separate StatsOverviewWidget counter row for the 6 branch/terminal VoterStatus states, both reusing the existing `funnel` chart kind and `VoterStatus` enum metadata with zero new frontend code.
+- Admin-only Sankey of curated ValidationHistory state transitions (top-8 + per-source Otros collapse, synthetic Nuevo node) and a weekly 4-series stacked-area of rejection reasons, both wired into AdminPanelProvider alongside 23-02's widgets
+- Replaced TerritorialDistributionChart's flat top-10-municipios bar list with a 3-level drill-down treemap (Departamento -> Municipio -> Barrio) in the exact same widget slot, using a LEFT JOIN aggregation that buckets voters with no assigned neighborhood into an explicit "Sin barrio" leaf instead of dropping them.
+- Admin-only heatmap of call-center caller x business-hour contact-rate %, built on the shared HeatmapChart.jsx component from 23-01, registered on the Admin dashboard after 23-03's Sankey/StackedArea entries.
+- Fixed VoterHappyPathFunnelChart's real stage-label word-wrap bug in FunnelChart.jsx via an unclamped custom LabelList content renderer, after confirming in a real browser that the plan's originally-proposed margin.right fix did not actually work
+- Cached, campaign+event-scoped hourly-cumulative Recharts line chart of Día D voting progress, polling every 30s without re-running its aggregation query on every tick.
+
+---
+
 ## v1.2 Articuladores + Metadata de Usuario (Shipped: 2026-08-12)
 
 **Scope:** 8 roadmap phases (12-19, includes 2 milestone-audit gap-closure phases), 29 plans, 67 tasks.

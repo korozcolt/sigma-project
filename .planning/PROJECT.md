@@ -4,29 +4,11 @@
 
 SIGMA is a brownfield political operations platform for running campaign management from a single system. It centralizes campaign setup, territorial organization, voter operations, validation, communications, reporting, and election-day execution with role-based access and campaign-level data isolation.
 
-As of v1.0 (shipped 2026-07-24), the platform's core electoral workflows across all Filament panels have been hardened end to end for operational trust: campaign isolation, role/permission clarity, the Apoyo (voter) lifecycle, outreach, reporting, and Day D execution are all verified against their v1 requirements. The product direction remains to consolidate SIGMA as the command center a campaign can depend on daily, not just a collection of modules.
+As of v1.0 (shipped 2026-07-24), the platform's core electoral workflows across all Filament panels have been hardened end to end for operational trust: campaign isolation, role/permission clarity, the Apoyo (voter) lifecycle, outreach, reporting, and Day D execution are all verified against their v1 requirements. As of v1.3 (shipped 2026-08-21), operational dashboards across all 5 panels render through a React/Recharts island pipeline with real visual composition (funnels, treemaps, Sankeys, heatmaps, live Día D voting) instead of Chart.js placeholders, surfacing insights that were previously invisible. The product direction remains to consolidate SIGMA as the command center a campaign can depend on daily, not just a collection of modules.
 
 ## Core Value
 
 Campaign teams can run critical voter and field operations from one place with trustworthy, campaign-safe data and clear operational traceability.
-
-## Current Milestone: v1.3 Visualización de Datos MonoCharts
-
-**Goal:** Dotar al panel Filament de gráficas ricas con la composición visual real de MonoCharts (no solo paleta), portando componentes React/Recharts como isla aislada sobre Livewire, para exponer insights operativos hoy invisibles.
-
-**Target features:**
-- Infraestructura de isla React (Vite entry separado + puente `wire:ignore`) aditiva sobre Livewire, sin tocar Eloquent/lógica de negocio
-- Migrar los 3 `ChartWidget` existentes (ValidationProgressChart, TerritorialDistributionChart, SurveyResultsWidget) + 3 sparklines embebidos al nuevo sistema visual
-- Funnel + donut de los 12 estados del Voter (`VoterStatus`)
-- Sankey de transiciones de `ValidationHistory` (dato hoy 100% invisible)
-- Treemap territorial Departamento→Municipio→Barrio
-- Stacked-bar comparativa de equipos por coordinador
-- Heatmap caller×hora de `VerificationCall`
-- Funnel de contactabilidad por intento de llamada
-- Stream/stacked-area de motivos de rechazo en el tiempo
-- Histograma + gauge de respuestas de encuesta tipo SCALE
-- Línea en vivo de votación Día D (`VoteRecord.voted_at`, con polling)
-- Funnel de entrega de `MessageBatch`/`Message` (dato hoy 100% invisible)
 
 ## Requirements
 
@@ -93,6 +75,8 @@ Real users think in tasks rather than modules. They need to load voters, validat
 
 **Post-v1.2 state (2026-08-12):** The hierarchy is now 4 levels deep — superadmin/admin_campaign → articulador → coordinador → líder — with the articulador tier and a general-purpose typed metadata catalog both fully shipped. Known tech debt (non-blocking, tracked in `.planning/milestones/v1.2-MILESTONE-AUDIT.md`): a recurring `gsd-tools` `findProjectRoot()` bug that misdirects CLI writes from parallel git worktrees back to the main checkout (worked around manually every time it recurs, never root-caused); a pre-existing `CampaignContext` static-override test-pollution issue that produces a non-deterministic failure set on full-suite runs (100% pass rate in isolation, unrelated to any specific feature); and one widget (`TerritorialDistributionChart`) whose non-articulador role branches lack explicit Feature test coverage even though the code path is shared with an already-tested widget.
 
+**Post-v1.3 state (2026-08-21):** All Filament dashboards across all 5 panels render through the React+Recharts island pipeline (12 chart kinds behind `ChartRouter.jsx`); Chart.js is fully retired from the codebase. Known tech debt (non-blocking, tracked in `.planning/milestones/v1.3-MILESTONE-AUDIT.md`): `react-chart.blade.php`'s inner `data-react-mount` div is vestigial (React mounts on the outer `wire:ignore` container itself, not the child div — harmless, worth a future cleanup pass); `21-01-SUMMARY.md`'s frontmatter is cosmetically inconsistent with Phase 21's actual completion timeline (documentation-only, no functional impact, confirmed by retroactive verification); and `TerritorialDistributionChart` was migrated to the React pipeline as a bar chart in Phase 21 and later, separately, rewritten as a treemap in Phase 23 — both deliveries independently verified correct at their own time.
+
 ## Constraints
 
 - **Architecture**: Maintain the existing Laravel, Filament, Livewire, and Eloquent architecture - the current platform is already substantial and should be hardened in place
@@ -130,6 +114,11 @@ Real users think in tasks rather than modules. They need to load voters, validat
 | `coordinator.leaders.export` split into its own narrowly-scoped route (`role:coordinator,area_coordinator,admin_campaign,super_admin`) rather than adding `area_coordinator` to the shared `coordinator` route-middleware group | Widening the shared group would have leaked the coordinador dashboard/leaders-list/create/edit/voters routes to articuladores — only this one export route needed to open up | Implemented in Phase 18 (v1.2 milestone-audit gap closure) |
 | `CampaignStatsOverview`/`TerritorialDistributionChart` extended with an `AREA_COORDINATOR` branch reusing `User::teamCoordinatorUserIds()` (same mechanism `TopLeadersTable` already used), rather than inventing a parallel scoping approach | The milestone audit found a real gap: both widgets fell through to full-campaign totals for an articulador with zero scoping branch, contradicting the already-validated Phase 05.1 precedent (coordinador/líder dashboards scope to own team, not campaign-wide) | Implemented in Phase 19 (v1.2 milestone-audit gap closure) |
 | `VoterResource::getUrl()` calls in `CampaignStatsOverview`/`TopLeadersTable` wrapped in a `voterResourceUrl()` null-safe guard (`Route::has("filament.{panelId}.resources.voters.{name}")`) instead of calling `VoterResource::getUrl()` directly | `VoterResource` is only registered on the Admin/Reports panels; calling `getUrl()` from the Coordinador/Líder/Articulador dashboard panels threw a `RouteNotFoundException` and crashed the entire dashboard render — discovered while making Phase 19's browser tests pass against a real page | Implemented in Phase 19 |
+| React charts mount as isolated islands via a dedicated Vite entry + Alpine `wire:ignore` bridge (mount-once / update-via-`root.render()` / unmount-on-destroy-or-navigate), never a Livewire component | Livewire's DOM diffing and React's virtual DOM cannot safely co-own the same node; a `wire:ignore` boundary lets `wire:poll` re-render the widget's Blade shell while React owns its own subtree exclusively | Implemented in Phase 20, held as the single mounting mechanism through Phases 21-24 with zero redesign |
+| A single `ChartRouter.jsx` dispatches every chart "kind" string to its Recharts component; PHP widgets stay kind-agnostic and never touch chart-library code | Keeps the growing chart-kind list (12 by milestone end: line/bar/pie/sparkline/stacked-bar/funnel/gauge/histogram/sankey/treemap/heatmap/stacked-area) a pure JS-side contract — every Phase 22-24 PHP-only plan added a widget with zero further JS changes | Implemented in Phase 21, extended through Phase 23 |
+| Migrating existing Chart.js widgets to React/Recharts changes zero `getData()` query bodies | The migration is a rendering-layer swap only; changing data-shaping logic during a visual migration would conflate two different kinds of risk and make regressions hard to attribute | Implemented in Phase 21 (confirmed byte-identical via `git diff` against pre-migration commits) |
+| Curated visualizations collapse long-tail data into an explicit bucket (Sankey: top-8 + per-source "Otros"; territorial treemap: unassigned voters into an explicit "Sin barrio" leaf) rather than showing every raw category or silently dropping unmatched rows | Raw ValidationHistory/territorial data is too noisy to read as a chart directly, but dropping the tail would misrepresent real operational counts | Implemented in Phase 23 |
+| Día D live voting chart wraps its aggregation query in `Cache::remember()` with a 30s TTL that exactly matches the widget's `wire:poll` interval | An election-day dashboard polled by every admin/operator session must not re-run a `VoteRecord` aggregation query on every single tick under real concurrent load | Implemented in Phase 24 |
 
 ## Evolution
 
@@ -156,11 +145,11 @@ This document evolves at phase transitions and milestone boundaries.
 
 **Shipped: v1.2 Articuladores + Metadata de Usuario (2026-08-12).** All 8 phases (12-19, including 2 post-audit gap-closure phases) done, all 17 v1.2 requirements validated by both phase-level VERIFICATION.md files and an independent cross-phase milestone audit (`.planning/milestones/v1.2-MILESTONE-AUDIT.md`). Delivered: the `articulador` hierarchy tier (schema + admin management + self-service panel), a typed superadmin-managed metadata catalog with atomic audited per-subordinate assignment, and Filament filter/sort/export support for that metadata across all 4 admin tables and exports. The milestone audit itself found and closed 2 real gaps before shipping — an unreachable export route for articuladores, and a genuine cross-articulador dashboard data leak — both fixed with real code changes in dedicated phases, not just documented. See `.planning/milestones/v1.2-ROADMAP.md` and `.planning/milestones/v1.2-REQUIREMENTS.md` for the full archived record, and `.planning/MILESTONES.md` for the shipped summary.
 
-**In progress: v1.3 Visualización de Datos MonoCharts.** Phases 20-24 complete. Phase 20 (React Island Infrastructure) proved the React+Recharts+Motion island mechanism end-to-end across all 5 panels. Phase 21 (Migrate Existing Charts) moved the 3 pre-existing `ChartWidget`s and 3 embedded sparklines onto that pipeline with zero data-query changes. Phase 22 (Table-Stakes New Visualizations) shipped the first 5 net-new charts (voter-status donut, coordinator-team stacked-bar, 2 funnels, survey-scale gauge+histogram), closing VIZ-01 through VIZ-05. Phase 23 (Differentiator Visualizations) shipped the remaining 4 curated charts (happy-path funnel, ValidationHistory Sankey, territorial drill-down treemap, caller×hour heatmap, rejection-reasons stacked-area), closing VIZ-06 through VIZ-10 after a gap-closure pass fixed a funnel label-overflow bug. Phase 24 (Día D Live Voting Visualization) shipped the milestone's final chart — a cached, campaign+event-scoped hourly-cumulative line widget on the `DiaD` page — closing DAYD-05. All 5 phases (20-24) and all v1.3 requirements are now complete.
+**Shipped: v1.3 Visualización de Datos MonoCharts (2026-08-21).** All 5 phases (20-24, 21 plans) done, all 17 v1.3 requirements validated by phase-level VERIFICATION.md files and an independent cross-phase milestone audit (`.planning/milestones/v1.3-MILESTONE-AUDIT.md`, re-audited to `passed` after a retroactive Phase 21 verification closed the one gap the first audit pass found). Phase 20 (React Island Infrastructure) proved the React+Recharts+Motion island mechanism end-to-end across all 5 panels — a dedicated Vite entry mounted via an Alpine `wire:ignore` bridge that survives `wire:poll` ticks and Livewire SPA navigation with no leaked roots. Phase 21 (Migrate Existing Charts) moved the 3 pre-existing `ChartWidget`s and 3 embedded sparklines onto that pipeline with zero data-query changes. Phase 22 (Table-Stakes New Visualizations) shipped the first 5 net-new charts (voter-status donut, coordinator-team stacked-bar, 2 funnels, survey-scale gauge+histogram). Phase 23 (Differentiator Visualizations) shipped 4 more curated charts requiring real modeling decisions (happy-path funnel, ValidationHistory Sankey, territorial drill-down treemap, caller×hour heatmap, rejection-reasons stacked-area), including a gap-closure pass that fixed a funnel label word-wrap bug. Phase 24 (Día D Live Voting Visualization) shipped a cached, campaign+event-scoped hourly-cumulative line widget polling every 30s without re-running its aggregation query on every tick. By milestone end, 12 chart kinds are live behind a single `ChartRouter.jsx` contract that any future PHP-only widget plan can consume with zero further JS changes. See `.planning/milestones/v1.3-ROADMAP.md` and `.planning/milestones/v1.3-REQUIREMENTS.md` for the full archived record, and `.planning/MILESTONES.md` for the shipped summary.
 
 ## Next Milestone Goals
 
-In progress — see `## Current Milestone: v1.3 Visualización de Datos MonoCharts` above.
+Not yet defined — run `/gsd:new-milestone` to scope the next milestone.
 
 ---
-*Last updated: 2026-08-21 — Phase 24 (Día D Live Voting Visualization) complete.*
+*Last updated: 2026-08-21 after v1.3 milestone.*
