@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Ready to execute
-stopped_at: Completed 21-02-PLAN.md
-last_updated: "2026-08-21T02:44:48.534Z"
+stopped_at: Completed 21-03-PLAN.md
+last_updated: "2026-08-20T00:00:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-20)
 ## Current Position
 
 Phase: 21 (migrate-existing-charts-to-react-recharts) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 
 ## v1.3 Phase Map
 
@@ -47,6 +47,12 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 21 Plan 03 decisions:
+
+- [Phase 21 Plan 03]: Migrated `ValidationProgressChart`/`TerritorialDistributionChart` to the React/Recharts pipeline verbatim per the plan's interface spec ($view repoint + getType()->getChartKind() delegation + getOptions() deletion), with `getData()` bodies confirmed byte-identical via `git diff`. MIGR-01 is NOT marked complete — it covers all 3 widgets including `SurveyResultsWidget` (Plan 21-04's dynamic-kind migration), deferred to phase completion per the project's established split-requirement precedent.
+- [Phase 21 Plan 03]: [Rule 1 - Bug] The plan's own literal `TerritorialDistributionChartTest.php` code asserted visibility immediately after `visit()`, but `TerritorialDistributionChart` is a lazy-loaded Filament widget (`x-intersect`) positioned below the fold on the ~18-widget admin dashboard — its content only fetches/renders once its placeholder intersects the viewport. Fixed by adding `$page->script('window.scrollTo(0, document.body.scrollHeight)')` + `$page->wait(2)` before the assertions (test-only fix, no production code touched). `ValidationProgressChart` happened to sit within the default viewport already, so its identical lazy-load flag never surfaced the same issue.
+- [Phase 21 Plan 03]: Worktree (`agent-adf2325401a1839f3`) was stale at session start — checked out at a pre-v1.3 commit (`9ba4267`), missing all of Phase 20/21's planning corpus and completed work (including this plan's own `21-03-PLAN.md`), plus `vendor/`, `.env`, `node_modules/`, `public/build/` — same recurring class documented repeatedly below. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only refs/heads/main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install && npm run build` (reverted a spurious `package-lock.json` `name`-field change from `npm install` via `git checkout -- package-lock.json` before committing, per established precedent). `gsd-tools state advance-plan` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (confirmed via `git status --short` showing zero diff in this worktree's `.planning/STATE.md` after the call) — left the accidental main-checkout mutation as-is per established precedent; STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead.
 
 Phase 21 Plan 01 decisions:
 
