@@ -24,6 +24,8 @@ const EMPTY_STATE_COPY = {
     no_happy_path_voters: 'No hay apoyos en la ruta de validación.',
     no_transitions: 'No hay transiciones de estado registradas.',
     no_rejections: 'No se han registrado rechazos en esta campaña.',
+    no_active_event: 'No hay ningún evento electoral activo en este momento.',
+    no_votes_yet: 'Aún no se han registrado votos en este evento.',
 };
 
 export default function ChartCard({ kind, data, theme = 'light', hasError = false }) {
