@@ -38,10 +38,10 @@ class RejectionReasonsStackedAreaChart extends ChartWidget
         }
 
         $rows = ValidationHistory::query()
-            ->join('voters', 'voters.id', '=', 'validation_history.voter_id')
+            ->join('voters', 'voters.id', '=', 'validation_histories.voter_id')
             ->where('voters.campaign_id', $activeCampaign->id)
-            ->whereIn('validation_history.new_status', array_map(fn (VoterStatus $s) => $s->value, self::REJECTION_STATUSES))
-            ->select('validation_history.new_status', 'validation_history.created_at')
+            ->whereIn('validation_histories.new_status', array_map(fn (VoterStatus $s) => $s->value, self::REJECTION_STATUSES))
+            ->select('validation_histories.new_status', 'validation_histories.created_at')
             ->get();
 
         if ($rows->isEmpty()) {

@@ -35,14 +35,14 @@ class ValidationHistorySankeyChart extends ChartWidget
         // previous_status === new_status rows (Pitfall 5 - should not occur in valid data, but a
         // defensive filter avoids a zero-length self-referencing Sankey link).
         $transitions = ValidationHistory::query()
-            ->join('voters', 'voters.id', '=', 'validation_history.voter_id')
+            ->join('voters', 'voters.id', '=', 'validation_histories.voter_id')
             ->where('voters.campaign_id', $activeCampaign->id)
             ->where(function (Builder $q) {
-                $q->whereNull('validation_history.previous_status')
-                    ->orWhereColumn('validation_history.previous_status', '!=', 'validation_history.new_status');
+                $q->whereNull('validation_histories.previous_status')
+                    ->orWhereColumn('validation_histories.previous_status', '!=', 'validation_histories.new_status');
             })
-            ->select('validation_history.previous_status', 'validation_history.new_status', DB::raw('COUNT(*) as total'))
-            ->groupBy('validation_history.previous_status', 'validation_history.new_status')
+            ->select('validation_histories.previous_status', 'validation_histories.new_status', DB::raw('COUNT(*) as total'))
+            ->groupBy('validation_histories.previous_status', 'validation_histories.new_status')
             ->orderByDesc('total')
             ->get();
 

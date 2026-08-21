@@ -10,7 +10,7 @@ export default function SankeyChart({ data, theme = 'light' }) {
                 nodePadding={16}
                 nodeWidth={12}
                 link={{ stroke: isDark ? 'rgba(255,255,255,0.20)' : 'rgba(9,9,11,0.15)' }}
-                node={<Rectangle radius={4} fill={isDark ? '#fff' : '#111'} />}
+                node={<Rectangle radius={4} fill={isDark ? '#fff' : '#111'} className="recharts-sankey-node" />}
             >
                 <Tooltip content={<ChartTooltip theme={theme} />} />
             </RSankey>

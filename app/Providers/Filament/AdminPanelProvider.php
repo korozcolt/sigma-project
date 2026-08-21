@@ -12,6 +12,7 @@ use App\Filament\Widgets\FallbackSourceOverview;
 use App\Filament\Widgets\FollowUpBacklogOverview;
 use App\Filament\Widgets\JurisdictionReportTable;
 use App\Filament\Widgets\JurisdictionSummaryOverview;
+use App\Filament\Widgets\RejectionReasonsStackedAreaChart;
 use App\Filament\Widgets\RejectionsCountersOverview;
 use App\Filament\Widgets\RejectionsReportTable;
 use App\Filament\Widgets\SurveyResponsesSparklineWidget;
@@ -21,6 +22,7 @@ use App\Filament\Widgets\TerritorialOwnershipTable;
 use App\Filament\Widgets\TopCoordinatorsTable;
 use App\Filament\Widgets\TopLeadersTable;
 use App\Filament\Widgets\TopPollingPlacesTable;
+use App\Filament\Widgets\ValidationHistorySankeyChart;
 use App\Filament\Widgets\ValidationProgressChart;
 use App\Filament\Widgets\VoterHappyPathFunnelChart;
 use App\Filament\Widgets\VoterLifecycleBranchCountersOverview;
@@ -102,6 +104,8 @@ class AdminPanelProvider extends PanelProvider
                 CoordinatorTeamStackedBarChart::class, // Barras apiladas validado/rechazado/registrado por coordinador (VIZ-02)
                 VoterHappyPathFunnelChart::class, // Embudo de ruta feliz del ciclo de vida del apoyo (VIZ-06)
                 VoterLifecycleBranchCountersOverview::class, // Contadores de estados alternos/terminales (VIZ-06)
+                ValidationHistorySankeyChart::class, // Sankey de transiciones de estado de ValidationHistory (VIZ-07)
+                RejectionReasonsStackedAreaChart::class, // Área apilada de motivos de rechazo en el tiempo (VIZ-10)
                 BirthdayWidget::class,           // Cumpleaños — fila 11 completa
             ])
             ->renderHook(PanelsRenderHook::TOPBAR_END, fn () => view('filament.components.campaign-context-switcher'))

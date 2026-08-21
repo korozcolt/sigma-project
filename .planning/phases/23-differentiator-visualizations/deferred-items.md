@@ -1,0 +1,5 @@
+# Deferred Items — Phase 23 (Differentiator Visualizations)
+
+## From plan 23-03
+
+- **`tests/Browser/VoterHappyPathFunnelChartTest.php`** (owned by plan 23-02, not part of 23-03's `files_modified`) fails deterministically (not flaky — reproduced 3x, including once in complete isolation at the exact pre-23-03 commit state with a fresh asset rebuild) on `assertSee('Pendiente de Revisión')`. Confirmed unrelated to plan 23-03's changes: reproduced by stashing all of 23-03's uncommitted work (Sankey/StackedArea widgets' AdminPanelProvider registration, the SankeyChart.jsx node-className fix) and rebuilding assets at that exact prior state — the failure persisted identically. Out of scope for 23-03 per the plan's own file boundaries; left unfixed and undocumented as a 23-03 deviation. Whoever picks up VIZ-06 follow-up work should investigate the funnel/counters widget's `x-intersect` lazy-load timing at its actual dashboard position (23-02's own code comment already flags "a single scrollTo+wait doesn't reliably trigger the intersection observer at this depth" as a known fragility).
