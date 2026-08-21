@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Visualización de Datos MonoCharts
 status: Ready to execute
-stopped_at: Completed 21-02-PLAN.md
-last_updated: "2026-08-21T02:44:48.534Z"
+stopped_at: Completed 21-05-PLAN.md
+last_updated: "2026-08-20T21:50:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-08-20)
 ## Current Position
 
 Phase: 21 (migrate-existing-charts-to-react-recharts) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7 (01, 02, 05 complete from this worktree's view; 03/04/06/07 execute in parallel sibling worktrees)
 
 ## v1.3 Phase Map
 
@@ -47,6 +47,13 @@ Reset for v1.2. Historical v1.0/v1.1 velocity data archived in `.planning/milest
 ### Decisions
 
 Full v1.1 decision log archived in phase SUMMARY.md files (`.planning/milestones/v1.1-phases/` or `.planning/phases/`) and git history; key architectural decisions promoted to `.planning/PROJECT.md` Key Decisions table. Cleared here for the next milestone.
+
+Phase 21 Plan 05 decisions:
+
+- [Phase 21 Plan 05]: Built `CampaignVotersSparklineWidget` and `SurveyResponsesSparklineWidget` exactly per the plan's literal code — both wrap their parents' now-public `getVotersGrowthChart()`/`getResponsesChart()` arrays (bodies unchanged) into the sparkline `{points: [...]}` shape with oldest-first label ordering preserved. `SurveyResponsesSparklineWidget` resolves its `Survey` exclusively via `CampaignContext::currentCampaign()` + `Survey::forCampaign()`, making the previously dead-code `getResponsesChart()` sparkline live for the first time without ever crossing campaign boundaries.
+- [Phase 21 Plan 05]: MIGR-02 is NOT marked complete in REQUIREMENTS.md by this plan alone — MIGR-02 requires all 3 embedded sparklines (`CampaignStatsOverview`, `CallCenterStatsWidget`, `SurveyStatsOverview`) to render through the new pipeline; this plan closes 2 of 3 (`CampaignStatsOverview`, `SurveyStatsOverview`), Plan 21-06 (`CallCenterStatsWidget`'s sparkline, a genuinely disjoint file set) still owes the third. Deferred requirement sign-off to phase completion, matching the project's established split-requirement precedent.
+- [Phase 21 Plan 05]: [Rule 1 - Bug] Fixed a Playwright strict-mode selector collision in the plan's own literal Task 3 test code — the bare `[data-chart-kind="sparkline"]` selector resolves to 2 elements once both new widgets share the same Admin dashboard (a direct consequence of this plan bundling two sparkline widgets together). Scoped each test's `assertVisible()` call to its own widget's `<section class="fi-section">` via `:has-text(heading)`, matching the project's established Playwright strict-mode scoping precedent (Phase 19 Plan 05).
+- [Phase 21 Plan 05]: Worktree (`agent-aa6340f402eaa4b4c`) was stale at session start — on a commit predating Phase 21 entirely (missing all of Phase 21's planning corpus and code), plus `vendor/`, `.env`, `node_modules/`, `public/build/`. Resolved with the established workaround: confirmed fast-forward ancestry, `git merge --ff-only main`, `.env` copy from the main checkout, `composer install --no-interaction`, `npm install` (reverted a spurious `package-lock.json` `name` field change via `git checkout -- package-lock.json`), `npm run build`. `gsd-tools init execute-phase 21` again confirmed the recurring `findProjectRoot()` worktree-redirection bug (`project_root` resolved to the main checkout, not this worktree) — STATE.md/ROADMAP.md updated by hand-editing this worktree's own copies directly instead, per the established workaround.
 
 Phase 21 Plan 01 decisions:
 
@@ -681,9 +688,10 @@ Quick task 260808-hx8 decisions:
 | Phase 19 P06 | 5 | 1 tasks | 1 files |
 | Phase 21 P01 | 5min | 2 tasks | 9 files |
 | Phase 21 P02 | 15min | 2 tasks | 2 files |
+| Phase 21 P05 | 35min | 3 tasks | 11 files |
 
 ## Session Continuity
 
-Last session: 2026-08-21T02:44:48.529Z
-Stopped at: Completed 21-02-PLAN.md
+Last session: 2026-08-20T21:50:00.000Z
+Stopped at: Completed 21-05-PLAN.md
 Resume file: None
