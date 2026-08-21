@@ -98,6 +98,8 @@ it('SurveyScaleHistogramChart preserves ascending scale order and is never re-so
 
     $data = invokeGetData($instance);
 
-    expect($data['labels'])->toBe(['1', '2', '3', '4', '5']);
+    // PHP auto-coerces numeric string array keys ('1', '2', ...) to int keys,
+    // so array_keys() returns ints here — order is what this test guards, not type.
+    expect($data['labels'])->toBe([1, 2, 3, 4, 5]);
     expect($data['datasets'][0]['data'])->toBe([5, 10, 15, 15, 5]);
 });
