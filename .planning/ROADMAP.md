@@ -155,7 +155,9 @@ Plans:
   1. Admin/operator sees a live-updating line chart of Día D voting progress (`VoteRecord.voted_at` accumulated hourly)
   2. The chart's data is backed by a cached/pre-aggregated campaign-scoped endpoint rather than an expensive per-tick `COUNT` query
   3. The chart continues updating correctly under concurrent polling load without visible performance degradation
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 24-01-PLAN.md — DiaDLiveVotingChart: cached hourly-cumulative line chart on the Día D page (DAYD-05)
 **UI hint**: yes
 
 ## Progress
@@ -169,7 +171,7 @@ Plans:
 | 21. Migrate Existing Charts to React/Recharts | 7/7 | Complete   | 2026-08-21 |
 | 22. Table-Stakes New Visualizations | 2/4 | Complete    | 2026-08-21 |
 | 23. Differentiator Visualizations | 6/6 | Complete    | 2026-08-21 |
-| 24. Día D Live Voting Visualization | 0/TBD | Not started | - |
+| 24. Día D Live Voting Visualization | 0/1 | Not started | - |
 
 ---
 
