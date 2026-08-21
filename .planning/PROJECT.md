@@ -67,10 +67,11 @@ Campaign teams can run critical voter and field operations from one place with t
 
 - ✓ The 3 existing `ChartWidget`s (`ValidationProgressChart`, `TerritorialDistributionChart`, `SurveyResultsWidget`) and 3 embedded sparklines (`CampaignStatsOverview`, `CallCenterStatsWidget`, `SurveyStatsOverview`) render through the new React/Recharts pipeline instead of Chart.js, with existing campaign/role-scoped `getData()` queries unchanged, each with a real Pest 4 Browser test — validated in Phase 21 (MIGR-01, MIGR-02)
 - ✓ Admins see 5 previously-missing operational visualizations: a donut of all 12 `VoterStatus` states, a stacked-bar of validado/rechazado/registrado apoyos per coordinador/team, a funnel of call contactability by attempt number, a funnel of `MessageBatch`/`Message` delivery (sent→delivered→read→clicked, zero visualization before this), and a gauge+histogram of SCALE-type survey response scores reading directly off `SurveyMetricsCalculator`'s precomputed columns — validated in Phase 22 (VIZ-01 through VIZ-05)
+- ✓ Admins see 4 curated structural visualizations requiring real modeling decisions, not component swaps: a happy-path Voter lifecycle funnel (PENDING_REVIEW→VERIFIED_CENSUS→CONFIRMED→VOTED) with branch/terminal states in a separate counter row, a top-N+"Otros" curated Sankey of `ValidationHistory` transitions, a drill-down territorial treemap (Departamento→Municipio→Barrio) replacing the old flat top-10 bar list, a caller×hour contact-rate heatmap with a real positioned tooltip and no caller truncation, and a weekly 4-series stacked-area of rejection reasons — validated in Phase 23 (VIZ-06 through VIZ-10; VIZ-06 required a gap-closure pass after initial verification found `FunnelChart.jsx`'s shared `LabelList` had no width reservation for long Spanish stage labels, causing deterministic word-wrap/clip — fixed via a custom unclamped label-render function after the plan's first-proposed margin-based fix proved structurally incapable of working)
 
 ### Active
 
-The VIZ/DAYD requirements for Phases 23-24 remain open — see `.planning/REQUIREMENTS.md`.
+The DAYD requirements for Phase 24 remain open — see `.planning/REQUIREMENTS.md`.
 
 ### Out of Scope
 
@@ -154,11 +155,11 @@ This document evolves at phase transitions and milestone boundaries.
 
 **Shipped: v1.2 Articuladores + Metadata de Usuario (2026-08-12).** All 8 phases (12-19, including 2 post-audit gap-closure phases) done, all 17 v1.2 requirements validated by both phase-level VERIFICATION.md files and an independent cross-phase milestone audit (`.planning/milestones/v1.2-MILESTONE-AUDIT.md`). Delivered: the `articulador` hierarchy tier (schema + admin management + self-service panel), a typed superadmin-managed metadata catalog with atomic audited per-subordinate assignment, and Filament filter/sort/export support for that metadata across all 4 admin tables and exports. The milestone audit itself found and closed 2 real gaps before shipping — an unreachable export route for articuladores, and a genuine cross-articulador dashboard data leak — both fixed with real code changes in dedicated phases, not just documented. See `.planning/milestones/v1.2-ROADMAP.md` and `.planning/milestones/v1.2-REQUIREMENTS.md` for the full archived record, and `.planning/MILESTONES.md` for the shipped summary.
 
-**In progress: v1.3 Visualización de Datos MonoCharts.** Phases 20-22 complete. Phase 20 (React Island Infrastructure) proved the React+Recharts+Motion island mechanism end-to-end across all 5 panels. Phase 21 (Migrate Existing Charts) moved the 3 pre-existing `ChartWidget`s and 3 embedded sparklines onto that pipeline with zero data-query changes. Phase 22 (Table-Stakes New Visualizations) shipped the first 5 net-new charts (voter-status donut, coordinator-team stacked-bar, 2 funnels, survey-scale gauge+histogram), closing VIZ-01 through VIZ-05. Phases 23-24 (differentiator visualizations, Día D live chart) remain.
+**In progress: v1.3 Visualización de Datos MonoCharts.** Phases 20-23 complete. Phase 20 (React Island Infrastructure) proved the React+Recharts+Motion island mechanism end-to-end across all 5 panels. Phase 21 (Migrate Existing Charts) moved the 3 pre-existing `ChartWidget`s and 3 embedded sparklines onto that pipeline with zero data-query changes. Phase 22 (Table-Stakes New Visualizations) shipped the first 5 net-new charts (voter-status donut, coordinator-team stacked-bar, 2 funnels, survey-scale gauge+histogram), closing VIZ-01 through VIZ-05. Phase 23 (Differentiator Visualizations) shipped the remaining 4 curated charts (happy-path funnel, ValidationHistory Sankey, territorial drill-down treemap, caller×hour heatmap, rejection-reasons stacked-area), closing VIZ-06 through VIZ-10 after a gap-closure pass fixed a funnel label-overflow bug. Phase 24 (Día D live chart) remains.
 
 ## Next Milestone Goals
 
 In progress — see `## Current Milestone: v1.3 Visualización de Datos MonoCharts` above.
 
 ---
-*Last updated: 2026-08-21 — Phase 22 (Table-Stakes New Visualizations) complete.*
+*Last updated: 2026-08-21 — Phase 23 (Differentiator Visualizations) complete.*
