@@ -1,20 +1,24 @@
 import { motion } from 'motion/react';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import ChartRouter from '../ChartRouter.jsx';
+import { isChartDataEmpty } from '../lib/chartjs-adapter.js';
 
 const THEME_STYLES = {
     light: {
-        card: 'border border-gray-200 bg-white text-gray-900',
-        bar: '#f97316',
+        chartArea: 'bg-[#f4f4f6] text-gray-900',
         errorCard: 'border border-red-300 bg-red-50 text-red-700',
     },
     dark: {
-        card: 'border border-gray-700 bg-gray-900 text-gray-50',
-        bar: '#fb923c',
+        chartArea: 'bg-[#0f0f10] text-gray-50',
         errorCard: 'border border-red-800 bg-red-950 text-red-300',
     },
 };
 
-export default function ChartCard({ data, theme = 'light', hasError = false }) {
+const EMPTY_STATE_COPY = {
+    no_campaign: 'No hay campaña seleccionada',
+    default: 'No hay datos para el período seleccionado.',
+};
+
+export default function ChartCard({ kind, data, theme = 'light', hasError = false }) {
     const styles = THEME_STYLES[theme] ?? THEME_STYLES.light;
 
     if (hasError) {
@@ -29,31 +33,49 @@ export default function ChartCard({ data, theme = 'light', hasError = false }) {
         );
     }
 
-    const points = Array.isArray(data?.points) ? data.points : [];
-    const latestValue = points.length > 0 ? points[points.length - 1].value : 0;
+    // Transitional: ReactIslandPocWidget (Phase 20) is deleted alongside this shim
+    // in Phase 21's final cleanup plan (21-07) — until then its existing Browser
+    // test asserts these exact PoC-specific testids/copy, unchanged from Phase 20.
+    if (kind === 'poc') {
+        const points = Array.isArray(data?.points) ? data.points : [];
+        const latestValue = points.length > 0 ? points[points.length - 1].value : 0;
+        return (
+            <motion.div
+                className="rounded-lg border border-gray-200 bg-white p-4 text-gray-900"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
+                data-testid="react-chart-poc"
+            >
+                <p className="text-xs font-medium uppercase tracking-wide opacity-70">React Island PoC</p>
+                <p className="mt-1 text-2xl font-semibold" data-testid="react-chart-poc-value">
+                    {latestValue}
+                </p>
+                <div className="rounded-[14px] p-4" style={{ height: 96 }}>
+                    <ChartRouter kind="sparkline" data={data} theme={theme} />
+                </div>
+            </motion.div>
+        );
+    }
+
+    const empty = isChartDataEmpty(kind, data);
+    const emptyBody = EMPTY_STATE_COPY[data?.emptyReason] ?? EMPTY_STATE_COPY.default;
 
     return (
         <motion.div
-            className={`rounded-lg p-4 ${styles.card}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            data-testid="react-chart-poc"
+            transition={{ duration: 0.35, ease: [0, 0, 0.2, 1] }}
         >
-            <p className="text-xs font-medium uppercase tracking-wide opacity-70">
-                React Island PoC
-            </p>
-            <p className="mt-1 text-2xl font-semibold" data-testid="react-chart-poc-value">
-                {latestValue}
-            </p>
-            <div style={{ width: '100%', height: 80 }}>
-                <ResponsiveContainer>
-                    <BarChart data={points}>
-                        <XAxis dataKey="label" hide />
-                        <YAxis hide />
-                        <Bar dataKey="value" fill={styles.bar} radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                </ResponsiveContainer>
+            <div className={`rounded-[14px] p-4 lg:p-6 ${styles.chartArea}`}>
+                {empty ? (
+                    <div className="flex min-h-[8rem] flex-col items-center justify-center text-center">
+                        <p className="text-sm font-semibold">Sin datos</p>
+                        <p className="mt-1 text-xs opacity-60">{emptyBody}</p>
+                    </div>
+                ) : (
+                    <ChartRouter kind={kind} data={data} theme={theme} />
+                )}
             </div>
         </motion.div>
     );
