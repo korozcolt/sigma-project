@@ -122,7 +122,7 @@ Plans:
 **Plans**: 4 plans
 Plans:
 - [x] 22-01-PLAN.md — Shared chart-kind library: stacked-bar/funnel/gauge/histogram Recharts components + ChartRouter registration + order-preserving adapter + empty-state copy — completed 2026-08-21
-- [ ] 22-02-PLAN.md — VoterStatusDonutChart (VIZ-01) + CoordinatorTeamStackedBarChart (VIZ-02) on the Admin dashboard + Browser tests
+- [x] 22-02-PLAN.md — VoterStatusDonutChart (VIZ-01) + CoordinatorTeamStackedBarChart (VIZ-02) on the Admin dashboard + Browser tests — completed 2026-08-21
 - [ ] 22-04-PLAN.md — CallContactabilityFunnelChart (VIZ-03) + MessageDeliveryFunnelChart (VIZ-04) on Call Center/Messages pages + Browser tests
 - [ ] 22-05-PLAN.md — SurveyScaleGaugeChart + SurveyScaleHistogramChart (VIZ-05) on the survey edit page + Browser test
 **UI hint**: yes
