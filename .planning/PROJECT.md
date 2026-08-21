@@ -65,9 +65,12 @@ Campaign teams can run critical voter and field operations from one place with t
 - ✓ An articulador's dashboard widgets (`CampaignStatsOverview`, `TerritorialDistributionChart`, `TopLeadersTable`) are scoped to their own transitive team, not campaign-wide, matching the Phase 05.1 precedent already established for coordinador/líder; the cédula autofill/lock interaction on the create-coordinador form and sidebar navigation click-through both behave correctly — all 3 closed with real Pest v4 Browser coverage against a genuine Chromium session, replacing Phase 15's 3 manual-only verification items - validated in Phase 19 (gap closure; found and fixed a real pre-existing cross-articulador data-scoping bug and two 403/crash bugs — `DiaD::canAccess()` missing `area_coordinator`, `VoterResource::getUrl()` throwing outside the admin panel — while making the tests pass for real)
 - ✓ A developer can build React+Recharts+Motion chart components that mount as isolated islands inside Filament widgets via a dedicated Vite entry, an Alpine bridge (`wire:ignore` boundary, mount-once/update-via-`root.render()`/unmount-on-destroy-or-navigate), and a theme-flexible `ChartCard` component with an explicit visible error state on load/bridge failure; the mechanism is registered on all 5 panels (Admin, Coordinator, AreaCoordinator, Leader, Reports), survives `wire:poll` ticks without ever remounting or reading stale DOM, and cleanly unmounts on Livewire SPA navigation with no leaked root — validated in Phase 20 (INFRA-01 through INFRA-04; a real Alpine-reactivity/React-root Proxy crash was found and fixed while writing the first end-to-end browser test; the "verified on all 5 panels" unmount requirement was closed via a human browser checkpoint per D-04, not automated tests alone)
 
+- ✓ The 3 existing `ChartWidget`s (`ValidationProgressChart`, `TerritorialDistributionChart`, `SurveyResultsWidget`) and 3 embedded sparklines (`CampaignStatsOverview`, `CallCenterStatsWidget`, `SurveyStatsOverview`) render through the new React/Recharts pipeline instead of Chart.js, with existing campaign/role-scoped `getData()` queries unchanged, each with a real Pest 4 Browser test — validated in Phase 21 (MIGR-01, MIGR-02)
+- ✓ Admins see 5 previously-missing operational visualizations: a donut of all 12 `VoterStatus` states, a stacked-bar of validado/rechazado/registrado apoyos per coordinador/team, a funnel of call contactability by attempt number, a funnel of `MessageBatch`/`Message` delivery (sent→delivered→read→clicked, zero visualization before this), and a gauge+histogram of SCALE-type survey response scores reading directly off `SurveyMetricsCalculator`'s precomputed columns — validated in Phase 22 (VIZ-01 through VIZ-05)
+
 ### Active
 
-MIGR-01/MIGR-02 (Phase 21) and the VIZ/DAYD requirements for Phases 22-24 remain open — see `.planning/REQUIREMENTS.md`.
+The VIZ/DAYD requirements for Phases 23-24 remain open — see `.planning/REQUIREMENTS.md`.
 
 ### Out of Scope
 
@@ -151,11 +154,11 @@ This document evolves at phase transitions and milestone boundaries.
 
 **Shipped: v1.2 Articuladores + Metadata de Usuario (2026-08-12).** All 8 phases (12-19, including 2 post-audit gap-closure phases) done, all 17 v1.2 requirements validated by both phase-level VERIFICATION.md files and an independent cross-phase milestone audit (`.planning/milestones/v1.2-MILESTONE-AUDIT.md`). Delivered: the `articulador` hierarchy tier (schema + admin management + self-service panel), a typed superadmin-managed metadata catalog with atomic audited per-subordinate assignment, and Filament filter/sort/export support for that metadata across all 4 admin tables and exports. The milestone audit itself found and closed 2 real gaps before shipping — an unreachable export route for articuladores, and a genuine cross-articulador dashboard data leak — both fixed with real code changes in dedicated phases, not just documented. See `.planning/milestones/v1.2-ROADMAP.md` and `.planning/milestones/v1.2-REQUIREMENTS.md` for the full archived record, and `.planning/MILESTONES.md` for the shipped summary.
 
-**In progress: v1.3 Visualización de Datos MonoCharts.** Phase 20 (React Island Infrastructure) complete — the React+Recharts+Motion island mechanism (Vite pipeline, Alpine bridge, theme-flexible `ChartCard`, poll-safe/navigation-safe lifecycle) is proven end-to-end and registered on all 5 panels via a throwaway PoC widget. Phases 21-24 (migrate existing charts, table-stakes visualizations, differentiator visualizations, Día D live chart) remain.
+**In progress: v1.3 Visualización de Datos MonoCharts.** Phases 20-22 complete. Phase 20 (React Island Infrastructure) proved the React+Recharts+Motion island mechanism end-to-end across all 5 panels. Phase 21 (Migrate Existing Charts) moved the 3 pre-existing `ChartWidget`s and 3 embedded sparklines onto that pipeline with zero data-query changes. Phase 22 (Table-Stakes New Visualizations) shipped the first 5 net-new charts (voter-status donut, coordinator-team stacked-bar, 2 funnels, survey-scale gauge+histogram), closing VIZ-01 through VIZ-05. Phases 23-24 (differentiator visualizations, Día D live chart) remain.
 
 ## Next Milestone Goals
 
 In progress — see `## Current Milestone: v1.3 Visualización de Datos MonoCharts` above.
 
 ---
-*Last updated: 2026-08-20 — Phase 20 (React Island Infrastructure) complete.*
+*Last updated: 2026-08-21 — Phase 22 (Table-Stakes New Visualizations) complete.*
