@@ -141,6 +141,15 @@ Tracked in Blockers/Concerns above.
 | 260810-jp4 | Fix Usuarios "Rol" table filter rendering raw Spatie role names instead of Spanish UserRole labels (Filament v4 relationship()+options() dead-code trap, fixed via getOptionLabelFromRecordUsing()) | 2026-08-10 | 819c80b, 7f75170 | [260810-jp4-el-filtro-rol-en-usuarios-userstable-mue](.planning/quick/260810-jp4-el-filtro-rol-en-usuarios-userstable-mue/) |
 | 260812-abw | Make DuplicatesReportTable rows conditionally clickable — link to voter view only when the row's own campaign_id matches the active campaign, keeping D-06 cross-campaign sibling rows non-clickable | 2026-08-12 | c04861e | [260812-abw-hacer-clicables-las-filas-del-widget-dup](.planning/quick/260812-abw-hacer-clicables-las-filas-del-widget-dup/) |
 | 260814-jb8 | Register RejectionsCountersOverview + JurisdictionSummaryOverview on the Admin panel (/admin) alongside their existing /reports presence, and fix RejectionsCountersOverview's Duplicados stat to reuse DuplicatesReportTable's disputed-document_number-group definition (new public static disputedDocumentNumbers()) instead of the legacy resolved VoterStatus::DUPLICATE status count | 2026-08-14 | e120cde, 419cd7f | [260814-jb8-agregar-widgets-de-conteo-rechazados-dup](.planning/quick/260814-jb8-agregar-widgets-de-conteo-rechazados-dup/) |
+| 260827-d0c | Add gremio/subcategoria/lugar_expedicion_cedula/placa fields to leader/coordinator create-apoyo forms; add first-ever líder/coordinador apoyo edit pages (4 fields only), ownership-gated | 2026-08-27 | d487dce, 536ad48, 66d2878, 9bed753 | [260827-d0c-coordinadores-y-lideres-pueden-llenar-y-](.planning/quick/260827-d0c-coordinadores-y-lideres-pueden-llenar-y-/) |
+
+Quick task 260827-d0c decisions:
+
+- No changes to `VoterPolicy` — already role-authorizes create/update for coordinator/leader; ownership enforced entirely via explicit `abort_unless` in each new edit component's `mount()`, matching the exact pattern already used by `coordinator/leader-add-voter.blade.php`.
+- `coordinator.leader-edit-voter` enforces two independent ownership checks (leader belongs to coordinator, AND `voter->registered_by === leader->id`) — same defensive posture as the cross-coordinator leak fixes in 260804-i5f/260804-jbc.
+- Gremio/Subcategoria catalog (Filament, admin-only) untouched — both new forms and both new edit pages only ever read from it.
+- All 4 tasks' Pest tests passed on first run; full regression sweep (`--filter="Voter|Leader|Coordinator"`, 625 tests) showed zero regressions.
+- Real-browser verification of both new "Información Adicional" form sections and both new edit pages is still pending, per the user's standing browser-verify-before-prod preference — not yet performed in this session.
 
 Quick task 260810-jp4 decisions:
 
