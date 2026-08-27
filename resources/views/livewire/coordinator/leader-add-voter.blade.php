@@ -3,10 +3,12 @@
 use App\Enums\VoterStatus;
 use App\Models\Campaign;
 use App\Models\Department;
+use App\Models\Gremio;
 use App\Models\Municipality;
 use App\Models\Neighborhood;
 use App\Models\PollingPlace;
 use App\Models\RegistraduriaLookup;
+use App\Models\Subcategoria;
 use App\Models\User;
 use App\Models\Voter;
 use App\Rules\MaxTablesForPollingPlace;
@@ -49,6 +51,14 @@ new class extends Component
     public ?string $address = null;
 
     public ?string $birth_date = null;
+
+    public ?int $gremio_id = null;
+
+    public ?int $subcategoria_id = null;
+
+    public ?string $lugar_expedicion_cedula = null;
+
+    public ?string $placa = null;
 
     public ?int $campaign_id = null;
 
@@ -183,6 +193,11 @@ new class extends Component
         $this->polling_table_number = null;
     }
 
+    public function updatedGremioId(): void
+    {
+        $this->subcategoria_id = null;
+    }
+
     public function getPollingPlacesProperty()
     {
         if (! $this->municipality_id) {
@@ -193,6 +208,20 @@ new class extends Component
             ->where('municipality_id', $this->municipality_id)
             ->orderBy('name')
             ->get();
+    }
+
+    public function getGremiosProperty()
+    {
+        return Gremio::orderBy('name')->get();
+    }
+
+    public function getSubcategoriasProperty()
+    {
+        if (! $this->gremio_id) {
+            return collect();
+        }
+
+        return Subcategoria::where('gremio_id', $this->gremio_id)->orderBy('name')->get();
     }
 
     public function save(): void
@@ -243,6 +272,16 @@ new class extends Component
             ])),
             'address' => ['nullable', 'string', 'max:500'],
             'birth_date' => ['nullable', 'date'],
+            'gremio_id' => ['nullable', 'exists:gremios,id'],
+            'subcategoria_id' => [
+                'nullable',
+                Rule::exists('subcategorias', 'id')->when(
+                    filled($this->gremio_id),
+                    fn ($rule) => $rule->where('gremio_id', $this->gremio_id),
+                ),
+            ],
+            'lugar_expedicion_cedula' => ['nullable', 'string', 'max:255'],
+            'placa' => ['nullable', 'string', 'max:20'],
         ]);
 
         if ($campaign->prefersMunicipality() && filled($campaign->municipality_id) && (int) $this->municipality_id !== (int) $campaign->municipality_id) {
@@ -285,6 +324,10 @@ new class extends Component
             'polling_table_number' => $this->polling_table_number,
             'address' => $this->address,
             'birth_date' => $this->birth_date,
+            'gremio_id' => $this->gremio_id,
+            'subcategoria_id' => $this->subcategoria_id,
+            'lugar_expedicion_cedula' => $this->lugar_expedicion_cedula,
+            'placa' => $this->placa,
             'registered_by' => $this->leader->id,
             'status' => $status,
         ]);
@@ -474,6 +517,48 @@ new class extends Component
                     label="Dirección"
                     rows="2"
                     placeholder="Calle 123 #45-67"
+                />
+            </div>
+        </div>
+
+        <!-- Información Adicional -->
+        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-zinc-900">
+            <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Información Adicional</h2>
+
+            <div class="flex flex-col gap-4">
+                <flux:select
+                    wire:model.live="gremio_id"
+                    label="Gremio"
+                    placeholder="Selecciona un gremio (opcional)"
+                >
+                    @foreach($this->gremios as $gremio)
+                        <option value="{{ $gremio->id }}">{{ $gremio->name }}</option>
+                    @endforeach
+                </flux:select>
+
+                <flux:select
+                    wire:model.live="subcategoria_id"
+                    label="Subcategoría"
+                    placeholder="Selecciona una subcategoría (opcional)"
+                    :disabled="!$gremio_id"
+                >
+                    @foreach($this->subcategorias as $subcategoria)
+                        <option value="{{ $subcategoria->id }}">{{ $subcategoria->name }}</option>
+                    @endforeach
+                </flux:select>
+
+                <flux:input
+                    wire:model.blur="lugar_expedicion_cedula"
+                    label="Lugar de Expedición de Cédula"
+                    type="text"
+                    placeholder="Sincelejo"
+                />
+
+                <flux:input
+                    wire:model.blur="placa"
+                    label="Placa"
+                    type="text"
+                    placeholder="ABC123"
                 />
             </div>
         </div>
