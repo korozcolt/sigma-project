@@ -258,6 +258,16 @@ new class extends Component {
                                     </flux:text>
                                 </div>
                             </div>
+
+                            <flux:button
+                                variant="ghost"
+                                size="sm"
+                                icon="pencil"
+                                :href="route('coordinator.leaders.voters.edit', [$leader, $voter])"
+                                wire:navigate
+                            >
+                                Editar
+                            </flux:button>
                         </div>
                     </div>
                 @endforeach

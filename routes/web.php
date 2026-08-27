@@ -92,6 +92,7 @@ Route::middleware(['auth', 'role:coordinator,admin_campaign,super_admin'])->pref
     Volt::route('leaders/{leader}/edit', 'coordinator.edit-leader')->name('leaders.edit');
     Volt::route('leaders/{leader}/voters', 'coordinator.leader-voters')->name('leaders.voters');
     Volt::route('leaders/{leader}/voters/create', 'coordinator.leader-add-voter')->name('leaders.voters.create');
+    Volt::route('leaders/{leader}/voters/{voter}/edit', 'coordinator.leader-edit-voter')->name('leaders.voters.edit');
 });
 
 // Leaders export: kept outside the coordinator-only role group above so this single route can also
