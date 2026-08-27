@@ -372,6 +372,18 @@ new class extends Component {
                                         <span>Registrado {{ $voter->created_at->diffForHumans() }}</span>
                                     </div>
                                 </div>
+
+                                <div class="mt-3">
+                                    <flux:button
+                                        variant="ghost"
+                                        size="sm"
+                                        icon="pencil"
+                                        :href="route('leader.edit-voter', $voter)"
+                                        wire:navigate
+                                    >
+                                        Editar
+                                    </flux:button>
+                                </div>
                             </div>
                         </div>
                     </div>

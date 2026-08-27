@@ -118,4 +118,5 @@ Route::middleware(['auth', 'role:leader'])->prefix('leader')->name('leader.')->g
     Volt::route('dashboard', 'leader.dashboard')->name('dashboard');
     Volt::route('register-voter', 'leader.register-voter')->name('register-voter');
     Volt::route('my-voters', 'leader.my-voters')->name('my-voters');
+    Volt::route('voters/{voter}/edit', 'leader.edit-voter')->name('edit-voter');
 });
