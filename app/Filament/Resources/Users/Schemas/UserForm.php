@@ -64,15 +64,20 @@ class UserForm
                         TextInput::make('email')
                             ->label('Correo Electrónico')
                             ->email()
-                            ->required()
                             ->unique(ignoreRecord: true)
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->live(onBlur: true)
+                            ->required(fn (Get $get): bool => blank($get('document_number')))
+                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? $state : null)
+                            ->helperText('Debes ingresar al menos el correo o el número de documento.'),
 
                         TextInput::make('document_number')
                             ->label('Número de Documento')
-                            ->required()
                             ->unique(ignoreRecord: true)
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->live(onBlur: true)
+                            ->required(fn (Get $get): bool => blank($get('email')))
+                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? $state : null),
 
                         DatePicker::make('birth_date')
                             ->label('Fecha de Nacimiento')
