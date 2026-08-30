@@ -145,6 +145,16 @@ Tracked in Blockers/Concerns above.
 | 260830-il4 | Add Coordinador/Articulador columns to VotersTable, LeadersTable, CoordinatorsTable (eager-loaded, chain-of-command resolution reused from ApoyosLideresCoordinadoresTable) | 2026-08-30 | 1bc50fb, 6d7a6a6 | [260830-il4-agregar-columnas-de-coordinador-y-articu](.planning/quick/260830-il4-agregar-columnas-de-coordinador-y-articu/) |
 | 260830-in7 | Add "Coordinador" column to Ranking de Líderes (export + on-screen table) and "Articulador" column to Ranking de Coordinadores (export + on-screen table), both eager-loaded | 2026-08-30 | cf36254, ecb3ea7 | [260830-in7-agregar-columna-de-coordinador-en-export](.planning/quick/260830-in7-agregar-columna-de-coordinador-en-export/) |
 | 260830-iok | Make users.email nullable + cross-required email/document_number ("uno u otro") across 4 Filament Schemas (Leader/Coordinator/AreaCoordinator/User) + 3 Volt components (register-leader/create-leader/edit-leader), so líderes/coordinadores/articuladores/usuarios can register with only a cédula; existing dual login untouched | 2026-08-30 | 46fca1d, bc697dd, fc70199 | [260830-iok-quitar-obligatoriedad-del-correo-para-li](.planning/quick/260830-iok-quitar-obligatoriedad-del-correo-para-li/) |
+| 260830-nnu | Add Líder/Coordinador/Articulador TextEntry fields to ViewVoter's infolist, reusing VotersTable's chain-of-command resolution + eager load via resolveRecord() override | 2026-08-30 | 0c9ad96 | [260830-nnu-agregar-lider-coordinador-articulador-al](.planning/quick/260830-nnu-agregar-lider-coordinador-articulador-al/) |
+
+Quick task 260830-nnu decisions:
+
+- Extracted the 3 resolution closures into private methods (`resolveLiderLabel`/`resolveCoordinadorLabel`/`resolveArticuladorLabel`) on `ViewVoter`, matching the existing `latestValidationSource()`/`nextStepGuidance()`/`missingDataSummary()` precedent already in that class.
+- The Líder `TextEntry` is new (VotersTable never needed one — its "Registrado por" column already implicitly shows the líder's name); Coordinador/Articulador reuse VotersTable's exact closures byte-for-byte.
+- Added a `resolveRecord()` override chaining `->loadMissing('registeredBy.coordinator.areaCoordinator')` onto `parent::resolveRecord()` to avoid N+1 on a Filament `ViewRecord` page (no `->modifyQueryUsing()` equivalent exists there).
+- Worktree (`agent-aa13be0901679dfcf`) was already at main's exact HEAD commit at session start (no fast-forward merge needed), but missing `vendor/`, `.env`, `public/build` entirely, and missing this quick task's own `260830-nnu-PLAN.md` (untracked in the main checkout, same recurring class of issue) — resolved with the established workaround: `.env` copy, `composer install`, `public/build` copy from the main checkout, and hand-recreating the plan file from the content already provided to this executor.
+- Full regression sweep (`--filter="Voter"`, 473 tests, 1364 assertions) showed zero regressions.
+- Real-browser verification of the new Líder/Coordinador/Articulador fields on `/admin/voters/{id}` is still pending, per the user's standing browser-verify-before-prod preference — not yet performed in this session.
 
 Quick task 260830-iok decisions:
 
