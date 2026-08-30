@@ -142,6 +142,13 @@ Tracked in Blockers/Concerns above.
 | 260812-abw | Make DuplicatesReportTable rows conditionally clickable — link to voter view only when the row's own campaign_id matches the active campaign, keeping D-06 cross-campaign sibling rows non-clickable | 2026-08-12 | c04861e | [260812-abw-hacer-clicables-las-filas-del-widget-dup](.planning/quick/260812-abw-hacer-clicables-las-filas-del-widget-dup/) |
 | 260814-jb8 | Register RejectionsCountersOverview + JurisdictionSummaryOverview on the Admin panel (/admin) alongside their existing /reports presence, and fix RejectionsCountersOverview's Duplicados stat to reuse DuplicatesReportTable's disputed-document_number-group definition (new public static disputedDocumentNumbers()) instead of the legacy resolved VoterStatus::DUPLICATE status count | 2026-08-14 | e120cde, 419cd7f | [260814-jb8-agregar-widgets-de-conteo-rechazados-dup](.planning/quick/260814-jb8-agregar-widgets-de-conteo-rechazados-dup/) |
 | 260827-d0c | Add gremio/subcategoria/lugar_expedicion_cedula/placa fields to leader/coordinator create-apoyo forms; add first-ever líder/coordinador apoyo edit pages (4 fields only), ownership-gated | 2026-08-27 | d487dce, 536ad48, 66d2878, 9bed753 | [260827-d0c-coordinadores-y-lideres-pueden-llenar-y-](.planning/quick/260827-d0c-coordinadores-y-lideres-pueden-llenar-y-/) |
+| 260830-in7 | Add "Coordinador" column to Ranking de Líderes (export + on-screen table) and "Articulador" column to Ranking de Coordinadores (export + on-screen table), both eager-loaded | 2026-08-30 | cf36254, ecb3ea7 | [260830-in7-agregar-columna-de-coordinador-en-export](.planning/quick/260830-in7-agregar-columna-de-coordinador-en-export/) |
+
+Quick task 260830-in7 decisions:
+
+- Both new columns eager-load their relation (`coordinator`/`areaCoordinator`) inside the existing query closures to avoid N+1 in both the Excel export and the on-screen Filament table, per the plan's explicit key_links requirement.
+- Real-browser confirmation of both exports and both dashboard tables is still pending, per the user's standing browser-verify-before-prod preference — not yet performed in this session.
+- Worktree (`agent-a5cc625b4837642e5`) was stale at session start — missing `vendor/`, `.env`, `public/build/`, and this quick task's own plan directory (which existed only uncommitted in the main checkout). Resolved with the established workaround: copied the plan directory + `.env` + `public/build/` from the main checkout, ran `composer install`. This also fixed 18 unrelated "Vite manifest not found" test failures present before the `public/build/` copy.
 
 Quick task 260827-d0c decisions:
 
