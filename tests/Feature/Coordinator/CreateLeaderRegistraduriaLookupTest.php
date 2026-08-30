@@ -105,15 +105,18 @@ function submitCreateLeaderThroughOtp(string $documentNumber = '1102812199')
         ->call('save');
 }
 
-test('save without a document_number fails validation and creates no leader', function () {
+test('save without a document_number succeeds because email is present (document_number becomes optional when email is filled)', function () {
     $this->actingAs($this->coordinator);
 
     $usersBefore = User::count();
 
     submitCreateLeaderThroughOtp('')
-        ->assertHasErrors(['document_number']);
+        ->assertHasNoErrors();
 
-    expect(User::count())->toBe($usersBefore);
+    expect(User::count())->toBe($usersBefore + 1);
+
+    $leader = User::latest('id')->first();
+    expect($leader->document_number)->toBeNull();
 });
 
 test('save with a document_number already used by an existing User fails validation and creates no leader', function () {

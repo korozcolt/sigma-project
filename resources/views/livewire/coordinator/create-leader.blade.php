@@ -21,7 +21,7 @@ new class extends Component
     #[Validate('required|string|max:255')]
     public string $name = '';
 
-    #[Validate('required|email|unique:users,email')]
+    #[Validate('nullable|email|unique:users,email|required_without:document_number')]
     public string $email = '';
 
     #[Validate('required|string|min:8')]
@@ -30,7 +30,7 @@ new class extends Component
     #[Validate('required|string|min:10')]
     public string $phone = '';
 
-    #[Validate('required|string|max:50|unique:users,document_number')]
+    #[Validate('nullable|string|max:50|unique:users,document_number|required_without:email')]
     public string $document_number = '';
 
     public bool $nameLocked = false;
@@ -191,10 +191,10 @@ new class extends Component
         // Crear el usuario líder
         $leader = User::create([
             'name' => $this->name,
-            'email' => $this->email,
+            'email' => blank($this->email) ? null : $this->email,
             'password' => Hash::make($this->password),
             'phone' => $this->phone,
-            'document_number' => $this->document_number,
+            'document_number' => blank($this->document_number) ? null : $this->document_number,
             'municipality_id' => $coordinatorUser->municipality_id,
             'coordinator_user_id' => $coordinatorUser->id,
             'neighborhood_id' => $this->neighborhood_id,
@@ -272,7 +272,7 @@ new class extends Component
 
                 <flux:input
                     wire:model.blur="document_number"
-                    label="Número de Documento *"
+                    label="Número de Documento"
                     type="text"
                     inputmode="numeric"
                     pattern="[0-9]*"
@@ -295,7 +295,8 @@ new class extends Component
 
                 <flux:input
                     wire:model.blur="email"
-                    label="Correo Electrónico *"
+                    label="Correo Electrónico"
+                    description="Debes ingresar al menos el correo o el número de documento."
                     type="email"
                     placeholder="juan@ejemplo.com"
                     autocomplete="email"

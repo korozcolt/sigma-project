@@ -16,7 +16,7 @@ new class extends Component {
     #[Validate('required|string|max:255')]
     public string $name = '';
 
-    #[Validate('required|email|unique:users,email')]
+    #[Validate('nullable|email|unique:users,email')]
     public string $email = '';
 
     #[Validate('nullable|string|min:8')]
@@ -42,7 +42,7 @@ new class extends Component {
 
         $this->leader = $leader;
         $this->name = $leader->name;
-        $this->email = $leader->email;
+        $this->email = $leader->email ?? '';
         $this->neighborhood_id = $leader->neighborhood_id;
         $this->coordinator_user_id = $leader->coordinator_user_id ?? ($user->hasRole(UserRole::COORDINATOR->value) ? $user->id : 0);
     }
@@ -84,8 +84,14 @@ new class extends Component {
         }
 
         $this->validate([
-            'email' => 'required|email|unique:users,email,' . $this->leader->id,
+            'email' => 'nullable|email|unique:users,email,' . $this->leader->id,
         ]);
+
+        if (blank($this->email) && blank($this->leader->document_number)) {
+            $this->addError('email', 'Debes ingresar un correo electrónico; este líder no tiene cédula registrada.');
+
+            return;
+        }
 
         $coordinator = $this->coordinator;
 
@@ -96,7 +102,7 @@ new class extends Component {
 
         $this->leader->update([
             'name' => $this->name,
-            'email' => $this->email,
+            'email' => blank($this->email) ? null : $this->email,
             'municipality_id' => $coordinator->municipality_id,
             'coordinator_user_id' => $coordinator->id,
             'neighborhood_id' => $this->neighborhood_id,
@@ -159,7 +165,8 @@ new class extends Component {
 
                 <flux:input
                     wire:model.blur="email"
-                    label="Correo Electrónico *"
+                    label="Correo Electrónico"
+                    description="Puedes dejarlo en blanco solo si este líder ya tiene cédula registrada."
                     type="email"
                     autocomplete="email"
                 />
