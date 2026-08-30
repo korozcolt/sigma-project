@@ -37,6 +37,7 @@ class TopLeadersTable extends TableWidget
         return $table
             ->query(
                 fn (): Builder => User::query()
+                    ->with('coordinator')
                     ->when($activeCampaign, function ($query) use ($activeCampaign) {
                         $query->whereHas('campaigns', fn ($q) => $q->where('campaigns.id', $activeCampaign->id))
                             ->whereHas('registeredVoters', fn ($q) => $q->where('campaign_id', $activeCampaign->id)
@@ -74,6 +75,10 @@ class TopLeadersTable extends TableWidget
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
+
+                TextColumn::make('coordinator.name')
+                    ->label('Coordinador')
+                    ->toggleable(),
 
                 TextColumn::make('email')
                     ->label('Email')
