@@ -25,6 +25,7 @@ class TopCoordinatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, 
     {
         return User::query()
             ->role(UserRole::COORDINATOR->value)
+            ->with('areaCoordinator')
             ->when($this->campaignId, function (Builder $query) {
                 $query->whereHas('campaigns', fn ($q) => $q->where('campaigns.id', $this->campaignId))
                     ->withCount(['leaders as leaders_count'])
@@ -41,6 +42,7 @@ class TopCoordinatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, 
     {
         return [
             'Coordinador',
+            'Articulador',
             'Email',
             'Teléfono',
             'Municipio',
@@ -53,6 +55,7 @@ class TopCoordinatorsExport implements FromQuery, ShouldAutoSize, WithHeadings, 
     {
         return [
             $coordinator->name,
+            $coordinator->areaCoordinator?->name ?? 'N/A',
             $coordinator->email,
             $coordinator->phone,
             $coordinator->municipality?->name ?? 'N/A',

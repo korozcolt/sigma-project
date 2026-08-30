@@ -31,6 +31,7 @@ class TopCoordinatorsTable extends TableWidget
         return $table
             ->query(fn (): Builder => User::query()
                 ->role(UserRole::COORDINATOR->value)
+                ->with('areaCoordinator')
                 ->when($activeCampaign, function (Builder $query) use ($activeCampaign) {
                     $query->whereHas('campaigns', fn ($q) => $q->where('campaigns.id', $activeCampaign->id))
                         ->withCount(['leaders as leaders_count'])
@@ -64,6 +65,10 @@ class TopCoordinatorsTable extends TableWidget
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
+
+                TextColumn::make('areaCoordinator.name')
+                    ->label('Articulador')
+                    ->toggleable(),
 
                 TextColumn::make('email')
                     ->label('Email')
