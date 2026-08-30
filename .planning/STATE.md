@@ -143,6 +143,7 @@ Tracked in Blockers/Concerns above.
 | 260814-jb8 | Register RejectionsCountersOverview + JurisdictionSummaryOverview on the Admin panel (/admin) alongside their existing /reports presence, and fix RejectionsCountersOverview's Duplicados stat to reuse DuplicatesReportTable's disputed-document_number-group definition (new public static disputedDocumentNumbers()) instead of the legacy resolved VoterStatus::DUPLICATE status count | 2026-08-14 | e120cde, 419cd7f | [260814-jb8-agregar-widgets-de-conteo-rechazados-dup](.planning/quick/260814-jb8-agregar-widgets-de-conteo-rechazados-dup/) |
 | 260827-d0c | Add gremio/subcategoria/lugar_expedicion_cedula/placa fields to leader/coordinator create-apoyo forms; add first-ever líder/coordinador apoyo edit pages (4 fields only), ownership-gated | 2026-08-27 | d487dce, 536ad48, 66d2878, 9bed753 | [260827-d0c-coordinadores-y-lideres-pueden-llenar-y-](.planning/quick/260827-d0c-coordinadores-y-lideres-pueden-llenar-y-/) |
 | 260830-il4 | Add Coordinador/Articulador columns to VotersTable, LeadersTable, CoordinatorsTable (eager-loaded, chain-of-command resolution reused from ApoyosLideresCoordinadoresTable) | 2026-08-30 | 1bc50fb, 6d7a6a6 | [260830-il4-agregar-columnas-de-coordinador-y-articu](.planning/quick/260830-il4-agregar-columnas-de-coordinador-y-articu/) |
+| 260830-in7 | Add "Coordinador" column to Ranking de Líderes (export + on-screen table) and "Articulador" column to Ranking de Coordinadores (export + on-screen table), both eager-loaded | 2026-08-30 | cf36254, ecb3ea7 | [260830-in7-agregar-columna-de-coordinador-en-export](.planning/quick/260830-in7-agregar-columna-de-coordinador-en-export/) |
 
 Quick task 260830-il4 decisions:
 
@@ -150,6 +151,12 @@ Quick task 260830-il4 decisions:
 - LeadersTable/CoordinatorsTable's Articulador columns use plain dot-notation (`coordinator.areaCoordinator.name` / `areaCoordinator.name`) with full `searchable()`/`sortable()`/`placeholder('—')`, since `registeredBy` is fixed to a single relation path in those two resources (no leader-vs-coordinator ambiguity).
 - Worktree (`agent-a493cd5c52f619bed`) was already at main's exact HEAD commit at session start (no fast-forward merge needed), but was still missing `vendor/`/`.env` entirely — resolved with the established `.env` copy + `composer install` workaround. This quick task's own `260830-il4-PLAN.md` was also missing from the worktree (untracked in the main checkout, so not visible across worktrees) — recreated by hand from the plan content provided to this executor, then committed alongside SUMMARY.md.
 - Real-browser verification of all three tables' new columns is still pending, per the user's standing browser-verify-before-prod preference — not yet performed in this session.
+
+Quick task 260830-in7 decisions:
+
+- Both new columns eager-load their relation (`coordinator`/`areaCoordinator`) inside the existing query closures to avoid N+1 in both the Excel export and the on-screen Filament table, per the plan's explicit key_links requirement.
+- Real-browser confirmation of both exports and both dashboard tables is still pending, per the user's standing browser-verify-before-prod preference — not yet performed in this session.
+- Worktree (`agent-a5cc625b4837642e5`) was stale at session start — missing `vendor/`, `.env`, `public/build/`, and this quick task's own plan directory (which existed only uncommitted in the main checkout). Resolved with the established workaround: copied the plan directory + `.env` + `public/build/` from the main checkout, ran `composer install`. This also fixed 18 unrelated "Vite manifest not found" test failures present before the `public/build/` copy.
 
 Quick task 260827-d0c decisions:
 

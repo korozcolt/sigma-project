@@ -25,6 +25,7 @@ class TopLeadersExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
     public function query(): Builder
     {
         return User::query()
+            ->with('coordinator')
             ->when($this->campaignId, function (Builder $query) {
                 $query->whereHas('campaigns', fn ($q) => $q->where('campaigns.id', $this->campaignId))
                     ->whereHas('registeredVoters', fn ($q) => $q->where('campaign_id', $this->campaignId)
@@ -43,6 +44,7 @@ class TopLeadersExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
     {
         return [
             'Líder',
+            'Coordinador',
             'Email',
             'Teléfono',
             'Municipio',
@@ -54,6 +56,7 @@ class TopLeadersExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
     {
         return [
             $leader->name,
+            $leader->coordinator?->name ?? 'N/A',
             $leader->email,
             $leader->phone,
             $leader->municipality?->name ?? 'N/A',
