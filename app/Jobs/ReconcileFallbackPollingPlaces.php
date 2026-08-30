@@ -47,9 +47,16 @@ class ReconcileFallbackPollingPlaces implements ShouldQueue
         $pendingCollection = 0;
 
         foreach ($voters as $voter) {
-            $result = $resolver->resolveAutomated($voter->document_number, $voter, resolvedVia: 'reconciliation');
+            $resolver->resolveAutomated($voter->document_number, $voter, resolvedVia: 'reconciliation');
 
-            if ($result !== null && $result->source === PollingPlaceSource::LIVE) {
+            // Checks the voter's OWN persisted polling_place_source rather than trusting
+            // resolveAutomated()'s return value — that return value now reflects "genuine
+            // census/Registraduría data was found" (see resolveAutomated()'s docblock),
+            // which is NOT the same as "persist() actually wrote LIVE to this voter" (e.g.
+            // a LIVE result whose municipality never matched a local PollingPlace is
+            // genuinely found but deliberately never persisted as LIVE). See
+            // .planning/debug/resolved/apoyo-marcado-en-vivo-con-puesto-sin-resolver.md.
+            if ($voter->fresh()->polling_place_source === PollingPlaceSource::LIVE) {
                 $voter->update([
                     'reconciliation_attempts' => 0,
                     'reconciliation_exhausted_at' => null,

@@ -97,6 +97,19 @@ test('after DispatchCensusRevalidation runs, a RevalidationRun row exists with f
 
 test('a single DispatchCensusRevalidation pass resolves both census status AND polling_place_source together', function () {
     // Real cascade tier: permanent registraduria_lookups cache (no live adapters needed).
+    // Municipality/PollingPlace must genuinely match the lookup's municipio (apoyo-marcado-
+    // en-vivo-con-puesto-sin-resolver: persist() no longer fakes polling_place_source=LIVE
+    // when the municipality can't be matched, so this test needs a real match to still
+    // exercise "both resolve together" rather than accidentally relying on a random,
+    // unmatched Faker city name).
+    $department = \App\Models\Department::factory()->create(['name' => 'SUCRE']);
+    $municipality = \App\Models\Municipality::factory()->create(['name' => 'SINCELEJO', 'department_id' => $department->id]);
+    \App\Models\PollingPlace::factory()->create([
+        'department_id' => $department->id,
+        'municipality_id' => $municipality->id,
+        'name' => 'IE LA CAMPIÑA',
+    ]);
+
     $voter = Voter::factory()->create([
         'status' => VoterStatus::PENDING_REVIEW,
         'polling_place_source' => null,
@@ -104,6 +117,11 @@ test('a single DispatchCensusRevalidation pass resolves both census status AND p
 
     \App\Models\RegistraduriaLookup::factory()->create([
         'document_number' => $voter->document_number,
+        'puesto_nombre' => 'IE LA CAMPIÑA',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'departamento' => 'SUCRE',
+        'municipio' => 'SINCELEJO',
     ]);
 
     (new DispatchCensusRevalidation)->handle();
@@ -111,7 +129,8 @@ test('a single DispatchCensusRevalidation pass resolves both census status AND p
     $fresh = $voter->fresh();
 
     expect($fresh->status)->toBe(VoterStatus::VERIFIED_CENSUS)
-        ->and($fresh->polling_place_source)->toBe(PollingPlaceSource::LIVE);
+        ->and($fresh->polling_place_source)->toBe(PollingPlaceSource::LIVE)
+        ->and($fresh->polling_place_id)->not->toBeNull();
 });
 
 // ============ ReconcileFallbackPollingPlaces: whereNotNull guard dropped ============

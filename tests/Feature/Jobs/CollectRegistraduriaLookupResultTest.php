@@ -71,6 +71,54 @@ test('a done+success result persists the permanent lookup, upgrades the voter to
         ->and(RegistraduriaLiveSession::where('document_number', '4000000001')->exists())->toBeFalse();
 });
 
+// apoyo-marcado-en-vivo-con-puesto-sin-resolver: a done+success result whose municipio
+// never matches a local Municipality must NOT fake-persist polling_place_source=LIVE, but
+// the cédula was genuinely found (status still syncs to VERIFIED_CENSUS) — and the failed
+// polling-place match counts as a genuine reconciliation attempt.
+test('a done+success result with an unmatched municipality does not fake LIVE, still syncs status, and bumps reconciliation_attempts', function () {
+    Http::fake([
+        '*/result/wsp-session-unmatched' => Http::response([
+            'status' => 'done',
+            'data' => [
+                'puesto_nombre' => 'IE DESCONOCIDA',
+                'puesto_codigo' => '',
+                'zona_codigo' => '',
+                'mesa_numero' => '01',
+                'departamento' => 'NINGUNO',
+                'municipio' => 'MUNICIPIO INEXISTENTE',
+                'direccion' => 'SIN DIRECCION',
+            ],
+            'error' => null,
+        ]),
+    ]);
+
+    $voter = Voter::factory()->create([
+        'document_number' => '4000000008',
+        'polling_place_source' => null,
+        'status' => VoterStatus::PENDING_REVIEW,
+        'reconciliation_attempts' => 2,
+    ]);
+
+    RegistraduriaLiveSession::factory()->create([
+        'document_number' => '4000000008',
+        'session_id' => 'wsp-session-unmatched',
+        'adapter_class' => RegistraduriaService::class,
+        'voter_id' => $voter->id,
+        'campaign_id' => $voter->campaign_id,
+    ]);
+
+    (new CollectRegistraduriaLookupResult('4000000008'))->handle(app(\App\Services\PollingPlaceResolver::class), app(\App\Services\VoterValidationService::class));
+
+    $fresh = $voter->fresh();
+
+    expect($fresh->polling_place_source)->toBeNull()
+        ->and($fresh->status)->toBe(VoterStatus::VERIFIED_CENSUS)
+        ->and($fresh->reconciliation_attempts)->toBe(3)
+        ->and(RegistraduriaLiveSession::where('document_number', '4000000008')->exists())->toBeFalse();
+
+    expect(RegistraduriaLookup::where('document_number', '4000000008')->exists())->toBeTrue();
+});
+
 test('a done result with a blank puesto_nombre counts as a genuine failure and bumps reconciliation_attempts', function () {
     Http::fake([
         '*/result/wsp-session-2' => Http::response([

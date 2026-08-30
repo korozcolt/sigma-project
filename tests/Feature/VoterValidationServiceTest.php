@@ -37,7 +37,31 @@ it('validates voter found in census', function () {
     expect($result['found'])->toBeTrue();
     expect($result['match'])->toBeNull();
     expect($result['confidence'])->toBe('high');
-    expect($voter->fresh()->polling_place_source)->not->toBeNull();
+});
+
+// apoyo-marcado-en-vivo-con-puesto-sin-resolver: "found in census" and "polling place
+// resolved" are distinct concerns — a RegistraduriaLookup row whose municipio has no
+// matching local Municipality (as here, a random Faker city name with no seeded
+// Municipality at all) still counts as census-found, but must NOT fake-resolve
+// polling_place_source to LIVE (persist()'s guard against a null pollingPlaceId).
+it('leaves polling_place_source unresolved when the census match exists but its municipality never matches a local PollingPlace', function () {
+    $campaign = Campaign::factory()->create();
+
+    RegistraduriaLookup::factory()->create([
+        'document_number' => '1234567890',
+    ]);
+
+    $voter = Voter::factory()->create([
+        'campaign_id' => $campaign->id,
+        'document_number' => '1234567890',
+        'status' => VoterStatus::PENDING_REVIEW,
+    ]);
+
+    $result = $this->service->validateAgainstCensus($voter);
+
+    expect($result['found'])->toBeTrue()
+        ->and($voter->fresh()->polling_place_source)->toBeNull()
+        ->and($voter->fresh()->polling_place_id)->toBeNull();
 });
 
 it('validates voter not found in census', function () {

@@ -283,6 +283,17 @@ class PollingPlaceResolver
      * null value — never overwriting an existing real or previously-defaulted number, since
      * we can't distinguish the two from the column alone and a weaker default must never
      * clobber a stronger prior write.
+     *
+     * Refuses to persist a LIVE-sourced result whose pollingPlaceId is null (e.g.
+     * resolveOrCreatePollingPlace() couldn't match the municipality at all) — writing
+     * polling_place_source = LIVE with no polling_place_id would show the "En Vivo" badge
+     * for a voter with NO actual polling place resolved (ViewVoter's "Sin resolver" vs
+     * "En Vivo" contradiction), and would also remove the voter from
+     * ReconcileFallbackPollingPlaces's candidate query (which excludes source = LIVE),
+     * stranding it with no automatic retry forever. Returning null here instead leaves the
+     * voter's existing (non-LIVE or null) source untouched, so the next
+     * census:reconcile-live run picks it up again. See
+     * .planning/debug/resolved/apoyo-marcado-en-vivo-con-puesto-sin-resolver.md.
      */
     public function persist(
         ?Voter $voter,
@@ -292,6 +303,10 @@ class PollingPlaceResolver
     ): ?PollingPlaceResolutionResult {
         if ($voter === null) {
             return $result;
+        }
+
+        if ($result->source === PollingPlaceSource::LIVE && $result->pollingPlaceId === null) {
+            return null;
         }
 
         $existingSource = $voter->polling_place_source;
@@ -444,11 +459,24 @@ class PollingPlaceResolver
      * cascade for this cédula entirely and falls through to the free national snapshot
      * tier — it never tries a second/third live adapter. This prevents tripling 2captcha
      * spend per cédula on a merely-slow/failed (but reachable) live site.
+     *
+     * Returns the genuine resolution result (real census/Registraduría data was found)
+     * REGARDLESS of whether persist() actually wrote it to the voter — "found in the
+     * census" (what VoterValidationService::validateAgainstCensus() reads this return
+     * value for) and "polling place successfully persisted" are different concerns:
+     * persist() can legitimately refuse to write a LIVE result whose municipality never
+     * matched a local PollingPlace (see persist()'s docblock), but the cédula was still
+     * genuinely found. Callers that specifically need to know whether the DB write
+     * happened (e.g. ReconcileFallbackPollingPlaces's upgrade bookkeeping) must check the
+     * voter's own polling_place_source after this call, not this return value's presence.
+     * See .planning/debug/resolved/apoyo-marcado-en-vivo-con-puesto-sin-resolver.md.
      */
     public function resolveAutomated(string $cedula, Voter $voter, string $resolvedVia = 'reconciliation'): ?PollingPlaceResolutionResult
     {
         if ($fromPermanentLookup = $this->resolveFromPermanentLookup($cedula)) {
-            return $this->persist($voter, $fromPermanentLookup, isExplicitOverride: false, resolvedVia: $resolvedVia);
+            $this->persist($voter, $fromPermanentLookup, isExplicitOverride: false, resolvedVia: $resolvedVia);
+
+            return $fromPermanentLookup;
         }
 
         foreach ($this->liveAdapters as $adapter) {
@@ -470,14 +498,18 @@ class PollingPlaceResolver
                     tableNumber: ltrim($fields['mesa_numero'] ?? '', '0') ?: null,
                 );
 
-                return $this->persist($voter, $result, isExplicitOverride: false, resolvedVia: $resolvedVia);
+                $this->persist($voter, $result, isExplicitOverride: false, resolvedVia: $resolvedVia);
+
+                return $result;
             }
 
             break;
         }
 
         if ($fromSnapshot = $this->resolveFromNationalSnapshot($cedula)) {
-            return $this->persist($voter, $fromSnapshot, isExplicitOverride: false, resolvedVia: $resolvedVia);
+            $this->persist($voter, $fromSnapshot, isExplicitOverride: false, resolvedVia: $resolvedVia);
+
+            return $fromSnapshot;
         }
 
         return null;
@@ -499,9 +531,7 @@ class PollingPlaceResolver
      */
     public function resolveOrCreatePollingPlace(array $fields): ?PollingPlace
     {
-        $municipality = Municipality::query()
-            ->whereRaw('LOWER(name) = ?', [strtolower($fields['municipio'] ?? '')])
-            ->first();
+        $municipality = Municipality::findByFuzzyName($fields['municipio'] ?? '');
 
         if (! $municipality) {
             return null;

@@ -146,16 +146,27 @@ class CollectRegistraduriaLookupResult implements ShouldQueue
             tableNumber: ltrim($data['mesa_numero'] ?? '', '0') ?: null,
         );
 
-        $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: $session->resolved_via ?? 'reconciliation');
+        $applied = $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: $session->resolved_via ?? 'reconciliation');
 
-        $voter->update([
-            'reconciliation_attempts' => 0,
-            'reconciliation_exhausted_at' => null,
-        ]);
+        // persist() refuses to write LIVE when the municipality never matched a local
+        // PollingPlace (pollingPlaceId stayed null) — that's a genuine resolution failure
+        // for reconciliation-attempt bookkeeping purposes, even though real Registraduría
+        // data WAS found (see updateVoterStatus() call below, unconditional on purpose).
+        // See .planning/debug/resolved/apoyo-marcado-en-vivo-con-puesto-sin-resolver.md.
+        if ($applied !== null) {
+            $voter->update([
+                'reconciliation_attempts' => 0,
+                'reconciliation_exhausted_at' => null,
+            ]);
+        } else {
+            $this->recordGenuineFailure($validationService, $session, 'polling_place_unmatched');
+        }
 
         // Mirrors ReconcileFallbackPollingPlaces's upgrade branch: reuse this
-        // already-fetched (already-paid-for) LIVE result to also sync `status`,
-        // instead of waiting on the separate census:reconcile-validation cron job.
+        // already-fetched (already-paid-for) live result to also sync `status` — the
+        // cédula was genuinely found in the census regardless of whether the polling
+        // place itself resolved — instead of waiting on the separate
+        // census:reconcile-validation cron job.
         $validationService->updateVoterStatus($voter->fresh(), found: true);
     }
 

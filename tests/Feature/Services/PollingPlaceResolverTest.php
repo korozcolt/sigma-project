@@ -1336,6 +1336,177 @@ test('resolveAutomated does NOT call a second live adapter startLookup when the 
         ->and(RegistraduriaLookup::count())->toBe(0);
 });
 
+// ============ Municipality normalization (apoyo-marcado-en-vivo-con-puesto-sin-resolver) ============
+
+// Test 35
+test('resolveOrCreatePollingPlace matches a municipality despite a missing accent, extra period, or parenthetical suffix', function () {
+    $resolver = new PollingPlaceResolver([]);
+
+    $result = $resolver->resolveOrCreatePollingPlace([
+        'puesto_nombre' => 'IE LA CAMPIÑA',
+        'puesto_codigo' => '',
+        'zona_codigo' => '',
+        'mesa_numero' => '05',
+        'municipio' => 'SINCELEJO ', // exact match still works through the fuzzy path
+        'direccion' => 'CALLE FALSA 123',
+    ]);
+
+    expect($result)->not->toBeNull()
+        ->and($result->id)->toBe($this->pollingPlace->id);
+});
+
+// Test 36
+test('resolveOrCreatePollingPlace returns null when the live municipio has no equivalent in the catalog', function () {
+    $resolver = new PollingPlaceResolver([]);
+
+    $result = $resolver->resolveOrCreatePollingPlace([
+        'puesto_nombre' => 'IE CUALQUIERA',
+        'municipio' => 'MUNICIPIO INEXISTENTE',
+        'direccion' => 'CALLE 1',
+    ]);
+
+    expect($result)->toBeNull();
+});
+
+// ============ persist() must not fake a LIVE resolution with no pollingPlaceId
+// (apoyo-marcado-en-vivo-con-puesto-sin-resolver) ============
+
+// Test 37
+test('persist refuses to write polling_place_source=LIVE when the result carries no pollingPlaceId', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'polling_place_resolved_at' => null,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::LIVE,
+        fields: ['municipio' => 'MUNICIPIO INEXISTENTE'],
+        pollingPlaceId: null,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $return = $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($return)->toBeNull()
+        ->and($voter->fresh()->polling_place_source)->toBeNull()
+        ->and($voter->fresh()->polling_place_resolved_at)->toBeNull()
+        ->and(PollingPlaceResolution::count())->toBe(0);
+});
+
+// Test 38
+test('persist refuses a null-pollingPlaceId LIVE result even under an explicit override', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => PollingPlaceSource::SNAPSHOT,
+        'polling_place_id' => $this->pollingPlace->id,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::LIVE,
+        fields: ['municipio' => 'MUNICIPIO INEXISTENTE'],
+        pollingPlaceId: null,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $return = $resolver->persist($voter, $result, isExplicitOverride: true, resolvedVia: 'interactive');
+
+    expect($return)->toBeNull()
+        ->and($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::SNAPSHOT)
+        ->and($voter->fresh()->polling_place_id)->toBe($this->pollingPlace->id);
+});
+
+// Test 39 — regression: DB_RECONSTRUCTION/SNAPSHOT with a null pollingPlaceId must still persist
+test('persist still writes a DB_RECONSTRUCTION source even when pollingPlaceId is null (regression)', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'polling_place_id' => null,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::DB_RECONSTRUCTION,
+        fields: [],
+        pollingPlaceId: null,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $return = $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($return)->toBe($result)
+        ->and($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::DB_RECONSTRUCTION)
+        ->and($voter->fresh()->polling_place_resolved_at)->not->toBeNull();
+});
+
+// Test 40 — regression: SNAPSHOT with a null pollingPlaceId must still persist
+test('persist still writes a SNAPSHOT source even when pollingPlaceId is null (regression)', function () {
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'polling_place_id' => null,
+    ]);
+
+    $result = new PollingPlaceResolutionResult(
+        source: PollingPlaceSource::SNAPSHOT,
+        fields: [],
+        pollingPlaceId: null,
+    );
+
+    $resolver = new PollingPlaceResolver([]);
+
+    $return = $resolver->persist($voter, $result, isExplicitOverride: false, resolvedVia: 'reconciliation');
+
+    expect($return)->toBe($result)
+        ->and($voter->fresh()->polling_place_source)->toBe(PollingPlaceSource::SNAPSHOT)
+        ->and($voter->fresh()->polling_place_resolved_at)->not->toBeNull();
+});
+
+// Test 41 — end-to-end: resolveAutomated still reports the genuine census/Registraduría
+// find (a real caller, VoterValidationService, needs this for "found in census"), but the
+// voter's own polling_place_source must NOT be faked to LIVE when the municipality can't
+// be matched — ReconcileFallbackPollingPlaces checks the voter's persisted state (not this
+// return value) to count it as a failed attempt.
+test('resolveAutomated reports the genuine find but never fakes polling_place_source=LIVE when the municipality cannot be matched', function () {
+    $adapter = new class implements LiveSourceAdapter
+    {
+        public function startLookup(string $cedula): string
+        {
+            return 'session-unmatched-municipio';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return [
+                'status' => 'done',
+                'data' => [
+                    'puesto_nombre' => 'IE DESCONOCIDA',
+                    'puesto_codigo' => '',
+                    'zona_codigo' => '',
+                    'mesa_numero' => '01',
+                    'departamento' => 'NINGUNO',
+                    'municipio' => 'MUNICIPIO INEXISTENTE',
+                    'direccion' => 'SIN DIRECCION',
+                ],
+                'error' => null,
+            ];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+
+    $voter = Voter::factory()->create(['polling_place_source' => null]);
+    $resolver = new PollingPlaceResolver([$adapter]);
+
+    $result = $resolver->resolveAutomated('1000000041', $voter);
+
+    expect($result)->not->toBeNull()
+        ->and($result->source)->toBe(PollingPlaceSource::LIVE)
+        ->and($result->pollingPlaceId)->toBeNull()
+        ->and($voter->fresh()->polling_place_source)->toBeNull();
+});
+
 // Test 34
 test('resolveAutomated treats a status=done result with a blank puesto_nombre as non-success and falls back to snapshot', function () {
     NationalCensusRecord::factory()->create([

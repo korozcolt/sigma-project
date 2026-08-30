@@ -336,9 +336,7 @@ trait HasRegistraduriaPolling
      */
     private function fillPollingPlaceFields(array $data): void
     {
-        $municipality = Municipality::query()
-            ->whereRaw('LOWER(name) = ?', [strtolower($data['municipio'] ?? '')])
-            ->first();
+        $municipality = Municipality::findByFuzzyName($data['municipio'] ?? '');
 
         $department = $municipality
             ? $municipality->department

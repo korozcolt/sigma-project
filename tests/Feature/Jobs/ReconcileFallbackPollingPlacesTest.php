@@ -340,6 +340,52 @@ test('does not bump reconciliation_attempts when a RegistraduriaLiveSession clai
         ->and($voter->fresh()->reconciliation_exhausted_at)->toBeNull();
 });
 
+// apoyo-marcado-en-vivo-con-puesto-sin-resolver: a LIVE result whose municipality can't be
+// matched must count as a failed attempt, never as a success that strands the voter outside
+// this job's own candidate query (which excludes source = LIVE).
+test('counts an unmatched-municipality LIVE result as a failed attempt, never as success', function () {
+    $adapter = new class implements LiveSourceAdapter
+    {
+        public function startLookup(string $cedula): string
+        {
+            return 'session-unmatched-municipio';
+        }
+
+        public function getResult(string $sessionId): array
+        {
+            return ['status' => 'done', 'data' => [
+                'puesto_nombre' => 'IE DESCONOCIDA', 'puesto_codigo' => '', 'zona_codigo' => '',
+                'mesa_numero' => '01', 'departamento' => 'NINGUNO', 'municipio' => 'MUNICIPIO INEXISTENTE', 'direccion' => 'SIN DIRECCION',
+            ], 'error' => null];
+        }
+
+        public function isReachable(): bool
+        {
+            return true;
+        }
+    };
+    bindResolverWithAdapter($adapter);
+
+    $voter = Voter::factory()->create([
+        'polling_place_source' => null,
+        'status' => VoterStatus::PENDING_REVIEW,
+        'reconciliation_attempts' => 0,
+    ]);
+
+    (new ReconcileFallbackPollingPlaces)->handle(app(PollingPlaceResolver::class), app(VoterValidationService::class));
+
+    $fresh = $voter->fresh();
+
+    expect($fresh->polling_place_source)->toBeNull()
+        ->and($fresh->reconciliation_attempts)->toBe(1)
+        // Must NOT hardcode found=true off "resolver returned a LIVE source" alone (the
+        // status/polling_place_source desync this job's own status-sync branch could
+        // otherwise reintroduce) — a LIVE result whose municipality never matched must
+        // never force VERIFIED_CENSUS in the same pass. See
+        // .planning/debug/resolved/apoyo-marcado-en-vivo-con-puesto-sin-resolver.md.
+        ->and($fresh->status)->toBe(VoterStatus::PENDING_REVIEW);
+});
+
 // RECON-06: correctly-unitted lock expiry
 test('census:reconcile-live is scheduled hourly with a 10-minute withoutOverlapping lock', function () {
     $consoleRoutes = file_get_contents(base_path('routes/console.php'));
