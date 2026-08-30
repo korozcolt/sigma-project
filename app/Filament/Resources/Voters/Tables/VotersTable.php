@@ -29,6 +29,7 @@ class VotersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('registeredBy.coordinator.areaCoordinator'))
             ->columns([
                 TextColumn::make('full_name')
                     ->label('Nombre Completo')
@@ -129,6 +130,32 @@ class VotersTable
                     ->label('Registrado por')
                     ->searchable()
                     ->toggleable(),
+
+                TextColumn::make('coordinador')
+                    ->label('Coordinador')
+                    ->toggleable()
+                    ->state(function (Voter $record): string {
+                        $registrador = $record->registeredBy;
+
+                        if ($registrador?->hasRole(UserRole::COORDINATOR->value)) {
+                            return $registrador->name;
+                        }
+
+                        return $registrador?->coordinator?->name ?? 'N/A';
+                    }),
+
+                TextColumn::make('articulador')
+                    ->label('Articulador')
+                    ->toggleable()
+                    ->state(function (Voter $record): string {
+                        $registrador = $record->registeredBy;
+
+                        if ($registrador?->hasRole(UserRole::COORDINATOR->value)) {
+                            return $registrador->areaCoordinator?->name ?? 'N/A';
+                        }
+
+                        return $registrador?->coordinator?->areaCoordinator?->name ?? 'N/A';
+                    }),
 
                 TextColumn::make('birth_date')
                     ->label('Fecha de Nacimiento')
