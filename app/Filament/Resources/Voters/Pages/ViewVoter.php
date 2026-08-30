@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Voters\Pages;
 
+use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Filament\Resources\Voters\VoterResource;
 use App\Models\Voter;
@@ -9,10 +10,16 @@ use Filament\Actions\EditAction;
 use Filament\Infolists\Components;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Schema as SchemaType;
+use Illuminate\Database\Eloquent\Model;
 
 class ViewVoter extends ViewRecord
 {
     protected static string $resource = VoterResource::class;
+
+    protected function resolveRecord(int|string $key): Model
+    {
+        return parent::resolveRecord($key)->loadMissing('registeredBy.coordinator.areaCoordinator');
+    }
 
     protected function getHeaderActions(): array
     {
@@ -41,6 +48,18 @@ class ViewVoter extends ViewRecord
                 ->label('Barrio'),
             Components\TextEntry::make('campaign.name')
                 ->label('Campaña'),
+
+            Components\TextEntry::make('lider')
+                ->label('Líder')
+                ->state(fn (Voter $record): string => $this->resolveLiderLabel($record)),
+
+            Components\TextEntry::make('coordinador')
+                ->label('Coordinador')
+                ->state(fn (Voter $record): string => $this->resolveCoordinadorLabel($record)),
+
+            Components\TextEntry::make('articulador')
+                ->label('Articulador')
+                ->state(fn (Voter $record): string => $this->resolveArticuladorLabel($record)),
 
             Components\TextEntry::make('census_validated_at')
                 ->label('Validado contra Censo')
@@ -86,6 +105,39 @@ class ViewVoter extends ViewRecord
                 ->state(fn (Voter $record): string => $this->missingDataSummary($record))
                 ->color(fn (Voter $record): string => $this->missingDataSummary($record) === 'Sin datos faltantes' ? 'success' : 'danger'),
         ]);
+    }
+
+    private function resolveLiderLabel(Voter $record): string
+    {
+        $registrador = $record->registeredBy;
+
+        if ($registrador?->hasRole(UserRole::LEADER->value)) {
+            return $registrador->name;
+        }
+
+        return 'N/A';
+    }
+
+    private function resolveCoordinadorLabel(Voter $record): string
+    {
+        $registrador = $record->registeredBy;
+
+        if ($registrador?->hasRole(UserRole::COORDINATOR->value)) {
+            return $registrador->name;
+        }
+
+        return $registrador?->coordinator?->name ?? 'N/A';
+    }
+
+    private function resolveArticuladorLabel(Voter $record): string
+    {
+        $registrador = $record->registeredBy;
+
+        if ($registrador?->hasRole(UserRole::COORDINATOR->value)) {
+            return $registrador->areaCoordinator?->name ?? 'N/A';
+        }
+
+        return $registrador?->coordinator?->areaCoordinator?->name ?? 'N/A';
     }
 
     private function latestValidationSource(Voter $record): string

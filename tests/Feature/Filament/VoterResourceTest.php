@@ -602,6 +602,58 @@ test('can render view voter page', function () {
         ->assertSuccessful();
 });
 
+test('view page displays lider, coordinador y articulador when registrador is a lider', function () {
+    $municipality = Municipality::factory()->create();
+
+    $areaCoordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update([
+        'coordinator_user_id' => $coordinator->id,
+        'area_coordinator_user_id' => $areaCoordinator->id,
+    ]);
+
+    $leader = User::factory()->create([
+        'municipality_id' => $municipality->id,
+        'coordinator_user_id' => $coordinator->id,
+    ]);
+    $leader->assignRole(UserRole::LEADER->value);
+
+    $voter = Voter::factory()->create([
+        'municipality_id' => $municipality->id,
+        'registered_by' => $leader->id,
+    ]);
+
+    Livewire::test(ViewVoter::class, ['record' => $voter->id])
+        ->assertSee($leader->name)
+        ->assertSee($coordinator->name)
+        ->assertSee($areaCoordinator->name);
+});
+
+test('view page displays N/A para lider y muestra el propio coordinador when registrador is a coordinador directo', function () {
+    $municipality = Municipality::factory()->create();
+
+    $areaCoordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+
+    $coordinator = User::factory()->create(['municipality_id' => $municipality->id]);
+    $coordinator->assignRole(UserRole::COORDINATOR->value);
+    $coordinator->update([
+        'coordinator_user_id' => $coordinator->id,
+        'area_coordinator_user_id' => $areaCoordinator->id,
+    ]);
+
+    $voter = Voter::factory()->create([
+        'municipality_id' => $municipality->id,
+        'registered_by' => $coordinator->id,
+    ]);
+
+    Livewire::test(ViewVoter::class, ['record' => $voter->id])
+        ->assertSee('N/A')
+        ->assertSee($coordinator->name)
+        ->assertSee($areaCoordinator->name);
+});
+
 test('view page displays voter information', function () {
     $municipality = Municipality::factory()->create();
     $neighborhood = Neighborhood::factory()->for($municipality)->create();
