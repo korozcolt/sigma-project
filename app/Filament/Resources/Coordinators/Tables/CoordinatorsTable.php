@@ -20,7 +20,9 @@ class CoordinatorsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => app(MetadataAssignmentService::class)->withCurrentValueSelects($query))
+            ->modifyQueryUsing(fn (Builder $query) => app(MetadataAssignmentService::class)
+                ->withCurrentValueSelects($query)
+                ->with('areaCoordinator'))
             ->columns([
                 TextColumn::make('name')
                     ->label('Nombre')
@@ -35,6 +37,13 @@ class CoordinatorsTable
                     ->copyMessage('Correo copiado')
                     ->copyMessageDuration(1500)
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('areaCoordinator.name')
+                    ->label('Articulador')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
 
                 TextColumn::make('municipality.name')
                     ->label('Municipio')

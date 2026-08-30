@@ -19,7 +19,9 @@ class LeadersTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => app(MetadataAssignmentService::class)->withCurrentValueSelects($query))
+            ->modifyQueryUsing(fn (Builder $query) => app(MetadataAssignmentService::class)
+                ->withCurrentValueSelects($query)
+                ->with('coordinator.areaCoordinator'))
             ->columns([
                 TextColumn::make('name')
                     ->label('Nombre')
@@ -37,6 +39,13 @@ class LeadersTable
 
                 TextColumn::make('coordinator.name')
                     ->label('Coordinador')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
+
+                TextColumn::make('coordinator.areaCoordinator.name')
+                    ->label('Articulador')
                     ->searchable()
                     ->sortable()
                     ->placeholder('—')
