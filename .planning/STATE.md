@@ -154,6 +154,7 @@ Quick task 260830-iok decisions:
 - Full regression sweep `--filter="Voter|Leader|Coordinator|User"` (785 tests, 2272 assertions) showed zero regressions; the pre-existing `CampaignContext` static-override flake (`UserResourceTest > can update user campaigns`) surfaced once mid-sweep and passed cleanly in isolation and in the full sweep — confirmed unrelated to this task's changes.
 - Worktree (`agent-a5e1d8addf17f0512`) was stale at session start — missing `vendor/`, `.env`, `public/build` entirely, and one fast-forward commit behind `main` (missing this task's own `260830-iok-PLAN.md` plus the unrelated 260830-il4/260830-in7 commits). Resolved with the established workaround: `git merge --ff-only main`, `.env` copy, `composer install`, `public/build` copy from the main checkout.
 - Real-browser verification of all 3 Volt forms + all 4 Filament forms + dual login with a real cédula-only user is still pending, per the user's standing browser-verify-before-prod preference — not yet performed in this session (full manual verification script recorded in this task's own SUMMARY.md).
+- Post-execution goal verification (quick-full mode): PASSED 7/7 must-haves — re-ran all test suites independently (LoginWithoutEmailTest, RequireEmailOrDocumentNumberTest, RequireEmailOrDocumentNumberLivewireTest, plus regression) against the merged main checkout, confirmed `users.email` nullable live in the DB, confirmed FortifyServiceProvider untouched, no stub/placeholder anti-patterns. See `260830-iok-VERIFICATION.md`.
 
 Quick task 260830-il4 decisions:
 
